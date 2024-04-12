@@ -1,0 +1,201 @@
+#   modulo .profile
+#   tipo 
+#   release 1.11
+#   data 94/12/23
+#   reserved @(#).profile	1.11
+#
+#############################################################
+OS=`uname`
+export OS
+set -o emacs
+################PRODUCTINST##########################
+export PATH=$PATH:$HOME/legocad/libut_bin:/usr/local/bin/
+#
+#       definizione simulatore e cassaforte di riferimento
+#       va messo prima di inizializzare l'ambiente ALTERLEGO
+#
+export KSIM=$HOME/sked/cassano0
+export KCASSAFORTE=$HOME/sked/cassano0/cassanosafe
+export KSIMNAME=cassano0
+export KFUNCTIONALAREA=' GP '
+#
+
+SKED_TIMEOUT=200
+export SKED_TIMEOUT
+if [ "$OS" = "Linux" ]
+then
+#LEGOROOT=/usr/users/guag/ccm_wa/ALTERLEGO/Alg_global-2005C_RHE3_guag/Alg_global
+#LEGOROOT=/usr/users/lomgr/ccm_wa/ALTERLEGO/Alg_global-2007A_RHE4_lomgr/Alg_global
+
+#LEGOROOT=/usr/users/lomgr/svn_wa/branches/LegoPST2010A_RHE5_64
+# con WSL
+LEGOROOT=/home/antonio/svn_wa/branches/LegoPST2010A_RHE6_64
+#LEGOROOT=/home/antonio/svn_wa/branches/LegoPST2010A_RHE5_64
+
+#LEGOROOT=/usr/users/lomgr/svn_wa/branches/LegoPST2010A_RHE6_64
+fi
+export LEGOROOT
+echo $LEGOROOT
+LEGOCAD_USER=~
+LEGO_BACK=/usr/users/cfb_back
+export LEGOROOT LEGOCAD_USER LEGO_BACK
+export TMPDIR=~/tmp
+export REGO_NEW=YES
+export LEGOCAD_EMM=YES
+export LEGO_BIG=YES
+export ALGRTDB=NO
+#export ALG_LICENSE_FREE=YES
+export LEGO_EMM=YES
+export LEGOCAD_STARTUP=YES
+export ALG_FPE=YES
+#export ALTERLEGO_CAP_DIR=/etc/alterlego/lic_rhe4
+export ALTERLEGO_CAP_DIR=/etc/alterlego/lic_ubuntu20_04
+
+unset ALGENV_SET
+        if [ ! "$ALGENV_SET" ]
+        then
+              . $LEGOROOT/Alg_env.sh
+              export ALGENV_SET="YES"
+        fi
+export LG_TEXTEDITOR=nedit
+#############PRODUCTINSTEND##########
+######     NET_COMPI PARAMETERS    ######
+export N000=70
+export N001=`expr $N000 \* 10`
+export N002=`expr $N000 \* 25`
+export N003=60000
+export N004=35000
+export N005=130000
+export N007=`expr $N000 \* 300`
+export M001=`expr $N005 \- $N003`
+export M002=`expr $M001 \- $N004`
+export M003=`expr $N002 \+ 1`
+export M004=`expr $N003 \+ 1`
+export M005=`expr $N004 \+ 1`
+#############################################################
+#     SID ENVIRONEMENT                                      #
+#############################################################
+# if [ -s $HOME/.sid_environment ]
+# then
+#   . $HOME/.sid_environment
+#
+# fi
+#############################################################
+#     CONTINUUS ENVIRONEMENT                                      #
+#############################################################
+#
+. /usr/users/ccm_root/.continuus
+OPENWINHOME=/usr/openwin; export OPENWINHOME
+PATH=$PATH:.:$OPENWINHOME/bin:/usr/bin/X11:/usr/sccs:/usr/ucb:/usr/bin:/bin; export PATH
+WA=$HOME/ccm_wa/ALTERLEGO
+#
+#########################################################
+#
+#----  Set per utilizzare la convenzione USA per i separatori di migliaia e decimali
+# 
+#########################################################
+#
+export LC_NUMERIC='en_US.utf8'
+echo LC_NUMERIC=$LC_NUMERIC
+export LANG=POSIX
+echo LANG=$LANG
+#
+#########################################################
+#
+# personalizzazione
+# 
+#########################################################
+#
+export HOST=`hostname`
+export STATION=`echo $HOST | cut -f1 -d. `
+export MMI_ULEVEL=1
+#export PS1='$STATION@$PWD > '
+#alias base='basename $PWD'
+#export PS1='$STATION@$USER ...`base` > '
+export PS1='$STATION@$USER .../`basename $PWD` > '
+export PATH=$PATH:$HOME/bin
+alias bin='cd ~/bin'
+alias lego='cd ~/legocad'
+#xhost +
+#export XAPPLRESDIR=~/xapplresdir
+#
+#########################################################
+# Variabili d'ambiente per SCADA E DTW
+# 
+#########################################################
+#
+export SCADA_DEBUG=1
+export RISOLVI_REGOLAZIONE=YES
+export SKED_TIME_AGG_STAT=1000
+#
+export PATH=$PATH:$HOME/SOLVER/solver
+#
+PERL5LIB=$LEGOROOT/util97/perl_lib/alpha_dec_osf/5.003:$LEGOROOT/util97/perl_lib
+#
+# Risorse personalizzate
+export XAPPLRESDIR=~/risorse
+#
+#########################################################
+#
+#---------------------Gcc-2.95.3
+#
+#
+#########################################################
+#
+PATH=/usr/local/gcc-2.95.3/bin:$PATH
+PATH=/usr/local/insight-5.3/bin:$PATH
+#
+#########################################################
+#
+#-------------------------- valgrind-1.0.4
+#
+#########################################################
+#
+PATH=/usr/local/valgrind-1.0.4/bin:$PATH
+#
+#########################################################
+#
+#-------------------------- splint-3.0.1.6
+#
+#########################################################
+#
+SPLINT=/usr/local/splint-3.0.1.6
+export LARCH_PATH=$SPLINT/share/splint/lib
+export LCLIMPORTDIR=$SPLINT/share/splint/imports
+PATH=$PATH:$SPLINT/bin
+#
+#########################################################
+#
+# Aggiungo parametri di compilazione necessari per Linux
+#
+#########################################################
+#
+export F_FLAGS='-g -fno-second-underscore -fdollar-ok -fno-automatic -finit-local-zero -fPIE '
+export FFLAGS='-g -fno-second-underscore -fdollar-ok -fno-automatic -finit-local-zero -fPIE '
+export  FC_LIBS=' -lg2c  -lm '
+export DEBUG=YES
+#
+#########################################################
+#
+# Aggiungo le librerie dinamiche dei thread nel path di ricerca
+#
+#########################################################
+#
+  ##################
+  # GIPS Environment
+  ##################
+  if [ -s $HOME/gips.korn ]
+  then
+  . $HOME/gips.korn
+  fi
+#export WAPC=/usr/users/guag/ccm_wa/ALTERLEGO/Alg_global-2005C_RHE3_guag/Alg_global/Alg_legopc
+#alias wapc='cd $WAPC'
+#######################
+#   Per legopc
+####. $HOME/legopc_pak/bin/install/env_legopc.sh
+#. $HOME/ccm_env_legopc.sh
+#alias lgpc='/usr/bin/tixwish8.1.8.3.1 $LG_TIX/legopc.tix'
+alias lgpcloc='/usr/users/guag/work/tcltktix/bin/tixwish8.1.8.3 $LG_TIX/legopc.tix'
+alias lgpclocult='/usr/users/guag/work/tcltktixultimo/bin/wish8.4 $LG_TIX/legopc.tix'
+alias llgpc='export LG_TIX=/usr/users/testguag/bin_lgtixloc ; wish $LG_TIX/legopc.tix'
+xhost +
