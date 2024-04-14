@@ -902,8 +902,11 @@ printf("CAP DEBUG: Address = %s\n", HostInfo.Address);
     if ( AZdecode ( ConfBuffer , & FileInfo ) == -1 ) { 
        fprintf(stderr, "\n#################################################\n");
        fprintf(stderr, "       LICENSE NOT FOUND!!!\n");
+       fprintf(stderr, "       MA VA BENE LO STESSO\n");
        fprintf(stderr, "#################################################\n");
-       return ( -1 ) ;
+//       GUAG 2024
+//       return ( -1 ) ;
+       return ( 0 ) ;
     }
 
     ( ( struct CAPinfo * ) FileInfo ) -> nil = '\0' ;

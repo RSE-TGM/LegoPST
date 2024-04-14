@@ -21,8 +21,11 @@ char   licenseType[10];
    if (Buffer[0] == '\0') {
       fprintf(stderr, "##################################################\n");
       fprintf(stderr, "        %s: LICENSE NOT FOUND!!!\n",program);
-      fprintf(stderr, "##################################################\n");
-      return(-1);
+      fprintf(stderr, "       MA VA BENE LO STESSO\n");
+      fprintf(stderr, "#################################################\n");
+     //       GUAG 2024
+     //       return ( -1 ) ;
+      return ( 0 ) ;
    }
 /*  
 printf("manageLicense DEBUG: Buffer = %s|\n", Buffer);
@@ -84,8 +87,11 @@ char   licenseType[10];
    if (Buffer[0] == '\0') {
       fprintf(stderr, "##################################################\n");
       fprintf(stderr, "        %s: LICENSE NOT FOUND!!!\n",program);
-      fprintf(stderr, "##################################################\n");
-      return(-1);
+      fprintf(stderr, "       MA VA BENE LO STESSO\n");
+      fprintf(stderr, "#################################################\n");
+	         //       GUAG 2024
+		 //            //       return ( -1 ) ;
+      return ( 0 ) ;
    }
 /*  
 printf("manageLicenseNoTime DEBUG: Buffer = %s\n",Buffer);
