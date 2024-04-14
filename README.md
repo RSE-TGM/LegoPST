@@ -4,4 +4,6 @@
 
 ### Versione  Ubuntu 20.04 - WSL 
 ### Installazione LegoPST
-'''make -f Makefile.mk'''
+~~~
+make -f Makefile.mk
+~~~
