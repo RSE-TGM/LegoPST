@@ -1,7 +1,5 @@
 # PORTING legoroot to Ubuntu
 
-nella macchina con WSl, mount di un disco ad esempio Z: 
-* sudo mount -t drvfs Z: /mnt/z 
 
 ### Installazione dei pacchetti di base
 
@@ -21,7 +19,7 @@ sudo apt-get install ./gcc-3.4-base_3.4.6-6ubuntu3_amd64.deb ./libg2c0_3.4.6-6ub
 ~~~
 
 Altre librerie X e motif:
-~~~
+~~~S
 sudo apt-get install libxmu-dev libxmu-headers freeglut3-dev libxext-dev libxi-dev
 dpkg -L libmotif-dev
 sudo apt-get install libmotif-dev
@@ -38,6 +36,11 @@ Esempi di comandi di clean (molto pericolosi!):
 * find . -iname ".svn" -print0 | xargs -0 rm -r
 * comando che simula 'git clean -n' 
 
+***
+### Comandi utili
+nella macchina con WSl, mount di un disco, ad esempio Z: 
+> sudo mount -t drvfs Z: /mnt/z 
+***
 ### Appunti vari:
 /home/antonio/svn_wa/branches/LegoPST2010A_RHE6_64/AlgLib/dcethreads_lib/
 http://osnet.cs.nchu.edu.tw/powpoint/Distributed_OS/RPC.pdf
