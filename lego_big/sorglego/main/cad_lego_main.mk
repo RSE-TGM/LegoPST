@@ -33,7 +33,7 @@ CFLAGS=$(C_FLAGS) -g
 .c.o:
 	$(CC) -c $(CFLAGS) $< -o $@
 #------------------------ Fortran compiler (g77)
-F_FLAGS=-fno-second-underscore -g -fno-automatic -finit-local-zero
+F_FLAGS=-fno-second-underscore -g -fno-automatic -finit-local-zero -std=legacy
 
 #
 #       Makefile Header:               cad_lego_main.mk

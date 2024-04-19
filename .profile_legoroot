@@ -24,14 +24,13 @@ SKED_TIMEOUT=200
 export SKED_TIMEOUT
 if [ "$OS" = "Linux" ]
 then
+##################################################################
+LEGOROOT=/home/antonio/svn_wa/branches/LegoPST2010A_WSL_DARHE6_64
+##################################################################
 #LEGOROOT=/usr/users/guag/ccm_wa/ALTERLEGO/Alg_global-2005C_RHE3_guag/Alg_global
 #LEGOROOT=/usr/users/lomgr/ccm_wa/ALTERLEGO/Alg_global-2007A_RHE4_lomgr/Alg_global
-
 #LEGOROOT=/usr/users/lomgr/svn_wa/branches/LegoPST2010A_RHE5_64
-# con WSL
-LEGOROOT=/home/antonio/svn_wa/branches/LegoPST2010A_RHE6_64
 #LEGOROOT=/home/antonio/svn_wa/branches/LegoPST2010A_RHE5_64
-
 #LEGOROOT=/usr/users/lomgr/svn_wa/branches/LegoPST2010A_RHE6_64
 fi
 export LEGOROOT

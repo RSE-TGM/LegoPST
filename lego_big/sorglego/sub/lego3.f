@@ -65,7 +65,7 @@ C$$$ $     STAR/'****'/
       DATA PZERO/20000000./,HZERO/1000000. /,QZERO/1000./
       DATA TZERO/1000./,ROZERO/100./,ALZERO/10./,VZERO/50./,
      $     DPZERO/1.E+5/
-      DATA LG/'LG'/,IS/'SI'/
+C Guag2024      DATA LG/'LG'/,IS/'SI'/
       NX1=N001
       NX2=N002
       NX3=N003

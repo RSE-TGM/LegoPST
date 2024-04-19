@@ -1,0 +1,281 @@
+C*********************************************************************
+C       Fortran PreCompile:             main_lg2.pf
+C       Subsystem:              1
+C       Description:
+C       %created_by:    lomgr %
+C       %date_created:  Thu Apr 22 09:26:50 2004 %
+C
+C**********************************************************************
+
+
+C
+C Procedura contenete la variabile per identificazione della versione
+C
+      BLOCK DATA BDD_main_lg2_pf
+      CHARACTER*80  RepoID
+      COMMON /CM_main_lg2_pf / RepoID
+      DATA RepoID/'@(#)1,pfsrc,main_lg2.pf,2'/
+      END
+C**********************************************************************
+CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+C                                                                      C
+C           LEGO unificato per singola / doppia precisione             C
+C                 e per diverse piattaforme operative                  C
+C                                                                      C
+C   Attivata versione singola precisione per sistema operativo Unix    C
+C                                                                      C
+CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+
+      PROGRAM LG2
+C
+C      PROGRAMMA  L G 2
+C
+       include 'lg_parameter.fh'
+C
+      DIMENSION NOSLN(N001)
+      DIMENSION NOSUB(N002),NOBLC(N002,2),NUSTA(N002),
+     $ NUSCI(N002),NINGR(N002),ISLN(N002),IP(M003),IPUNB(M003),
+     $ IPVRS(N005),IPS(M004),IPVRT(N005),IPI(M005),IPVRI(M001)
+C
+      INTEGER RVAR (N005,2)
+      CHARACTER*8 VAR(N005),VARI(N004),SIVAR(N003)
+      CHARACTER*80   FIL01(MN005)
+      CHARACTER*100  NMSIVA(N003)
+      CHARACTER*100  NMVARI(N004)
+      CHARACTER*80  NMBLOC(N002)
+      CHARACTER*8 VAVA,SIGLA
+      DIMENSION IOUSIV(N003),IOUVAR(N004)
+C
+      COMMON/AUSIL1/NSTATI,NUSCIT,NINGRE
+C
+C______ FILES DI LAVORO DI LG2
+C
+      CHARACTER*32 F14DAT,F02DAT,F03DAT
+C
+C_________ DEFINIZIONE DEI FILES
+C
+      F14DAT = 'proc/f14.dat'
+      F02DAT = 'proc/f02.dat'
+      F03DAT = 'proc/f03.dat'
+C
+      NX1=N001
+      NX2=N002
+      NX3=N003
+      NX4=N004
+      NX5=N005
+      NX6=N006
+      MX1=M001
+      MX2=M002
+C
+      OPEN(UNIT=2,FILE=F02DAT,STATUS='OLD',FORM='UNFORMATTED')
+      OPEN(UNIT=3,FILE=F03DAT,STATUS='UNKNOWN',FORM='UNFORMATTED')
+      OPEN(UNIT=14,FILE=F14DAT,STATUS='UNKNOWN',FORM='FORMATTED')
+C
+C
+C_____ LETTURA DEL FILE DI SCRITTO DA LG1
+C
+      REWIND 2
+      READ(2)NSTN,NBL,NEQAL, NU,NVART,NBL1
+      READ(2)(NOSLN(I),I=1,NSTN)
+      READ(2)SIGLA
+      READ(2)(NOSUB(I),(NOBLC(I,J),J=1,2),NUSTA(I),NUSCI(I)
+     $       ,NINGR(I),ISLN(I),I=1,NBL),(IP(I),I=1,NBL1)
+      READ(2)(VAR(I),I=1,NVART)
+      READ(2)(VARI(I),I=1,NU)
+      READ(2)IPUNIN,NLF01,(IPUNB(I),I=1,NBL1),
+     $        (FIL01(I),I=1,NLF01 )
+C
+C___________ DEFINIZIONE DELLE MATRICI DI COLLEGAMENTO
+C            FRA LE VARIABILI DEL SISTEMA E I BLOCCHI
+C            E FRA LE VARIABILI DEI BLOCCHI E IL SISTEMA
+C
+C___________ SCRITTURA DEL FILE F14.DAT (DATI GEOMETRICI)
+C
+C     ORDINAMENTO DELLE VARIABILI DEL SISTEMA SIVAR
+C    -TUTTE LE USCITE  -
+C    -TUTTI GLI STATI  - PROCEDENDO DAL PRIMO ALL ULTIMO BLOCCO
+C
+      DO 543 I = 1, NVART
+  543 READ (VAR(I), 544) RVAR (I,1), RVAR (I,2)
+  544 FORMAT (2A4)
+      M=0
+      K=0
+      DO 120 I=1,NBL
+      NS=NUSTA(I)
+      NY=NUSCI(I)
+      I1=IP(I)
+      IF(NS.EQ.0) GO TO 115
+      I2=I1+NS-1
+      DO 110 L=I1,I2
+      K=K+1
+      SIVAR(NEQAL+K)=VAR(L)
+      IPVRS(L)=NEQAL+K
+  110 CONTINUE
+      IF(NY.EQ.0)GO TO 120
+      I1=I2+1
+  115 I2=I1+NY-1
+      DO 117 L=I1,I2
+      M=M+1
+      SIVAR(M)=VAR(L)
+      IPVRS(L)=M
+  117 CONTINUE
+  120 CONTINUE
+C
+C     CONTROLLI
+C
+      IF(M.EQ.NEQAL)GO TO 130
+      WRITE(6,3312)M,NEQAL
+ 3312 FORMAT(//10X,'ER- SUB. LEGO2 -ERRORE DURANTE ORDINAMENTO ',
+     $   'VARIABILI DEL SISTEMA '//10X,'M= ',I3,'  NEQAL= ',I3//)
+      CALL LGABRT
+C
+C     DEFINIZIONE DEL PUNTATORE DEGLI INGRESSI DEI SINGOLI BLOCCHI VERSO
+C     IL VETTORE SIVAR(POSITIVO) O VARI (NEGATIVO)
+C
+  130 NEQSIS=K+NEQAL
+      DO 150 I=1,NBL
+      NI=NINGR(I)
+      IF(NI.EQ.0)GO TO 150
+      NS=NUSTA(I)
+      NY=NUSCI(I)
+      N=NS+NY
+      I1=IP(I)+N
+      I2=IP(I+1)-1
+      DO 140 J=I1,I2
+      VAVA=VAR(J)
+      DO 135 K=1,NEQSIS
+      IF(VAVA.EQ.SIVAR(K))GO TO 136
+  135 CONTINUE
+      DO 145 K=1,NU
+      IF(VAVA.EQ.VARI(K))GO TO 146
+  145 CONTINUE
+      IER=1
+      WRITE(6,3313)VAVA
+ 3313 FORMAT(//10X,'ER- SUB. LEGO 2. ERRORE DURANTE DEF.PUNT.',
+     $   'INGR.BLOCC.'/10X,'VAR = ',A8 /)
+      GO TO 140
+  136 IPVRS(J)=K
+      GO TO 140
+  146 IPVRS(J)=-K
+  140 CONTINUE
+  150 CONTINUE
+      IF (IER.EQ.1) CALL LGABRT
+C
+C     DEFINIZIONE DEL PUNTATORE DELLE VARIABILI DEL SISTEMA (SIVAR)
+C     VERSO LE VARIABILI DI OGNI BLOCCO
+C
+      N=0
+      IPS(1)=0
+      DO 200 I=1,NEQSIS
+      VAVA=SIVAR(I)
+      DO 180 J=1,NVART
+      IF(VAVA.NE.VAR(J))GO TO 180
+      N=N+1
+      IPVRT(N)=J
+  180 CONTINUE
+      IPS(I)=IPS(I)+1
+      IPS(I+1)=N
+  200 CONTINUE
+      IPS(NEQSIS+1)=N+1
+C
+C     DEFINIZIONE DEL PUNTATORE DEGLI INGRESSI DEL SISTEMA VERSO
+C     IL VETTORE VAR (VARIABILI DI OGNI BLOCCO)
+C
+      N=0
+      IPI(1)=0
+      DO 220 I=1,NU
+      VAVA=VARI(I)
+      DO 210 J=1,NVART
+      IF(VAVA.NE.VAR(J))GO TO 210
+      N=N+1
+      IPVRI(N)=J
+  210 CONTINUE
+      IPI(I)=IPI(I)+1
+      IPI(I+1)=N
+  220 CONTINUE
+      IPI(NU+1)=N+1
+C
+C_________ESTRAZIONE DALL AREA FIL01()
+C         DESCRIZIONE DELLE VARIABILI E DEI BLOCCHI
+C
+C
+      CALL NOMVAR(NBL,IPUNB,IPUNIN,NLF01,FIL01,NEQAL,
+     $            NMSIVA,NMVARI,NMBLOC,IOUSIV,IOUVAR)
+C
+C
+C   SCRITTURA FILE 03 CONNESSIONE LEGO2 - LEGO3
+C
+      REWIND 3
+      NBL1=NBL+1
+      NEQS1=NEQSIS+1
+      NPVRT=IPS(NEQS1)-1
+      NU1=NU+1
+      NVRI=IPI(NU1)-1
+      WRITE(3)NBL,NEQAL,NBL1,NVART,NEQSIS,NEQS1,NPVRT,NU,NU1,NVRI
+      WRITE(3)ISSIS,NBTRI,NSTN,SIGLA,(NOSLN(I),I=1,NSTN)
+      WRITE(3)(NOSUB(I),NOBLC(I,1),NOBLC(I,2),NUSTA(I),NUSCI(I),
+     $       NINGR(I),ISLN(I),NMBLOC(I),I=1,NBL)
+      WRITE(3)(IP(I),I=1,NBL1),(VAR(I),IPVRS(I),I=1,NVART)
+      WRITE(3)(IPS(I),I=1,NEQS1),(SIVAR(I),NMSIVA(I),
+     $        IOUSIV(I),I=1,NEQSIS),
+     $        (IPVRT(I),I=1,NPVRT)
+      WRITE(3)(IPI(I),I=1,NU1),(VARI(I),NMVARI(I),
+     $        IOUVAR(I),I=1,NU),
+     $       (IPVRI(I),I=1,NVRI)
+C
+C
+C________SCRITTURA DEL FILE F14 - DATI GEOMETRICI E FISICI
+C
+      REWIND 14
+ 5005 FORMAT('*LG*DATI DI NORMALIZZAZIONE P0=',6X,'*H0=',6X,'*W0=',6X,
+     $   '*T0=',6X,'*R0=',6X,'*',2X/'*LG*',24X,'L0=',6X,'*V0=',
+     $   6X,'*DP0=',6X,'*',21X)
+      WRITE(14,5000)SIGLA
+ 5000 FORMAT('*LG*NOME IMPIANTO =',A8)
+      WRITE(14,5005)
+      WRITE(14,5001)
+ 5001 FORMAT('*LG*CONDIZIONI INIZIALI VARIABILI DEL SISTEMA (MKS)')
+      DO 310 I=1,NEQSIS
+      K=I/100
+      K=I-K*100
+      WRITE(14,5002)K,NMSIVA(I)(1:8),
+     $              NMSIVA(I)(17:29),NMSIVA(I)(30:93)
+ 5002 FORMAT(1X,I2,1X,A,' =',10X,'*',A,'=',4X,'*',A)
+  310 CONTINUE
+ 5003 FORMAT('*LG*DATI FISICI E GEOMETRICI DEL SISTEMA SUDDIVISI',
+     $   ' A BLOCCHI')
+      WRITE(14,5007)
+ 5007 FORMAT('*LG*CONDIZIONI INIZIALI VARIABILI DI INGRESSO  ')
+      DO 315 I=1,NU
+      K=I/100
+      K=I-K*100
+      WRITE(14,5002)K,NMVARI(I)(1:8),
+     $              NMVARI(I)(17:29),NMVARI(I)(30:93)
+  315 CONTINUE
+      WRITE(14,5003)
+      IFUN=1
+      DO 500 I=1,NBL
+      WRITE(14,5004)NOBLC(I,1),NOBLC(I,2),NMBLOC(I)(26:80)
+      K=ISLN(I)
+ 5004 FORMAT('*LG*DATI DEL BLOCCO ',2A4,2X,A)
+      IBLOC1=NOBLC(I,1)
+      IBLOC2=NOBLC(I,2)
+      NSTATI=NUSTA(I)
+      NUSCIT=NUSCI(I)
+      NINGRE=NINGR(I)
+      I1=IP(I)
+      I2=IP(I+1)-1
+C
+      CALL MODI2(K,IFUN,IBLOC1,IBLOC2,RVAR,NX5,I1,I2,XYU,DATI,
+     $           K1,K2,IER,PS,PS)
+C
+  500 CONTINUE
+      WRITE(14,5006)
+ 5006 FORMAT('*LG*EOF')
+C      WRITE(6,5578)
+ 5578 FORMAT(///10X,'SU FILE 14 TROVI L'' ELENCO DEI DATI CHE DEVI'
+     $/10X,'COMPILARE PER CONTINUARE LA ELABORAZIONE CON LEGO3')
+      CALL LGSTOP
+      STOP
+      END
+C            
