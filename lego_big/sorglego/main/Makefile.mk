@@ -27,14 +27,15 @@ UIL_COMPILER=/usr/X11R6/bin/uil
 X_FLAGS=-c -D_NO_PROTO -DSNAPSHOT
 #------------------------ C preprocessor
 CPP=cpp
-CPPFLAGS=-P -C -DLINUX -traditional
+#CPPFLAGS=-P -C -DLINUX -traditional
+CPPFLAGS= -traditional-cpp -C -P -nostdinc -DLINUX 
 #------------------------ C compiler
 #CC=cc
 CFLAGS=$(C_FLAGS) -g
 .c.o:
 	$(CC) -c $(CFLAGS) $< -o $@
 #------------------------ Fortran compiler (g77)
-F_FLAGS=-fno-second-underscore -g -fno-automatic -finit-local-zero -std=legacy
+#F_FLAGS=-fno-second-underscore -g -fno-automatic -finit-local-zero
 
 #
 #	Makefile Header:               %name%

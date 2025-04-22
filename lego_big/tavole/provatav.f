@@ -19,13 +19,13 @@ C
 C**********************************************************************
       PROGRAM PROVATAV
       CALL INITSM
-  10  WRITE(*,*) ' P (bar),S (J/kg/K) ? '
-C Valori tipici P=1 bar (100000 Pa) S=1000 J/kg/K --> 73 �C
-      READ(*,*,END=20) P,S
+  10  WRITE(6,*) ' P (bar),S (J/kg/K) ? '
+C Valori tipici P=1 bar (100000 Pa) S=1000 J/kg/K --> 73 C
+      READ(5,*,END=20) P,S
       P=P*1.E05
       T=TEV(P,S,1)
       T=T-273.15
-      WRITE(*,*)'P=',P,'Pa  S=',S,'J/kg/K',' T(P,S)= ',T
+      WRITE(6,*)'P=',P,'Pa  S=',S,'J/kg/K',' T(P,S)= ',T
       GOTO 10
   20  STOP
       END

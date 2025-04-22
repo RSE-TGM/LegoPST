@@ -10,7 +10,7 @@ OS=LINUX
 X_LIB=-L/usr/X11R6/lib -lMrm -lXm -lXt -lX11
 GCC_INCLUDE=
 X_INCLUDE=-I. $(GCC_INCLUDE) 
-C_FLAGS=-g -D_BSD -DLINUX -D_NO_PROTO -DXOPEN_CATALOG -DUNIX -Dmmap=_mmap_32_ $(X_INCLUDE)
+C_FLAGS=-g -D_BSD -DLINUX -D_NO_PROTO -DXOPEN_CATALOG -DUNIX -Dmmap=_mmap_32_ $(X_INCLUDE) -Wno-implicit-function-declaration
 VERSIONE=-DBANCO_MANOVRA -DSCADA -DBACKTRACK -DF22_APPEND -DSNAP_PIAC -DPIACENZA -DREPLAY -DMFFR -DSAVEPERT
 #C_LIB=/lib/libbsd.a
 C_LIB=
@@ -23,7 +23,7 @@ UIL_COMPILER=/usr/X11R6/bin/uil
 X_FLAGS=-c -D_NO_PROTO -DSNAPSHOT
 #------------------------ C preprocessor
 CPP=cpp
-CPPFLAGS=-P -C -DLINUX -traditional
+CPPFLAGS= -traditional-cpp -C -P -nostdinc -DLINUX
 #------------------------ C compiler
 #CC=cc
 CFLAGS=$(C_FLAGS) -g
@@ -51,8 +51,7 @@ $(LEGO_BIN)/crealtm: crealtm.f
 #
 #
 $(OBJSPF): lgstop.pf
-	$(CPP) $(CPPFLAGS) lgstop.pf > lgstop_0.f
-	perl -0777 -pe 's,/\*.*?\*/,,gs' lgstop_0.f > lgstop.f
+	$(CPP) $(CPPFLAGS) lgstop.pf > lgstop.f
 	$(FC) $(FFLAGS) -c lgstop.f
 $(LEGO_LIB)/regonew.a:$(OBJSPF) $(OBJS_LIB)
 	ar ru $(LEGO_LIB)/regonew.a $(OBJSPF) $(OBJS_LIB)

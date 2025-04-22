@@ -26,14 +26,15 @@ UIL_COMPILER=/usr/X11R6/bin/uil
 X_FLAGS=-c -D_NO_PROTO -DSNAPSHOT
 #------------------------ C preprocessor
 CPP=cpp
-CPPFLAGS=-P -C -DLINUX -traditional
+#CPPFLAGS=-P -C -DLINUX -traditional
+CPPFLAGS= -traditional-cpp -C -P -nostdinc -DLINUX 
 #------------------------ C compiler
 #CC=cc
 CFLAGS=$(C_FLAGS) -g
 .c.o:
 	$(CC) -c $(CFLAGS) $< -o $@
 #------------------------ Fortran compiler (g77)
-F_FLAGS=-fno-second-underscore -g -fno-automatic -finit-local-zero -std=legacy
+#F_FLAGS=-fno-second-underscore -g -fno-automatic -finit-local-zero
 
 #
 #       Makefile Header:               cad_lego_main.mk
@@ -54,8 +55,7 @@ $(LEGOCAD_BIN)/clg1a_exe: $(CAD_LEGO_LIB)/cmain_lg1.o $(CAD_LEGO_LIB)/clegolib.a
                         $(CAD_LEGO_LIB)/clegolib.a -lc -o $@
 $(CAD_LEGO_LIB)/cmain_lg1.o: main_lg1.pf $(CAD_LEGO_LIB)/lg_parameter.fh $(CAD_LEGO_LIB)/main_lg1.pf
 	/lib/cpp $(CPPFLAGS) -DLEGOCAD  $(CAD_LEGO_LIB)/main_lg1.pf \
-		         > main_lg1_0.f
-	perl -0777 -pe 's,/\*.*?\*/,,gs' main_lg1_0.f > main_lg1.f
+		         > main_lg1.f
 	$(FC) -c $(FFLAGS) main_lg1.f -o $(CAD_LEGO_LIB)/cmain_lg1.o
 
 $(CAD_LEGO_LIB)/lg_parameter.fh:  lg_parameter.fh

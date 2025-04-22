@@ -10,7 +10,7 @@ OS=LINUX
 X_LIB=-L/usr/X11R6/lib -lMrm -lXm -lXt -lX11
 GCC_INCLUDE=
 X_INCLUDE=-I. $(GCC_INCLUDE) 
-C_FLAGS=-g -fcommon -D_BSD -DLINUX -D_NO_PROTO -DXOPEN_CATALOG -DUNIX -Dmmap=_mmap_32_ $(X_INCLUDE)
+C_FLAGS=-g -fpermissive -D_BSD -DLINUX -D_NO_PROTO -DXOPEN_CATALOG -DUNIX -Dmmap=_mmap_32_ $(X_INCLUDE)
 VERSIONE=-DBANCO_MANOVRA -DSCADA -DBACKTRACK -DF22_APPEND -DSNAP_PIAC -DPIACENZA -DREPLAY -DMFFR -DSAVEPERT
 #C_LIB=/lib/libbsd.a
 C_LIB=
@@ -44,12 +44,14 @@ F_FLAGS=-fno-second-underscore -g -fno-automatic -finit-local-zero
 #
 #CCM_MAKE_SERIAL=cc f77 ar ranlib /lib/cpp $(LEGO_BIN)/creatav
 .SUFFIXES:  .pf .o .f .c .sh .h .a
-FFLAGS=$(F_FLAGS) --std=legacy
+C_FLAGS=-fpermissive
+FFLAGS=$(F_FLAGS)
 CFLAGS=$(C_FLAGS) -D$(OS) 
 TAVOLE=../bin
 #
 #
-all:  $(TAVOLE)/TAVOLE.DAT $(LEGO_BIN)/initav $(LEGO_LIB)/vapo.a $(LEGO_BIN)/provatav $(LEGO_BIN)/killtav $(LEGO_BIN)/killshrmem
+##all:  $(TAVOLE)/TAVOLE.DAT $(LEGO_BIN)/initav $(LEGO_LIB)/vapo.a $(LEGO_BIN)/provatav $(LEGO_BIN)/killtav $(LEGO_BIN)/killshrmem
+all:  $(TAVOLE)/TAVOLE.DAT $(LEGO_BIN)/initav $(LEGO_LIB)/vapo.a $(LEGO_BIN)/killtav $(LEGO_BIN)/killshrmem
 #
 # Initav inizializza l'area shared contenente i dati.
 #
@@ -75,26 +77,24 @@ VAPO_FORTRAN_OBJ = initsm.o vapo1.o diagn.o phsat.o
 #di default con il comando ar
 $(LEGO_LIB)/vapo.a: $(VAPO_C_OBJ) $(VAPO_FORTRAN_OBJ) 
 	ar -crsv $(LEGO_LIB)/vapo.a $(VAPO_C_OBJ) $(VAPO_FORTRAN_OBJ)
-# guag2024	ar -crsvl $(LEGO_LIB)/vapo.a $(VAPO_C_OBJ) $(VAPO_FORTRAN_OBJ)
 #	ranlib $(LEGO_LIB)/vapo.a 
 #
-$(LEGO_BIN)/provatav: provatav.f $(VAPO_C_OBJ) $(VAPO_FORTRAN_OBJ) 
-	$(FC) $(FFLAGS) provatav.f $(VAPO_C_OBJ) $(VAPO_FORTRAN_OBJ) -lc -o $(LEGO_BIN)/provatav
+## $(LEGO_BIN)/provatav: provatav.f $(VAPO_C_OBJ) $(VAPO_FORTRAN_OBJ) 
+## 	$(FC) $(FFLAGS) provatav.f $(VAPO_C_OBJ) $(VAPO_FORTRAN_OBJ) -lc -o $(LEGO_BIN)/provatav
 #
 # killtav libera l'area shared dopo l'uso o permette di ricaricare le tavole
 # usando initav, killshrmem fa lo stesso con l'area condivisa tra tasks.
 #
 $(LEGO_BIN)/killtav: killtav.c
-	$(CC) killtav.c  -o $@
+	$(CC) -fpermissive killtav.c  -o  $@
 #
 $(LEGO_BIN)/killshrmem: killshrmem.c
-	$(CC) killshrmem.c -o $@
+	$(CC) -fpermissive killshrmem.c -o $@
 #
 #  nuova regola per precompilare un .pf
 #
 .pf.o:
-	/lib/cpp  $(CPPFLAGS)  -D$(OS)   $< >> $*_0.f
-	perl -0777 -pe 's,/\*.*?\*/,,gs' $*_0.f > $*.f
+	/lib/cpp  $(CPPFLAGS)  -D$(OS)   $< >> $*.f
 	-$(FC) -c $(FFLAGS) $*.f
 	rm -f $*.f
  

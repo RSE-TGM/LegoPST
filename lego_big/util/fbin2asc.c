@@ -6,7 +6,13 @@
    reserved @(#)fbin2asc.c	1.3
 */
 #include <stdio.h>
-main(argc,argv)
+
+void leggi_testa_bin(); 
+void scrivi_testa_asc();
+void scrivi_corpo_asc();
+int leggi_corpo_bin();
+
+int main(int argc, char *argv[])
 {
    leggi_testa_bin();
    scrivi_testa_asc();

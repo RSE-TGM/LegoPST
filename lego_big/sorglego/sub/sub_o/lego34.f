@@ -1,3 +1,5 @@
+
+
 C*********************************************************************
 C Fortran PreCompile: lego34.pf
 C Subsystem: 1
@@ -140,10 +142,10 @@ C
       CHARACTER*8 VAVA
 C
       DATA SI/'SI'/,SIP/'si'/
-C Guag2024      DATA IBLK/' '/,ISSO/'SI'/,ISTAR/'****'/
+C      DATA IBLK/' '/,ISSO/'SI'/,ISTAR/'****'/
       DATA PZERO/20000000./,HZERO/1000000. /,QZERO/1000./
       DATA TZERO/1000./,ROZERO/100./
-C Guag2024      DATA LG/'LG'/,IS/'SI'/
+C      DATA LG/'LG'/,IS/'SI'/
 C
 C Setta il contatore errori tavole ad un valore che provoca uscita
 C immediata

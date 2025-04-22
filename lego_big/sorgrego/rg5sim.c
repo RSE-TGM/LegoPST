@@ -19,8 +19,6 @@ static char SccsID[] = "@(#)rg5sim.c	1.1\t11/15/95";
 #include <string.h>
 #include <malloc.h>
 
-
-
 /* definizione delle COMMON Fortran e subroutines esterne	*/
 
 #define regime		regime_
@@ -35,6 +33,22 @@ static char SccsID[] = "@(#)rg5sim.c	1.1\t11/15/95";
 #define initsm		initsm_
 #define legbl1          legbl1_
 #define modc1           modc1_
+
+extern void legbl1_ (int *, int [], int [], float [], float []);
+
+extern void modc1_ (int *, int *, float [][1], int *, int *, float [], int *,
+  float [], float [], int *, int *);
+
+extern void initsm_();
+
+
+
+/*
+extern void reg000_(int*, float*[], float*[], float*, float*[])
+reg000_(&ipr, xy, uu, &px, dati, &(inpar1.neqsis), &(inpar1.nu),
+&neqdif, &(inpar1.ndati), cnxy, cnuu, &(parint.tstep), &ifine,
+&t_proc, &jac, &(parpar.itert));
+*/
 
 
 struct common_regime {

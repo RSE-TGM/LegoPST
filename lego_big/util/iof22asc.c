@@ -6,6 +6,8 @@
    reserved @(#)iof22asc.c	1.8
 */
 #include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
 
 struct common_variabili {
                          char nomi_misure[1000][8];
@@ -24,9 +26,9 @@ VARIABILE variabili_;
 
 FILE  *f22;
 
-float atof();
+//float atof();
 
-leggi_testa_asc()
+void leggi_testa_asc()
    {
    int i;
    int j;
@@ -52,7 +54,7 @@ leggi_testa_asc()
 
 
 
-leggi_corpo_asc()
+int leggi_corpo_asc()
    {
    int i;
    char stringa[101];
@@ -68,7 +70,7 @@ leggi_corpo_asc()
       }
    }
 
-scrivi_testa_asc()
+void scrivi_testa_asc()
    {
    int i;
    int j;
@@ -93,7 +95,7 @@ scrivi_testa_asc()
    }
 
 
-scrivi_corpo_asc()
+void scrivi_corpo_asc()
 
    {
    int i;

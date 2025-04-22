@@ -34,7 +34,7 @@ CFLAGS=$(C_FLAGS) -g
 .c.o:
 	$(CC) -c $(CFLAGS) $< -o $@
 #------------------------ Fortran compiler (g77)
-F_FLAGS=-fno-second-underscore -g -fno-automatic -finit-local-zero -std=legacy 
+F_FLAGS=-fno-second-underscore -g -fno-automatic -finit-local-zero
 
 #
 #	Makefile Header:               Makefile.mk
@@ -113,43 +113,31 @@ $(PATHCADOBJ)/lgstop.o: $(PATHCADOBJ)/lgstop.f
 	$(FC) -c $(FFLAGS) $(PATHCADOBJ)/lgstop.f  -o $(PATHCADOBJ)/lgstop.o
 
 $(PATHOBJ)/cloc.f: cloc.pf
-	/lib/cpp -P $(PREPROCESSOR_OPTIONS) cloc.pf > $(PATHOBJ)/cloc_0.f
-	perl -0777 -pe 's,/\*.*?\*/,,gs' $(PATHOBJ)/cloc_0.f > $(PATHOBJ)/cloc.f
+	/lib/cpp -P $(PREPROCESSOR_OPTIONS) cloc.pf > $(PATHOBJ)/cloc.f
 $(PATHOBJ)/crltm.f: crltm.pf
-	/lib/cpp -P $(PREPROCESSOR_OPTIONS) crltm.pf > $(PATHOBJ)/crltm_0.f
-	perl -0777 -pe 's,/\*.*?\*/,,gs' $(PATHOBJ)/crltm_0.f > $(PATHOBJ)/crltm.f
+	/lib/cpp -P $(PREPROCESSOR_OPTIONS) crltm.pf > $(PATHOBJ)/crltm.f
 $(PATHOBJ)/lego34.f: lego34.pf
-	/lib/cpp -P $(PREPROCESSOR_OPTIONS) lego34.pf > $(PATHOBJ)/lego34_0.f
-	perl -0777 -pe 's,/\*.*?\*/,,gs' $(PATHOBJ)/lego34_0.f > $(PATHOBJ)/lego34.f
+	/lib/cpp -P $(PREPROCESSOR_OPTIONS) lego34.pf > $(PATHOBJ)/lego34.f
 $(PATHOBJ)/legreg.f: legreg.pf
-	/lib/cpp -P $(PREPROCESSOR_OPTIONS) legreg.pf > $(PATHOBJ)/legreg_0.f
-	perl -0777 -pe 's,/\*.*?\*/,,gs' $(PATHOBJ)/legreg_0.f > $(PATHOBJ)/legreg.f
+	/lib/cpp -P $(PREPROCESSOR_OPTIONS) legreg.pf > $(PATHOBJ)/legreg.f
 $(PATHOBJ)/lgabrt.f: lgabrt.pf
-	/lib/cpp -P $(PREPROCESSOR_OPTIONS) lgabrt.pf > $(PATHOBJ)/lgabrt_0.f
-	perl -0777 -pe 's,/\*.*?\*/,,gs' $(PATHOBJ)/lgabrt_0.f > $(PATHOBJ)/lgabrt.f
+	/lib/cpp -P $(PREPROCESSOR_OPTIONS) lgabrt.pf > $(PATHOBJ)/lgabrt.f
 $(PATHOBJ)/lgstop.f: lgstop.pf
 	/lib/cpp -P $(PREPROCESSOR_OPTIONS) lgstop.pf > $(PATHOBJ)/lgstop.f
-	perl -0777 -pe 's,/\*.*?\*/,,gs' $(PATHOBJ)/lgstop_0.f > $(PATHOBJ)/lgstop.f
 
 
 $(PATHCADOBJ)/cloc.f: cloc.pf
-	/lib/cpp -P $(PREPROCESSOR_OPTIONS) -DLEGOCAD cloc.pf > $(PATHCADOBJ)/cloc_0.f
-	perl -0777 -pe 's,/\*.*?\*/,,gs' $(PATHCADOBJ)/cloc_0.f > $(PATHCADOBJ)/cloc.f
+	/lib/cpp -P $(PREPROCESSOR_OPTIONS) -DLEGOCAD cloc.pf > $(PATHCADOBJ)/cloc.f
 $(PATHCADOBJ)/crltm.f: crltm.pf
-	/lib/cpp -P $(PREPROCESSOR_OPTIONS) -DLEGOCAD crltm.pf > $(PATHCADOBJ)/crltm_0.f
-	perl -0777 -pe 's,/\*.*?\*/,,gs' $(PATHCADOBJ)/crltm_0.f > $(PATHCADOBJ)/crltm.f
+	/lib/cpp -P $(PREPROCESSOR_OPTIONS) -DLEGOCAD crltm.pf > $(PATHCADOBJ)/crltm.f
 $(PATHCADOBJ)/lego34.f: lego34.pf
-	/lib/cpp -P $(PREPROCESSOR_OPTIONS) -DLEGOCAD lego34.pf > $(PATHCADOBJ)/lego34_0.f
-	perl -0777 -pe 's,/\*.*?\*/,,gs' $(PATHCADOBJ)/lego34_0.f > $(PATHCADOBJ)/lego34.f
+	/lib/cpp -P $(PREPROCESSOR_OPTIONS) -DLEGOCAD lego34.pf > $(PATHCADOBJ)/lego34.f
 $(PATHCADOBJ)/legreg.f: legreg.pf
-	/lib/cpp -P $(PREPROCESSOR_OPTIONS) -DLEGOCAD legreg.pf > $(PATHCADOBJ)/legreg_0.f
-	perl -0777 -pe 's,/\*.*?\*/,,gs' $(PATHCADOBJ)/legreg_0.f > $(PATHCADOBJ)/legreg.f
+	/lib/cpp -P $(PREPROCESSOR_OPTIONS) -DLEGOCAD legreg.pf > $(PATHCADOBJ)/legreg.f
 $(PATHCADOBJ)/lgabrt.f: lgabrt.pf
-	/lib/cpp -P $(PREPROCESSOR_OPTIONS) -DLEGOCAD lgabrt.pf > $(PATHCADOBJ)/lgabrt_0.f
-	perl -0777 -pe 's,/\*.*?\*/,,gs' $(PATHCADOBJ)/lgabrt_0.f > $(PATHCADOBJ)/lgabrt.f
+	/lib/cpp -P $(PREPROCESSOR_OPTIONS) -DLEGOCAD lgabrt.pf > $(PATHCADOBJ)/lgabrt.f
 $(PATHCADOBJ)/lgstop.f: lgstop.pf
-	/lib/cpp -P $(PREPROCESSOR_OPTIONS) -DLEGOCAD lgstop.pf > $(PATHCADOBJ)/lgstop_0.f
-	perl -0777 -pe 's,/\*.*?\*/,,gs' $(PATHCADOBJ)/lgstop_0.f > $(PATHCADOBJ)/lgstop.f
+	/lib/cpp -P $(PREPROCESSOR_OPTIONS) -DLEGOCAD lgstop.pf > $(PATHCADOBJ)/lgstop.f
 
 $(LEGO_LIB)/legolib.a: $(OBJFILES) $(OBJFOR)
 	ar rsv $(LEGO_LIB)/legolib.a $(OBJFILES) $(OBJFOR)

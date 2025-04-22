@@ -19,20 +19,22 @@ C_LIB=
 OTHER_LIB=-lm
 MOTIF_VER=11
 #PREPROCESSOR_OPTIONS=-C -DOSF1
-PREPROCESSOR_OPTIONS= -C
+PREPROCESSOR_OPTIONS=
 UIL_INCLUDE=-I/usr/include/uil
 UIL_COMPILER=/usr/X11R6/bin/uil
 X_FLAGS=-c -D_NO_PROTO -DSNAPSHOT
 #------------------------ C preprocessor
 CPP=cpp
-CPPFLAGS=-P -C -DLINUX -traditional
+#CPPFLAGS=-P -C -DLINUX -traditional
+CPPFLAGS= -traditional-cpp -C -P -nostdinc -DLINUX 
+CPP_FLAGS= -traditional-cpp -C -P -nostdinc -DLINUX 
 #------------------------ C compiler
 #CC=cc
 CFLAGS=$(C_FLAGS) -g
 .c.o:
 	$(CC) -c $(CFLAGS) $< -o $@
 #------------------------ Fortran compiler (g77)
-F_FLAGS=-fno-second-underscore -g -fno-automatic -finit-local-zero -std=legacy
+#F_FLAGS=-fno-second-underscore -g -fno-automatic -finit-local-zero
 
 #
 #       Makefile Header:               lego_main.mk
@@ -54,8 +56,7 @@ all: $(LEGO_BIN)/lg1a_exe $(LEGO_BIN)/lg4_exe $(LEGO_BIN)/edi14_exe \
      $(LEGO_BIN)/svinforms main_svinforms.o
 #
 $(LEGO_BIN)/lg1a_exe: main_lg1.o $(LEGO_LIB)/legolib.a
-#	make main_lg1.o
-	CPP_FLAGS=
+#	make main_lg1.o CPP_FLAGS=
 	$(FC) $(FFLAGS) main_lg1.o $(LEGO_LIB)/legolib.a -lc -o $@
 #
 $(LEGO_BIN)/lg4_exe: main_lg4.o $(LEGO_LIB)/legolib.a
@@ -89,7 +90,6 @@ $(LEGO_BIN)/main_modscreg: main_modscreg.o
 .f.o:
 	$(FC) -c $(FFLAGS) $<
 .pf.f:
-	/lib/cpp -P $(CPP_FLAGS) $(PREPROCESSOR_OPTIONS) $< > $*_0.f
-	perl -0777 -pe 's,/\*.*?\*/,,gs'  $*_0.f >  $*.f
+	/lib/cpp -P $(CPP_FLAGS) $(PREPROCESSOR_OPTIONS) $< > $*.f
 
               

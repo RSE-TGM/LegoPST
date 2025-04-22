@@ -6,6 +6,7 @@
    reserved @(#)iof22bin.c	1.3
 */
 #include <stdio.h>
+#include <string.h>
 
 struct common_variabili {
                          char nomi_misure[1000][8];
@@ -27,7 +28,7 @@ VARIABILE variabili_;
 FILE  *file22, *file22out;
 
 
-leggi_testa_bin()
+void leggi_testa_bin()
    {
    int i;
    char nomi[8][1000];
@@ -43,7 +44,7 @@ leggi_testa_bin()
    }
 
 
-leggi_corpo_bin()
+int leggi_corpo_bin()
    {
    int i;
             if ( ! fread(&variabili_.tempo,sizeof(variabili_.tempo),1,file22))
@@ -52,7 +53,7 @@ leggi_corpo_bin()
 
    }
 
-scrivi_testa_bin_()
+void scrivi_testa_bin_()
    {
    int i;
    char nomi[8][1000];
@@ -67,7 +68,7 @@ scrivi_testa_bin_()
    }
 
 
-scrivi_corpo_bin_()
+void scrivi_corpo_bin_()
    {
    int i;
             fwrite(&variabili_.tempo,sizeof(variabili_.tempo),1,file22out);

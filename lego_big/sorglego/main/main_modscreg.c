@@ -12,6 +12,7 @@ static char *_csrc = "@(#) %filespec: %  (%full_filespec: %)";
 #endif
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <errno.h>
 #include <ctype.h>
@@ -27,9 +28,11 @@ C CHIUSO CON -1.\n\
 #define TAPPO  "      BUFDATI(INIZOFF+IDBUFREG) = -1\n"
 #define BUFFER "COMMON /BUFFER/"
 
+int ncaratteri(char *);
+
 char riga[200];
 
-main(argc,argv)
+int main(argc,argv)
 int argc;
 char **argv;
 {
@@ -115,7 +118,7 @@ char *ret;
 /*
    Sostituisce a partire da ret il carattere newstr.
 */
-sostituisci(char *ret, char *newstr, int loldstr, int lnewstr)
+int sostituisci(char *ret, char *newstr, int loldstr, int lnewstr)
 {
 char resto_riga[100];
 int kk;

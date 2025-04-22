@@ -1,0 +1,22 @@
+sudo dnf -install git
+sudo dnf install -y fastfetch
+sudo dnf install -y f77
+sudo dnf install -y gcc
+sudo dnf install -y gfortran
+sudo dnf install -y xclock
+sudo dnf install -y xhost
+
+sudo dnf update
+sudo dnf install libX11-devel
+sudo dnf install motif-devel
+sudo dnf install sqlite-devel
+
+per avere un f77 fortran:
+gfortran -c -std=legacy -ffixed-form -ffixed-line-length-132 \
+         -fno-automatic -finit-local-zero \
+         my_f77_code.f -o my_f77_code.o
+
+modifica questo script fortran in modo che le variabili di tipo integer usate per contenere caratteri e stringhe di caratteri siano convertite in CHARACTER*N dove N è la dimensione più adatta. Il formato del file modificato finale deve essere Fortran 77
+
+differanza tra due file sui primi 50 caratteri di ogni linea:
+diff <(cut -c -50 f14.out) <(cut -c -50 proc/f14.dat)

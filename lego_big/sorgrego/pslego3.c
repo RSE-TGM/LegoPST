@@ -62,12 +62,25 @@ static char SccsID[] = "@(#)pslego3.c	1.6\t2/20/96";
 /* dichiarazione di funzioni FORTRAN */
 
 extern void legbl1 (int *, int [], int [], float [], float []);
+// legbl1(&nu, ipi, ipvri, uu, xyu);
 extern void modi2 (int *, int *, int *, int *, int [][NVARIABILI], int *, int *, int *,
                    float [], float [], int *, int *, int *, float [], float []);
 extern void modc1 (int *, int *, float [][1], int *, int *, float [], int *,
                    float [], float [], int *, int *);
 extern void leggiline (int *, int *, char [], char [], int *);
 
+
+extern void scrivif04(char [], int*, int*, int*, int*, int*, int*, int*,
+  char [], int[], int(*)[],int[], int[],int[], int[],char(*)[], int[],char(*)[], int[],
+  int[], int[],int[], int[], float[],float[],float[],int*,  int[], float*, char (*)[], char (*)[]);
+/*
+            scrivif04(char [] f04name, &fn002, &nbl, &nvart, &neqsis, &npvrt, &nu, &nvri,
+  FORTsigla, nosub, noblc, nusta, nusci, ningr, islb, nmbloc, ip, var, ipvrs,
+  ips, ipvrt, ipi   , ipvri, xy,      uu,     xyu,   &ndati,ipdati, dati, nmsiva, nmvari);
+*/
+int essit(char *);
+void initsm_();
+int scrivi_f14();
 
 /* definizione di alcune costanti				*/
 
@@ -171,7 +184,6 @@ int debuglevel;
 /*								*/
 
 int essit(char *mesg)
-
 {
   printf(mesg);
   exit(-1);
@@ -217,7 +229,7 @@ void debugStr(int igroup, char *mesg, int itemtype, int ival, char *istr, float 
 /* argomento e apre i files di input/output			*/
 /*								*/
 
-checkInit (int argc, char **argv)
+void checkInit (int argc, char **argv)
 
 {
   if (argc != 3 && argc != 4)
@@ -256,7 +268,7 @@ checkInit (int argc, char **argv)
 /* queste, caricando i vettori globali.				*/
 /*								*/
 
-squeezeF01 ()
+void  squeezeF01 ()
 
 {
   char *priga;
@@ -401,7 +413,7 @@ squeezeF01 ()
 /* IPVRS, IPVRT e IPS.						*/
 /*								*/
 
-fillInvMatrix()
+void fillInvMatrix()
 
 {
   int i, v, w, b, stck, vispres;
@@ -471,7 +483,7 @@ fillInvMatrix()
 /* sui dati dei blocchi.					*/
 /*								*/
 
-readF14()
+void readF14()
 
 {
   int v;
@@ -541,7 +553,7 @@ readF14()
 /* chiamando la subroutine MODI2 opportunamente inizializzata	*/
 /*								*/
 
-doModi2Loop()
+void doModi2Loop()
 
 {
   int ne, j, bl, ifun, k1, k2, i1, i2, tint;
@@ -593,7 +605,7 @@ doModi2Loop()
 /* chiamando la subroutine MODC1 opportunamente inizializzata	*/
 /*								*/
 
-doModc1Loop()
+void doModc1Loop()
 
 {
   int bl, bl2, ipd, ixyu, ibloc1, ibloc2, ifun, FORTbl;
@@ -648,7 +660,7 @@ doModc1Loop()
 /* dall'esecuzione.						*/
 /*								*/
 
-writeF04()
+void writeF04()
 
 {
   FILE *foutf04;
@@ -750,7 +762,7 @@ writeF04()
 /* dall'esecuzione.						*/
 /*								*/
 
-writeN04()
+void writeN04()
 
 {
   FILE *foutn04;
@@ -791,7 +803,7 @@ writeN04()
 /* main - programma principale					*/
 /*								*/
 
-main (int argc, char **argv)
+int main (int argc, char **argv)
 
 {
   int i;
@@ -879,7 +891,7 @@ int *lun;
 /****************  function di scrittura del f14.s  ***************/
 
 
-int scrivi_f14()
+int  scrivi_f14()
 {
  int p,k,lun,iret;
  char riga[MAXLINELENGTH];
