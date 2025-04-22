@@ -23,6 +23,7 @@ static char SccsID[] = "@(#)seleziona_var.c	5.1\t11/7/95";
 */
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
 #include "sim_param.h"
 #include "sim_types.h"
 #include <Rt/RtMemory.h>
@@ -37,9 +38,11 @@ extern int nu_var_sel;
 
 char   *nome_modello (char *, int);
 char   *nome_blocco(char *,int,int);
+int     numero_modelli (char *);
+int     numero_blocchi (char *, int);
 
 
-scrive_default(nome_file)
+void scrive_default(nome_file)
    char     *nome_file;
 {
    FILE     *fp;
@@ -102,7 +105,7 @@ scrive_default(nome_file)
 
 
 
-legge_sel(nome_file)
+void legge_sel(nome_file)
    char     *nome_file;
 {
    FILE     *fp;
@@ -278,7 +281,7 @@ if(errore_formato || no_rtf)
 
 
 
-scrive_sel(nome_file)
+void scrive_sel(nome_file)
    char     *nome_file;
 {
    FILE     *fp;
@@ -396,7 +399,7 @@ if (out_bin)
 	}
 }
 
-elimina_f22()
+void elimina_f22()
 {
 #if defined VMS
 system("delete/nolog/noconf  f22circ.dat;*");

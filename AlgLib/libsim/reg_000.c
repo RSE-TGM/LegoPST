@@ -17,6 +17,7 @@ static char SccsID[] = "@(#)reg_000.c	5.2\t5/16/96";
 # include <stdio.h>
 # include <string.h>
 # include <stdlib.h>
+#include <unistd.h>
 # include <errno.h>
 # include <time.h>
 # include <math.h>
@@ -58,6 +59,8 @@ extern RtDbPuntiOggetto dbpunti;
 
 extern STATISTICS statistics;
 
+extern void f22_open(char *,char *,char *,int );
+extern void f22_write(float,float*,int);
 
 /*
 Variabile globale per passaggio di parametri a sync_task
@@ -493,7 +496,7 @@ sync_task(&var);
 Funzione per initialize task-nolego-sicre
 Da modificare : non e' necessario passare l' intera struttura INTERFACE_VAR
 */
-initialize_syncronization( INTERFACE_VAR *vartask)
+void initialize_syncronization( INTERFACE_VAR *vartask)
 {
 
 var.ipr=&(vartask->ipr);  /* flag per inizializzazione */
@@ -526,7 +529,7 @@ sync_task(&var);
 Funzione per la sincronizzazione della task SICRE
 con le task di regolazione
 */
-syncronize_sicre_run_time()
+void syncronize_sicre_run_time()
 {
 *(var.ipr)=2;
 

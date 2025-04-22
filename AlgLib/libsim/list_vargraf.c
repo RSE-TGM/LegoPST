@@ -36,7 +36,7 @@ extern char *ind_sh_top;	/* puntatore iniziale area shared variabili */
 extern VARIABILI *variabili;
 extern int tot_variabili;         /* numero totale delle variabili */
 extern int tot_righe_simboli;    /* numero totale elementi della lista simboli*/
-extern num_var_graf;		  /* nuemro variabili selezionate per la
+extern int num_var_graf;		  /* nuemro variabili selezionate per la
 				     grafica */
 
 extern char **simboli;		/* lista di tutte le variabili */
@@ -45,7 +45,7 @@ extern char nomi_misure[NUM_VAR][MAX_LUN_NOME_VAR];
 char   *nome_modello (char *, int);
 char   *nome_blocco(char *,int,int);
 
-list_vargraf()
+void list_vargraf()
 {
 int k, col, indvar, ind_mod, ind_bloc, ilista;
 char *pdata;

@@ -69,7 +69,7 @@ extern int n_last;         /* posizione dell'ultimo campione nel buffer circolar
    apre il file f22.dat 
 */
 
-open_22dat()
+void open_22dat()
 {
 int shr_usr_key;
 
@@ -93,7 +93,7 @@ if(fpDAT==NULL)
  close_22dat
    chiude il file f22.dat
 */
-close_22dat()
+void close_22dat()
 {
 #if defined AIX || VMS
    distruggi_shrmem(id_sh_f22);
@@ -116,7 +116,7 @@ close_22dat()
 
 float tsec;   /* tempo in secondi da memorizzare nel buffer dati; 
          	 viene incrementato di INC_SEC secondi per ogni campione*/
-read_22dat(flag,dim_bufcirc,num_camp_z0,inc_sec)
+int read_22dat(flag,dim_bufcirc,num_camp_z0,inc_sec)
 char flag;
 int dim_bufcirc;	/* dimensione massima buffer circolare DIM_BUFCIRC*/
 int num_camp_z0;	/* utili solo versione ULTRIX*/
@@ -194,7 +194,7 @@ float tsec;   /* tempo in secondi da memorizzare nel buffer dati;
 unsigned long off_f22;
 int lun_rec_dati;  /* lunghezza record dati */
 
-read_22dat(flag,dim_bufcirc,num_camp_z0,inc_sec)
+void read_22dat(flag,dim_bufcirc,num_camp_z0,inc_sec)
 char flag;
 int dim_bufcirc;        /* dimensione massima buffer circolare DIM_BUFCIRC*/
 int num_camp_z0;        /* utili solo versione ULTRIX*/
@@ -317,7 +317,7 @@ if(flag==TUTTI && !pieno)
         }
 }
     
-read_nomi(fp,offset)
+void read_nomi(fp,offset)
 FILE *fp;
 unsigned long *offset;
 {
@@ -353,7 +353,7 @@ if((fread(&header2,sizeof(S_HEAD2),1,fp))==NULL)
  *      a valori estremi i valori di minimo e massimo.
  */
 
-set_min_max(rec)
+void set_min_max(rec)
 S_DATI *rec;   /* record dati */
 {
 short i;

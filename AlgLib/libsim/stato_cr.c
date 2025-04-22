@@ -49,7 +49,7 @@ else
 }
 
 
-load_stato_cr(stato_cr)
+int load_stato_cr(stato_cr)
 STATO_CR *stato_cr;
 {
 FILE *fp;
@@ -75,7 +75,7 @@ if(fp=fopen("stato_cr.rtf","r"))
 
 
 
-load_stato_cr_arch(stato_cr,path_archive)
+int load_stato_cr_arch(stato_cr,path_archive)
 STATO_CR *stato_cr;
 char     *path_archive;
 {

@@ -52,7 +52,7 @@ return(ind);
 
  }
 
-int sim_shvar_free()   
+void sim_shvar_free()   
 {
 distruggi_shrmem(shmvar);
 }

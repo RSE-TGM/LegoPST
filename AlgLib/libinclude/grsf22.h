@@ -89,7 +89,7 @@ typedef struct s_dati_sim {
 typedef struct s_dati {
 			float t;
 			float mis[NUM_VAR_GRAFICS];
-			} S_DATI;
+			} ;
 
 typedef struct s_sel_dati {
 			float t;

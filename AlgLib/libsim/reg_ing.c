@@ -31,7 +31,7 @@ static char SccsID[] = "@(#)reg_ing.c	5.1\t11/7/95";
 extern int kini;                            /* puntatore intero             */
 extern RtDbPuntiOggetto dbpunti;
 
-reg_ing(uu,neqsis,nu,cnuu)
+void reg_ing(uu,neqsis,nu,cnuu)
 
  int *neqsis,*nu;
  float (*uu)[],(*cnuu)[];

@@ -31,7 +31,7 @@ static char SccsID[] = "@(#)reg_wrshm.c	5.1\t11/7/95";
 extern int kini;                            /* puntatore intero             */
 extern RtDbPuntiOggetto dbpunti;
 
-reg_wrshm(xy,uu,px,dati,neqsis,nu,neqdif,ndati,cnxy,cnuu)
+void reg_wrshm(xy,uu,px,dati,neqsis,nu,neqdif,ndati,cnxy,cnuu)
 
  int *neqsis,*nu,*neqdif,*ndati;
  float (*xy)[],(*uu)[],(*px)[],(*dati)[],(*cnxy)[],(*cnuu)[];

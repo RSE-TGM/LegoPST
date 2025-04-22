@@ -109,6 +109,9 @@ char *sim_shvar(int,int);
 char **cdim2(int,int);
 int **idim2(int,int);
 
+static void output_ascii (char*, VARIABILI*);
+
+
 /************************ INIZIO PROCEDURE ***********************/
 
 /* elimina se e' possibile la shared memory */
@@ -1092,7 +1095,7 @@ printf(" tot_ingressi = %d \n", *tot_ingressi);
 
 
 
-output_ascii (ind, variabili)
+void output_ascii (ind, variabili)
 char   *ind;
 VARIABILI * variabili;
 {
@@ -1140,7 +1143,7 @@ int     var_bl;
 
 
 
-output_ascii_big (ind_head)
+void output_ascii_big (ind_head)
 char   *ind_head;
 {
 FILE       * fp_edf;
@@ -1224,7 +1227,7 @@ printf("output_ascii_big DEBUG: var_app.mod = %d var_app.blo = %d\n",
             if ( db != NULL )
             {
 	       strncpy(sigla_blocco, nome_blocco(ind_head,k+1,i+1), 8);
-	       sigla_blocco[8]=NULL; 
+	       sigla_blocco[8]='\0'; 
                descrizione_blocco=nome_blocco(ind_head,k+1,i+1) + 10;
                SqlStatement = sqlite3_mprintf("insert into BLOCCHI(progr_blocco, sigla, descrizione, progr_modello) values ( '%d', '%q', '%q', '%d' );",
                                             i, sigla_blocco, descrizione_blocco, k+1);
@@ -1272,7 +1275,7 @@ printf("output_ascii_big DEBUG: var_app.mod = %d var_app.blo = %d\n",
 		   puntaSpazio=strchr(tag_kks,' ');
 		   if (puntaSpazio != NULL)
 		      {
-		      *puntaSpazio=NULL;
+		      *puntaSpazio='\0';
                       }
                    SqlStatement = sqlite3_mprintf("update VARIABILI set  tag_kks = '%q' where progr_variabile = '%d';",
                                                     tag_kks, var_blocco[j].addr);

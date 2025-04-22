@@ -10,6 +10,7 @@
 #include <memory.h>
 #include <math.h> 
 #include "f22.h"
+#include "sim_types.h"
 
 S_HEAD1 header1;
 S_HEAD2 header2;

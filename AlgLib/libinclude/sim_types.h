@@ -18,10 +18,13 @@
 #ifndef _sim_types_h_
 #define _sim_types_h_
 
+
 #if defined MFFR
 #include "buffer_mffr.h"
 #include "snap_sked.h"
 #endif
+
+#include "sked.h"
 
    /* 
     *  ******
@@ -633,13 +636,84 @@ int msg_rcv(int, void*, size_t, long, int,int);
 
 int msg_snd (int, void*, size_t, int);
 void reg_prolog();
+//void reg_rdshm(float *, float *, float *, float *,
+//               int *, int *, int *, int *,
+//               float *, float *);
+
+void reg_rdshm(float (*xy)[],float (*uu)[],float (*px)[],float (*dati)[], int *neqsis, int *nu,int *neqdif,int *ndati,float (*cnxy)[],float (*cnuu)[]);
+//               int *neqsis,*nu,*neqdif,*ndati;
+//               float (*xy)[],(*uu)[],(*px)[],(*dati)[],(*cnxy)[],(*cnuu)[];
+              
+//void reg_wrshm(float *, float *, float *, float *,
+//               int *, int *, int *, int *,
+//               float *, float *);               
+
+void reg_wrshm(float (*xy)[],float (*uu)[],float (*px)[],float (*dati)[], int *neqsis, int *nu,int *neqdif,int *ndati,float (*cnxy)[],float (*cnuu)[]);
+//               int *neqsis,*nu,*neqdif,*ndati;
+//               float (*xy)[],(*uu)[],(*px)[],(*dati)[],(*cnxy)[],(*cnuu)[];
+//void reg_ing(float,int*,int*,float);
+
+void reg_ing(float (*xy)[], int*,int*, float (*uu)[]);
+
+int msg_close_fam();
+void initialize_syncronization( INTERFACE_VAR *vartask);
+void syncronize_sicre_run_time(void);
+void read_S02_net(void);
+void write_S02_net(int);
+
+void scrive_default(char*);
+char   *nome_modello (char*, int);
+void scrive_default(char*);
 
 //void reg_wrshm(float (*)[], float (*)[], float (*)[], float (*)[],
 //               int *, int *, int *, int *,
 //               float (*)[], float (*)[]);
 
-void reg_wrshm(float *, float *, float *, float *,
-               int *, int *, int *, int *,
-               float *, float *);               
+
+
+
+void legge_sel(char*);
+int tempo_file(char*,char*);
+void scrive_sel(char*);
+void elimina_f22(void);
+int sem_create(int,int);
+void sem_close(int);
+void sem_signal(int);
+int sem_set(int,int);
+void sem_wait(int);
+void blocca_shr(void);
+void distruggi_var (int);
+void cfree2(char**);
+void ifree2(int**);
+void distruggi_var (int);
+int sim_shvar_free(void);
+void output_ascii_big (char*);
+void output_ascii_big (char*);
+int GetParLego(void);
+int     shresist (int);
+//void reg_ing(float*[],int*,int*,float*[]);
+void reg_prolog(void);
+int msg_create_fam(int,int);
+int msg_create_fam_sim(int,int,int);
+int sem_create(int,int);
+int msg_create(int,int);
+
+void legge_riga_bin(char*,int*,FILE *);
+
+void var_bin(void);
+void fill_space (char*, int);
+void  writen(int,char*,int);
+void open_22dat(void);
+void close_22dat(void);
+void read_22dat(char,int,int,int);
+void read_nomi(FILE*,unsigned long *);
+void list_vargraf(void);
+int load_stato_cr_arch(STATO_CR *,char*);
+
+void set_min_max(S_DATI *);
+
+
+  
+
 
 #endif /* Fine ifndef _sim_types_h */

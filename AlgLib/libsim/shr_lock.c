@@ -44,7 +44,7 @@ int id_sem_mdb_1,id_sem_mdb_2,
 
 int aggancia_sem_shr();
 int sgancia_sem_shr();
-int blocca_shr();
+void blocca_shr();
 int libera_shr();
 int imp_mdb();
 int attende_mdb();
@@ -78,7 +78,7 @@ sem_close(id_sem_mdb_3);
 
 
 
-int blocca_shr()
+void blocca_shr()
 {
 sem_wait(id_sem_shr);
 }

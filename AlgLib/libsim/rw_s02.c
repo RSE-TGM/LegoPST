@@ -36,7 +36,7 @@ char macro_modello [11];
 int lun_macro_modello;
 char descr_macro_modello [65];
 
-read_S02_net()
+void read_S02_net()
 {
 FILE *fp_s02;
 int r_mod,w_mod;
@@ -145,7 +145,7 @@ for (i=0; i<nmod; i++)
 }
 
 
-write_S02_net(formato_dati)
+void write_S02_net(formato_dati)
 int formato_dati;
 {
 FILE *fp_s02;

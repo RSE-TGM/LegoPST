@@ -30,7 +30,7 @@ static char SccsID[] = "@(#)var_bin.c	5.1\t11/7/95";
 
 #define MAXRIGA 200
 
-legge_riga_bin(riga,lun,fp)
+void legge_riga_bin(riga,lun,fp)
  char riga [MAXRIGA];
  int *lun;
  FILE *fp;
@@ -47,7 +47,7 @@ legge_riga_bin(riga,lun,fp)
 } 
 
 
-var_bin()
+void var_bin()
 {
 int nmod,mod;
 int nbloc,bloc;
@@ -62,7 +62,7 @@ char app_2[200];
 char nome_modello[200];
 char nome_blocco[200];
 char app_nome[MAX_LUN_NOME_VAR];
-int k;
+int *k;
 NOMI *nomi;
 VARIABILI *variabili;
 VARIABILI *app_var;

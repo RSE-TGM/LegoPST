@@ -187,8 +187,8 @@ typedef struct {
    int *tasksicre; /* punt a tipo di task */
 
 } SYNC_TASK_PARAM;
-int syncronize_sicre_run_time(void);
-int initialize_syncronization( INTERFACE_VAR * );
+void syncronize_sicre_run_time(void);
+void initialize_syncronization( INTERFACE_VAR * );
 #endif
 /***************************************************************************
 			Gestione licenze	

@@ -10,6 +10,10 @@
 #ifndef lint
 static char *_csrc = "@(#) %filespec: %  (%full_filespec: %)";
 #endif
+
+#include <stdlib.h>
+#include <stdio.h>
+#include <unistd.h> 
 /*
 	Variabile per identificazione della versione
 */

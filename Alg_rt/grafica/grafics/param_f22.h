@@ -56,7 +56,7 @@ typedef struct s_dati {
                         char spare[2];  /* per VMS */
                         float t;
                         float mis[NUM_VAR];
-                        } S_DATI;
+                        } ;
 
 typedef struct s_sel_dati {
                         float t;

@@ -22,6 +22,7 @@ static char SccsID[] = "@(#)pert_rcv_lego.c	5.1\t11/7/95";
    reserved @(#)pert_rcv_lego.c	5.1
 */
 # include <stdio.h>
+#include <string.h>
 # include <errno.h>
 #if defined UNIX
 # include <sys/types.h>
@@ -42,7 +43,7 @@ static char SccsID[] = "@(#)pert_rcv_lego.c	5.1\t11/7/95";
 float *converti_float();
 int *converti_int();
 
-pert_rcv_lego(id_msg_pert,fp)
+void pert_rcv_lego(id_msg_pert,fp)
 int id_msg_pert;
 int fp;
 {
@@ -80,7 +81,7 @@ while((msg_rcv(id_msg_pert,&messaggio_pert,sizeof(TIPO_PERT),0,
                 &messaggio_pert.perturbazione.t,TRASMISSIONE),sizeof(float));
 
              /* spedizione pacchetto */
-             writen(fp,&(messaggio_pert.perturbazione),sizeof(TIPO_PERT));
+             writen(fp,(char*)&(messaggio_pert.perturbazione),sizeof(TIPO_PERT));
         }
 }
 
