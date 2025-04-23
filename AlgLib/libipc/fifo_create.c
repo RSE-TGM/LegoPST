@@ -30,6 +30,8 @@ static char SccsID[] = "@(#)fifo_create.c	5.1\t11/7/95";
 #include <sys/stat.h>
 #include <errno.h>
 
+#include <fcntl.h> 
+
 int fifo_create(char *nome_fifo,int modo)
 {
 int ret;

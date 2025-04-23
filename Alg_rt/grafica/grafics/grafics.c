@@ -444,6 +444,18 @@ static void find_proc();
 static void HC_proc();
 int cerca_umis();
 static int init_application();
+static void load_file(char*);
+static int cerca_stringa(char*,char **);
+extern void rew_dati(void);
+static int set_scala(int);
+static int set_ordinate(int);
+static void set_scala_unica(void);
+static  void crea_sfondo(Widget,Dimension,Dimension);
+static void formatta(char*,float);
+static int cerca_nome(char*);
+static void prep_draw(float,float,S_MIN_MAX *,Widget);
+static void draw_grid(Window);
+
 
 /* The names and addresses of things that DwtDrm.has to bind.  The names do
  * not have to be in alphabetical order.  */
@@ -619,7 +631,7 @@ XtMainLoop();
 
 
 
-load_file(nome_file)
+void load_file(nome_file)
 char *nome_file;
 {
 int flag;
@@ -746,7 +758,7 @@ XClearArea(display,XtWindow(s->w_mis),0,0,0,0,True);
 }
 
 
-crea_sfondo(w,width,height)
+void crea_sfondo(w,width,height)
 Widget w;
 Dimension width,height;
 {
@@ -1059,7 +1071,7 @@ else  /* caso di scala fissa determinata da utente   */
     come minimo:
 		 min_min-|max_max-min_min|*0.1
 */
-set_scala_unica()
+void set_scala_unica()
 {
 int i;
 float max_max,min_min;
@@ -1191,7 +1203,7 @@ for(i=0;i<5;i++)
  * (la lista deve essere terminata da un NULL).
  */
 
-x_cerca_stringa(x_stringa,x_lista)
+int x_cerca_stringa(x_stringa,x_lista)
 XmString x_stringa;
 XmString *x_lista;
 {
@@ -1205,7 +1217,7 @@ while(x_lista[i]!=NULL)
 return(-1);
 }
 
-cerca_stringa(stringa,lista)
+int cerca_stringa(stringa,lista)
 char *stringa;
 char *lista[];
 {
@@ -1222,7 +1234,7 @@ return(-1);
 
 
 
-cerca_nome(stringa)
+int cerca_nome(stringa)
 char *stringa;
 {
 int i;
@@ -1388,7 +1400,7 @@ timer= XtAppAddTimeOut(XtWidgetToApplicationContext(main_window_widget),
  inserisce nelle stringhe della scala dei tempi i valori calcolati
  in base all'ultimo tempo acquisito 
 */
-prep_str_tim(t_ini,t_fin)
+void prep_str_tim(t_ini,t_fin)
 float t_ini,t_fin;
 {
 int i;
@@ -1418,7 +1430,7 @@ t_secondi);
  prep_draw
  preparazione del vettore dei punti da disegnare
 */
-prep_draw(t_iniziale,t_finale,min_max)
+void prep_draw(t_iniziale,t_finale,min_max)
 float t_iniziale,t_finale;
 S_MIN_MAX *min_max;
 {
@@ -1688,7 +1700,7 @@ switch(widget_num)
 /*
  * Disegna la griglia di riferimento (per HC)
  */
-draw_grid(win)
+void draw_grid(win)
 Window win;
 {
 float dy,dx; /* ampiezza rettangoli griglia su asse y e su asse x */
@@ -2519,7 +2531,7 @@ switch(widget_num)
 }
 
 
-formatta(str,fval)
+void formatta(str,fval)
 char *str;
 float fval;
 {

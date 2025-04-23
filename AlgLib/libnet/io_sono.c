@@ -23,6 +23,7 @@ static char SccsID[] = "@(#)io_sono.c	5.1\t11/7/95";
 */
 # include <stdio.h>
 # include <string.h>
+#include <unistd.h>
 #if defined UNIX
 #include <sys/types.h>
 #include <sys/socket.h>

@@ -47,6 +47,7 @@ static char SccsID[] = "@(#)S_MAIN_WINDOW.c	5.1\t11/13/95";
 	Includes, Defines, and Global variables from the Declarations Editor:
 *******************************************************************************/
 
+#include <Xl/Xl.h>
 #include <Xl/XlGrafico.h>
 #include "S_MAIN_WINDOW.h"
 
@@ -62,6 +63,9 @@ static char SccsID[] = "@(#)S_MAIN_WINDOW.c	5.1\t11/13/95";
 	and a #define.  The #define makes the variable name refer to the
 	corresponding entry in the context structure.
 *******************************************************************************/
+
+#include "libutilx.h"
+
 
 static _UxCS_MAIN_WINDOW	*UxS_MAIN_WINDOWContext;
 
@@ -541,48 +545,48 @@ height_grafico-=10;
 
 	XtAddCallback( tempo, XmNexposeCallback,
 			draw_proc,
-			16 );
+			(XtPointer)16 );
 
 	XtAddCallback( ord1, XmNexposeCallback,
 			draw_proc,
-			9 );
+			(XtPointer)9 );
 	XtAddCallback( ord1, XmNresizeCallback,
 			resize_proc,
-			9 );
+			(XtPointer)9 );
 
 	XtAddCallback( val1, XmNexposeCallback,
 			draw_proc,
-			14 );
+			(XtPointer)14 );
 
 	XtAddCallback( mis1, XmNexposeCallback,
 			draw_proc,
-			7 );
+			(XtPointer)7 );
 
 	XtAddCallback( tim1, XmNexposeCallback,
 			draw_proc,
-			8 );
+			(XtPointer)8 );
 	XtAddCallback( tim1, XmNresizeCallback,
 			resize_proc,
-			8 );
+			(XtPointer)8 );
 
 	XtAddCallback( draw0, XmNexposeCallback,
 			draw_proc,
-			5 );
+			(XtPointer)5 );
 
 	XtAddCallback( mis1, XmNinputCallback,
 			PostIt,
-			7 );
+			(XtPointer)7 );
 
 	XtAddCallback( draw1, XmNinputCallback,
 			PostIt,
-			6 );
+			(XtPointer)6 );
 
 	XtAddCallback( draw1, XmNexposeCallback,
 			draw_proc,
-			6 );
+			(XtPointer)6 );
 	XtAddCallback( draw1, XmNresizeCallback,
 			resize_proc,
-			6 );
+			(XtPointer)6 );
 
 #ifndef SCADA_MMI
 	XtAddCallback( p_dir_button, XmNactivateCallback,

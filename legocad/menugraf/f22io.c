@@ -80,6 +80,8 @@ char path_name[101];
    apre il file f22.dat
 */
 
+static void rew_dati(void);
+
 open_22dat()
 {
 int i;
@@ -303,7 +305,7 @@ if(tot_letti==lun_rec_dati)
 return(tot_letti);
 }
 
-rew_dati()
+void rew_dati(void)
 {
 int ret;
 
@@ -521,7 +523,7 @@ return(GIUSTO);
 #endif
 
 
-d2free(prow) 
+void d2free(prow) 
 char **prow;
 {
    if( (*prow) != NULL )

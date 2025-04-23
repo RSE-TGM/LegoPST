@@ -35,6 +35,9 @@ static char SccsID[] = "@(#)Selettore.c	5.1\t11/7/95";
 #define DEFAULTWIDTH 11
 #define DEFAULTHEIGHT 11
 
+static int min(int,int);
+
+
 /* lista delle risorse  */
 static XtResource resources[]= {
 	{
@@ -182,7 +185,7 @@ values.foreground = cw->selettore.norm_fg;
 values.background = cw->selettore.norm_bg;
 values.line_width = 0;
 values.line_style = LineSolid;
-cw->selettore.norm_gc = XtGetGC(cw,
+cw->selettore.norm_gc = XtGetGC((Widget)cw,
                                 valuemask,
                                 &values);
 }
@@ -199,7 +202,7 @@ values.foreground = cw->core.background_pixel;
 values.background = cw->selettore.norm_fg;
 values.line_width = 0;
 values.line_style = LineSolid;
-cw->selettore.clear_gc = XtGetGC(cw,
+cw->selettore.clear_gc = XtGetGC((Widget)cw,
                                 valuemask,
                                 &values);
 }
@@ -264,7 +267,7 @@ SelettoreWidget cw= (SelettoreWidget)w;
 cw->selettore.stato=(!(cw->selettore.stato));
 cw->selettore.stato_fz=cw->selettore.stato;
 Redisplay(w,0);
-XtCallCallbacks(cw,XtNpressSelCallback,NULL);
+XtCallCallbacks((Widget)cw,XtNpressSelCallback,NULL);
 }
 
 static void SelDeact(w,event,params,num_params)
@@ -274,7 +277,7 @@ String *params;
 Cardinal *num_params;
 {
 SelettoreWidget cw= (SelettoreWidget)w;
-XtCallCallbacks(cw,XtNreleaseSelCallback,NULL);
+XtCallCallbacks((Widget)cw,XtNreleaseSelCallback,NULL);
 }
 
    
@@ -349,13 +352,13 @@ XFreePixmap(XtDisplay(cw),cw->selettore.pixmap_1);
 CreatePixmap(cw);
 DrawIntoPixmap(cw);
 }
-/*
-min(a,b)
+
+int min(a,b)
 int a,b;
 {
 return((a<b)? a:b);
 }
-*/
+
 static XtGeometryResult QueryGeometry(w,proposed,answer)
 Widget w;
 XtWidgetGeometry *proposed,*answer;
@@ -390,7 +393,7 @@ Boolean do_redisplay = False;
 if(curcw->selettore.norm_fg != newcw->selettore.norm_fg ||
    curcw->selettore.norm_bg != newcw->selettore.norm_bg)
 	{
-	XtReleaseGC(curcw,curcw->selettore.norm_gc);
+	XtReleaseGC((Widget)curcw,curcw->selettore.norm_gc);
 	GetSeleFgGC(newcw);
 	DrawIntoPixmap(newcw);
 	do_redisplay = True;
@@ -412,6 +415,6 @@ if (cw->selettore.pixmap_0)
 if (cw->selettore.pixmap_1)
 	XFreePixmap(XtDisplay(cw),cw->selettore.pixmap_1);
 if (cw->selettore.norm_gc)
-	XtReleaseGC(cw,cw->selettore.norm_gc);
+	XtReleaseGC((Widget)cw,cw->selettore.norm_gc);
 }
 

@@ -142,7 +142,7 @@ case 1:
 
   reinit = getenv("REINITTASK");
   if(strcmp(reinit,"NO")==0) {
-     reg_wrshm(var->xy,var->uu,var->px,var->dati,var->neqsis,var->nu,var->neqdif,var->ndati,var->cnxy,var->cnuu);
+     (var->xy,var->uu,var->px,var->dati,var->neqsis,var->nu,var->neqdif,var->ndati,var->cnxy,var->cnuu);
 //     printf("reg000: write in shrmem!!! NO REINIT\n");
   }
 

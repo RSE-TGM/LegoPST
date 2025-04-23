@@ -39,7 +39,7 @@ static char SccsID[] = "@(#)from_dispatcher.c	5.1\t11/7/95";
 #include "sim_ipc.h"
 #include "libipc.h"
 
-from_dispatcher (processo, comando, tipo, dati, size, modo)
+int from_dispatcher (processo, comando, tipo, dati, size, modo)
 int     processo;
 int    *comando;
 int    *tipo;

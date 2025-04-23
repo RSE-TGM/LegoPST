@@ -38,6 +38,7 @@ static char SccsID[] = "@(#)funzioni.c	5.1\t11/13/95";
 #endif
 #include <X11/Xlib.h>
 #include <X11/cursorfont.h>
+#include "UxXt.h"
 #include <Xm/Xm.h>
 #include <Xm/Text.h>
 #include <Xm/DrawingA.h>
@@ -88,6 +89,15 @@ extern Widget create_memgr_dialog();
 extern Widget create_selgr_dialog();
 extern Widget create_defumis_dialog();
 extern Widget create_dir_dialog();
+extern int read_22datGR(char,S_XLGRAFICO*);
+static void prep_str_timGR(float,float,Widget);
+static int cerca_stringa(char*,char **);
+extern int rew_dati(S_XLGRAFICO *);
+static void set_scala_unica(S_XLGRAFICO *);
+static void formatta(char*,float);
+
+
+
  
 Widget (*widget_crea[])() = 
 	{NULL,
@@ -196,11 +206,25 @@ void timer_proc();
 void find_proc();
 void HC_proc();
 int cerca_umis();
+static int init_application(void);
+extern  void open_path();
 
-static font_unit = 400;
+static int font_unit = 400;
 
 char *getenv();
 Widget  create_S_MAIN_WINDOW();
+int set_scala(int,S_XLGRAFICO *);
+static int set_ordinate(int,S_XLGRAFICO *);
+static void crea_sfondo(Widget,Dimension,Dimension);
+static int cerca_nome(char*);
+extern  int converti_tempo(float,long  *,long  *,long  *,long  *,long  *,long  *);
+static void prep_draw(float,float,S_MIN_MAX *,Widget);
+static void draw_grid(Display*,Window,Position,Position);
+
+
+
+
+
 
 /*******************************************
       Routine che dall'oggetto ricava il context associato e restituisce
@@ -221,6 +245,7 @@ pXlGraf = pfalsoctx->UxPXlGrafico;
  * then calls XtMainLoop.
  ******************************************************/
 char *path_uid;
+int open_22datGR(S_XLGRAFICO*);
 
 /********************************************
 ********************************************/
@@ -302,14 +327,14 @@ if(argc>1)
 
   /* Se il file specificato esiste */
   if(!nofile)
-    load_variables(argc-(2+scala_unica),&argv[2+scala_unica],WW);
+    load_variables(argc-(2+scala_unica),(char**)&argv[2+scala_unica],(Widget)WW);
   }
 }
 
 /************************************************
  Routine di creazioni del grafico come oggetto
 *************************************************/
-CreateARCH_GRAF(wparent,argc,argv,InRunTime)
+void CreateARCH_GRAF(wparent,argc,argv,InRunTime)
 Widget wparent;
 unsigned int argc;                  /* Command line argument count. */
 char *argv[];                       /* Pointers to command line args. */
@@ -341,7 +366,7 @@ inizializza2(argc,argv,mainIface,cw);
 
 /*************************************************
 *************************************************/
-load_file(nome_file,pXlGraf__)
+void load_file(nome_file,pXlGraf__)
 char *nome_file;
 S_XLGRAFICO *pXlGraf__;
 {
@@ -355,7 +380,7 @@ strcpy(file_vis,path_22dat);
 
 printf ("Nome File: [%s] tipo ARCH [%d]\n",path_22dat,tipo_graf);
 
-if(open_22dat(pXlGraf))
+if(open_22datGR(pXlGraf))
   {
   WidAttenzione(topLevel_set,err_file_nones,MAPPA);
   nofile=1;
@@ -365,11 +390,11 @@ if(open_22dat(pXlGraf))
 
 nofile=0;
 flag=TUTTI;
-if(read_22dat(flag,pXlGraf)==1)  /* legge tutti i dati dall'inizio del file */
+if(read_22datGR(flag,pXlGraf)==1)  /* legge tutti i dati dall'inizio del file */
   {
   close_22dat();
-  open_22dat(pXlGraf);
-  if(read_22dat(flag,pXlGraf)==1)
+  open_22datGR(pXlGraf);
+  if(read_22datGR(flag,pXlGraf)==1)
     {
     /* file non esistente */
     close_22dat();
@@ -390,13 +415,13 @@ if(nofile==0)
   /* legge tempo finale e tempo iniziale dal buffer dei dati */
   t_finale=bufdati[n_last-1].t;
   t_iniziale=bufdati[0].t;
-  prep_str_tim(t_iniziale,t_finale,sg.w_draw);
+  prep_str_timGR(t_iniziale,t_finale,sg.w_draw);
   }
 }
 
 /*************************************************
 *************************************************/
-load_variables(num_nomi,nome,Wdg)
+void load_variables(num_nomi,nome,Wdg)
 int num_nomi;
 char *nome[];
 Widget Wdg;
@@ -455,7 +480,7 @@ for(i=0;i<4;i++)
 */
 rew_dati(pXlGraf);
 set_min_max(NULL,pXlGraf);
-read_22dat(AGGIORNA,pXlGraf);
+read_22datGR(AGGIORNA,pXlGraf);
 
 if(notify_overflow == True)
 	WidAttenzione(topLevel_set,"Too many data for trend buffer!",MAPPA);
@@ -489,7 +514,7 @@ freeza=0;
 
 /*************************************************
 *************************************************/
-crea_sfondo(w,width,height)
+void crea_sfondo(w,width,height)
 Widget w;
 Dimension width,height;
 {
@@ -561,7 +586,7 @@ x_secondi_off=XmStringCreateLtoR("Time HH:MM:SS",XmSTRING_DEFAULT_CHARSET);
  *      torna 1 se e' stato effettuato cambiamento di scala
  */
 
-set_scala(indice,pXlGraf)
+int set_scala(indice,pXlGraf)
 int indice;   /* indice della variabile all'interno del gruppo
 				 (da 0 a 3)    */
 S_XLGRAFICO *pXlGraf;
@@ -614,7 +639,7 @@ else  /* caso di scala fissa determinata da utente   */
     come minimo:
 		 min_min-|max_max-min_min|*0.1
 */
-set_scala_unica(pXlGraf)
+void set_scala_unica(pXlGraf)
 S_XLGRAFICO *pXlGraf;
 {
 int i;
@@ -666,7 +691,7 @@ for(i=0;i<4;i++)
  *    in modo conforme ai valori di minimo e massimo
  */
 
-set_ordinate(ind,pXlGraf)
+int set_ordinate(ind,pXlGraf)
 int ind;    /* indice che individua la variabile all'interno del
                        grafico (valori da 0 a 3)       */
 S_XLGRAFICO *pXlGraf;
@@ -744,7 +769,7 @@ for(i=0;i<5;i++)
  * (la lista deve essere terminata da un NULL).
  */
 
-x_cerca_stringa(x_stringa,x_lista)
+int x_cerca_stringa(x_stringa,x_lista)
 XmString x_stringa;
 XmString *x_lista;
 {
@@ -758,7 +783,7 @@ while(x_lista[i]!=NULL)
 return(-1);
 }
 
-cerca_stringa(stringa,lista)
+int cerca_stringa(stringa,lista)
 char *stringa;
 char *lista[];
 {
@@ -776,7 +801,7 @@ return(-1);
  ricerca il nome della stringa nei primi 8 caratteri dell'array
  simboli
 */
-cerca_nome(stringa)
+int cerca_nome(stringa)
 char *stringa;
 {
 int i;
@@ -836,7 +861,7 @@ int ind_buf;
 GetPuntXlGrafico (w);
 
 notify=notify_overflow;
-read_22dat(AGGIORNA,pXlGraf);
+read_22datGR(AGGIORNA,pXlGraf);
 
 if(notify_overflow == True && !notify)
 	WidAttenzione(topLevel_set,"Too many data for trend buffer!",MAPPA);
@@ -861,7 +886,7 @@ if(t_old==t_finale)
 else t_old=t_finale;
 
 /* prepara le stringhe da visualizzare sull'asse dei tempi */
-prep_str_tim(t_iniziale,t_finale,w);
+prep_str_timGR(t_iniziale,t_finale,w);
 for(i=0;i<4;i++)
   {
   if(sg.autoscaling[i] && sg.ind_mis[i]!=-1)
@@ -874,7 +899,7 @@ for(i=0;i<4;i++)
  inserisce nelle stringhe della scala dei tempi i valori calcolati
  in base all'ultimo tempo acquisito 
 */
-prep_str_tim(t_iniziale,t_finale,w);
+prep_str_timGR(t_iniziale,t_finale,w);
 
 if(collima)
   t_ultimo=x_collima*(t_finale-t_iniziale)/draw_width+t_iniziale;
@@ -911,12 +936,12 @@ freeza=0;
 }
 
 /*******************************
- prep_str_tim
+ prep_str_timGR
  preparazione stringhe scala dei tempi
  inserisce nelle stringhe della scala dei tempi i valori calcolati
  in base all'ultimo tempo acquisito 
 *******************************/
-prep_str_tim(t_ini,t_fin,w)
+void prep_str_timGR(t_ini,t_fin,w)
 float t_ini,t_fin;
 Widget w;
 {
@@ -971,7 +996,7 @@ for(i=0;i<7;i++)
  prep_draw
  preparazione del vettore dei punti da disegnare
 */
-prep_draw(pt_iniziale,pt_finale,pmin_max,ww)
+void prep_draw(pt_iniziale,pt_finale,pmin_max,ww)
 float pt_iniziale,pt_finale;
 S_MIN_MAX *pmin_max;
 Widget ww;
@@ -1398,7 +1423,7 @@ switch(widget_num)
 /*
  * Disegna la griglia di riferimento (per HC)
  */
-draw_grid(display,win,offx,offy)
+void draw_grid(display,win,offx,offy)
 Display *display;
 Window win;
 Position offx,offy;
@@ -1742,7 +1767,7 @@ for(i=0;i<4;i++)
 
 /* inserisce nelle stringhe della scala dei tempi i valori calcolati
    in base all'ultimo tempo acquisito */
-prep_str_tim(tz_iniziale,tz_finale,sg.w_draw);
+prep_str_timGR(tz_iniziale,tz_finale,sg.w_draw);
 
 t_ultimo=t_finale;
 t_old=0.0;
@@ -2010,7 +2035,7 @@ else    /* fine zoom */
   for(i=0;i<4;i++)
 	set_scala(i,pXlGraf);
 
-  prep_str_tim (t_iniziale,t_finale,sg.w_draw);
+  prep_str_timGR (t_iniziale,t_finale,sg.w_draw);
   XClearArea (XtDisplay(sg.w_ord),XtWindow(sg.w_ord),0,0,0,0,True);
   XClearArea (XtDisplay(sg.w_draw),XtWindow(sg.w_draw),0,0,0,0,True);
   XClearArea (XtDisplay(sg.w_tim),XtWindow(sg.w_tim),0,0,0,0,True);
@@ -2359,7 +2384,7 @@ switch(widget_num)
 
 /******************************
 ******************************/
-formatta(str,fval)
+void formatta(str,fval)
 char *str;
 float fval;
 {
@@ -2451,7 +2476,7 @@ switch(ind_widget)
 */
 	rew_dati(pXlGraf);
 	set_min_max(NULL,pXlGraf);
-	read_22dat(AGGIORNA,pXlGraf);
+	read_22datGR(AGGIORNA,pXlGraf);
 
 	if(notify_overflow == True)
 		WidAttenzione(topLevel_set,"Too many data for trend buffer!",MAPPA);
@@ -2597,7 +2622,7 @@ fmax=(fmax-uni_mis[s->ind_umis[i]].B[s->umis_sel[i]])/
 */
 	rew_dati(pXlGraf);
 	set_min_max(NULL,pXlGraf);
-	read_22dat(AGGIORNA,pXlGraf);
+	read_22datGR(AGGIORNA,pXlGraf);
 	if(notify_overflow == True)
 	WidAttenzione(topLevel_set,"Too many data for trend buffer!",MAPPA);
 
@@ -2618,7 +2643,7 @@ fmax=(fmax-uni_mis[s->ind_umis[i]].B[s->umis_sel[i]])/
 			set_ordinate(i,pXlGraf);
 		}
         t_old=0.0;
-        rew_dati();
+        rew_dati(pXlGraf);
 	freeza=0;
         XClearArea(display_set,XtWindow(s->w_mis),0,0,0,0,True);
 	break;
@@ -2705,7 +2730,7 @@ fmax=(fmax-uni_mis[s->ind_umis[i]].B[s->umis_sel[i]])/
 	}
         path_22dat=XmTextGetString(widget_array[k_text_dir1+i]);
         strcpy(file_vis,path_22dat);
-        if(open_22dat(pXlGraf))
+        if(open_22datGR(pXlGraf))
                 {
                 WidAttenzione(main_window_widget,err_file_nones,MAPPA);
                 nofile=1;
@@ -2717,12 +2742,12 @@ fmax=(fmax-uni_mis[s->ind_umis[i]].B[s->umis_sel[i]])/
 /* se e' gia' aperto un file obbliga l'uscita */
 /*        nofile=0; */
         flag=TUTTI;
-        if(read_22dat(flag,pXlGraf)==1)  /* legge tutti i dati dall'inizio
+        if(read_22datGR(flag,pXlGraf)==1)  /* legge tutti i dati dall'inizio
  del file */
                 {
                 close_22dat();
-                open_22dat(pXlGraf);
-                if(read_22dat(flag,pXlGraf)==1)
+                open_22datGR(pXlGraf);
+                if(read_22datGR(flag,pXlGraf)==1)
                         {
 /*
    file non esistente
@@ -3001,7 +3026,7 @@ XClearArea(display_set,XtWindow(widget_array[k_tempo]),0,0,0,0,True);
 
 /****************************
 ****************************/
-abilita_menu(flag)
+void abilita_menu(flag)
 int flag;
 {
 int valore;

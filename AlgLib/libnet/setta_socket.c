@@ -45,7 +45,7 @@ static char SccsID[] = "@(#)setta_socket.c	5.1\t11/7/95";
 #endif
 
 
-setta_dim_buffer(int fp, int size)
+int setta_dim_buffer(int fp, int size)
 {
 
 if(setsockopt(fp,SOL_SOCKET,SO_SNDBUF,(char*) &size,sizeof(int))<0)
@@ -63,7 +63,7 @@ if(setsockopt(fp,SOL_SOCKET,SO_RCVBUF,(char*) &size,sizeof(int))<0)
 	return(1);
 }
 
-setta_attesa_close(int fp, int time)
+int setta_attesa_close(int fp, int time)
 {
 struct linger linger;
 

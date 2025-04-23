@@ -246,7 +246,7 @@ char **venv;
            nrighe++;
          }
       rewind(ff);
-      venv = (char**)cdim2(nrighe,FILENAME_MAX*sizeof(char));
+      venv = cdim2(nrighe,FILENAME_MAX*sizeof(char));
       i=0;
       while( fgets(riga,FILENAME_MAX,ff) )
          {

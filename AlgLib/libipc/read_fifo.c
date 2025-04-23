@@ -46,6 +46,8 @@ typedef struct msg_fifo_st MSG_FIFO;
 
 MSG_FIFO msg_fifo;
 
+int readn(int,char*,int);
+
 
 int read_fifo(int fd, char *dato, int size)
 {
@@ -64,7 +66,7 @@ int ret = -1;
 	size_tot=size+sizeof(int)+1;
 
 	/* lettura messaggio  */
-	ret=readn(fd,&msg_fifo,size_tot);
+	ret=readn(fd,(char*)&msg_fifo,size_tot);
 	if(ret!=size_tot)
 		{
 		errore(" chiamata read sulla FIFO");

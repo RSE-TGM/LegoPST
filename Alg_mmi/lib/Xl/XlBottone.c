@@ -1015,7 +1015,7 @@ FILE *fp;
 printf("\n richiamato metodo di write bottone");
 }
 
-min(a,b)
+int min(a,b)
 int a,b;
 {
 return((a<b)? a:b);

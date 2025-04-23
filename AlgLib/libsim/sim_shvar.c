@@ -24,6 +24,8 @@ static char SccsID[] = "@(#)sim_shvar.c	5.4\t11/10/95";
 # include <math.h>
 # include <errno.h>
 # include <stdio.h>
+//#include <sys/types.h>
+#include <unistd.h>
 # include "sim_param.h"      /* paramteri generali LEGO              */
 # include "sim_types.h"      /* tipi di variabili LEGO               */ 
 # include "sim_ipc.h"      /* parametri per semafori               */

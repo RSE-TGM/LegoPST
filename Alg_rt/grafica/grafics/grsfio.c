@@ -394,7 +394,7 @@ return(tot_letti);
 
 
 
-rew_dati()
+void rew_dati(void)
 {
 int ret;
 

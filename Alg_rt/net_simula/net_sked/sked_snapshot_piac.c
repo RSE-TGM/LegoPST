@@ -105,6 +105,7 @@ extern int del_tacca_bktk_piac();
 extern int      modo_backtrack; /* 1 se slave fa SAVEBKTK 0 per SAVESNAP */
 extern int      attiva_listaci;
 
+extern  int converti_tempo(float,long  *,long  *,long  *,long  *,long  *,long  *);
 
 sked_snapshot_piac(azione, numero)
    int             azione;

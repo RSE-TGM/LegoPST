@@ -61,6 +61,14 @@ extern char *no_file_sel;
 extern void init_application ();
 extern Widget create_S_MAIN_WINDOW_RUNTIME();
 
+extern int set_scala(int,S_XLGRAFICO *);
+extern void set_scala_unica(S_XLGRAFICO *);
+extern  void crea_sfondo(Widget,Dimension,Dimension);
+extern  void formatta(char*,float);
+extern void prep_draw(float,float,S_MIN_MAX *,Widget);
+extern void draw_grid(Window);
+
+
 /************************************************
  Routine di inizializzazione del grafics che legge da database
 *************************************************/

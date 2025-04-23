@@ -74,6 +74,7 @@ void rallenta();
 extern int ricevo_pert();
 
 static int compara_var(VARIABILISLIM *, VARIABILISLIM *);
+extern  int converti_tempo(float,long  *,long  *,long  *,long  *,long  *,long  *);
 
 int id_msg_pert;
 

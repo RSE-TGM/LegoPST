@@ -22,6 +22,7 @@ static char SccsID[] = "@(#)socketlettura.c	5.2\t3/8/96";
    reserved @(#)socketlettura.c	5.2
 */
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <errno.h>
 #if defined UNIX
@@ -31,6 +32,7 @@ static char SccsID[] = "@(#)socketlettura.c	5.2\t3/8/96";
 #include <netinet/in.h>
 #include <netdb.h>
 #include <arpa/inet.h>
+#include <unistd.h> 
 #endif
 
 #if defined VMS
@@ -101,14 +103,14 @@ if (bind(fp, (struct sockaddr*)&server, sizeof(server)) < 0)
         }
 
 #if defined UNIX
-signal(SIGALRM,connessione_fallita);
+signal(SIGALRM,(__sighandler_t)connessione_fallita);
 alarm(180);
 #endif
 listen(fp,5);
 
 /*if((fp=accept(fp,(struct sockaddr *) 0,(int *) 0))<0)*/
 qq=sizeof(server);
-if((fp=accept(fp,&server,&qq))<0)
+if((fp=accept(fp,(struct sockaddr * restrict)&server,&qq))<0)
         {
         perror("Errore accept");
         exit(0);
@@ -119,7 +121,7 @@ alarm(0);
 #endif
 
 
-if(readn(fp,&prova,sizeof(int))<0)
+if(readn(fp,(char*)&prova,sizeof(int))<0)
 	{
 	perror("socketlettura : -->");
 	exit(0);

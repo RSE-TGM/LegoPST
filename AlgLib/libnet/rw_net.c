@@ -25,6 +25,7 @@ static char SccsID[] = "@(#)rw_net.c	5.1\t11/7/95";
         Fine sezione per SCCS
 */
 #include <stdio.h>
+#include <unistd.h>
 #if defined HELIOS
 #include <posix.h>
 #include <unistd.h>

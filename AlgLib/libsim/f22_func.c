@@ -441,7 +441,7 @@ if(camp>0)
  piu' vecchio in modo inverso (dal piu' vecchio al piu'
  recente
 */
-	qsort(*dati,camp,sizeof(SCIRC_SEL_DATI),ComparaCampioni);
+	qsort(*dati,camp,sizeof(SCIRC_SEL_DATI),(__compar_fn_t)ComparaCampioni);
 	*tempo = (*dati)[camp-1].tempo.tempo;
 /*
 	printf("Ultimo tempo leggo = %f\n",*tempo);

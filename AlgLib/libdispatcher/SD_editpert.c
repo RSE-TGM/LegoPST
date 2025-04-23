@@ -36,7 +36,7 @@ static char SccsID[] = "@(#)SD_editpert.c	5.1\t11/7/95";
 #include "libdispatcher.h"
 
 
-SD_editpert (int processo, TIPO_PERT *perturbazioni, int modo, 
+int SD_editpert (int processo, TIPO_PERT *perturbazioni, int modo, 
              int num_pert_active)
 {
 int       i, k, comando, size, tipo;
@@ -61,7 +61,7 @@ int       num_ric;
             pert_ricevute += NELEM_PACCHETTO;
             }
 
-        from_dispatcher (processo, &comando, &tipo, &app_pert[0], 
+        from_dispatcher (processo, &comando, &tipo, (char*)&app_pert[0], 
                          &size, !IPC_NOWAIT);
         for(k=0;k<num_ric;k++)
            {

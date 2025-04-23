@@ -36,6 +36,8 @@ static char SccsID[] = "@(#)Bottone.c	5.1\t11/7/95";
 #define DEFAULTWIDTH 11
 #define DEFAULTHEIGHT 11
 
+static int min(int,int);
+
 /* lista delle risorse  */
 static XtResource resources[]= {
 	{
@@ -198,7 +200,7 @@ values.foreground = cw->bottone.norm_fg;
 values.background = cw->core.background_pixel;
 values.line_width = 0;
 values.line_style = LineSolid;
-cw->bottone.norm_gc = XtGetGC(cw,
+cw->bottone.norm_gc = XtGetGC(w,
                                 valuemask,
                                 &values);
 }
@@ -214,7 +216,7 @@ values.foreground = cw->bottone.color_blink;
 values.background = cw->core.background_pixel;
 values.line_width = 0;
 values.line_style = LineSolid;
-cw->bottone.blink_gc = XtGetGC(cw,
+cw->bottone.blink_gc = XtGetGC(w,
                                 valuemask,
                                 &values);
 }
@@ -230,7 +232,7 @@ values.foreground = cw->bottone.norm_bg;
 values.background = cw->core.background_pixel;
 values.line_width = 0;
 values.line_style = LineSolid;
-cw->bottone.norm_bg_gc = XtGetGC(cw,
+cw->bottone.norm_bg_gc = XtGetGC(w,
                                 valuemask,
                                 &values);
 }
@@ -246,7 +248,7 @@ values.foreground = cw->core.background_pixel;
 values.background = cw->bottone.norm_fg;
 values.line_width = 0;
 values.line_style = LineSolid;
-cw->bottone.clear_gc = XtGetGC(cw,
+cw->bottone.clear_gc = XtGetGC(w,
                                 valuemask,
                                 &values);
 }
@@ -262,7 +264,7 @@ values.foreground = cw->bottone.act_fg;
 values.background = cw->core.background_pixel;
 values.line_width = 3;
 values.line_style = LineSolid;
-cw->bottone.act_gc = XtGetGC(cw,
+cw->bottone.act_gc = XtGetGC(w,
                                 valuemask,
                                &values);
 }
@@ -278,7 +280,7 @@ values.foreground = cw->bottone.color_lamp;
 values.background = cw->core.background_pixel;
 values.line_width = 1;
 values.line_style = LineSolid;
-cw->bottone.lamp_gc = XtGetGC(cw,
+cw->bottone.lamp_gc = XtGetGC(w,
                                 valuemask,
                                 &values);
 }
@@ -445,7 +447,7 @@ if(cw->bottone.tipo_bt!= BOTTONE_LUCE)
 	DrawIntoPixmapPush(cw);
 	DrawIntoPixmapBlinkPush(cw);
 	Redisplay(cw,NULL);
-	XtCallCallbacks(cw,XtNpressBtCallback,NULL);
+	XtCallCallbacks(w,XtNpressBtCallback,NULL);
 	}
 }
 
@@ -560,7 +562,7 @@ DrawIntoPixmap(cw);
 DrawIntoPixmapBlink(cw);
 }
 
-min(a,b)
+int min(a,b)
 int a,b;
 {
 return((a<b)? a:b);
@@ -599,7 +601,7 @@ Boolean do_redisplay = False;
 
 if(curcw->bottone.norm_fg != newcw->bottone.norm_fg)
 	{
-	XtReleaseGC(curcw,curcw->bottone.norm_gc);
+	XtReleaseGC((Widget)curcw,curcw->bottone.norm_gc);
 	GetNormFgGC(newcw);
 	DrawIntoPixmap(newcw);
 	DrawIntoPixmapBlink(newcw);
@@ -607,7 +609,7 @@ if(curcw->bottone.norm_fg != newcw->bottone.norm_fg)
 	}
 if(curcw->bottone.norm_bg != newcw->bottone.norm_bg)
         {
-        XtReleaseGC(curcw,curcw->bottone.norm_bg_gc);
+        XtReleaseGC((Widget)curcw,curcw->bottone.norm_bg_gc);
         GetNormBgGC(newcw);
 	DrawIntoPixmap(newcw);
 	DrawIntoPixmapBlink(newcw);
@@ -615,7 +617,7 @@ if(curcw->bottone.norm_bg != newcw->bottone.norm_bg)
         }
 if(curcw->bottone.act_fg != newcw->bottone.act_fg)
         {
-        XtReleaseGC(curcw,curcw->bottone.act_gc);
+        XtReleaseGC((Widget)curcw,curcw->bottone.act_gc);
 	GetActGC(newcw);
 	DrawIntoPixmap(newcw);
 	DrawIntoPixmapBlink(newcw);
@@ -623,7 +625,7 @@ if(curcw->bottone.act_fg != newcw->bottone.act_fg)
         }
 if(curcw->bottone.color_lamp != newcw->bottone.color_lamp)
         {
-        XtReleaseGC(curcw,curcw->bottone.lamp_gc);
+        XtReleaseGC((Widget)curcw,curcw->bottone.lamp_gc);
 	GetLampGC(newcw);
 	DrawIntoPixmap(newcw);
 	DrawIntoPixmapBlink(newcw);
@@ -631,7 +633,7 @@ if(curcw->bottone.color_lamp != newcw->bottone.color_lamp)
         }
 if(curcw->bottone.color_blink != newcw->bottone.color_blink)
 	{
-	XtReleaseGC(curcw,curcw->bottone.blink_gc);
+	XtReleaseGC((Widget)curcw,curcw->bottone.blink_gc);
         GetBlinkGC(newcw);
         DrawIntoPixmapBlink(newcw);
         do_redisplay = False;
@@ -654,14 +656,14 @@ if (cw->bottone.bottone_blink)
 	XFreePixmap(XtDisplay(cw),cw->bottone.bottone_blink);
 
 if (cw->bottone.norm_gc)
-	XtReleaseGC(cw,cw->bottone.norm_gc);
+	XtReleaseGC((Widget)cw,cw->bottone.norm_gc);
 if (cw->bottone.clear_gc)
-	XtReleaseGC(cw,cw->bottone.clear_gc);
+	XtReleaseGC((Widget)cw,cw->bottone.clear_gc);
 if (cw->bottone.act_gc)
-        XtReleaseGC(cw,cw->bottone.act_gc);
+        XtReleaseGC((Widget)cw,cw->bottone.act_gc);
 if (cw->bottone.lamp_gc)
-        XtReleaseGC(cw,cw->bottone.lamp_gc);
+        XtReleaseGC((Widget)cw,cw->bottone.lamp_gc);
 if (cw->bottone.blink_gc)
-	XtReleaseGC(cw,cw->bottone.blink_gc);
+	XtReleaseGC((Widget)cw,cw->bottone.blink_gc);
 }
 

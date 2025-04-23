@@ -35,7 +35,7 @@ static char SccsID[] = "@(#)SD_editic.c	5.1\t11/7/95";
 #include "dispatcher.h"
 #include "libdispatcher.h"
 
-SD_editic (int processo, SNTAB *tabella_snap, int modo, int num_snap)
+int SD_editic (int processo, SNTAB *tabella_snap, int modo, int num_snap)
 {
 int     i, k, comando, size, tipo;
 SNTAB app_snap[5];
@@ -46,9 +46,9 @@ if (modo != 0)
    {
 /* richiesta header singolo snapshot */
     app_int=modo;
-    ret = to_dispatcher (processo, COMANDO_EDITSINGLEIC, &app_int, sizeof(int));
+    ret = to_dispatcher (processo, COMANDO_EDITSINGLEIC, (char *)&app_int, sizeof(int));
     comando = DATI_DISPATCHER;
-    from_dispatcher (processo, &comando, &tipo, &app_snap[0], 
+    from_dispatcher (processo, &comando, &tipo, (char*)&app_snap[0], 
 		&size, !IPC_NOWAIT);
     memcpy(tabella_snap,&app_snap[0],sizeof(SNTAB));
    }
@@ -59,7 +59,7 @@ else
     for (i = 0; i < num_snap; i++ )
        {
        comando = DATI_DISPATCHER;
-       from_dispatcher (processo, &comando, &tipo, &tabella_snap[i], 
+       from_dispatcher (processo, &comando, &tipo, (char*)&tabella_snap[i], 
                          &size, !IPC_NOWAIT);
 #if defined STAMPE_DEBUG
        printf("SD k=%d)   mod=%d [%s]\n",

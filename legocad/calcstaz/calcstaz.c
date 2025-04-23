@@ -248,6 +248,10 @@ static MrmRegisterArg reglist[] = {
 
 static int reglist_num = (sizeof reglist / sizeof reglist[0]);
 
+static int cerca_stringa(  );
+
+
+
 /*-----------------------------------------------------------------------*/
 void main(int argc,char **argv)
 {
@@ -2137,7 +2141,7 @@ XmAnyCallbackStruct *selez;
  ***         int   flag : commutatore per la ricerca NEXT <> PREVIOUS
  ***         int   label_ID   : ID della  Label che riceve messaggi
 funzione utilizzata per ricercare una stringa all'interno di una list   */
-cerca_stringa( stringa, list, num_elem, pos, flag, label_ID )
+int cerca_stringa( stringa, list, num_elem, pos, flag, label_ID )
 char *stringa;
 XmString list[];
 int   num_elem;

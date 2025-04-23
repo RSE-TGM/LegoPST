@@ -23,7 +23,7 @@ static char SccsID[] = "@(#)filtro.c	1.6\t3/28/95";
 /***************************************************************************/
 typedef double DTYPE;
 
- /* dati relativi al filtro Bessel o Butterworth del 4ø ordine             */
+ /* dati relativi al filtro Bessel o Butterworth del 4ï¿½ ordine             */
 typedef struct fildat
 	{
 	DTYPE alfa;
@@ -37,6 +37,8 @@ typedef struct fildat
 FILDAT tab;
 
 DTYPE yvect[4],yfvect[4];
+
+extern void rew_dati(void);
 
 DTYPE power(base,esponente)
 DTYPE base,esponente;
@@ -69,13 +71,13 @@ yvect [3] = yfvect[3] = val_init;
 /* versione non funzionante commentata
 switch (fi_type)
 	{
-	case BESSEL:*/ /* filtro BESSEL 4ø ordine */ /*
+	case BESSEL:*/ /* filtro BESSEL 4ï¿½ ordine */ /*
 		Fomega1=(1.59*fcut);
 		Fomega2=(1.42*fcut);
 		Fcsi1=0.62;
 		Fcsi2=0.96;
 	break;
-	case BUTTERWORTH:*/ /* filtro BUTTERWORTH 4ø ordine */ /*
+	case BUTTERWORTH:*/ /* filtro BUTTERWORTH 4ï¿½ ordine */ /*
 		Fomega1=fcut;
 		Fomega2=fcut;
 		Fcsi1=0.38;
@@ -128,8 +130,8 @@ if (tab.delta4==0.0)             */ /* controllo sul delta 4 del filtro */ /*
 /*                            routine FILTER                               */
 /* riceve in ingresso il segnale y  restituisce il corrispondente          */
 /* segnali filtrati in *yfpoint;                                           */
-/* l'utente pu• scegliere tra un filtro del 4ø ordine di Bessel e uno di   */
-/* Butterworth (sempre del 4ø ordine); il filtro viene inizializzato nella */
+/* l'utente puï¿½ scegliere tra un filtro del 4ï¿½ ordine di Bessel e uno di   */
+/* Butterworth (sempre del 4ï¿½ ordine); il filtro viene inizializzato nella */
 /* routine di initcycle e i dati conservati nella tabella filtab, passata  */
 /* di conseguenza alla funzione di filtraggio.                              */
 /***************************************************************************/

@@ -178,6 +178,9 @@ int  rest_banco_err=0;
 
 float 	   dt, max_dt, max_sim_time=-1.0;
 
+
+extern  int converti_tempo(float,long  *,long  *,long  *,long  *,long  *,long  *);
+
 sked_banco(int modo, char *dati)
 {
    int             ret;

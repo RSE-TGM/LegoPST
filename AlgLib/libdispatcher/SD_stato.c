@@ -35,7 +35,7 @@ static char SccsID[] = "@(#)SD_stato.c	5.1\t11/7/95";
 #include "dispatcher.h"
 #include "libdispatcher.h"
 
-SD_stato (processo, statistica_sked)
+int SD_stato (processo, statistica_sked)
 int     processo;
 STATISTICA_SKED * statistica_sked;
 {
@@ -44,7 +44,7 @@ int     ret = -1;
 
     ret = to_dispatcher (processo, COMANDO_STATO, NULL, 0);
     comando = DATI_ASINCRONI;
-    from_dispatcher (processo, &comando, &tipo, statistica_sked, 
+    from_dispatcher (processo, &comando, &tipo, (char*)statistica_sked, 
 			&size, !IPC_NOWAIT);
     if(size!=sizeof(STATISTICA_SKED))
 	return(-1);

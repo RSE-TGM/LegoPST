@@ -37,7 +37,7 @@ static char SccsID[] = "@(#)SD_editbt.c	5.1\t11/7/95";
 #include "libdispatcher.h"
 
 
-SD_editbt (int processo, BKTAB *tabella_bktk, int modo, int num_bktk)
+int SD_editbt (int processo, BKTAB *tabella_bktk, int modo, int num_bktk)
 {
 int     i, k, comando, size, tipo;
     BKTAB app_bktk[5];
@@ -50,7 +50,7 @@ if (modo != 0)
     app_int=modo;
     ret = to_dispatcher (processo, COMANDO_EDITSINGLEBT, &app_int, sizeof(int));
     comando = DATI_DISPATCHER;
-    from_dispatcher (processo, &comando, &tipo, &app_bktk[0], 
+    from_dispatcher (processo, &comando, &tipo, (char*)&app_bktk[0], 
 		&size, !IPC_NOWAIT);
     memcpy(tabella_bktk,&app_bktk[0],sizeof(BKTAB));
    }
@@ -62,7 +62,7 @@ else
        {
        comando = DATI_DISPATCHER;
        from_dispatcher (processo, &comando, &tipo, 
-                        &tabella_bktk[i], &size, !IPC_NOWAIT);
+                        (char*)&tabella_bktk[i], &size, !IPC_NOWAIT);
 #if defined STAMPE_DEBUG
        printf("SD k=%d)   mod=%d [%s]\n",
               i, tabella_bktk[i].mod,

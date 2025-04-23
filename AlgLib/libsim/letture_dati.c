@@ -194,7 +194,7 @@ int n_md;
     le righe del blocco cercato che vengono scritte nella corrispondente 
     posizione su un file f14.mom
 */
-scrivi_dati_f14(char *ind_shm_top, char *path_f14, int numero_mod,
+int scrivi_dati_f14(char *ind_shm_top, char *path_f14, int numero_mod,
                 int numero_bl,char *p_iniz,int nrighe)
 {
 FILE *fp_f14;
@@ -283,7 +283,7 @@ int n_bl_md;
    Cerca nel file specificato la zona con i dati del blocco nome_bl
    posizionandosi alla riga precedente l'inizio della zona dati.   
 */
-cerca_blocco(char *path_f14,char *nome_bl,FILE **ffp_f14)
+int cerca_blocco(char *path_f14,char *nome_bl,FILE **ffp_f14)
 {
 char riga_f14[LUN_RIGA_F14];
 char *ret;
@@ -331,7 +331,7 @@ short blocco_trovato=FALSE;
    Legge il file dati_var.edf e scrive in SHM i valori dei dati
    gli spiazzamenti opportuni.
 */
-legge_dati_var(char *ind_shm_top, int nmodello, int nblocco)
+int legge_dati_var(char *ind_shm_top, int nmodello, int nblocco)
 {
 FILE *fp_datiedf;
 int off_idati;
@@ -433,7 +433,7 @@ char *app;
    path della lista moduli (per i moduli di processo)
    e della lista schemi (per i moduli di regolazione).
 */
-path_liste(char *p_f14, char **p_m, char **p_s)
+void path_liste(char *p_f14, char **p_m, char **p_s)
 {
 char *punt;
 char app[FILENAME_MAX];

@@ -22,8 +22,10 @@ static char SccsID[] = "@(#)socketclient.c	5.1\t11/7/95";
    reserved @(#)socketclient.c	5.1
 */
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+#include<unistd.h>
 #if defined UNIX
 #include <sys/types.h>
 #include <sys/socket.h>

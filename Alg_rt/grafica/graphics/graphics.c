@@ -449,6 +449,15 @@ static void find_proc();
 static void HC_proc();
 int cerca_umis();
 static int init_application();
+static int cerca_stringa(char*,char **);
+extern int set_scala(int);
+static int set_ordinate(int);
+extern  void set_scala_unica(void);
+static void formatta(char*,float);
+static int cerca_nome(char*);
+extern int converti_tempo(float,long  *,long  *,long  *,long  *,long  *,long  *);
+static void prep_draw(float,float,S_MIN_MAX *,Widget);
+static  void draw_grid(Window);
 
 /* The names and addresses of things that DwtDrm.has to bind.  The names do
  * not have to be in alphabetical order.  */
@@ -777,7 +786,7 @@ if(read_22dat_circ(flag)==1)  /* legge tutti i dati dall'inizio del file */
                         nofile=1;
                         }
                 }
-        set_scala_unica();
+        ();
 }
 t_old=0.0;
 timer=XtAppAddTimeOut(XtWidgetToApplicationContext(main_window_widget),(unsigned long)1,timer_proc,NULL);
@@ -1110,7 +1119,7 @@ else  /* caso di scala fissa determinata da utente   */
     come minimo:
 		 min_min-|max_max-min_min|*0.1
 */
-set_scala_unica()
+void set_scala_unica()
 {
 int i;
 float max_max,min_min;
@@ -1246,7 +1255,7 @@ for(i=0;i<5;i++)
  * (la lista deve essere terminata da un NULL).
  */
 
-x_cerca_stringa(x_stringa,x_lista)
+int x_cerca_stringa(x_stringa,x_lista)
 XmString x_stringa;
 XmString *x_lista;
 {
@@ -1260,7 +1269,7 @@ while(x_lista[i]!=NULL)
 return(-1);
 }
 
-cerca_stringa(stringa,lista)
+int cerca_stringa(stringa,lista)
 char *stringa;
 char *lista[];
 {
@@ -1277,7 +1286,7 @@ return(-1);
 
 
 
-cerca_nome(stringa)
+int cerca_nome(stringa)
 char *stringa;
 {
 int i;
@@ -1789,7 +1798,7 @@ switch(widget_num)
 /*
  * Disegna la griglia di riferimento (per HC)
  */
-draw_grid(win)
+void draw_grid(win)
 Window win;
 {
 float dy,dx; /* ampiezza rettangoli griglia su asse y e su asse x */
@@ -2676,7 +2685,7 @@ switch(widget_num)
 }
 
 
-formatta(str,fval)
+void formatta(str,fval)
 char *str;
 float fval;
 {

@@ -37,6 +37,7 @@ typedef void (*sighandler_t)(int);
 
 # include "sim_ipc.h"
 # include "libipc.h"
+#include "sim_param.h"
 #include "sim_types.h"
 
 
@@ -80,7 +81,7 @@ if(time!=TIMEOUT_INFINITO)
 		printf("\nTIMEOUT SCADUTO pid= %d\n",getpid());
       		return(TIMEOUT_SCAD);
 		}
-	signal(SIGALRM,timeout_msg);
+	signal(SIGALRM,(__sighandler_t)timeout_msg);
 	alarm(time);
 	}
 /* DEBUG

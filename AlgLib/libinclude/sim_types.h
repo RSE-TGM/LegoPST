@@ -18,13 +18,40 @@
 #ifndef _sim_types_h_
 #define _sim_types_h_
 
+#include <stdio.h>
+#include <stddef.h>
+#include <stdint.h>
 
 #if defined MFFR
 #include "buffer_mffr.h"
 #include "snap_sked.h"
 #endif
 
-#include "sked.h"
+//#include "sked.h"
+
+
+// struct stato_cr_st
+//         {
+//         int last_snap_save;
+//         int last_snap_load;
+
+//         int last_bktk_save;
+//         int last_bktk_load;
+
+//         };
+
+
+// typedef struct stato_cr_st STATO_CR;
+// #define NUM_VAR_GRAFICS 6000
+// typedef struct s_dati {
+//     char spare[2];                /* per VMS */
+//     float t;
+//     float mis[NUM_VAR_GRAFICS];
+//     } S_DATI;
+
+
+//#include "sim_param_h"
+
 
    /* 
     *  ******
@@ -635,25 +662,25 @@ int pert_rcv_null(int);
 int msg_rcv(int, void*, size_t, long, int,int);
 
 int msg_snd (int, void*, size_t, int);
+int msg_close(int);
+
 void reg_prolog();
 //void reg_rdshm(float *, float *, float *, float *,
 //               int *, int *, int *, int *,
 //               float *, float *);
 
-void reg_rdshm(float (*xy)[],float (*uu)[],float (*px)[],float (*dati)[], int *neqsis, int *nu,int *neqdif,int *ndati,float (*cnxy)[],float (*cnuu)[]);
-//               int *neqsis,*nu,*neqdif,*ndati;
-//               float (*xy)[],(*uu)[],(*px)[],(*dati)[],(*cnxy)[],(*cnuu)[];
+//void reg_rdshm(float (*xy)[],float (*uu)[],float (*px)[],float (*dati)[], int *neqsis, int *nu,int *neqdif,int *ndati,float (*cnxy)[],float (*cnuu)[]);
+void reg_rdshm();
               
 //void reg_wrshm(float *, float *, float *, float *,
 //               int *, int *, int *, int *,
 //               float *, float *);               
+//void reg_wrshm(float (*xy)[],float (*uu)[],float (*px)[],float (*dati)[], int *neqsis, int *nu,int *neqdif,int *ndati,float (*cnxy)[],float (*cnuu)[]);
+void reg_wrshm();
 
-void reg_wrshm(float (*xy)[],float (*uu)[],float (*px)[],float (*dati)[], int *neqsis, int *nu,int *neqdif,int *ndati,float (*cnxy)[],float (*cnuu)[]);
-//               int *neqsis,*nu,*neqdif,*ndati;
-//               float (*xy)[],(*uu)[],(*px)[],(*dati)[],(*cnxy)[],(*cnuu)[];
 //void reg_ing(float,int*,int*,float);
-
-void reg_ing(float (*xy)[], int*,int*, float (*uu)[]);
+//void reg_ing(float (*xy)[], int*,int*, float (*uu)[]);
+void reg_ing();
 
 int msg_close_fam();
 void initialize_syncronization( INTERFACE_VAR *vartask);
@@ -686,7 +713,7 @@ void distruggi_var (int);
 void cfree2(char**);
 void ifree2(int**);
 void distruggi_var (int);
-int sim_shvar_free(void);
+void sim_shvar_free(void);
 void output_ascii_big (char*);
 void output_ascii_big (char*);
 int GetParLego(void);
@@ -697,23 +724,61 @@ int msg_create_fam(int,int);
 int msg_create_fam_sim(int,int,int);
 int sem_create(int,int);
 int msg_create(int,int);
+void distruggi_shrmem(int);
+void init_umis();
+int cerca_num_umis();
+void MostraPertFile(char *);
 
 void legge_riga_bin(char*,int*,FILE *);
 
 void var_bin(void);
 void fill_space (char*, int);
-void  writen(int,char*,int);
+int  writen(int,char*,int);
+int readn(int,char*,int);
+
 void open_22dat(void);
 void close_22dat(void);
 void read_22dat(char,int,int,int);
 void read_nomi(FILE*,unsigned long *);
 void list_vargraf(void);
-int load_stato_cr_arch(STATO_CR *,char*);
+int load_stato_cr_arch();
 
-void set_min_max(S_DATI *);
+void set_min_max();
+
+int     numero_modelli (char*);
+int     numero_blocchi (char*, int);
+int cerca_blocco(char *,char *,FILE **);
+int scrivi_dati_f14(char *, char *, int , int ,char *,int );
+int cerca_blocco(char *,char *,FILE **);
+int legge_dati_var(char *, int , int );
+int numero_dati();
+void path_liste(char *, char **, char **);
+int     numero_variabili (char*);
+int     numero_var_bl(VARIABILI *,int,int,int);
+int scelta_lista(char *, int , int , char *,char **, char **, char *, char *);
+void r_lstmod_();
+void leggi_for_();
+void lancia_i2_();
+
+char **cdim2(int,int);
+int    NomeProcesso(int , char *);
+int FileExist(char *, int );
+int ConfrontoPar(HEADER_REGISTRAZIONI  , int  , char * );
+
+int test_host(char*);
+int getindbyname(char*);
+int setta_dim_buffer(int , int );
+
+void do_demone(int , char *,  char *, int , char *, char *, HEADER_REGISTRAZIONI *);
+
+void sospendi(unsigned int );
+
+int from_dispatcher (int, int*, int*, char*, int*, int);
+int SD_editic (int , SNTAB *, int , int );
+
+int converti_tempo(float,long  *,long  *,long  *,long  *,long  *,long  *);
 
 
-  
 
 
 #endif /* Fine ifndef _sim_types_h */

@@ -26,8 +26,11 @@ static char SccsID[] = "@(#)fifo_close.c	5.1\t11/7/95";
 */
 #if defined UNIX
 #include <stdio.h>
+#include <unistd.h> 
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <errno.h>
+#include <string.h>
 #include <errno.h>
 
 #define errore(stringa)         fprintf(stderr,"Errore pid(%d)[%s]: %s\n",getpid(),strerror(errno),stringa)

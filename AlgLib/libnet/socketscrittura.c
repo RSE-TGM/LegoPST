@@ -22,6 +22,8 @@ static char SccsID[] = "@(#)socketscrittura.c	5.1\t11/7/95";
    reserved @(#)socketscrittura.c	5.1
 */
 #include <stdio.h>
+#include <stdlib.h>>
+#include<unistd.h>
 #include <string.h>
 #include <errno.h>
 #if defined UNIX
@@ -109,7 +111,7 @@ if(connect(fp,(struct sockaddr *) & client, sizeof(client))<0)
     }
 else
 	{
-	if(writen(fp,&fp,sizeof(int))<0)
+	if(writen(fp,(char*)&fp,sizeof(int))<0)
         {
         perror("socketscrittura : -->");
         exit(0);

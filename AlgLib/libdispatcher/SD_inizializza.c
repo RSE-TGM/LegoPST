@@ -22,6 +22,10 @@ static char SccsID[] = "@(#)SD_inizializza.c	5.2\t3/14/96";
    reserved @(#)SD_inizializza.c	5.2
 */
 #include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <sys/types.h>
+#include <unistd.h>
 #include "sim_param.h"
 #include "dispatcher.h"
 #include "libdispatcher.h"

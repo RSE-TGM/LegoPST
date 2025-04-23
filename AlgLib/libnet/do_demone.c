@@ -22,6 +22,7 @@ static char SccsID[] = "@(#)do_demone.c	5.1\t11/7/95";
    reserved @(#)do_demone.c	5.1
 */
 #if defined UNIX
+#include <string.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -45,7 +46,7 @@ static char SccsID[] = "@(#)do_demone.c	5.1\t11/7/95";
 
       
 
-do_demone(int tipo_demone, char *server_host,  char *client_host, 
+void do_demone(int tipo_demone, char *server_host,  char *client_host, 
           int tipo, char *riga_comando_1, char *riga_comando_2, 
           HEADER_REGISTRAZIONI *par)
 {
@@ -125,6 +126,6 @@ int i;
 
 
         if (sendto(socd, &messaggio, sizeof(MSG_DEMONE),0, 
-				&server, sizeof (server))<0)
+				(const struct sockaddr *)&server, sizeof (server))<0)
 		perror("writing on datagram socket");
 }

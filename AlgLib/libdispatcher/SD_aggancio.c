@@ -22,6 +22,8 @@ static char SccsID[] = "@(#)SD_aggancio.c	5.1\t11/7/95";
    reserved @(#)SD_aggancio.c	5.1
 */
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <sys/types.h>
 #include <sys/ipc.h>
 #include <sys/msg.h>

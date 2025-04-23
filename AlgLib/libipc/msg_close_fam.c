@@ -21,7 +21,11 @@ static char SccsID[] = "@(#)msg_close_fam.c	5.2\t3/8/96";
    data 3/8/96
    reserved @(#)msg_close_fam.c	5.2
 */
+
+#include <stdlib.h>
+
 # include "sim_param.h"
+# include "sim_types.h"
 # include "libipc.h"
 
 

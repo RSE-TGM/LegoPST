@@ -26,6 +26,7 @@ static char SccsID[] = "@(#)write_fifo.c	5.1\t11/7/95";
 */
 #if defined UNIX
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <errno.h>
 #include <sys/types.h>
@@ -47,6 +48,7 @@ typedef struct msg_fifo_st MSG_FIFO;
 
 MSG_FIFO msg_fifo;
 
+int  writen(int,char*,int);
 
 int write_fifo(int fd, char *dato, int size)
 {
@@ -70,7 +72,7 @@ int ret = -1;
 	size_tot=size+sizeof(int)+1;
 
 	/* invio messaggio  */
-	ret=writen(fd,&msg_fifo,size_tot);
+	ret=writen(fd,(char *)&msg_fifo,size_tot);
 	if(ret!=size_tot)
 		{
 		errore(" chiamata write FIFO");

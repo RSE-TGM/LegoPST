@@ -12,6 +12,7 @@ static char *_csrc = "@(#) %filespec: pert_show.c-3 %  (%full_filespec: pert_sho
 #endif
 # include <stdio.h>
 # include <errno.h>
+# include <string.h>
 # include <sys/types.h>
 # include <sys/ipc.h>
 # include <sys/msg.h>
@@ -80,7 +81,7 @@ float valore=-9;
 }
 
 
-MostraPertFile(char *nome)
+void MostraPertFile(char *nome)
 {
 TIPO_PERT perturbazione;
 FILE      *fp_pert;

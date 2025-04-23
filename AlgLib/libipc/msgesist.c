@@ -19,6 +19,12 @@ static char *_csrc = "@(#) %filespec: msgesist.c-1 %  (%full_filespec: msgesist.
 # include <stdio.h>
 #include <unistd.h>
 
+#include <sys/types.h>
+ 
+#include <sys/ipc.h>
+ 
+#include <sys/msg.h>
+
 int     msgesist (id)
 int     id;
 {

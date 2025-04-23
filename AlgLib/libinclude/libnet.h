@@ -71,12 +71,12 @@
 
 
 /* definisce la massima dimensione di un pacchetto da spedire in rete */
-#if defined UNIX
+//#if defined UNIX
 #define MAX_DIM_BUFFER_RETE	9999999
-#endif
-#if defined VMS
-#define MAX_DIM_BUFFER_RETE     5000
-#endif
+//#endif
+//#if defined VMS
+//#define MAX_DIM_BUFFER_RETE     5000
+//#endif
 
 /* conversioni di float fra DEC Station e Vax Station e viceversa */
 void utov_float();

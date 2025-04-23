@@ -67,7 +67,7 @@ extern S_XLGRAFICO *pXlGraf;
  open_22dat
    apre il file f22.dat
 **************************************************/
-open_22dat(pXlGraf)
+int open_22datGR(pXlGraf)
 S_XLGRAFICO *pXlGraf;
 {
 int i,lun;
@@ -147,13 +147,13 @@ if(tipo_graf != ARCH_CIRC_GRAF)
 
 
 /**************************************************
- read_22dat
+ read_22datGR
     legge i dati relativi a tutte le misure;
 	- flag : AGGIORNA    aggiorna l'area dati con gli ultimi dati acquisiti
 	         TUTTI       trasferisce nell'area dati tutti i campioni 
 			     presenti nel file.
 **************************************************/
-read_22dat(flag,pXlGraf)
+int read_22datGR(flag,pXlGraf)
 char flag;
 S_XLGRAFICO *pXlGraf;
 {
@@ -184,19 +184,19 @@ if(tipo_graf == ARCH_GRAF)
   {
   if(read_nomi(fpDAT,&off_f22)==1) /* legge le tabelle dei nomi e simboli */
     {
-    XlWarning ("XlGrafico","read_22dat","Errore in read nomi");
+    XlWarning ("XlGrafico","read_22datGR","Errore in read nomi");
     return(1);
     }
   }
 else
   {
-printf("read_22dat prima read_nomi_circ\n");
+printf("read_22datGR prima read_nomi_circ\n");
   if(read_nomi_circ(&header,path_22dat)==1)/* legge le tabelle dei nomi e simboli */
     {
-    XlWarning ("XlGrafico","read_22dat","Errore in read nomi");
+    XlWarning ("XlGrafico","read_22datGR","Errore in read nomi");
     return(1);
     }
-printf("read_22dat read_nomi_circ ritorno corretto\n");
+printf("read_22datGR read_nomi_circ ritorno corretto\n");
   }
 
   /* lettura da file: si posiziona sul primo dato */
@@ -212,7 +212,7 @@ printf("read_22dat read_nomi_circ ritorno corretto\n");
   /* lettura del primo campione:dovra' corrispondere un tempo a 0.0 secondi */	
   if((iret=read_multi(&buf.t,pXlGraf,0.0))==0)
     {
-    XlWarning ("XlGrafico","read_22dat",
+    XlWarning ("XlGrafico","read_22datGR",
 		"Dati non presenti in F22 (read_multi)");
     return (1);
     }
@@ -232,7 +232,7 @@ printf("read_22dat read_nomi_circ ritorno corretto\n");
       if (!notify_overflow)
         {
         notify_overflow = True;
-        XlWarning ("XlGrafico","read_22dat",
+        XlWarning ("XlGrafico","read_22datGR",
 		"Raggiunta dimensione massima di bufdati");
         }
     }
@@ -270,7 +270,7 @@ else  /* caso di lettura per aggiornamento  */
       if (!notify_overflow)
         {
 	notify_overflow = True;
-        XlWarning ("XlGrafico","read_22dat",
+        XlWarning ("XlGrafico","read_22datGR",
 		"Raggiunta dimensione massima di bufdati");
 	}
     }
@@ -345,7 +345,7 @@ else
 
 /*************************************************
 *************************************************/
-rew_dati(pXlGraf)
+int rew_dati(pXlGraf)
 S_XLGRAFICO *pXlGraf;
 {
 int ret;
@@ -734,7 +734,7 @@ else
  * open_path()
  *	legge i path names memorizzati sul file F22_FILES.DAT 
  ******************************************************/
-open_path()
+void open_path()
 {
 int i;
 fpPATH=fopen("f22_files.dat","r");

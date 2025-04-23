@@ -21,6 +21,7 @@ static char SccsID[] = "@(#)sem_close.c	5.1\t11/7/95";
    data 11/7/95
    reserved @(#)sem_close.c	5.1
 */
+#include <stdlib.h>
 
 # include "libipc.h"
 

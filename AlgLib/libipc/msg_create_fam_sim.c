@@ -23,6 +23,7 @@ static char SccsID[] = "@(#)msg_create_fam_sim.c	5.1\t11/7/95";
 */
 # include "libipc.h"
 # include "sim_param.h"
+#include "sim_types.h"
 # include "sim_ipc.h"
 
 

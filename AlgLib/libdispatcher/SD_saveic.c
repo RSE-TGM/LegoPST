@@ -23,6 +23,7 @@ static char SccsID[] = "@(#)SD_saveic.c	5.1\t11/7/95";
 */
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 #include "sim_param.h"
 #include "sim_types.h"
 #include "dispatcher.h"

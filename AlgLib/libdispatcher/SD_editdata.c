@@ -26,6 +26,8 @@ static char SccsID[] = "@(#)SD_editdata.c	5.1\t11/7/95";
 */
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
+
 #if defined UNIX
 #include <sys/types.h>
 #include <sys/ipc.h>
@@ -61,7 +63,7 @@ char *app_char;
 	riceve il numero delle righe 
     */
     comando=DATI_DISPATCHER;
-        from_dispatcher (processo, &comando, &tipo, &righe,
+        from_dispatcher (processo, &comando, &tipo, (char*)&righe,
                 &size, !IPC_NOWAIT);
     printf("SD_editdata: righe = %d\n",righe);
     memcpy(nrighe,&righe,sizeof(int));

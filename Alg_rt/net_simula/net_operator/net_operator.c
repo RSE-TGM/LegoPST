@@ -93,6 +93,7 @@ sqlite3 *db;
 int pert_step_by_name(char *TagVariabile, float ValoreFinale, float TempoFinale);
 int pert_step_by_addr(int TagAddress, float ValoreFinale, float TempoFinale);
 int sub_maxsimtime();
+extern  int converti_tempo(float,long  *,long  *,long  *,long  *,long  *,long  *);
 
 /***************************************************************/
 main(argc,argv)

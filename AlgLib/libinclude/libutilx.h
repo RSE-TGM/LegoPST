@@ -102,4 +102,21 @@ Widget find_in_a_text (Widget,ArgList,int,Text_find_struct*);
 
 void chdefaults();
 
+Widget WidAttenzione(Widget,char*,int);
+Widget WidErrore(Widget,char*,int);
+void abilita_menu(int);
+//void load_file(char*,S_XLGRAFICO);
+void load_file();
+void load_variables(int,char**,Widget);
+
+void d2free(char**);
+void prep_str_tim(float,float);
+
+
+
+
+
+
+
+
 #endif

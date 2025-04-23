@@ -40,6 +40,8 @@ static char SccsID[] = "@(#)conf_host.c	5.1\t11/7/95";
 #include <ucx$inetdef.h>
 #endif
 
+extern int getindbyname(char*);
+
 int conf_host(host1,host2)
 char *host1,*host2;
 {

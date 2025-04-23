@@ -23,6 +23,8 @@ static char SccsID[] = "@(#)socketserver.c	5.2\t3/8/96";
 */
 #include <stdio.h>
 #include <string.h>
+#include<stdlib.h>
+#include<unistd.h>
 #include <errno.h>
 #if defined UNIX
 #include <sys/signal.h>
@@ -90,13 +92,13 @@ char    io[256];
     }
 
 #if defined UNIX
-    signal (SIGALRM, connessione_server_fallita);
+    signal (SIGALRM, (__sighandler_t)connessione_server_fallita);
     alarm (20);
 #endif
     listen (fp, 5);
 
     qq = sizeof (server);
-    if ((fp = accept (fp, &server, &qq)) < 0)
+    if ((fp = accept (fp, (struct sockaddr * restrict)&server, &qq)) < 0)
     {
 	perror ("Errore accept");
 	exit (0);

@@ -132,13 +132,13 @@ if(cw->led.alterna)
 	{
 	i=0;
 	XtSetArg(args[i],XmNbackground,cw->led.color_blink); i++;
-	XtSetValues(cw,args,i);
+	XtSetValues((Widget)cw,args,i);
 	}
 else
 	{
 	i=0;
         XtSetArg(args[i],XmNbackground,cw->led.color_norm); i++;
-        XtSetValues(cw,args,i);
+        XtSetValues((Widget)cw,args,i);
 	}
 cw->led.alterna=(!(cw->led.alterna));
 if(cw->led.blink_on)
@@ -148,7 +148,7 @@ else /* ridisegna il led in stato normale e non ricarica il
         {
 	i=0;
         XtSetArg(args[i],XmNbackground,cw->led.color_norm); i++;
-        XtSetValues(cw,args,i);
+        XtSetValues((Widget)cw,args,i);
         }
 }
 
