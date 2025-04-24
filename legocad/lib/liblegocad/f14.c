@@ -65,6 +65,7 @@ HEADER_DATI *header_dati; /* tabella parallela a nom_bloc che per ogni
 			   */
 
 extern char **nom_bloc;
+extern int cerca_umis(char*);
 
 read_file_f14(neqsis,nu)
 int neqsis;    /* numero eq del sistema (= no.uscite) */

@@ -151,7 +151,7 @@ X_CFLAGS	= -I/usr/include\\
                         -I$(LEGOMMI_LIB)\\
                         -I$(UX_DIR)/include\
 \
-CFLAGS		= -g -D_NO_PROTO -D$(OS) $(VERSIONE) $(X_CFLAGS) $(APPL_INCL)\
+CFLAGS		= -g  -D$(OS) $(VERSIONE) $(X_CFLAGS) $(APPL_INCL)\
  \
 LIBPATH		= -L$(LEGOROOT_LIB)\\
 			$(X_LIBPATH)\\

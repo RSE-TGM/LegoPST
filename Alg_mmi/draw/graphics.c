@@ -35,6 +35,7 @@ static char *_csrc = "@(#) %filespec: graphics.c-10 %  (%full_filespec: graphics
 #include <Xd/Xd.h>
 #include <Xd/XdListaP.h>
 #include <Xd/XdUndoP.h>
+#include "libutilx.h"
 
 /*
  inclusioni dei files di bitmap per i bottoni di comando
@@ -1082,8 +1083,8 @@ get_something(draw_wid, XmNwidth, (void*) &width);
 zoom_prec= get_def_zoom(draw_wid);
 height = height / zoom_prec;
 width = width / zoom_prec;
-set_something(draw_wid, XmNheight, (void*) (height * zoom));
-set_something(draw_wid, XmNwidth, (void*) (width * zoom));
+set_something(draw_wid, XmNheight, (void*) (Dimension)(height * zoom));
+set_something(draw_wid, XmNwidth, (void*) (Dimension)(width * zoom));
 set_def_zoom(draw_wid, zoom);
 
 XClearArea(XtDisplay(draw_wid),XtWindow(draw_wid),0,0,0,0,True);

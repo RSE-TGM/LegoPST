@@ -15,7 +15,7 @@
 #include <sqlite3.h>
 #include "uni_mis.h"
 
-int cerca_umis();
+extern int cerca_umis(char*);
 
 double timeloop, timeprint, conta;
 int passo;

@@ -95,6 +95,12 @@ char path_name[101];
 
 extern int linguaggio_eseguibile;
 
+static int read_nomi(FILE*,int *);
+static int read_multi(char*);
+static int set_min_max(S_DATI *);
+static void close_path();
+
+
 open_22dat()
 {
 int i;
@@ -330,7 +336,7 @@ return(0);
 
 
 
-read_multi(buf)
+int read_multi(buf)
 char *buf;
 {
 char sep[2];
@@ -719,7 +725,7 @@ return(0);
  *   informazioni relative ai gruppi: se l'apertura in lettura non 
  *   riesce viene creato un nuovo file per gruppi inizializzato a 0.
  */
-open_gruppi()
+int open_gruppi()
 {
 int i,k;
 char appoggio[150];
@@ -844,7 +850,7 @@ fclose(fpPATH);
  *    salva i valori attuali dei path names e chiude il file 
  *    F22_FILES.DAT
  */
-close_path()
+void close_path()
 {
 int i;
 fpPATH=fopen("f22_files.dat","r+");

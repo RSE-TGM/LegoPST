@@ -47,7 +47,9 @@ static char SccsID[] = "@(#)S_MAIN_WINDOW_PLOT.c	5.1\t11/13/95";
 	Includes, Defines, and Global variables from the Declarations Editor:
 *******************************************************************************/
 
+#include <Xl/Xl.h>
 #include <Xl/XlGrafico.h>
+#include "libutilx.h"
 #include "S_MAIN_WINDOW.h"
 
 /*******************************************************************************
@@ -68,7 +70,7 @@ static _UxCS_MAIN_WINDOW        *UxS_MAIN_WINDOWContext;
 	Forward declarations of functions that are defined later in this file.
 *******************************************************************************/
 
-Widget	create_S_MAIN_WINDOW_PLOT();
+//Widget	create_S_MAIN_WINDOW_PLOT();
 
 /*******************************************************************************
 	The 'build_' function creates all the widgets
@@ -492,72 +494,72 @@ height_grafico-=10;
 
 	XtAddCallback( tempo, XmNexposeCallback,
 			R_draw_proc,
-			16 );
+			(XtPointer)16 );
 
 	XtAddCallback( ord1, XmNexposeCallback,
 			R_draw_proc,
-			9 );
+			(XtPointer)9 );
 	XtAddCallback( ord1, XmNresizeCallback,
 			resize_proc,
-			9 );
+			(XtPointer)9 );
 
 	XtAddCallback( val1, XmNexposeCallback,
 			R_draw_proc,
-			14 );
+			(XtPointer)14 );
 
 	XtAddCallback( mis1, XmNexposeCallback,
 			R_draw_proc,
-			7 );
+			(XtPointer)7 );
 
 	XtAddCallback( tim1, XmNexposeCallback,
 			R_draw_proc,
-			8 );
+			(XtPointer)8 );
 	XtAddCallback( tim1, XmNresizeCallback,
 			resize_proc,
-			8 );
+			(XtPointer)8 );
 
 	XtAddCallback( draw0, XmNexposeCallback,
 			R_draw_proc,
-			5 );
+			(XtPointer)5 );
 
 	XtAddCallback( mis1, XmNinputCallback,
 			PostIt,
-			7 );
+			(XtPointer)7 );
 
 	XtAddCallback( draw1, XmNinputCallback,
 			PostIt,
-			6 );
+			(XtPointer)6 );
 
 	XtAddCallback( draw1, XmNexposeCallback,
 			R_draw_proc,
-			6 );
+			(XtPointer)6 );
 	XtAddCallback( draw1, XmNresizeCallback,
 			resize_proc,
-			6 );
+			(XtPointer)6 );
 
 	XtAddCallback( p_HC_button, XmNactivateCallback,
 			HC_proc,
-			(char *)4 );
+			(XtPointer)4 );
 
 	XtAddCallback( p_zoom_control_button, XmNactivateCallback,
 			zoom_proc,
-			(char *)1 );
+			(XtPointer)1 );
 
 	XtAddCallback( p_nozoom_control_button, XmNactivateCallback,
 			zoom_proc,
-			(char *) 0 );
+			(XtPointer) 0 );
 
 	XtAddCallback( p_umis_control_button, XmNactivateCallback,
 			activate_proc,
-			(char *) 32 );
+			(XtPointer) 32 );
 
 	XtAddCallback( p_fsca_control_button, XmNactivateCallback,
 			activate_proc,
-			(char *)41 );
+			(XtPointer)41 );
 
 	XtAddCallback( p_defumis_button, XmNactivateCallback,
 			activate_proc,
-			(char *)69 );
+			(XtPointer)69 );
 
 	XtAddCallback( p_collima_button, XmNactivateCallback,
 			collima_proc,

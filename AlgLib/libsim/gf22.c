@@ -41,6 +41,7 @@ static char SccsID[] = "@(#)gf22.c	5.1\t11/7/95";
 // #define Boolean anotherBOOLtype
 #include <Rt/RtMemory.h>
 
+
 #if defined AIX || VMS
 DATI_GRAF *pshrf22;             /* puntatore buffer circolare */
                  
@@ -68,6 +69,9 @@ extern int n_last;         /* posizione dell'ultimo campione nel buffer circolar
  open_22dat
    apre il file f22.dat 
 */
+static void read_nomi(FILE*,unsigned long *);
+static void set_min_max(S_DATI *);
+
 
 void open_22dat()
 {

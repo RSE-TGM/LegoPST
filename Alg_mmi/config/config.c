@@ -68,6 +68,7 @@ extern void proc_deselect();
 extern void proc_SelPort();
 extern void proc_DeleteConn();
 extern int crea_context();
+extern void UxInitGraphics(); 
 
 XmString errorString; /* compound string per visualizzazione errori */
 int error_level;

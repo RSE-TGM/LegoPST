@@ -5,18 +5,52 @@
 *******************************************************************************/
 
 #include <stdio.h>
+
+/*
+#include <Xm/Xm.h>
+#include <Xm/MwmUtil.h>
+#include <X11/Shell.h>
+#include <Xm/MenuShell.h>
+#include "UxXt.h"
+#include <Xm/DrawingA.h>
+*/
+
 #include <Xm/Xm.h>
 #include <Xm/MwmUtil.h>
 #include <Xm/MenuShell.h>
 #include "UxXt.h"
-
 #include <Xm/PushB.h>
 #include <Xm/ToggleB.h>
 #include <Xm/RowColumn.h>
 #include <Xm/Label.h>
 #include <Xm/Form.h>
 #include <Xm/DialogS.h>
-
+#include <X11/Xlib.h>
+#include <X11/cursorfont.h>
+#include "UxXt.h"
+        
+#include <Xm/Xm.h>
+#include <Xm/Text.h>
+#include <Xm/DrawingA.h>
+#include <Xm/ScrollBar.h>
+#include <Xm/MessageB.h>
+#include <Mrm/MrmPublic.h> 
+#include <Xm/MwmUtil.h>
+#include <Xm/MenuShell.h>
+#include "UxXt.h"
+#include <Xm/PushB.h>
+#include <Xm/ToggleB.h>
+#include <Xm/RowColumn.h>
+#include <Xm/Label.h>
+#include <Xm/Form.h>
+#include <Xm/List.h>
+#include <X11/Shell.h>
+#include <Xl/XlP.h>
+#include <Xl/XlManagerP.h>
+#include <Xl/XlGrafico.h>
+#include <Xl/XlGraficoP.h>
+#include "libutilx.h"
+#include "sim_param.h"
 
 
 /*******************************************************************************
@@ -64,7 +98,7 @@ static _UxChandleVar           *UxHandleVarContext;
 #define toggle_state            UxHandleVarContext->Uxtoggle_state
 #define num_scale_vis           UxHandleVarContext->Uxnum_scale_vis
 
-
+extern void*	UxNewContext (size_t , int );
 
 /*******************************************************************************
        Declarations of global functions.

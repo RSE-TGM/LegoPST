@@ -127,6 +127,8 @@ int b_wait;        /* segnala che e' stato settato il cursore di wait */
 int alloca_bufdati();
 int dim_bufdati;
 int check_header();
+static int read_nomi_circ(F22CIRC_HD *);
+extern int read_gruppi(int);
 
 
 extern int    _MAX_SNAP_SHOT;
@@ -416,7 +418,7 @@ static int Prima_volta=1;
  *   informazioni relative ai gruppi: se l'apertura in lettura non 
  *   riesce viene creato un nuovo file per gruppi inizializzato a 0.
  */
-open_gruppi()
+int open_gruppi()
 {
 int i,k,j;
 char appoggio[FILENAME_MAX];
@@ -615,7 +617,7 @@ fclose(fpPATH);
  *    salva i valori attuali dei path names e chiude il file 
  *    F22_FILES.EDF
  */
-close_path()
+void close_path()
 {
 int i;
 

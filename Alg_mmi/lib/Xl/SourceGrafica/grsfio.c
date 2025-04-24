@@ -63,6 +63,12 @@ static char SccsID[] = "@(#)grsfio.c	5.1\t11/13/95";
 /* variabili di uso comune alle routines di I/O */
 extern S_XLGRAFICO *pXlGraf;
 
+static int read_nomi(FILE*,int *);
+static int read_nomi_circ(F22CIRC_HD *, char *);
+static int read_multi(char*,S_XLGRAFICO *,float);
+extern int f22_leggi_ultimo(PUNT_FILE_F22 ,F22CIRC_HD ,float *,float *);
+static void set_min_max(S_DATI *,S_XLGRAFICO *);
+
 /**************************************************
  open_22dat
    apre il file f22.dat
@@ -136,7 +142,7 @@ return(0);
  close_22dat
    chiude il file f22.dat
 **************************************************/
-close_22dat()
+void close_22dat()
 {
 /*
 	vedi commento funzione open_22dat
@@ -210,7 +216,7 @@ printf("read_22datGR read_nomi_circ ritorno corretto\n");
   set_min_max(NULL,pXlGraf);
 
   /* lettura del primo campione:dovra' corrispondere un tempo a 0.0 secondi */	
-  if((iret=read_multi(&buf.t,pXlGraf,0.0))==0)
+  if((iret=read_multi((char*)&buf.t,pXlGraf,0.0))==0)
     {
     XlWarning ("XlGrafico","read_22datGR",
 		"Dati non presenti in F22 (read_multi)");
@@ -220,7 +226,7 @@ printf("read_22datGR read_nomi_circ ritorno corretto\n");
 
   /* aggiorna se necessario i valori di minimo e di massimo */
   t_iniziale=buf.t;
-  while(read_multi(&buf.t,pXlGraf,buf.t)==lun_rec_dati)
+  while(read_multi((char*)&buf.t,pXlGraf,buf.t)==lun_rec_dati)
     {
     if (ind < n_elementi_bufdati)
       {
@@ -251,7 +257,7 @@ else  /* caso di lettura per aggiornamento  */
   else
 	ultimo_tempo = bufdati[n_last -1].t;
 
-  while(read_multi(&buf.t,pXlGraf,ultimo_tempo)==lun_rec_dati)
+  while(read_multi((char*)&buf.t,pXlGraf,ultimo_tempo)==lun_rec_dati)
     {
     off_f22+=lun_rec_dati;
     set_min_max(&buf,pXlGraf);
@@ -292,7 +298,7 @@ return(0);
 
 /*************************************************
 *************************************************/
-read_multi(buf,pXlGraf,ultimo_tempo)
+int read_multi(buf,pXlGraf,ultimo_tempo)
 char *buf;
 S_XLGRAFICO *pXlGraf;
 float ultimo_tempo;
@@ -352,7 +358,7 @@ int ret;
 
 n_last=0;
 if(tipo_graf == ARCH_CIRC_GRAF)
-	return;
+	return(0);
 ret=fseek(fpDAT,0,0);
 ret=fseek(fpDAT,inizio_dati,0);
 fsetpos(fpDAT,&posizione_iniziale);
@@ -368,7 +374,7 @@ if(ret!=0)
  *		se il parametro passato come argomento e' =NULL inizializza
  *      a valori estremi i valori di minimo e massimo.
  **********************************************************/
-set_min_max(rec,pXlGraf)
+void set_min_max(rec,pXlGraf)
 S_DATI *rec;   /* record dati */
 S_XLGRAFICO *pXlGraf;
 {
@@ -414,7 +420,7 @@ for(i=0;i<4;i++)
 
 /***********************************************
 ***********************************************/
-read_nomi(fp,offset)
+int read_nomi(fp,offset)
 int *offset;
 FILE *fp;
 {
@@ -637,7 +643,7 @@ printf("read_nomi_circ :  letti i dati dal file\n");
  *   informazioni relative ai gruppi: se l'apertura in lettura non 
  *   riesce viene creato un nuovo file per gruppi inizializzato a 0.
  ***********************************************************/
-open_gruppi()
+int open_gruppi()
 {
 int i,k;
 char appoggio[150];
@@ -679,19 +685,19 @@ return(0);
 
 /*********************************************
 **********************************************/
-close_gruppi()
+void close_gruppi()
 {
 int i;
 
 for(i=0;i<NUM_GRUPPI;i++)
-  XtFree(x_gruppi[i]);
+  XtFree((char*)x_gruppi[i]);
 
 fclose(fpGR);
 }
 
 /*************************************************
 **************************************************/
-read_gruppi(flag)
+int read_gruppi(flag)
 int flag;  /*  flag == 1 se si desidera la lista per fase di inserimento
                gruppi  */
 {
@@ -717,7 +723,7 @@ return(ngr);
 
 /***********************************************
 ***********************************************/
-write_gruppo(indice)
+int write_gruppo(indice)
 int indice;
 {
 unsigned long offset;
@@ -765,7 +771,7 @@ fclose(fpPATH);
  *    salva i valori attuali dei path names e chiude il file 
  *    F22_FILES.DAT
  *********************************************************/
-close_path()
+void close_path()
 {
 int i;
 
@@ -778,9 +784,9 @@ fclose(fpPATH);
 
 /********************************************************
 *********************************************************/
-d2free(prow) 
+void d2free(prow) 
 char **prow;
 {
 XtFree(*prow);
-XtFree(prow);
+XtFree((char*)prow);
 }

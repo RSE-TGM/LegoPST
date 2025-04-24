@@ -300,47 +300,47 @@ selmis_Graf = PuntGraf;
 
 	XtAddCallback( selmis_dialog, XmNmapCallback,
 			map_proc,
-			20 );
+			(XtPointer)20 );
 
 	XtAddCallback( toggle_mis1, XmNvalueChangedCallback,
 			toggle_proc,
-			21 );
+			(XtPointer)21 );
 
 	XtAddCallback( toggle_mis2, XmNvalueChangedCallback,
 			toggle_proc,
-			22 );
+			(XtPointer)22 );
 
 	XtAddCallback( toggle_mis3, XmNvalueChangedCallback,
 			toggle_proc,
-			23 );
+			(XtPointer)23 );
 
 	XtAddCallback( toggle_mis4, XmNvalueChangedCallback,
 			toggle_proc,
-			24 );
+			(XtPointer)24 );
 
 	XtAddCallback( selmis_box, XmNsingleSelectionCallback,
 			apply_proc,
-			25 );
+			(XtPointer)25 );
 
 	XtAddCallback( selmis_ok, XmNactivateCallback,
 			ok_proc,
-			20 );
+			(XtPointer)20 );
 
 	XtAddCallback( selmis_cancel, XmNactivateCallback,
 			cancel_proc,
-			20 );
+			(XtPointer)20 );
 
 	XtAddCallback( find_next, XmNactivateCallback,
 			find_proc,
-			66 );
+			(XtPointer)66 );
 
 	XtAddCallback( find_previous, XmNactivateCallback,
 			find_proc,
-			67 );
+			(XtPointer)67 );
 
 	XtAddCallback( selmis_elimina, XmNactivateCallback,
 			apply_proc,
-			68 );
+			(XtPointer)68 );
 
 	return ( selmis_dialog );
 }

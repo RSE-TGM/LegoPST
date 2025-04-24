@@ -27,6 +27,10 @@ static char SccsID[] = "@(#)draw.c	5.1\t11/13/95";
 /*
         Fine sezione per SCCS
 */
+
+#include <stdlib.h>
+#include <string.h>
+
 /* @(#)35	1.10  com/config/xtmain.tem, aic, aic322, 9239322 9/30/92 16:31:05 */
 /*
  *  COMPONENT_NAME: AIC     AIXwindows Interface Composer
@@ -99,7 +103,9 @@ int height_draw;
 
 sqlite3 *db;
 
-main(argc,argv)
+extern void UxInitGraphics(); 
+
+int main(argc,argv)
 	int 	argc;
 	char 	*argv[];
 {

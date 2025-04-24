@@ -81,6 +81,8 @@ char path_name[101];
 */
 
 static void rew_dati(void);
+static void read_nomi(FILE*,int *);
+static int read_multi(char*);
 
 open_22dat()
 {

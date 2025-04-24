@@ -325,31 +325,31 @@ dir_Graf = PuntGraf;
 
 	XtAddCallback( dir_dialog, XmNmapCallback,
 			map_proc,
-			75 );
+			(XtPointer)75 );
 
 	XtAddCallback( toggle_dir1, XmNvalueChangedCallback,
 			toggle_proc,
-			80 );
+			(XtPointer)80 );
 
 	XtAddCallback( toggle_dir2, XmNvalueChangedCallback,
 			toggle_proc,
-			81 );
+			(XtPointer)81 );
 
 	XtAddCallback( toggle_dir3, XmNvalueChangedCallback,
 			toggle_proc,
-			82 );
+			(XtPointer)82 );
 
 	XtAddCallback( toggle_dir4, XmNvalueChangedCallback,
 			toggle_proc,
-			83 );
+			(XtPointer)83 );
 
 	XtAddCallback( dir_ok, XmNactivateCallback,
 			ok_proc,
-			75 );
+			(XtPointer)75 );
 
 	XtAddCallback( dir_cancel, XmNactivateCallback,
 			cancel_proc,
-			75 );
+			(XtPointer)75 );
 
 
 

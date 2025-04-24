@@ -39,12 +39,27 @@ static char SccsID[] = "@(#)funzioni.c	5.1\t11/13/95";
 #include <X11/Xlib.h>
 #include <X11/cursorfont.h>
 #include "UxXt.h"
+        
+
+
 #include <Xm/Xm.h>
 #include <Xm/Text.h>
 #include <Xm/DrawingA.h>
 #include <Xm/ScrollBar.h>
 #include <Xm/MessageB.h>
-#include <Mrm/MrmPublic.h>         
+#include <Mrm/MrmPublic.h> 
+#include <Xm/MwmUtil.h>
+#include <Xm/MenuShell.h>
+#include "UxXt.h"
+
+#include <Xm/PushB.h>
+#include <Xm/ToggleB.h>
+#include <Xm/RowColumn.h>
+#include <Xm/Label.h>
+#include <Xm/Form.h>
+#include <Xm/List.h>
+#include <X11/Shell.h>
+
 
 #include <libutilx.h>
 
@@ -95,6 +110,11 @@ static int cerca_stringa(char*,char **);
 extern int rew_dati(S_XLGRAFICO *);
 static void set_scala_unica(S_XLGRAFICO *);
 static void formatta(char*,float);
+static void reverse_draw(int);
+extern int read_gruppi(int);
+static void crea_lista_umis();
+static void GetPuntXlGrafico (Widget);
+
 
 
 
@@ -205,9 +225,10 @@ void apply_proc();
 void timer_proc();
 void find_proc();
 void HC_proc();
-int cerca_umis();
+extern int cerca_umis(char*);
 static int init_application(void);
 extern  void open_path();
+extern int open_gruppi();
 
 static int font_unit = 400;
 
@@ -220,7 +241,12 @@ static int cerca_nome(char*);
 extern  int converti_tempo(float,long  *,long  *,long  *,long  *,long  *,long  *);
 static void prep_draw(float,float,S_MIN_MAX *,Widget);
 static void draw_grid(Display*,Window,Position,Position);
-
+static int zoomed(XPoint,XPoint);
+extern void agg_umis();
+static void free_lista_umis();
+extern void close_gruppi();
+extern int write_gruppo(int);
+extern  void set_min_max(S_DATI *,S_XLGRAFICO *);
 
 
 
@@ -1602,13 +1628,13 @@ switch(widget_num)
   }
 }
 
-set_cur_wait()
+void set_cur_wait()
 {
 XDefineCursor(display_set,XtWindow(main_window_widget),cursor_wait);
 XSync(display_set,False);
 }
 
-clr_cur_wait()
+void clr_cur_wait()
 {
 XUndefineCursor(display_set,XtWindow(main_window_widget));
 XSync(display_set,False);
@@ -1694,7 +1720,7 @@ if(freeza && event->button == Button1 )
 /**********************
  * routine per la preparazione della grafica zoomata
  **********************/
-zoomed(pz_ini,pz_fin)
+int zoomed(pz_ini,pz_fin)
 XPoint pz_ini;
 XPoint pz_fin;
 {
@@ -2029,7 +2055,8 @@ else    /* fine zoom */
   freeza=0;
 
   /*  Libero il vettore di appoggio per i dati di zoom  */
-  XtFree (bufdati_zoom);
+ // GUAG2025 era XtFree (bufdati_zoom); 
+  XtFree ((void *)bufdati_zoom);
 
   /* ripristina il tipo di scala presente prima di effettuare lo zoom */
   for(i=0;i<4;i++)
@@ -2044,7 +2071,7 @@ else    /* fine zoom */
 
 /*******************************
 *******************************/
-reverse_draw(flag)
+void reverse_draw(flag)
 int flag;
 {
 static Pixel draw0_bg,draw1_bg,mis1_bg,ord1_bg,tim1_bg,tempo_bg,form_bg,val1_bg;
@@ -2059,21 +2086,21 @@ if(flag)
 	get_something(widget_array[k_tempo],XmNbackground, (void*) &tempo_bg);
 	get_something(widget_array[k_form],XmNbackground, (void*) &form_bg);
 	set_something(widget_array[k_draw1],XmNbackground,
-                      WhitePixel(display_set, (void*) screen_num));
+    (char*)WhitePixel(display_set, screen_num));
 	set_something(widget_array[k_mis1],XmNbackground,
-                      WhitePixel(display_set, (void*) screen_num));
+    (char*)WhitePixel(display_set, screen_num));
 	set_something(widget_array[k_ord1],XmNbackground,
-                      WhitePixel(display_set, (void*) screen_num));
+    (char*)WhitePixel(display_set,  screen_num));
         set_something(widget_array[k_tim1],XmNbackground,
-                      WhitePixel(display_set, (void*) screen_num));
+          (char*)WhitePixel(display_set,  screen_num));
         set_something(widget_array[k_tempo],XmNbackground,
-                      WhitePixel(display_set, (void*) screen_num));
+          (char*)WhitePixel(display_set,  screen_num));
         set_something(widget_array[k_val1],XmNbackground,
-                      WhitePixel(display_set, (void*) screen_num));
+          (char*)WhitePixel(display_set,  screen_num));
         set_something(widget_array[k_form],XmNbackground,
-                      WhitePixel(display_set, (void*) screen_num));
+          (char*)WhitePixel(display_set,  screen_num));
         set_something(widget_array[k_draw0],XmNbackground,
-                      WhitePixel(display_set, (void*) screen_num));
+          (char*)WhitePixel(display_set,  screen_num));
 	}
 else
 	{
@@ -2271,7 +2298,7 @@ void map_proc(w, tag, reason)
     int *tag;
     unsigned long *reason;
 {
-int widget_num = tag;
+int widget_num = *tag;
 XmString x_void;
 int i,j;
 int numis,selumis;
@@ -2371,7 +2398,7 @@ switch(widget_num)
 	set_something(widget_array[k_label_grmis2],XmNlabelString,(void*) x_void);
 	set_something(widget_array[k_label_grmis3],XmNlabelString,(void*) x_void);
 	set_something(widget_array[k_label_grmis4],XmNlabelString,(void*) x_void);
-	XtFree(x_void);
+	XtFree((char*)x_void);
 	break;
         case k_dir_dialog:
         for(i=0;i<NUM_PATH_FILES;i++)
@@ -2399,7 +2426,7 @@ else
    window del grafico (per visualizzazione
    valore e per zoom
 *********************************/
-handle_motion(w)
+void handle_motion(w)
 Widget w;
 {
 XtAddEventHandler(w,PointerMotionMask,False,MoveMouse,NULL);
@@ -2611,7 +2638,7 @@ fmax=(fmax-uni_mis[s->ind_umis[i]].B[s->umis_sel[i]])/
 	widget_array[k_selgr_dialog]=0;
 	for(i=0;i<4;i++)
 		{
-		XtFree(s->x_descr_mis[i]);
+		XtFree((char*)s->x_descr_mis[i]);
 		s->x_descr_mis[i]=XmStringCreateLtoR(s->descr_mis[i],XmSTRING_DEFAULT_CHARSET);
 		x_sel_var[i]=s->x_descr_mis[i]; 
 		s->ind_mis[i]=cerca_nome(s->descr_mis[i]);
@@ -2682,14 +2709,14 @@ fmax=(fmax-uni_mis[s->ind_umis[i]].B[s->umis_sel[i]])/
                         XtDestroyWidget(XtParent(widget_array[k_selmis_dialog]));
                         for(i=0;i<header2.ncasi;i++)
                                 {
-                                XtFree(x_simboli[i]);
+                                XtFree((char*)x_simboli[i]);
                                 }
                         free(x_simboli);
 			}
 
                 for(i=0;i<4;i++)
                       {
-                      XtFree(sg.x_descr_mis[i]);
+                      XtFree((char*)sg.x_descr_mis[i]);
                          sg.x_descr_mis[i]=XmStringCreateLtoR("    ",XmSTRING_DEFAULT_CHARSET);
                      }
                 close_22dat();
@@ -2887,7 +2914,7 @@ switch(indice_widget)
 		{
 		x_app=XmStringCreateLtoR(uni_mis[indice_umis].codm[i],XmSTRING_DEFAULT_CHARSET);
 		set_something(widget_array[k_toggle2_umis1+i],XmNlabelString,(void*) x_app);
-		XtFree(x_app);
+		XtFree((char*)x_app);
 		}
 	XmToggleButtonSetState(widget_array[k_toggle2_umis1+umis_defsel[indice_umis]],True,True);
 	break;
@@ -3043,7 +3070,7 @@ set_something(widget_array[k_misure_menu_entry],XmNsensitive,(void*) valore);
  *  crea_lista_umis
  *     crea le lista dei codici delle unita' di misura
  ******************************/
-crea_lista_umis()
+void crea_lista_umis()
 {
 int i;
 for(i=0;i<num_umis;i++)
@@ -3051,11 +3078,11 @@ for(i=0;i<num_umis;i++)
 x_codumis[num_umis]=NULL;
 }
 
-free_lista_umis()
+void free_lista_umis()
 {
 int i;
 for(i=0;i<num_umis;i++)
         {
-        XtFree(x_codumis[i]);
+        XtFree((char*)x_codumis[i]);
         }
 }

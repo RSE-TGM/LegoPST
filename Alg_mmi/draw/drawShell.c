@@ -462,12 +462,13 @@ static char	*freeTable = "#replace\n\
 *******************************************************************************/
 
 Widget	create_drawShell();
+static void load_vett_colors(void);
 
 /*******************************************************************************
 Auxiliary code from the Declarations Editor:
 *******************************************************************************/
 
-load_vett_colors()
+void load_vett_colors(void)
 {
 vett_border[0]=drawnButton1;
 vett_border[1]=drawnButton2;
@@ -505,7 +506,7 @@ vett_fill[15]=sdrawnButton16;
 
 }
 
-load_vett_draw()
+void load_vett_draw()
 {
 int i;
 Pixmap vett_pix[8];
@@ -524,7 +525,7 @@ for(i=0; i<8 ; i++)
 }
 
 
-set_fill_colors()
+void set_fill_colors()
 {
 Pixel pixel;
 int i;
@@ -541,21 +542,21 @@ for(i=0; i< 12; i++)
 	}
 }
 
-selez_bott_fill(indice)
+void selez_bott_fill(indice)
 int indice;
 {
 wselez_bott_fill(vett_fill[indice]);
 set_current_gcs(draw_wid); 
 }
 
-selez_bott_border(indice)
+void selez_bott_border(indice)
 int indice;
 {
 wselez_bott_border(vett_border[indice]);
 set_current_gcs(draw_wid); 
 }
 
-selez_bott_draw(indice)
+void selez_bott_draw(indice)
 int indice;
 {
 int i;
@@ -566,7 +567,7 @@ for(i=0; i< 8; i++)
 set_something( vett_draw[indice], XmNshadowType, (void*) XmSHADOW_IN);
 }
 
-wselez_bott_fill(wid)
+void wselez_bott_fill(wid)
 swidget wid;
 {
 int i;
@@ -581,7 +582,7 @@ set_something( wid , XmNshadowThickness, (void*) 4);
 set_bott_fill(draw_wid,wid);
 }
 
-wselez_bott_border(wid)
+void wselez_bott_border(wid)
 swidget wid;
 {
 int i;
@@ -596,7 +597,7 @@ set_something( wid, XmNshadowType, (void*) XmSHADOW_IN);
 set_bott_border(draw_wid,wid);
 }
 
-reset_line_def(line_width,line_style,wid)
+void reset_line_def(line_width,line_style,wid)
 int line_width,line_style;
 Widget wid;
 {
@@ -662,7 +663,7 @@ UxDrawShellContext = UxSaveCtx;
 }
 
 
-set_draw_translations(wid)
+void set_draw_translations(wid)
 Widget wid;  /* widget della drawing area */
 {
 #ifndef DESIGN_TIME
@@ -670,7 +671,7 @@ Widget wid;  /* widget della drawing area */
 #endif
 }
 
-set_arrow_mode(wid)
+void set_arrow_mode(wid)
 Widget wid;
 {
 Widget wbottone;
@@ -708,7 +709,7 @@ UxDrawShellContext = UxContext =
 /*
  3. seleziona graficamente il bottone
  */
-selez_bott_draw(0);
+void selez_bott_draw();
 /*
  4. ripristina il context
 */

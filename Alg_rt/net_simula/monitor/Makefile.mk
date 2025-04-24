@@ -14,12 +14,12 @@ OS=LINUX
 X_LIB=-L/usr/X11R6/lib -lMrm -lXm -lXt -lX11 -g
 SQLITE_LIB=-L$(LEGOROOT_LIB)/sqlite_lib
 X_INCLUDE=-I.  -I../ -I$(LEGOROOT_LIB)/dcethreads_include -I/usr/local/include -I$(LEGOROOT_LIB)/sqlite_include  -I/usr/include -I/usr/include/uil -I/usr/include/Xt -I/usr/include/lib
-C_FLAGS=-g -D_BSD -DLINUX -D_NO_PROTO -DXOPEN_CATALOG -DUNIX -Dmmap=_mmap_32_ -I. -I/usr/local/include -I$(LEGOROOT_LIB)/sqlite_include  -I/usr/include -L$(LEGOROOT_LIB)/sqlite_lib  
+C_FLAGS=-g -D_BSD -DLINUX   -DXOPEN_CATALOG -DUNIX -Dmmap=_mmap_32_ -I. -I/usr/local/include -I$(LEGOROOT_LIB)/sqlite_include  -I/usr/include -L$(LEGOROOT_LIB)/sqlite_lib  
 VERSIONE=-DBANCO_MANOVRA -DSCADA -DBACKTRACK -DF22_APPEND -DSNAP_PIAC -DPIACENZA -DREPLAY -DMFFR -DSAVEPERT -DMOTIF
 UIL_INCLUDE=-I/usr/include/uil
 UIL_COMPILER=/usr/bin/X11/uil
 THREAD_LIB=-L$(LEGOROOT_LIB)/dcethreads_lib -ldcethreads -ldl
-X_FLAGS=-c -D_NO_PROTO -DSNAPSHOT
+X_FLAGS=-c   -DSNAPSHOT
 F_FLAGS=-lfor
 F_LIB=
 MOTIF_VER=11
@@ -89,7 +89,7 @@ APPL_INCL       = -I$(LEGOROOT_INCLUDE) -I$(LEGORT_INCLUDE) -I$(LEGOROOT_LIB)
 X_CFLAGS	= -I/usr/users/ $(X_INCLUDE) $(APPL_INCL)
 MOTIF_CFLAGS	=
 
-#CFLAGS		= -D_BSD -D_NO_PROTO -DXOPEN_CATALOG -DAIXV3 $(VERSIONE) \
+#CFLAGS		= -D_BSD   -DXOPEN_CATALOG -DAIXV3 $(VERSIONE) \
 #                  $(C_FLAGS) -D$(OS) -DXT_CODE -g \
 #		  -DOLD_STAT $(X_CFLAGS) $(MOTIF_CFLAGS) $(UX_INCLUDES)
 

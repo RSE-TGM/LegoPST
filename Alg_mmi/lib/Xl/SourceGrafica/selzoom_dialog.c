@@ -244,31 +244,31 @@ selzoom_Graf = PuntGraf;
 
 	XtAddCallback( toggle_zoom1, XmNvalueChangedCallback,
 			toggle_proc,
-			27 );
+			(XtPointer)27 );
 
 	XtAddCallback( toggle_zoom2, XmNvalueChangedCallback,
 			toggle_proc,
-			28 );
+			(XtPointer)28 );
 
 	XtAddCallback( toggle_zoom3, XmNvalueChangedCallback,
 			toggle_proc,
-			29 );
+			(XtPointer)29 );
 
 	XtAddCallback( toggle_zoom4, XmNvalueChangedCallback,
 			toggle_proc,
-			30 );
+			(XtPointer)30 );
 
 	XtAddCallback( toggle_zoom5, XmNvalueChangedCallback,
 			toggle_proc,
-			31 );
+			(XtPointer)31 );
 
 	XtAddCallback( POK_button, XmNactivateCallback,
 			ok_proc,
-			26 );
+			(XtPointer)26 );
 
 	XtAddCallback( PCancel_button, XmNactivateCallback,
 			cancel_proc,
-			26 );
+			(XtPointer)26 );
 
 
 

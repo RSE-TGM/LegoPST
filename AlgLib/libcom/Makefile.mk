@@ -12,7 +12,7 @@ GUI_BUILD=/usr/bin/aic
 OS=LINUX
 X_LIB=-lMrm -lXm -lXt -lX11
 X_INCLUDE=-I. 
-C_FLAGS=-g -fcommon -D_BSD -DLINUX -D_NO_PROTO -DXOPEN_CATALOG -DUNIX -Dmmap=_mmap_32_ -I. -I/usr/local/include -I$(LEGOROOT_LIB)/sqlite_include  -I/usr/include -L$(LEGOROOT_LIB)/sqlite_lib
+C_FLAGS=-g -fcommon -D_BSD -DLINUX  -DXOPEN_CATALOG -DUNIX -Dmmap=_mmap_32_ -I. -I/usr/local/include -I$(LEGOROOT_LIB)/sqlite_include  -I/usr/include -L$(LEGOROOT_LIB)/sqlite_lib
 THREAD_LIB=-L$(LEGOROOT_LIB)/dcethreads_lib -ldcethreads
 SQLITE_LIB=-L$(LEGOROOT_LIB)/sqlite_lib
 VERSIONE=-DBANCO_MANOVRA -DSCADA -DBACKTRACK -DF22_APPEND -DSNAP_PIAC -DPIACENZA -DREPLAY -DMFFR -DSAVEPERT
@@ -38,4 +38,5 @@ $(LEGORT_LIB)/libcom.a: $(OGGETTI)
 	ar rvs $(LEGORT_LIB)/libcom.a $?
 	@echo $(LEGORT_LIB)/libcom.a is now up-to-date
 .c.a:;
+
 

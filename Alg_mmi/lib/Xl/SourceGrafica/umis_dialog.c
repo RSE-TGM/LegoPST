@@ -315,47 +315,47 @@ umis_Graf = PuntGraf;
 
 	XtAddCallback( umis_dialog, XmNmapCallback,
 			map_proc,
-			32 );
+			(XtPointer)32 );
 
 	XtAddCallback( toggle2_mis1, XmNvalueChangedCallback,
 			toggle_proc,
-			37 );
+			(XtPointer)37 );
 
 	XtAddCallback( toggle2_mis2, XmNvalueChangedCallback,
 			toggle_proc,
-			38 );
+			(XtPointer)38 );
 
 	XtAddCallback( toggle2_mis3, XmNvalueChangedCallback,
 			toggle_proc,
-			39 );
+			(XtPointer)39 );
 
 	XtAddCallback( toggle2_mis4, XmNvalueChangedCallback,
 			toggle_proc,
-			40 );
+			(XtPointer)40 );
 
 	XtAddCallback( toggle_umis1, XmNvalueChangedCallback,
 			toggle_proc,
-			33 );
+			(XtPointer)33 );
 
 	XtAddCallback( toggle_umis2, XmNvalueChangedCallback,
 			toggle_proc,
-			34 );
+			(XtPointer)34 );
 
 	XtAddCallback( toggle_umis3, XmNvalueChangedCallback,
 			toggle_proc,
-			35 );
+			(XtPointer)35 );
 
 	XtAddCallback( toggle_umis4, XmNvalueChangedCallback,
 			toggle_proc,
-			36 );
+			(XtPointer)36 );
 
 	XtAddCallback( umis_ok, XmNactivateCallback,
 			ok_proc,
-			32 );
+			(XtPointer)32 );
 
 	XtAddCallback( umis_cancel, XmNactivateCallback,
 			cancel_proc,
-			32 );
+			(XtPointer)32 );
 
 	return ( umis_dialog );
 }

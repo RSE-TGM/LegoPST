@@ -207,15 +207,15 @@ memgr_Graf = PuntGraf;
 
 	XtAddCallback( list_memgr, XmNsingleSelectionCallback,
 			apply_proc,
-			58 );
+			(XtPointer)58 );
 
 	XtAddCallback( memgr_ok, XmNactivateCallback,
 			ok_proc,
-			57 );
+			(XtPointer)57 );
 
 	XtAddCallback( memgr_cancel, XmNactivateCallback,
 			cancel_proc,
-			57 );
+			(XtPointer)57 );
 
 
 

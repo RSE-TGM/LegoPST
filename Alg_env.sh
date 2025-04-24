@@ -401,11 +401,11 @@ then
 	export XPLIB=$XPHOME/lib.$ARCH/libXp.a
 	export X_LIB=" $XPLIB -lMrm -lXm -lXt -lX11"
 	export X_INCLUDE=' -I. -I/usr/include/uil -I/usr/include/Xt -I/usr/include/lib -DOSF1'
-	export X_FLAGS='-c -D_NO_PROTO -DSNAPSHOT'
+	export X_FLAGS='-c  -DSNAPSHOT'
 	export UIL_INCLUDE=' -I/usr/include/uil'
 	export UIL_COMPILER='/usr/bin/X11/uil'
 	export C_LIB='/lib/libbsd.a'
-	export C_FLAGS=" -O1 -D_BSD -D$OS -D_NO_PROTO -DXOPEN_CATALOG -DUNIX -Dmmap=_mmap_32_ -I$XPHOME/include -I$HHHOME/WinHelp"
+	export C_FLAGS=" -O1 -D_BSD -D$OS  -DXOPEN_CATALOG -DUNIX -Dmmap=_mmap_32_ -I$XPHOME/include -I$HHHOME/WinHelp"
 	export OTHER_LIB="-lm"
 	export F_FLAGS=' -lfor'
 	export LIBS='-ls -ldnet'
@@ -428,9 +428,9 @@ then
 #                 AIX
 # Sezione relativa alle compilazioni
 #############################################################
-export X_FLAGS='-c -D_NO_PROTO -DSNAPSHOT'
+export X_FLAGS='-c  -DSNAPSHOT'
 export C_LIB='/lib/libbsd.a'
-export C_FLAGS=" -D_BSD -D$OS -D_NO_PROTO -DXOPEN_CATALOG -DAIXV3 -DUNIX"
+export C_FLAGS=" -D_BSD -D$OS -DXOPEN_CATALOG -DAIXV3 -DUNIX"
 export OTHER_LIB="-lm -lbsd"
 export F_LIB=' -lxlf90'
 export F_FLAGS=' -qextname '

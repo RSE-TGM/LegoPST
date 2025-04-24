@@ -442,7 +442,7 @@ static void apply_proc();
 static void timer_proc();
 static void find_proc();
 static void HC_proc();
-int cerca_umis();
+extern int cerca_umis(char*);
 static int init_application();
 static void load_file(char*);
 static int cerca_stringa(char*,char **);
@@ -453,8 +453,10 @@ static void set_scala_unica(void);
 static  void crea_sfondo(Widget,Dimension,Dimension);
 static void formatta(char*,float);
 static int cerca_nome(char*);
-static void prep_draw(float,float,S_MIN_MAX *,Widget);
+static void prep_draw(float,float,S_MIN_MAX *);
 static void draw_grid(Window);
+extern int read_gruppi(int);
+extern void close_path();
 
 
 /* The names and addresses of things that DwtDrm.has to bind.  The names do

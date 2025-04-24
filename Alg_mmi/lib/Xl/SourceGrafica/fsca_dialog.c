@@ -382,39 +382,39 @@ pXlGraf = PuntGraf;
 
 	XtAddCallback( fsca_dialog, XmNmapCallback,
 			map_proc,
-			41 );
+			(XtPointer)41 );
 
 	XtAddCallback( toggle3_mis1, XmNvalueChangedCallback,
 			toggle_proc,
-			42 );
+			(XtPointer)42 );
 
 	XtAddCallback( toggle3_mis2, XmNvalueChangedCallback,
 			toggle_proc,
-			43 );
+			(XtPointer)43 );
 
 	XtAddCallback( toggle3_mis3, XmNvalueChangedCallback,
 			toggle_proc,
-			44 );
+			(XtPointer)44 );
 
 	XtAddCallback( toggle3_mis4, XmNvalueChangedCallback,
 			toggle_proc,
-			45 );
+			(XtPointer)45 );
 
 	XtAddCallback( toggle_auto, XmNvalueChangedCallback,
 			toggle_proc,
-			49 );
+			(XtPointer)49 );
 
 	XtAddCallback( toggle_man, XmNvalueChangedCallback,
 			toggle_proc,
-			48 );
+			(XtPointer)48 );
 
 	XtAddCallback( fsca_ok, XmNactivateCallback,
 			ok_proc,
-			41 );
+			(XtPointer)41 );
 
 	XtAddCallback( fsca_cancel, XmNactivateCallback,
 			cancel_proc,
-			41 );
+			(XtPointer)41 );
 
 	return ( fsca_dialog );
 }

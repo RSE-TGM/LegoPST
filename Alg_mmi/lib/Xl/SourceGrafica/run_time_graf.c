@@ -67,6 +67,11 @@ extern  void crea_sfondo(Widget,Dimension,Dimension);
 extern  void formatta(char*,float);
 extern void prep_draw(float,float,S_MIN_MAX *,Widget);
 extern void draw_grid(Window);
+extern Widget	create_S_MAIN_WINDOW_PLOT(Widget,S_XLGRAFICO *);
+extern int cerca_umis(char*);
+extern int set_ordinate(int,S_XLGRAFICO *);
+extern void GetPuntXlGrafico (Widget);
+
 
 
 /************************************************
@@ -129,7 +134,7 @@ scala_unica = 0;
 /************************************************
  Routine di creazioni del grafico come oggetto
 *************************************************/
-CreateRUN_GRAF(wparent,argc,argv,InRunTime)
+void CreateRUN_GRAF(wparent,argc,argv,InRunTime)
 Widget wparent;
 unsigned int argc;                  /* Command line argument count. */
 char *argv[];                       /* Pointers to command line args. */
@@ -160,7 +165,7 @@ stato_zoom = ZOOM_END;
 /************************************************
  Routine di creazioni del grafico come oggetto
 *************************************************/
-CreatePLOT_GRAF(wparent,argc,argv,InRunTime)
+void CreatePLOT_GRAF(wparent,argc,argv,InRunTime)
 Widget wparent;
 unsigned int argc;                  /* Command line argument count. */
 char *argv[];                       /* Pointers to command line args. */
@@ -187,7 +192,7 @@ stato_zoom = ZOOM_END;
 
 /*************************************************
 *************************************************/
-R_load_variables(num_nomi,nome,Wdg)
+void R_load_variables(num_nomi,nome,Wdg)
 int num_nomi;
 char *nome[];
 Widget Wdg;

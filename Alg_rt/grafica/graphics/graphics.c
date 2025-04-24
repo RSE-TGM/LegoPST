@@ -447,7 +447,7 @@ static void apply_proc();
 static void timer_proc();
 static void find_proc();
 static void HC_proc();
-int cerca_umis();
+extern int cerca_umis(char*);
 static int init_application();
 static int cerca_stringa(char*,char **);
 extern int set_scala(int);
@@ -456,8 +456,10 @@ extern  void set_scala_unica(void);
 static void formatta(char*,float);
 static int cerca_nome(char*);
 extern int converti_tempo(float,long  *,long  *,long  *,long  *,long  *,long  *);
-static void prep_draw(float,float,S_MIN_MAX *,Widget);
+static int prep_draw(float,float,S_MIN_MAX *);
 static  void draw_grid(Window);
+extern int read_gruppi(int);
+extern  void close_path();
 
 /* The names and addresses of things that DwtDrm.has to bind.  The names do
  * not have to be in alphabetical order.  */
@@ -1502,7 +1504,7 @@ for(i=0;i<7;i++)
  prep_draw
  preparazione del vettore dei punti da disegnare
 */
-prep_draw(t_iniziale,t_finale,min_max)
+int prep_draw(t_iniziale,t_finale,min_max)
 float t_iniziale,t_finale;
 S_MIN_MAX *min_max;
 {
@@ -1517,7 +1519,7 @@ int indice,i;
 
 if(t_iniziale == t_finale)
 	{
-	return;
+	return(0);
 	}
 /*
   step in pixel per un decimo di secondo

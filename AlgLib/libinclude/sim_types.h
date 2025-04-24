@@ -739,11 +739,11 @@ int readn(int,char*,int);
 void open_22dat(void);
 void close_22dat(void);
 void read_22dat(char,int,int,int);
-void read_nomi(FILE*,unsigned long *);
+//void read_nomi(FILE*,unsigned long *);
 void list_vargraf(void);
 int load_stato_cr_arch();
 
-void set_min_max();
+//void set_min_max();
 
 int     numero_modelli (char*);
 int     numero_blocchi (char*, int);

@@ -13,7 +13,7 @@ GUI_BUILD=/usr/bin/aic12
 OS=LINUX
 X_LIB=-L/usr/X11R6/lib -lMrm -lXm -lXt -lX11
 X_INCLUDE=-I.  -I../ -I$(LEGOROOT_LIB)/dcethreads_include  -I/usr/local/include -I/usr/include  -I/usr/include/uil -I/usr/include/Xt -I/usr/include/lib
-C_FLAGS=-g -fcommon $(X_INCLUDE) -DLINUX -DUNIX -D_BSD -D_NO_PROTO -DXOPEN_CATALOG -Dmmap=_mmap_32_ -DDEBUGYES -I$(LEGOROOT_LIB)/sqlite_include  -I/usr/include
+C_FLAGS=-g -fcommon $(X_INCLUDE) -DLINUX -DUNIX -D_BSD   -DXOPEN_CATALOG -Dmmap=_mmap_32_ -DDEBUGYES -I$(LEGOROOT_LIB)/sqlite_include  -I/usr/include
 VERSIONE=-DBANCO_MANOVRA -DSCADA -DBACKTRACK -DF22_APPEND -DSNAP_PIAC -DPIACENZA -DREPLAY -DMFFR -DSAVEPERT
 LINKER_OPTIONS=-L/usr/users/legor2/xprinter/lib.dec3000
 UXCGEN=run_uxcgen12.sh $@ $<
@@ -39,7 +39,7 @@ F_FLAGS=-fno-second-underscore
 #       %date_created:  Thu Oct 31 11:24:41 2002 %
 
 CFLAGS = -I$(SCADA_INCLUDE) -I$(SCADA_LIBOSF1) -I$(SCADA_ROOT)/scada/mandbrt -I. -D$(OS) \
-	-D_BSD -D_NO_PROTO -DXOPEN_CATALOG -DAIXV3 $(C_FLAGS) $(SCADA_C_FLAGS) \
+	-D_BSD   -DXOPEN_CATALOG -DAIXV3 $(C_FLAGS) $(SCADA_C_FLAGS) \
 	$(SCADA_OPT)
 
 SORGENTI = Scada.c ScadaDebugMain.c ScadaLogMain.c ScadaMandbMain.c UxXt.c \

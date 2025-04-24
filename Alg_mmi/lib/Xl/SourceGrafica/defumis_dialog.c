@@ -261,35 +261,35 @@ defumis_Graf = PuntGraf;
 
 	XtAddCallback( defumis_dialog, XmNmapCallback,
 			map_proc,
-			69 );
+			(XtPointer)69 );
 
 	XtAddCallback( list_defumis, XmNsingleSelectionCallback,
 			apply_proc,
-			70 );
+			(XtPointer)70 );
 
 	XtAddCallback( toggle2_umis1, XmNvalueChangedCallback,
 			toggle_proc,
-			71 );
+			(XtPointer)71 );
 
 	XtAddCallback( toggle2_umis2, XmNvalueChangedCallback,
 			toggle_proc,
-			72 );
+			(XtPointer)72 );
 
 	XtAddCallback( toggle2_umis3, XmNvalueChangedCallback,
 			toggle_proc,
-			73 );
+			(XtPointer)73 );
 
 	XtAddCallback( toggle2_umis4, XmNvalueChangedCallback,
 			toggle_proc,
-			74 );
+			(XtPointer)74 );
 
 	XtAddCallback( defumis_ok, XmNactivateCallback,
 			ok_proc,
-			69 );
+			(XtPointer)69 );
 
 	XtAddCallback( defumis_cancel, XmNactivateCallback,
 			cancel_proc,
-			69 );
+			(XtPointer)69 );
 
 	return ( defumis_dialog );
 }

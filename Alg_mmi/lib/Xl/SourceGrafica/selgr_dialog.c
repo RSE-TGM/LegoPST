@@ -259,19 +259,19 @@ selgr_Graf = PuntGraf;
 
 	XtAddCallback( selgr_dialog, XmNmapCallback,
 			map_proc,
-			50 );
+			(XtPointer)50 );
 
 	XtAddCallback( list_gr, XmNsingleSelectionCallback,
 			apply_proc,
-			52 );
+			(XtPointer)52 );
 
 	XtAddCallback( selgr_ok, XmNactivateCallback,
 			ok_proc,
-			50 );
+			(XtPointer)50 );
 
 	XtAddCallback( selgr_cancel, XmNactivateCallback,
 			cancel_proc,
-			50 );
+			(XtPointer)50 );
 
 
 

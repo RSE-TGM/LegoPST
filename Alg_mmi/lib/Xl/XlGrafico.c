@@ -700,6 +700,8 @@ static void Seleziona();
 static void AddSelez();
 static void DoLayout();
 static void PopupInterno();
+extern void set_min_max(S_DATI *,S_XLGRAFICO *);
+
 
 #define POPUP_MENU_TRANS "#override <Btn2Down>: PopupInterno(%ld)"
 

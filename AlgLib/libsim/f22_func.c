@@ -52,6 +52,7 @@ static char SccsID[] = "@(#)f22_func.c	5.7\t2/6/96";
    Prototyping delle funzioni contenute nel file 
 */
 static int ComparaCampioni(SCIRC_SEL_DATI *,SCIRC_SEL_DATI *);
+extern int f22_leggi_ultimo(PUNT_FILE_F22 ,F22CIRC_HD ,float *,float *);
 
 int zero=0;
 
