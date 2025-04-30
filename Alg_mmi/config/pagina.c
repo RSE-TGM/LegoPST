@@ -46,8 +46,11 @@ static char SccsID[] = "@(#)pagina.c	5.1\t11/13/95";
 #include <Xd/XdLista.h>
 #include <Xd/XdUndo.h>
 
+#include "UxXt.h"
+
 #include "config.h"
 #include "message.h"
+#include  "libutilx.h"
 
 #define DEFAULT_REFRESHFREQ 10
 extern Display *UxDisplay;
@@ -57,15 +60,19 @@ extern Arg args[];
 extern void add_def_translation();
 
 
-extern estrai_nome(char *, char *);
-extern elimina_da_lista(char *, int, char *);
+extern int estrai_nome(char *, char *);
+extern int elimina_da_lista(char *, int, char *);
 extern char *alloca_memoria();
 
 extern XdLista get_lista();
 extern XdLista get_lista_undo();
 extern XdListaUndo get_lista_liste_undo();
 
-extern void show_message();
+//extern void show_message();
+extern Boolean XdSetDeleteConn(void * );
+extern int OlFindConnectionByPort(OlConnObject , char *, char* ,char *);
+extern void undoListDeleteAll(XdListaUndo);
+
 
 Boolean WidSelectedAreInEdit(PAGINA *pag)
 {
@@ -79,11 +86,11 @@ Boolean WidSelectedAreInEdit(PAGINA *pag)
       for(i=0;i<nwgtsel;i++)
       {
          if( XlIsInEdit(wgtsel[i]) ) {
-            libera_memoria(wgtsel);
+            libera_memoria((char*)wgtsel);
             return(True);
          }
          else {
-            libera_memoria(wgtsel);
+            libera_memoria((char*)wgtsel);
             return(False);
          }
       }
@@ -477,7 +484,7 @@ Cardinal num_children;
 perc_zoom= 100.0 * fatt_zoom;
 get_child(drawing,&children,&num_children);
 for(i=0;i<num_children;i++)
-      set_something(children[i],XlNfattZoom,(void*) perc_zoom);
+      set_something(children[i],XlNfattZoom,(char*) perc_zoom);
 }
 
 /*--------------------------------------------------------
@@ -762,9 +769,9 @@ void do_cancella(char *nome_pag,int tipo)
 
                if(pagedit->pag_num == 0)
                {
-                  libera_memoria( pagedit->page_list);
+                  libera_memoria( (char*)pagedit->page_list);
                   pagedit->page_list=NULL;
-		  libera_memoria( pagedit->res_page);
+		  libera_memoria( (char*)pagedit->res_page);
 		  pagedit->res_page = NULL;
                }
                else
@@ -774,12 +781,12 @@ void do_cancella(char *nome_pag,int tipo)
 		     memcpy(pagedit->res_page[j], pagedit->res_page[j+1],
 			    sizeof(INFO_PAGE));
 		  }
-		  libera_memoria( pagedit->res_page[pagedit->pag_num]);   
+		  libera_memoria( (char*)pagedit->res_page[pagedit->pag_num]);   
                }
                break;
             }   
          }
-         libera_memoria(obj);
+         libera_memoria((char*)obj);
          pagina_free(pag);
          removefromlist(pos);
 
@@ -847,7 +854,7 @@ void do_cancella(char *nome_pag,int tipo)
 
                if(pagedit->iconlib_num == 0)
                {
-                  libera_memoria( pagedit->iconlib_list);
+                  libera_memoria( (char*)pagedit->iconlib_list);
                   pagedit->iconlib_list=NULL;
                }
                break;
@@ -911,19 +918,19 @@ void pagina_setta_resource(PAGINA *pag)
 {
    Pixel pix;
 
-   set_something(pag->topwidget,XmNx,(void*) pag->geom.x);
-   set_something(pag->topwidget,XmNy,(void*) pag->geom.y);
-   set_something(pag->topwidget,XmNwidth,(void*) pag->geom.width);
-   set_something(pag->topwidget,XmNheight,(void*) pag->geom.height);
-   set_something(pag->drawing,XmNwidth,(void*) pag->geom.draw_width);
-   set_something(pag->drawing,XmNheight,(void*) pag->geom.draw_height);
+   set_something(pag->topwidget,XmNx,(char*) pag->geom.x);
+   set_something(pag->topwidget,XmNy,(char*) pag->geom.y);
+   set_something(pag->topwidget,XmNwidth,(char*) pag->geom.width);
+   set_something(pag->topwidget,XmNheight,(char*) pag->geom.height);
+   set_something(pag->drawing,XmNwidth,(char*) pag->geom.draw_width);
+   set_something(pag->drawing,XmNheight,(char*) pag->geom.draw_height);
    DrawSetSnap(pag->drawing,pag->snap_pag);
 
    /*
     esamina se la risorsa colore di sfondo contiene il nome
     di un file .gif
     */
-   pag->sfondo=NULL;
+   pag->sfondo=0;
    if(strstr(pag->geom.background,".gif"))
 	{
 	Pixmap bitmap_norm;
@@ -1060,7 +1067,7 @@ int fcopy(PAGINA *pag)
 
       }
    if(nwgtsel)
-	libera_memoria(wgtsel);
+	libera_memoria((char*)wgtsel);
    }
 }
 
@@ -1075,7 +1082,7 @@ typedef struct {
                   int  delta;
                } FROMCLIP;
 
-get_idwid(char *nome,char *id)
+void get_idwid(char *nome,char *id)
 {
    char *appo;
 
@@ -1084,7 +1091,7 @@ get_idwid(char *nome,char *id)
    *appo = 0;
 }
 
-get_idchild(char *nome,char *id)
+void get_idchild(char *nome,char *id)
 {
    char *appo;
 
@@ -1095,7 +1102,7 @@ get_idchild(char *nome,char *id)
    id[strlen(id)-1]=0;
 }
 
-get_nomewid(char *nome,char *id)
+void get_nomewid(char *nome,char *id)
 {
    char *appo;
 
@@ -1105,7 +1112,7 @@ get_nomewid(char *nome,char *id)
    *appo = 0;
 }
 
-get_nomechild(char *nome,char *id)
+void get_nomechild(char *nome,char *id)
 {
    char *appo;
 
@@ -1961,7 +1968,7 @@ defdb = UxDisplay->db;
 CompileBoard = (Widget)create_ClipBoard();
 
 if( pagina_init( nomefile, &pag,TIPO_PAGINA) == False)
-           return;
+           return(False);
 
 if( pagina_load_file(pag,TIPO_PAGINA)  && pagina_getres(pag,&lista_oggetti) )
         {
@@ -1999,7 +2006,7 @@ if( pagina_load_file(pag,TIPO_PAGINA)  && pagina_getres(pag,&lista_oggetti) )
 UxDisplay->db = defdb;
 }
 
-EliminaDraget(PAGINA *pag)
+void EliminaDraget(PAGINA *pag)
 {
 XdListaUndo  l_undo;
 XdLista      ListaDraget;

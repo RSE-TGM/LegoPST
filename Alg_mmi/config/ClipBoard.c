@@ -151,16 +151,16 @@ int CBGetCoordWid(Position *minX,Position *minY,Position *maxX,Position *maxY)
    if(CBQuery(&wgtlst,&numChild))
    {
 
-      if( (x = alloca_memoria(numChild,sizeof(Position))) == NULL)
+      if( (x = (Position *)alloca_memoria(numChild,sizeof(Position))) == NULL)
          return(False);
 
-      if( (y = alloca_memoria(numChild,sizeof(Position))) == NULL)
+      if( (y = (Position *)alloca_memoria(numChild,sizeof(Position))) == NULL)
          return(False);
 
-      if( (w = alloca_memoria(numChild,sizeof(Dimension))) == NULL)
+      if( (w = (Position *)alloca_memoria(numChild,sizeof(Dimension))) == NULL)
          return(False);
 
-      if( (h = alloca_memoria(numChild,sizeof(Dimension))) == NULL)
+      if( (h = (Position *)alloca_memoria(numChild,sizeof(Dimension))) == NULL)
          return(False);
 
       for(i=0;i<numChild;i++)
@@ -180,10 +180,10 @@ int CBGetCoordWid(Position *minX,Position *minY,Position *maxX,Position *maxY)
       calc(VMAX,maxX,x,numChild);
       calc(VMAX,maxY,y,numChild);
 
-      libera_memoria(x);
-      libera_memoria(y);
-      libera_memoria(w);
-      libera_memoria(h);
+      libera_memoria((char*)x);
+      libera_memoria((char*)y);
+      libera_memoria((char*)w);
+      libera_memoria((char*)h);
    
       return(True);
    }

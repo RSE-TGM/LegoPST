@@ -72,6 +72,7 @@ extern OlConnObject conn_obj; /* oggetto OlConn (gestione connessioni) */
    Funzioni per la costruzione dei macromoduli
 */
 int scrivi_connessioni(PAGINA *, char * , char *, char *);
+extern int OlFindConnectionByPort(OlConnObject , char *, char* ,char *);
 
 
 

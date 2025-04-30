@@ -388,6 +388,11 @@ static Rettang RectanglesWidget[] = {
 #define HOLE 45
 
 
+
+
+
+
+
 /*
  definizione delle confinfo per il configuratore della pagina
 */
@@ -398,7 +403,7 @@ static XlConfInfo confinfo_pag[] = {
         XlCNomePag,
         XlDnomePag,
         XlRTextAlloc,
-        NULL,
+        0,
         NULL,
         XlRGrIo,
         XtOffsetOf(PAGINA,nomepag[0]),
@@ -409,7 +414,7 @@ static XlConfInfo confinfo_pag[] = {
         XlCDescrPag,
         XlDdescrPag,
         XlRTextAlloc,
-        NULL,
+        0,
         NULL,
         XlRGrIo,
         XtOffsetOf(PAGINA,geom.descriz[0]),
@@ -420,7 +425,7 @@ static XlConfInfo confinfo_pag[] = {
         XlCDescrPag_2,
         XlDdescrPag_2,
         XlRTextAlloc,
-        NULL,
+        0,
         NULL,
         XlRGrIo,
         XtOffsetOf(PAGINA,geom.descriz_2[0]),
@@ -431,7 +436,7 @@ static XlConfInfo confinfo_pag[] = {
         XlCDescrPag_3,
         XlDdescrPag_3,
         XlRTextAlloc,
-        NULL,
+        0,
         NULL,
         XlRGrIo,
         XtOffsetOf(PAGINA,geom.descriz_3[0]),
@@ -442,7 +447,7 @@ static XlConfInfo confinfo_pag[] = {
         XlCDescrPag_4,
         XlDdescrPag_4,
         XlRTextAlloc,
-        NULL,
+        0,
         NULL,
         XlRGrIo,
         XtOffsetOf(PAGINA,geom.descriz_4[0]),
@@ -453,7 +458,7 @@ static XlConfInfo confinfo_pag[] = {
         XtCElenco_wid0,
         XtDelenco_wid0,
         XlRText,
-        NULL,
+        0,
         NULL,
         XlRGrIo,
         XtOffsetOf(PAGINA,elenco_wid),
@@ -464,7 +469,7 @@ static XlConfInfo confinfo_pag[] = {
         XlCTipoPag,
         XlDtipoPag,
         XlRTextAlloc,
-        NULL,
+        0,
         NULL,
         XlRGrIo,
         XtOffsetOf(PAGINA,geom.tipo[0]),
@@ -475,7 +480,7 @@ static XlConfInfo confinfo_pag[] = {
         XlCXPag,
         XlDxPag,
         XlRPosition,
-        NULL,
+        0,
         NULL,
         XlRGrIo,
         XtOffsetOf(PAGINA,geom.x),
@@ -486,7 +491,7 @@ static XlConfInfo confinfo_pag[] = {
         XlCYPag,
         XlDyPag,
         XlRPosition,
-        NULL,
+        0,
         NULL,
         XlRGrIo,
         XtOffsetOf(PAGINA,geom.y),
@@ -497,7 +502,7 @@ static XlConfInfo confinfo_pag[] = {
         XlCWidthPag,
         XlDwidthPag,
         XlRDimension,
-        NULL,
+        0,
         NULL,
         XlRGrIo,
         XtOffsetOf(PAGINA,geom.width),
@@ -508,7 +513,7 @@ static XlConfInfo confinfo_pag[] = {
         XlCHeightPag,
         XlDheightPag,
         XlRDimension,
-        NULL,
+        0,
         NULL,
         XlRGrIo,
         XtOffsetOf(PAGINA,geom.height),
@@ -519,7 +524,7 @@ static XlConfInfo confinfo_pag[] = {
         XlCWidthDraw,
         XlDwidthDraw,
         XlRDimension,
-        NULL,
+        0,
         NULL,
         XlRGrIo,
         XtOffsetOf(PAGINA,geom.draw_width),
@@ -530,7 +535,7 @@ static XlConfInfo confinfo_pag[] = {
         XlCHeightDraw,
         XlDheightDraw,
         XlRDimension,
-        NULL,
+        0,
         NULL,
         XlRGrIo,
         XtOffsetOf(PAGINA,geom.draw_height),
@@ -541,7 +546,7 @@ static XlConfInfo confinfo_pag[] = {
         XlCTagPag,
         XlDtagPag,
         XlRTextAlloc,
-        NULL,
+        0,
         NULL,
         XlRGrIo,
         XtOffsetOf(PAGINA,tagPag[0]),
@@ -552,7 +557,7 @@ static XlConfInfo confinfo_pag[] = {
         XlCSnapPag,
         XlDsnapPag,
         XlRInt,
-        NULL,
+        0,
         NULL,
         XlRGrIo,
         XtOffsetOf(PAGINA,snap_pag),
@@ -563,7 +568,7 @@ static XlConfInfo confinfo_pag[] = {
         XtCNum_widget,
         XtDnum_widget,
         XlRInt,
-        NULL,
+        0,
         NULL,
         XlRGrIo,
         XtOffsetOf(PAGINA,num_widget),
@@ -574,7 +579,7 @@ static XlConfInfo confinfo_pag[] = {
         XtCNextnum,
         XtNnextnum,
         XlRInt,
-        NULL,
+        0,
         NULL,
         XlRGrIo,
         XtOffsetOf(PAGINA,next_num),
@@ -585,7 +590,7 @@ static XlConfInfo confinfo_pag[] = {
         XlCNumTagReg,
         XlDnumTagReg,
         XlRInt,
-        NULL,
+        0,
         NULL,
         XlRGrIo,
         XtOffsetOf(PAGINA,numTagReg),
@@ -596,7 +601,7 @@ static XlConfInfo confinfo_pag[] = {
         XlCNextagReg,
         XlDnextTagReg,
         XlRTextAlloc,
-        NULL,
+        0,
         NULL,
         XlRGrIo,
         XtOffsetOf(PAGINA,nextTagRegol[0]),
@@ -607,7 +612,7 @@ static XlConfInfo confinfo_pag[] = {
         XlCSchemeInUse,
         XlDschemeInUse,
         XlRInt,
-        NULL,
+        0,
         NULL,
         XlRGrIo,
         XtOffsetOf(PAGINA,in_use),
@@ -618,7 +623,7 @@ static XlConfInfo confinfo_pag[] = {
         XlCBackgroundDraw,
         XlDbackgroundDraw,
         XlRTextAlloc,
-        NULL,
+        0,
         NULL,
         XlRGrIo,
         XtOffsetOf(PAGINA,geom.background[0]),
@@ -629,7 +634,7 @@ static XlConfInfo confinfo_pag[] = {
         XlCGerarchia,
         XlDgerarchia,
         XlRTextAlloc,
-        NULL,
+        0,
         NULL,
         XlRGrIo,
         XtOffsetOf(PAGINA,gerarchia[0]),
@@ -640,7 +645,7 @@ static XlConfInfo confinfo_pag[] = {
         XlCCompilationDate,
         XlDcompilationDate,
         XlRTextAlloc,
-        NULL,
+        0,
         NULL,
         XlRGrIo,
         XtOffsetOf(PAGINA,compilationDate[0]),
@@ -651,7 +656,7 @@ static XlConfInfo confinfo_pag[] = {
         XlCRegolationDate,
         XlDregolationDate,
         XlRTextAlloc,
-        NULL,
+        0,
         NULL,
         XlRGrIo,
         XtOffsetOf(PAGINA,regolationDate[0]),
@@ -662,7 +667,7 @@ static XlConfInfo confinfo_pag[] = {
         XlCHeightExt2,
         XlDheightExt2,
         XlRDimension,
-        NULL,
+        0,
         NULL,
         XlRGrIo,
         XtOffsetOf(PAGINA,geom.height_ext2),
@@ -673,7 +678,7 @@ static XlConfInfo confinfo_pag[] = {
         XlCRegTaskSigla,
         XlDregTaskSigla,
         XlRTextAlloc,
-        NULL,
+        0,
         NULL,
         XlRGrIo,
         XtOffsetOf(PAGINA,reg_task_sigla[0]),
@@ -699,7 +704,7 @@ Boolean pagina_getres(PAGINA *,AN_OBJ**);
 Boolean pagina_save(PAGINA* ,int, int);
 PAGINA *GetPaginaFromWidget(Widget);
 PAGINA *GetPaginaFromName(char *);
-char *GetTypeFromName(char *pag);
+char *GetTypeFromName(char *);
 Boolean RaisePagina(char *);
 Boolean PagIsOpen(char *);
 Boolean cvtPixelFromString(Widget,char *,Pixel *);
@@ -714,4 +719,104 @@ Boolean GetResPaginaDb(PAGINA *,XrmDatabase , Boolean);
 
 void testata(char *, char *);
 void XlErrComp(char* ,char *,char *,char *);
+void pagina_free(PAGINA *);
+
+
+
+// GUAG2025 Estratto da RtMemory 
+void *RtMalloc(size_t,char *,int);
+void *RtCalloc(size_t,size_t,char *,int);
+void *RtRealloc(void *,size_t,char *,int);
+void  RtFree(void *,char *, int);
+char *  RtNewString(char *,char *,int);
+size_t RtMemoryAllocated(void *);
+Boolean RtCheckPointer(void *);
+void * RtIntRecord(void *, char *, int);
+/*
+	ridefinizione delle chiamate 
+*/
+#define RtRecord(punt)  RtIntRecord(punt,__FILE__,__LINE__)
+#define malloc(size)	RtMalloc(size,__FILE__,__LINE__)
+#define free(punt)	RtFree(punt,__FILE__,__LINE__)
+#define realloc(punt,size)	RtRealloc(punt,size,__FILE__,__LINE__)
+#define calloc(num_elet,size_ele)	RtCalloc(num_elet,size_ele,__FILE__,__LINE__)
+
+#define XtMalloc(size)	RtMalloc(size,__FILE__,__LINE__)
+#define XtFree(punt)	RtFree(punt,__FILE__,__LINE__)
+#define XtRealloc(punt,size)	RtRealloc(punt,size,__FILE__,__LINE__)
+#define XtCalloc(num_elet,size_ele)	RtCalloc(num_elet,size_ele,__FILE__,__LINE__)
+#define XtNewString(stringa)	RtNewString(stringa,__FILE__,__LINE__)
+// fine Estratto da RtMemory 
+
+char *alloca_memoria(int , int );
+int libera_memoria(char *);
+int new_save_context(PAGEDIT_CONTEXT *);
+int compile_all_reg();
+Boolean ContextLoad();
+void SetMsg();
+void iconlib_buttCB(Widget ,int , XmAnyCallbackStruct *);
+void set_connect(Widget,int);
+Widget XlGetSelectedWidget (Widget );
+int get_selected(PAGINA *,Widget **,Cardinal *);
+int PagGetType(PAGINA *);
+int delete_widget(PAGINA *);
+void DrawGroup(Widget);
+void DrawUngroup(Widget); 
+Widget	create_drawShell( );
+int show_message(char *);
+void DrawSetZoom(Widget,float);
+void PaginaSetZoom(Widget,float);
+void pagina_setta_resource(PAGINA *);
+int pagina_create_widget(PAGINA *, AN_OBJ *);
+void undo_draget_copy(Widget,Widget);
+
+extern  void *		UxNewContext();
+
+int iconlib_init( char *, ICONLIB ** );
+int iconlib_getres(ICONLIB *,AN_OBJ **);
+int iconlib_create_widget(ICONLIB *,AN_OBJ *);
+void iconlib_def_translation(ICONLIB *);
+void pag_wgeometry(FILE *,PAGINA *);
+int add_library_item(XmString ,int );
+void modify_item(XmString , int );
+Boolean SettaTagInPag(char * , char * );
+void modify_library_item(XmString ,int );
+void get_geometry(Widget ,Position *,Position *,Dimension  *,Dimension *); 
+void CreaClipboardList();
+int display_resources(PAGEDIT_CONTEXT *);
+void do_cancella(char *,int );
+void DrawSetSnap(Widget,int);
+int setPageditEnv(PAGEDIT_CONTEXT *);
+int verifica_direttori_context(PAGEDIT_CONTEXT *);
+int TagPagSetNew(PAGEDIT_CONTEXT * ,int);
+int clear_topLevel();
+void SettaToggle(Widget );
+Boolean SetRegoDisplayMode(Widget ,int , int , int );
+Boolean GetRegoDisplayMode(Widget ,int *, int *, int *);
+Boolean OlDestroyDatabaseTopologia(OlDatabaseTopologiaObject );
+int estrai_nome(char *, char *);
+Boolean XlIsXlManager(Widget );
+void removefromlibrarylist(int );
+Boolean XlCreatePixmapFromGIF(Widget, char*, Pixmap *);
+void desel_all(PAGINA *);
+void assign_name(PAGINA *,int ,Widget ,char *);
+Boolean PagGetConnectMode(Widget );
+int TagPagCalcNext(char *,char *);
+//int OlFindConnectionByPort(OlConnObject conn, char *ind_port, char* ind_icon,char *nome_pag);
+Widget	create_ClipBoard();
+void DrawDeleteAll(Widget,XEvent*);
+//void undoListDeleteAll(XdListaUndo);
+void EndPick(Widget,XEvent *);
+int resize_widget(PAGINA *,Widget ,XEvent *,int );
+int move_widget(PAGINA *,Widget ,XEvent *);
+void StartPageditMove(Widget);
+int select_connections(int,Widget *,XRectangle *,int);
+void get_punto_porta(Widget,int*,int*);
+int delete_estr_conn(Widget,int,int,int*,int*,int*,int*);
+void AddTransWid(PAGINA *,Widget );
+void DeselectAllDraget(Widget, Boolean);
+
+
+
+
 /* fine config.h */

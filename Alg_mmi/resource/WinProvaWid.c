@@ -115,6 +115,7 @@ static _UxCWinProvaWid	*UxWinProvaWidContext;
 *******************************************************************************/
 
 Widget	create_WinProvaWid();
+extern OlDatabaseTopologiaObject OlCreateDatabaseTopologia(char *, char *, int , char *,char *,char *);
 
 /*******************************************************************************
 	The following are callback functions.

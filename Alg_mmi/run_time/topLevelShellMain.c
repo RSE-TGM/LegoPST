@@ -129,7 +129,7 @@ extern void CheckMmiStatus( );
 static void    activateCB_pushButtonQuit();
 
 extern swidget create_teleperm();
-
+extern OlDatabaseTopologiaObject OlCreateDatabaseTopologia(char *, char *, int , char *,char *,char *);
 
 /** risorse che vengono lette dal Context
 **/
@@ -1946,7 +1946,7 @@ Widget	popup_topLevelShellMain()
 		set_something(buttonOpenPage,XmNfontList,(void*) FontLabel);
 		
 		
-		/* set hostbame della machhina dove Þ partito legommi
+		/* set hostbame della machhina dove ï¿½ partito legommi
 		*/
 		if( gethostname(lochostname,MAXHOSTNAMELEN) != 0) 
 		{

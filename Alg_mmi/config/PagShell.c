@@ -5,6 +5,7 @@
 *******************************************************************************/
 
 #include <stdio.h>
+
 #include <Xm/Xm.h>
 #include <Xm/MwmUtil.h>
 #include <Xm/MenuShell.h>
@@ -22,6 +23,15 @@
 #include <Xm/Form.h>
 #include <Xm/MainW.h>
 #include <X11/Shell.h>
+#include <Xl/XlIconReg.h>
+
+//#include "XlPrint.h"
+//#include "other.h"
+
+Widget XlPrintSetup(Widget);
+Widget PrintSetup(Widget);
+
+
 
 /*******************************************************************************
        Includes, Defines, and Global variables from the Declarations Editor:
@@ -45,7 +55,7 @@
 */
 
 #include <stdlib.h>
-#include "config.h"
+
 #include <draw.h>
 #include <Xd/Xd.h>
 #include <Xd/XdLista.h>
@@ -53,7 +63,9 @@
 #include <Ol/OlCompiler.h>
 #include <Xl/XlDispReg.h>
 #include <Xl/XlPort.h>
+#include "libutilx.h"
 #include "message.h"
+#include "config.h"
 
 PAGINA *pagine = NULL; /* lista delle pagine */
 
@@ -72,6 +84,10 @@ extern int flag_demo;
 
 int PrintClosePag();
 void close_page();
+extern void SetItemString();
+extern void EliminaDraget(PAGINA *pag);
+
+//extern  void *		UxNewContext();
 
 
 /*******************************************************************************
@@ -310,7 +326,7 @@ static _UxCPagShell            *UxPagShellContext;
        The following function is an event-handler for posting menus.
 *******************************************************************************/
 
-static void	_UxPagShellMenuPost( wgt, client_data, event, ctd )
+static void	_UxPagShellMenuPost( wgt, client_data, event )
 	Widget		wgt;
 	XtPointer	client_data;
 	XEvent		*event;
@@ -354,7 +370,7 @@ Auxiliary code from the Declarations Editor:
  *
  *-------------------------------------------------------------------*/
 
-iconlib_buttCB(Widget w,int ind_butt, XmAnyCallbackStruct *call_data)
+void iconlib_buttCB(Widget w,int ind_butt, XmAnyCallbackStruct *call_data)
 {
 #ifndef DESIGN_TIME
    _UxCPagShell      *UxSaveCtx, *UxContext;
@@ -399,7 +415,7 @@ iconlib_buttCB(Widget w,int ind_butt, XmAnyCallbackStruct *call_data)
  *               
  *-------------------------------------------------------------------*/
 
-add_objlib_button(swidget wid)
+void add_objlib_button(swidget wid)
 {
    extern PAGEDIT_CONTEXT *pagedit;
    swidget *iconlibButt;
@@ -424,12 +440,12 @@ add_objlib_button(swidget wid)
 #ifndef DESIGN_TIME
    UxPutContext (iconlibButt[i] ,(char *)UxPagShellContext);
 #endif      
-      XtAddCallback(iconlibButt[i], XmNactivateCallback, iconlib_buttCB,i);
+      XtAddCallback(iconlibButt[i], XmNactivateCallback, (XtCallbackProc)iconlib_buttCB,(XtPointer)i);
 
    }
    XtManageChildren(iconlibButt, num_butt);
 
-   libera_memoria(iconlibButt);
+   libera_memoria((char*)iconlibButt);
 
 }
 
@@ -731,7 +747,7 @@ switch(ris_num)
 #ifndef DESIGN_TIME
  UxPagShellContext = UxSaveCtx;
 #endif
-return(ret);
+return((int)ret);
 }
 
 
@@ -741,7 +757,7 @@ return(ret);
  setta a False il flag che indica l'utilizzo in corso
  del Draw per disegnare il background
 */
-reset_drawing_background(Widget w)
+void reset_drawing_background(Widget w)
 {
 #ifndef DESIGN_TIME
 
@@ -839,7 +855,7 @@ void close_page(char *pagname)
 pagina_free(pappo);
 }
 
-SetItemString(XmString *Xstring,char *nome,char *tipo,char *descr,int in_use,
+void SetItemString(XmString *Xstring,char *nome,char *tipo,char *descr,int in_use,
 	char *tag)
 {
    char *Cstring;
@@ -862,14 +878,14 @@ SetItemString(XmString *Xstring,char *nome,char *tipo,char *descr,int in_use,
    XtFree(Cstring);  
 }
 
-PageMenuSetInterfaceModeOn()
+void PageMenuSetInterfaceModeOn()
 {
    set_something(SaveTmp,XmNsensitive,(void*) False);
    set_something(ConnectMode,XmNsensitive,(void*) False);
    set_connect(actual_page->drawing,(int)1);
 }
 
-PageMenuSetInterfaceModeOff()
+void PageMenuSetInterfaceModeOff()
 {
    set_something(SaveTmp,XmNsensitive,(void*) True);
 }
@@ -923,7 +939,7 @@ Widget wret=NULL;
 #endif
 }
 
-RefreshDrawingArea(Widget cw)
+void RefreshDrawingArea(Widget cw)
 {
 int i,j;
 Cardinal nchild,nnipoti;
@@ -1135,12 +1151,12 @@ static	void	activateCB_menu3DuplicateAll( UxWidget, UxClientData, UxCallbackArg 
 			    (PagGetType(actual_page) != TYPE_LIBRERIA &&
 			    (XlIsPort(wsel[i]) || XlIsDispReg(wsel[i]))))
 				{
-				libera_memoria(wsel);
+				libera_memoria((char*)wsel);
 				return;
 				}
 	
 			}
-		libera_memoria(wsel);
+		libera_memoria((char*)wsel);
 		}
 	   f_zoom= get_def_zoom(actual_page->drawing);
 	   Step=get_step(actual_page->drawing);
@@ -1640,12 +1656,12 @@ static	void	activateCB_FDuplicateAll( UxWidget, UxClientData, UxCallbackArg )
 			    (PagGetType(actual_page) != TYPE_LIBRERIA &&
 			    (XlIsPort(wsel[i]) || XlIsDispReg(wsel[i]))))
 				{
-				libera_memoria(wsel);
+				libera_memoria((char*)wsel);
 				return;
 				}
 	
 			}
-		libera_memoria(wsel);
+		libera_memoria((char*)wsel);
 		}
 	   f_zoom= get_def_zoom(actual_page->drawing);
 	   Step=get_step(actual_page->drawing);
@@ -2213,7 +2229,7 @@ static	void	activateCB_ViewError( UxWidget, UxClientData, UxCallbackArg )
 	strcat(comando,error_file);
 	strcat(comando,"  False &");
 	
-	if( system(NULL) != NULL)
+	if( system(NULL) != 0)
 	   system( comando );  
 #endif
 	}
@@ -2251,7 +2267,7 @@ static	void	activateCB_Compile_b4( UxWidget, UxClientData, UxCallbackArg )
 	strcat(comando,error_file);
 	strcat(comando,"  False &");
 	
-	if( system(NULL) != NULL)
+	if( system(NULL) != 0)
 	   system( comando );  
 #endif
 	}
@@ -3815,7 +3831,7 @@ Widget	create_PagShell( _Uxnome_pagina, _Uxindice, _Uxtipop )
 		
 		
 		if(lista_oggetti != NULL)
-		   libera_memoria(lista_oggetti);
+		   libera_memoria((char*)lista_oggetti);
 		
 		if(tipop == TIPO_PAGINA)
 		   strcpy(titolo,"Page : ");

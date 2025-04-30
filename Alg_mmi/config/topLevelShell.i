@@ -50,7 +50,8 @@ extern swidget create_PagDialog();\
 extern swidget create_ClipBoard();\
 int Already_Selected =False;\
 extern int gestMessageBox();   /* gestione conferma operazioni */\
-\
+extern int pagedit_context_init();\
+extern OlDatabaseTopologiaObject OlCreateDatabaseTopologia(char *, char *, int , char *,char *,char *);\
 /* lista widget e indici pagine aperte \
 */\
 Widget PagOpen[MAXPAGOPEN];\
@@ -1712,7 +1713,7 @@ strcpy(comando,"edit_f01   ");\
 strcat(comando,error_file);\
 strcat(comando,"  False &");\
 \
-if( system(NULL) != NULL)\
+if( system(NULL) != 0)\
    system( comando );  \
 #endif\
 }

@@ -45,6 +45,9 @@
 #endif
 #include "res_edit.h"
 
+#include "libutilx.h"
+
+
 #define MAXREGNAME 4
 extern swidget topLevelShell;
 extern Arg args[];
@@ -345,7 +348,7 @@ static	void	activateCB_OkButton( UxWidget, UxClientData, UxCallbackArg )
 			(_UxCPagDialog *) UxGetContext( UxWidget );
 	{
 #ifndef DESIGN_TIME
-	extern XmString SetItemString();
+	extern void  SetItemString();
 	extern int TagPagSetNew();
 	extern void PaginaSetTagPag();
 	extern Arg args[];
@@ -794,7 +797,7 @@ printf("activateCB_OkButton:nomepag=%s\n",nomepag);
 	      modify_item(new_item,i);
 	/* MAURIC */
 	      pagina_free(pagina);
-	      libera_memoria(listaobj);
+	      libera_memoria((char*)listaobj);
 	      XmStringFree(new_item); 
 	   break;
 	   case MODIFY_LIBRARY:
@@ -849,7 +852,7 @@ printf("activateCB_OkButton:nomepag=%s\n",nomepag);
 	      modify_library_item(new_item,i);
 	/* MAURIC */
 	      pagina_free(pagina);
-	      libera_memoria(listaobj);
+	      libera_memoria((char*)listaobj);
 	      XmStringFree(new_item);
 	   break;
 	   case COPY_PAGE:
@@ -1000,8 +1003,8 @@ printf("activateCB_OkButton:nomepag=%s\n",nomepag);
 	      if(tipo_sorg == TYPE_REGOLAZIONE)
 	                        SettaTagInPag(nomepag,NULL);
 	/* MAURIC */
-	      libera_memoria(listaobj);
-	      libera_memoria(obj);
+	      libera_memoria((char*)listaobj);
+	      libera_memoria((char*)obj);
 	      pagina_free(pagappo);
 	      pagina_free(pagina);
 	      XmStringFree(Cpagname);

@@ -2003,7 +2003,7 @@ strcpy(comando,"edit_f01   ");\
 strcat(comando,error_file);\
 strcat(comando,"  False &");\
 \
-if( system(NULL) != NULL)\
+if( system(NULL) != 0)\
    system( comando );  \
 #endif\
 }
@@ -2034,7 +2034,7 @@ strcpy(comando,"edit_f01   ");\
 strcat(comando,error_file);\
 strcat(comando,"  False &");\
 \
-if( system(NULL) != NULL)\
+if( system(NULL) != 0)\
    system( comando );  \
 #endif\
 }\

@@ -60,6 +60,8 @@ extern swidget create_SaveSelection();
 extern char *nome_file_draw;
 extern Widget FinestraDraw;
 
+extern void reset_drawing_background(Widget );
+
 int curr_line_style;
 int curr_line_width;
 int curr_step=1;

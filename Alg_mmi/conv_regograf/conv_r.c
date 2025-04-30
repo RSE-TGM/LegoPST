@@ -496,7 +496,7 @@ fclose(fp_sfondo);
  get_punto_porta
  calcola il punto in cui parte la connessione
 */
-get_punto_porta(w,xpunto,ypunto)
+void get_punto_porta(w,xpunto,ypunto)
 Widget w; /* widget della porta */
 int *xpunto;
 int *ypunto;

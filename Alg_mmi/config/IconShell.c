@@ -41,6 +41,7 @@
 */
 
 #include "config.h"
+#include "libutilx.h"
 
 WidgetClass istanzia_wid_class;
 Widget *lista_widlib;
@@ -294,7 +295,7 @@ Widget	create_IconShell( _UxLibname )
 		iconlib_create_widget(Plib,lista_icone);
 		iconlib_def_translation(Plib);
 		if(lista_icone != NULL)
-		   libera_memoria(lista_icone);
+		   libera_memoria((char*)lista_icone);
 		
 		return(rtrn);
 	}

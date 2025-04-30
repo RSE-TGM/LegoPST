@@ -32,10 +32,11 @@ CFLAGSINCL= -I$(LEGOROOT_INCLUDE) -I$(LEGORT_INCLUDE) -I$(LEGOMMI_INCLUDE) $(X_I
 CFLAGS = $(C_FLAGS) $(CFLAGSINCL) -D$(OS) $(VERSIONE)
 
 # GUAG2025 Tolgo messageBoxDialog2 per il problema del UxNewContext
-#SORGENTI = XdUtil.c XdGeom.c XdCore.c XdLine.c XdRect.c XdCircle.c XdLista.c XdPoli.c XdConn.c XdGroup.c XdUndo.c messageBoxDialog2.c
-#OGGETTI  = XdUtil.o XdGeom.o XdCore.o XdLine.o XdRect.o XdCircle.o XdLista.o XdPoli.o XdConn.o XdGroup.o XdUndo.o messageBoxDialog2.o
-SORGENTI = XdUtil.c XdGeom.c XdCore.c XdLine.c XdRect.c XdCircle.c XdLista.c XdPoli.c XdConn.c XdGroup.c XdUndo.c 
-OGGETTI  = XdUtil.o XdGeom.o XdCore.o XdLine.o XdRect.o XdCircle.o XdLista.o XdPoli.o XdConn.o XdGroup.o XdUndo.o 
+# GUAG2025 provo reinserire messageBoxDialog2.c
+SORGENTI = XdUtil.c XdGeom.c XdCore.c XdLine.c XdRect.c XdCircle.c XdLista.c XdPoli.c XdConn.c XdGroup.c XdUndo.c messageBoxDialog2.c
+OGGETTI  = XdUtil.o XdGeom.o XdCore.o XdLine.o XdRect.o XdCircle.o XdLista.o XdPoli.o XdConn.o XdGroup.o XdUndo.o messageBoxDialog2.o
+#SORGENTI = XdUtil.c XdGeom.c XdCore.c XdLine.c XdRect.c XdCircle.c XdLista.c XdPoli.c XdConn.c XdGroup.c XdUndo.c 
+#OGGETTI  = XdUtil.o XdGeom.o XdCore.o XdLine.o XdRect.o XdCircle.o XdLista.o XdPoli.o XdConn.o XdGroup.o XdUndo.o 
 
 
 

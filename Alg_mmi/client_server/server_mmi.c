@@ -72,7 +72,7 @@ printf("Message !!!\n      Process server_mmi[%d]: close connection\n",getpid())
 exit(1);
 }
 
-main(argc,argv)
+int main(argc,argv)
 int argc;
 char **argv;
 {
@@ -160,7 +160,7 @@ MSG_DEMONE_PORT messaggio_porta;
         perror ("binding datagram socket");
 	exit (0);
     }
-if(getsockname(fp,&sock_info,&size_sockaddr)!=0)
+if(getsockname(fp,(struct sockaddr * restrict)&sock_info,&size_sockaddr)!=0)
 	errore("getsockname");
 
  /* si memorizza il numero di porta nella struttura del server */
@@ -183,7 +183,7 @@ if(getsockname(fp,&sock_info,&size_sockaddr)!=0)
 
    /*  accetta la connessione da parte di un processo client */
 
-    if ((fp = accept (fp, &server, &qq)) < 0)
+    if ((fp = accept (fp, (struct sockaddr * restrict)&server, &qq)) < 0)
     {
 	perror ("Errore accept");
 	exit (0);
@@ -218,7 +218,7 @@ while(1)
         dal client_command al server_command e switch sulla 
         richiesta ricevuta. 
 */
-	ret = readn(fp,&hd,sizeof(HEADER_NEW_PAGE_MMI));
+	ret = readn(fp,(char *)&hd,sizeof(HEADER_NEW_PAGE_MMI));
 	/* converto l'header  */
 	CONVERTI_INT_R(hd.id_shm);
 	CONVERTI_INT_R(hd.t_agg);
@@ -258,7 +258,7 @@ da leggere, chiudi connessione
                    {
 /*                 Lettura pacchetti e controllo sulle dimensioni */
                    tok = (TOKEN *)malloc(size);
-                   ret = readn(fp,tok,size);
+                   ret = readn(fp,(char *)tok,size);
         	   if(ret<=0)
 		           {		
 			   msg_close(id_msg);
@@ -299,9 +299,9 @@ da leggere, chiudi connessione
                 }
            case CHANGE_POINT_MMI:
                 {
-                ret = readn(fp,&(msg_point.posizione),sizeof(int));
-                ret = readn(fp,&(msg_point.indirizzo),sizeof(int));
-                ret = readn(fp,&(msg_point.tipo),sizeof(int));
+                ret = readn(fp,(char *)&(msg_point.posizione),sizeof(int));
+                ret = readn(fp,(char *)&(msg_point.indirizzo),sizeof(int));
+                ret = readn(fp,(char *)&(msg_point.tipo),sizeof(int));
 		CONVERTI_INT_R(msg_point.posizione);
 		CONVERTI_INT_R(msg_point.indirizzo);
 		CONVERTI_INT_R(msg_point.tipo);
@@ -316,7 +316,7 @@ da leggere, chiudi connessione
                 }
            case F22_MMI:
                 {
-                ret = readn(fp,&msg_f22,sizeof(MSG_F22_MMI));
+                ret = readn(fp,(char *)&msg_f22,sizeof(MSG_F22_MMI));
         	if(ret<=0)
 		   {
 		   msg_close(id_msg);
@@ -438,7 +438,7 @@ while(1)
 	  CONVERTI_INT_T(hd_data.tipo_operazione);
 	  CONVERTI_INT_T(hd_data.id_shm);
 	  CONVERTI_INT_T(hd_data.num_punti);
-          if(writen(fp,&hd_data,sizeof(HEADER_DATA_DATA))<=0)
+          if(writen(fp,(char *)&hd_data,sizeof(HEADER_DATA_DATA))<=0)
 		{
 		msg_close(id_msg);
 		close_connection();
@@ -463,7 +463,7 @@ while(1)
           printf("*********************\n");
           printf("size_f22=%d\n",size_f22);
           printf("*********************\n");
-          if(writen(fp,&hd_data,sizeof(HEADER_DATA_DATA))<=0)
+          if(writen(fp,(char *)&hd_data,sizeof(HEADER_DATA_DATA))<=0)
 		{
 		msg_close(id_msg);
 		close_connection();
@@ -518,7 +518,7 @@ id_msg_pert = msg_create(shr_usr_key+ID_MSG_PERT,0);
 while(1)
 	{
 	/* riceve le perturbazioni dalla rete  */
-	ret=readn(fp,&(messaggio_pert.perturbazione),sizeof(TIPO_PERT));
+	ret=readn(fp,(char *)&(messaggio_pert.perturbazione),sizeof(TIPO_PERT));
 	if(ret!=sizeof(TIPO_PERT))
 		close_connection();
 
@@ -807,7 +807,7 @@ HEADER_DATA_DATA hd_data;
    CONVERTI_INT_T(hd_data.id_shm);
    CONVERTI_INT_T(hd_data.num_punti);
 
-   if(writen(fp,&hd_data,sizeof(HEADER_DATA_DATA))<=0)
+   if(writen(fp,(char *)&hd_data,sizeof(HEADER_DATA_DATA))<=0)
 	{
         msg_close(id_msg);
 printf("\n\nCLOSE CONN 4 \n\n ");

@@ -34,8 +34,8 @@ all:
 #       eseguibili
 #
 	cd ./client_server; $(MAKE) -f Makefile.mk 
-	cd ./client_scada; $(MAKE) -f Makefile.mk
-#	cd ./resource; $(MAKE) -f Makefile.mk
+#	cd ./client_scada; $(MAKE) -f Makefile.mk
+	cd ./resource; $(MAKE) -f Makefile.mk
 	cd ./config; $(MAKE) -f Makefile.mk
 	cd ./draw; $(MAKE) -f Makefile.mk
 	cd ./run_time; $(MAKE) -f Makefile.mk

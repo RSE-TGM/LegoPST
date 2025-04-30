@@ -126,9 +126,9 @@ int compile_all_reg()
 int numero=0;
 Boolean read_db;
 
-extern XtAppContext CompileAppContext;
-extern Display *CompileDisplay;
-extern Widget CompileTopLevel;
+//extern XtAppContext CompileAppContext;
+//extern Display *CompileDisplay;
+// extern Widget CompileTopLevel;
 
 
 
@@ -570,14 +570,14 @@ int causa_comp_pag;
             for(j=0;j<pag->num_widget;j++)
                XtDestroyWidget(lista[j]);
 
-            libera_memoria(lista);
+            libera_memoria((char*)lista);
             }
          pagina_free(pag);
          if(pag->num_widget > 0)
-            libera_memoria(lista_oggetti);
+            libera_memoria((char*)lista_oggetti);
          }
        else
-         libera_memoria(pag);
+         libera_memoria((char*)pag);
 
        UxDestroyInterface(CompileBoard);
 /*

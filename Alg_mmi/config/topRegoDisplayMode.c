@@ -42,6 +42,7 @@
 #include <Xl/XlDispReg.h>
 #include <Xl/XlPort.h>
 
+#include "config.h"
 
 /*******************************************************************************
        The definition of the context structure:
@@ -122,7 +123,7 @@ Widget	popup_topRegoDisplayMode();
 Auxiliary code from the Declarations Editor:
 *******************************************************************************/
 
-SettaToggle(Widget UxWidget)
+void SettaToggle(Widget UxWidget)
 {
 #ifndef DESIGN_TIME
         _UxCtopRegoDisplayMode  *UxSaveCtx, *UxContext;

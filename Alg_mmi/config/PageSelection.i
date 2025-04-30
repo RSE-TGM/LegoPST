@@ -476,7 +476,7 @@ switch(tip_operaz)\
             break;\
          }\
      \
-         if( system(NULL) == NULL)\
+         if( system(NULL) == 0)\
          {\
             SetMsg(topLevelShell,NULL,ERRMSG,"ConfigError","Unix Command Shell Not Available",NULL,False,NULL,False,NULL); \
             return;\

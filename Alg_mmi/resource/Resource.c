@@ -76,6 +76,8 @@ extern WidgetClass GetClass();
 
 void CreaRowColumnRisorse ( );
 int EseguiLoadResources();
+void set_connect(Widget,int);
+Widget XlGetSelectedWidget (Widget );
 
 
 /*******************************************************************************

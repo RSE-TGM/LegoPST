@@ -63,7 +63,7 @@ int iconlib_init( char *lname, ICONLIB **icon )
 
    printf("iconlib_init on file %s\n",libfile);
 
-   if( (*icon = alloca_memoria(1,sizeof(ICONLIB))) == NULL)
+   if( (*icon = (ICONLIB*)alloca_memoria(1,sizeof(ICONLIB))) == NULL)
       return(False);
 
 /* load delle risorse */
@@ -133,7 +133,7 @@ int iconlib_getres(ICONLIB *iconlib,AN_OBJ **listaicon)
 
 /* inizializzazione dei descrittori degli widget sulla iconlib */
 
-   if( (*listaicon =  alloca_memoria(iconlib->num_widget,sizeof(AN_OBJ))) == NULL)
+   if( (*listaicon =  (AN_OBJ *)alloca_memoria(iconlib->num_widget,sizeof(AN_OBJ))) == NULL)
       return(False);
 
    appo = value.addr;
@@ -186,7 +186,7 @@ void iconlib_setta_trans(char *trans,WidgetList widlist,Cardinal numwid)
 
 }
 
-iconlib_def_translation(ICONLIB *iconlib)
+void iconlib_def_translation(ICONLIB *iconlib)
 {
    extern void get_child();
    char *tipo;

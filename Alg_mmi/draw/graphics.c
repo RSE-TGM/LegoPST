@@ -302,7 +302,7 @@ while((dr=ListDragetNext(get_lista(w))) != NULL)
 
 
 
-DrawGrid(wid)
+void DrawGrid(wid)
 Widget wid;
 {
 GC copyGC;
@@ -352,7 +352,7 @@ XDrawPoints(UxDisplay,XtWindow(wid),copyGC,points,num_points,CoordModeOrigin);
 XtFree((char *)points);
 }
 
-DrawSetSnap(wid,snap)
+void DrawSetSnap(wid,snap)
 Widget wid;
 int snap;
 {
@@ -714,7 +714,7 @@ dr_num_selected=0;
 
 
 
-StartPageditMove(wid)
+void StartPageditMove(wid)
 Widget wid;
 {
 int i;
@@ -946,7 +946,7 @@ if(rect.width != 0)
 /*
  Deseleziona tutti i draget presenti sulla pagina
 */
-DeselectAllDraget(wid, do_expose)
+void DeselectAllDraget(wid, do_expose)
 Widget wid;
 Boolean do_expose;
 {
@@ -1243,7 +1243,7 @@ XClearArea(XtDisplay(draw_wid),XtWindow(draw_wid),0,0,0,0,True);
 /*
  Raggruppa i draget in selezione corrente
  */
-DrawGroup(draw_wid)
+void DrawGroup(draw_wid)
 Widget draw_wid;
 {
 Draget dr;
@@ -1733,7 +1733,7 @@ return(True);
  Copia i draget presenti nell'area di disegno in clipboard per
  permettere la undo
 */
-undo_draget_copy(draw_wid,draw_clip)
+void undo_draget_copy(draw_wid,draw_clip)
 Widget draw_wid;
 Widget draw_clip;
 {
@@ -2258,7 +2258,7 @@ if(dr=find_conn(wid,x,y,&num_estr))
  Trova gli estremi di una connessione dato uno dei due estremi
  e cancella la connessione corrispondente
 */
-delete_estr_conn(wid,xfilo,yfilo,xin,yin,xfin,yfin)
+int delete_estr_conn(wid,xfilo,yfilo,xin,yin,xfin,yfin)
 Widget wid; /* drawing area */
 int xfilo,yfilo;
 int *xin,*yin,*xfin,*yfin;

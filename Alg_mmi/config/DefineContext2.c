@@ -193,7 +193,7 @@ void aggiorna_ctx(PAGEDIT_CONTEXT *ctx)
 
          if(ndisplay == 0)
          {
-            if((ctx->elenco_display = alloca_memoria(1,sizeof(char *))) == NULL)
+            if((ctx->elenco_display = (char**)alloca_memoria(1,sizeof(char *))) == NULL)
                return;
          }
          else

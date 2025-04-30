@@ -117,7 +117,7 @@ printf("argc = %d\n",argc);
                ret_int=1;
             else if(ret==-1)
                ret_int=2;
-            libera_memoria(lista_oggetti);
+            libera_memoria((char*)lista_oggetti);
             XtDestroyWidget(CompileBoard);
             if(!read_db)
                pag->db = NULL;
@@ -130,7 +130,7 @@ printf("Terminato il processo 'compreg'\n\tSystem return value = %d\n",ret_int);
 /*
          Liberazione della struttura list_oggetti
 */
-            libera_memoria(lista_oggetti);
+            libera_memoria((char*)lista_oggetti);
          }
          if(!read_db)
             pag->db = NULL;

@@ -9,9 +9,11 @@
 #include <Xm/MwmUtil.h>
 #include <Xm/DialogS.h>
 #include <Xm/MenuShell.h>
-#include "UxXt.h"
-
+#include <Xm/List.h>
 #include <Xm/SelectioB.h>
+
+#include "UxXt.h"
+#include "libutilx.h"
 
 /*******************************************************************************
        Includes, Defines, and Global variables from the Declarations Editor:
@@ -216,11 +218,11 @@ static	void	okCallback_LibToPag( UxWidget, UxClientData, UxCallbackArg )
 	}
 	else
 	{
-	   if( (pagedit->page_list = alloca_memoria(1,sizeof(char *))) == NULL)
+	   if( (pagedit->page_list = (char**)alloca_memoria(1,sizeof(char *))) == NULL)
 	      return;
 	}
 	
-	if( (pagedit->page_list[pagedit->pag_num] = alloca_memoria(strlen(lib)+1,sizeof(char))) == NULL) 
+	if( (pagedit->page_list[pagedit->pag_num] = (char*)alloca_memoria(strlen(lib)+1,sizeof(char))) == NULL) 
 	   return;
 	
 	strcpy(pagedit->page_list[pagedit->pag_num],lib);

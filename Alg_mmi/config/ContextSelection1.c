@@ -9,9 +9,11 @@
 #include <Xm/MwmUtil.h>
 #include <X11/Shell.h>
 #include <Xm/MenuShell.h>
-#include "UxXt.h"
-
+#include <Xm/SelectioB.h>
 #include <Xm/FileSB.h>
+
+#include "UxXt.h"
+#include "libutilx.h"
 
 /*******************************************************************************
        Includes, Defines, and Global variables from the Declarations Editor:
@@ -134,7 +136,7 @@ static	void	okCallback_ContextSelection1( UxWidget, UxClientData, UxCallbackArg 
 	
 	extern Boolean ContextLoaded;    /* True se c'e' un context caricato */
 	extern Boolean ContextModified;  /* True se c'e' un context non salvato */
-	extern int ContextLoad();
+	extern Boolean  ContextLoad();
 	extern int display_resources();
 	extern PAGEDIT_CONTEXT *pagedit;
 	extern void TopMenuSetInsensitive();

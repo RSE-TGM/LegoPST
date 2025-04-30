@@ -100,6 +100,8 @@ Widget	LibFunction;
 *******************************************************************************/
 
 Widget	create_LibFunction();
+extern Boolean file_exist(char *);
+extern void SetItemString();
 
 /*******************************************************************************
 Auxiliary code from the Declarations Editor:

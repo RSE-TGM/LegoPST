@@ -26,6 +26,8 @@
 #include <Xm/MainW.h>
 #include <X11/Shell.h>
 
+#include <Rt/RtMemory.h>
+
 /*******************************************************************************
        Includes, Defines, and Global variables from the Declarations Editor:
 *******************************************************************************/
@@ -50,7 +52,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #ifndef LINUX
-#include <sys/access.h>
+//#include <sys/access.h>
 #endif
 #include <string.h>
 #include <Xm/Xm.h>
@@ -70,9 +72,13 @@
 */
 #include "libutilx.h"
 
-XtAppContext CompileAppContext = NULL;
+// XtAppContext CompileAppContext = NULL;
+extern XtAppContext CompileAppContext ;
 Display *CompileDisplay;
 Widget CompileTopLevel;
+
+
+
 Widget ClipBoardForCopy; /* interfaccia usata per le
                              funzionalita' di copy and
                              paste */
@@ -83,6 +89,9 @@ extern swidget create_PagDialog();
 extern swidget create_ClipBoard();
 int Already_Selected =False;
 extern int gestMessageBox();   /* gestione conferma operazioni */
+extern int pagedit_context_init();
+extern char *OlEstrRegTaskName(char *, char *);
+extern  void *		UxNewContext();
 
 /* lista widget e indici pagine aperte 
 */
@@ -141,7 +150,10 @@ int clear_topLevel( );
 Boolean AlignResPageContext();
 void PrintAllPages();
 int CheckOlTree();
-
+extern int compile_all_pag();
+extern int info_top_schemi();
+extern void SetItemString();
+extern OlDatabaseTopologiaObject OlCreateDatabaseTopologia(char *, char *, int , char *,char *,char *);
 
 /*******************************************************************************
        The definition of the context structure:
@@ -350,7 +362,7 @@ static _UxCtopLevelShell       *UxTopLevelShellContext;
        The following function is an event-handler for posting menus.
 *******************************************************************************/
 
-static void	_UxtopLevelShellMenuPost( wgt, client_data, event, ctd )
+static void	_UxtopLevelShellMenuPost( wgt, client_data, event )
 	Widget		wgt;
 	XtPointer	client_data;
 	XEvent		*event;
@@ -587,7 +599,7 @@ int display_resources(PAGEDIT_CONTEXT *paged)
         }
 
    if(paged->pag_num>0)
-     XtFree(pag_save);
+     XtFree((char*)pag_save);
     
 /* recupero la lista delle icone */
    for(i=0;i<paged->iconlib_num;i++)
@@ -703,7 +715,7 @@ int open_page(int tipo)
 
 /* permetto di aprire contemporaneamente al massimo MAXPAGOPEN */
    if(npagopen == MAXPAGOPEN)
-      return;
+      return(0);
 
 /* da utilizzare se si desidera aprire una sola pagina
 
@@ -715,18 +727,18 @@ int open_page(int tipo)
    if(tipo == TIPO_PAGINA)
    {
       if( XmListGetSelectedPos(UxGetWidget(ListPagine),&selected,&selcount) == False )
-         return;
+         return(0);
    }
    else if(tipo == TIPO_LIBRARY)
    {
       if( XmListGetSelectedPos(UxGetWidget(LibraryList),&selected,&selcount) == False )
-         return;
+         return(0);
    }
 
    if(selcount > 1)
-      return;
+      return(0);
    else if(selcount ==0)
-      return;
+      return(0);
 
    ind_pagina = selected[0] - 1;
 
@@ -738,7 +750,7 @@ int open_page(int tipo)
 /****
       SetMsg(topLevelShell,NULL,WRNMSG,"ConfigInfo","Page Is Already Open",NULL,False,NULL,False,NULL);
 ****/
-      return;
+      return(0);
    }
    else if( (tipo==TIPO_LIBRARY) && (PagIsOpen(pagedit->iconlib_list[ind_pagina]) == True))
    {
@@ -746,7 +758,7 @@ int open_page(int tipo)
 /****
       SetMsg(topLevelShell,NULL,WRNMSG,"ConfigInfo","Page Is Already Open",NULL,False,NULL,False,NULL);
 *****/
-      return;
+      return(0);
    }
 
 
@@ -792,21 +804,21 @@ int modify_page(int tipo)
    int *selected,selcount,ind_pagina;
 
    if(Already_Selected == True)
-      return;
+      return(0);
 
 /* identifico l'item selezionato */
    if(tipo == TIPO_PAGINA )
       if( XmListGetSelectedPos(ListPagine,&selected,&selcount) == False )
-         return;
+         return(0);
 
    if(tipo == TIPO_LIBRARY )
       if( XmListGetSelectedPos(LibraryList,&selected,&selcount) == False )
-         return;
+         return(0);
 
    if(selcount > 1)
-      return;
+      return(0);
    else if(selcount ==0)
-      return;
+      return(0);
 
 
    ind_pagina = selected[0] - 1;
@@ -817,7 +829,7 @@ int modify_page(int tipo)
       if( PagIsOpen(pagedit->page_list[ind_pagina]) == True) 
       {
          SetMsg(topLevelShell,NULL,WRNMSG,"ConfigInfo","Page Is Already Open",NULL,False,NULL,False,NULL);
-         return;
+         return(0);
       }
       else
         wid=create_PagDialog(pagedit->page_list[ind_pagina],MODIFY_PAGE);
@@ -826,7 +838,7 @@ int modify_page(int tipo)
       if( PagIsOpen(pagedit->iconlib_list[ind_pagina]) == True) 
       {
          SetMsg(topLevelShell,NULL,WRNMSG,"ConfigInfo","Library Is Already Open",NULL,False,NULL,False,NULL);
-         return;
+         return(0);
       } 
       else
          wid=create_PagDialog(pagedit->iconlib_list[ind_pagina],MODIFY_LIBRARY);
@@ -848,16 +860,16 @@ int duplicate_page()
    int *selected,selcount,ind_pagina;
 
    if(Already_Selected == True)
-      return;
+      return(0);
 
 /* identifico l'item selezionato */
    if( XmListGetSelectedPos(ListPagine,&selected,&selcount) == False )
-      return;
+      return(0);
 
    if(selcount > 1)
-      return;
+      return(0);
    else if(selcount ==0)
-      return;
+      return(0);
 
 
    ind_pagina = selected[0] - 1;
@@ -879,7 +891,7 @@ int del_page(int tipo)
    int *selected,selcount,ind_pagina;
 
    if(Already_Selected == True)
-      return;
+      return(0);
 
 /* identifico l'item selezionato */
    if(tipo == TIPO_PAGINA)
@@ -887,7 +899,7 @@ int del_page(int tipo)
       if( XmListGetSelectedPos(ListPagine,&selected,&selcount) == False )
       {
          printf("return value XmListGetSelectedPos is False\n");
-         return;
+         return(0);
       }
    }
    else if(tipo == TIPO_LIBRARY)
@@ -895,16 +907,16 @@ int del_page(int tipo)
       if( XmListGetSelectedPos(LibraryList,&selected,&selcount) == False )
       {
          printf("return value XmListGetSelectedPos is False\n");
-         return;
+         return(0);
       }
    }
    
 
   
    if(selcount > 1)
-      return;
+      return(0);
    else if(selcount ==0)
-      return;
+      return(0);
 
 
    ind_pagina = selected[0] - 1;
@@ -914,7 +926,7 @@ int del_page(int tipo)
       if(PagIsOpen(pagedit->page_list[ind_pagina]) == True)
       {
          SetMsg(topLevelShell,NULL,WRNMSG,"ConfigInfo","Page Is Open" ,NULL,False,NULL,False,NULL);
-         return;
+         return(0);
       }
    }
    else if(tipo == TIPO_LIBRARY)
@@ -922,7 +934,7 @@ int del_page(int tipo)
       if(PagIsOpen(pagedit->iconlib_list[ind_pagina]) == True)
       {
          SetMsg(topLevelShell,NULL,WRNMSG,"ConfigInfo","Library Is Open" ,NULL,False,NULL,False,NULL);
-         return;
+         return(0);
       }
    }
 
@@ -956,8 +968,8 @@ int show_message(char *mess)
   strcat( new_str, mess );
   XmTextSetString( scrolledText1, new_str );
   XmTextShowPosition( scrolledText1,strlen(new_str)-1);
-  libera_memoria( str );
-  libera_memoria( new_str );
+  libera_memoria( (char*)str );
+  libera_memoria( (char*)new_str );
   
   XmUpdateDisplay(scrolledText1);
 
@@ -1471,9 +1483,9 @@ static	void	activateCB_menu1Exit1( UxWidget, UxClientData, UxCallbackArg )
 	   extern Boolean ContextModified;
 	
 	   if( ContextModified )
-	      gest_conf_op(EXIT_WITH_SAVE,"EXIT - Context is not Saved. Do you Want To Save ?",pagedit);
+	      gest_conf_op(EXIT_WITH_SAVE,"EXIT - Context is not Saved. Do you Want To Save ?",(char*)pagedit);
 	   else
-	      gest_conf_op(EXIT_NO_CHANGE,"EXIT - Do you really want to Exit?",NULL);
+	      gest_conf_op(EXIT_NO_CHANGE,"EXIT - Do you really want to Exit?",(char*)NULL);
 	
 	}
 	UxTopLevelShellContext = UxSaveCtx;
@@ -1842,13 +1854,13 @@ static	void	activateCB_CompileAll( UxWidget, UxClientData, UxCallbackArg )
 	                     for(j=0;j<pag->num_widget;j++)
 	                        XtDestroyWidget(lista[j]);
 	
-	                     libera_memoria(lista);
+	                     libera_memoria((char*)lista);
 	                 }
 			 pagina_free(pag);
-		         libera_memoria(lista_oggetti);
+		         libera_memoria((char*)lista_oggetti);
 	              }
 		      else
-	              	 libera_memoria(pag);
+	              	 libera_memoria((char*)pag);
 	
 	                UxDestroyInterface(CompileBoard);
 		   	XSync(XtDisplay(UxTopLevel),False);
@@ -1942,7 +1954,7 @@ static	void	activateCB_ViewErrTask( UxWidget, UxClientData, UxCallbackArg )
 	strcat(comando,error_file);
 	strcat(comando,"  False &");
 	
-	if( system(NULL) != NULL)
+	if( system(NULL) != 0)
 	   system( comando );  
 #endif
 	}

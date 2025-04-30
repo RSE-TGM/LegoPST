@@ -79,6 +79,10 @@ static int write_shm(TAB_SHARED, float *);
 char *crea_shrmem(int,int,int *);
 extern int sgancia_shrmem(char *);
 extern void elimina_shrmem(int,char*,int);
+extern char* io_sono();
+int CsRcvMsgDel(int );
+int CsRcvMsgChangePoint(int ,MSG_CHANGE_POINT_MMI *);
+int CsRcvMsgF22(int , char **);
 
 pid_t client_command = 0,
       client_data = 0,
@@ -88,7 +92,7 @@ pid_t client_command = 0,
 
 
 
-main(argc,argv)
+int main(argc,argv)
 int argc;
 char **argv;
 {
@@ -155,8 +159,38 @@ switch(tipo_client)
 			segnale SIGALRM
 		*/
 printf("Valore di client_data=%d client_pert=%d client_command=%d\n",client_data,client_pert,client_command);
-		   signal(SIGALRM,handler_client_mmi); 
-		   sigpause(0);
+
+// GUAG2025 Eliminazione di sigpause non funziona con versione attuale de SO e che oltretutto é anacronistico e deprecato.
+//		   signal(SIGALRM,handler_client_mmi); 
+//		   sigpause(0);
+           sigset_t mask_vuota, mask_originale;
+           signal(SIGALRM,handler_client_mmi);
+           // Prepara una maschera vuota (nessun segnale bloccato)
+           sigemptyset(&mask_vuota);
+
+           // Blocca SIGALRM prima di entrare in attesa per evitare race condition
+           sigprocmask(SIG_BLOCK, NULL, &mask_originale); // Ottieni maschera corrente
+           sigset_t mask_blocco_alrm = mask_originale;
+           sigaddset(&mask_blocco_alrm, SIGALRM);
+           sigprocmask(SIG_SETMASK, &mask_blocco_alrm, NULL); // Blocca SIGALRM
+
+           printf("Client MMI principale in attesa di segnale...\n");
+
+           // Attendi un segnale, sbloccando atomicamente tutti i segnali (usando mask_vuota)
+           // Quando sigsuspend ritorna (dopo che l'handler è stato eseguito),
+           // la maschera originale viene ripristinata automaticamente.
+           sigsuspend(&mask_vuota);
+
+           // A questo punto, il segnale (probabilmente SIGALRM) è arrivato
+           // e l'handler è stato eseguito.
+           // La maschera originale dovrebbe essere già ripristinata da sigsuspend,
+           // ma per sicurezza potresti ripristinarla esplicitamente se non sei sicuro
+           // del comportamento esatto del kernel/libc.
+           // sigprocmask(SIG_SETMASK, &mask_originale, NULL);
+
+           printf("Client MMI principale risvegliato.\n");         
+//  fine modifica sigpause         
+
                  } /* if abilita */
               else
                  {
@@ -258,7 +292,7 @@ server.sin_port = htons(port_daemon);
 if((socd = socket( AF_INET, SOCK_STREAM, 0))<0)
 	errore("opening datagram socket");
 
-if(connect(socd, &server, sizeof(server)) == -1 )
+if(connect(socd, (const struct sockaddr *)&server, sizeof(server)) == -1 )
 	{
 	perror("client_mmi: invia_richiesta_connessione");
 	errore("connect iniziale tra client e demone");
@@ -355,7 +389,7 @@ server.sin_port = htons(port_daemon);
 if((socd = socket( AF_INET, SOCK_STREAM, 0))<0)
 	errore("opening datagram socket");
 
-if(connect(socd, &server, sizeof(server)) == -1 )
+if(connect(socd, (const struct sockaddr *)&server, sizeof(server)) == -1 )
 	{
 	perror("client_mmi: invia_richiesta_connessione");
 	errore("connect iniziale tra client e demone");
@@ -730,7 +764,7 @@ printf("client_mmi:ricevuto msg su id_msg_client=%d\n",id_msg_client);
                    printf("ERROR:client_mmi_command: shm=%d not destroyed\n",
                            tabella[ind_tab].id_shm);
 
-                writen(fp,&header,sizeof(HEADER_NEW_PAGE_MMI));
+                writen(fp,(char*)&header,sizeof(HEADER_NEW_PAGE_MMI));
 
                 }
 
@@ -750,10 +784,10 @@ printf("client_mmi:ricevuto msg su id_msg_client=%d\n",id_msg_client);
 		CONVERTI_INT_T(msg_point.posizione);
 		CONVERTI_INT_T(msg_point.indirizzo);
 		CONVERTI_INT_T(msg_point.tipo);
-                writen(fp,&header,sizeof(HEADER_NEW_PAGE_MMI));
-                writen(fp,&(msg_point.posizione),sizeof(int));
-                writen(fp,&(msg_point.indirizzo),sizeof(int));
-                writen(fp,&(msg_point.tipo),sizeof(int));
+                writen(fp,(char *)&header,sizeof(HEADER_NEW_PAGE_MMI));
+                writen(fp,(char *)&(msg_point.posizione),sizeof(int));
+                writen(fp,(char *)&(msg_point.indirizzo),sizeof(int));
+                writen(fp,(char *)&(msg_point.tipo),sizeof(int));
 		}
 	   if( (size=CsRcvMsgF22(id_msg_client,&buffer))>=0 )
 		{
@@ -799,7 +833,7 @@ while(1)
 	   CONVERTI_FLOAT_T(messaggio_pert.perturbazione.meanvalue);
 	   CONVERTI_FLOAT_T(messaggio_pert.perturbazione.wide);
 	   CONVERTI_FLOAT_T(messaggio_pert.perturbazione.t_null_var);
-	   if(writen(fp,&(messaggio_pert.perturbazione),sizeof(TIPO_PERT))!=
+	   if(writen(fp,(char *)&(messaggio_pert.perturbazione),sizeof(TIPO_PERT))!=
 		sizeof(TIPO_PERT))
 		errore("Close connection [write pert]\n");
            } /* end if msg_rcv >=0 */
@@ -836,7 +870,7 @@ fp=socketclient_mmi(host,server_port);
 while(1)
         {
         /*printf("client data : prima di readn\n");*/
-        if( (ret=readn(fp,&hd,sizeof(HEADER_DATA_DATA)))<=0 )
+        if( (ret=readn(fp,(char *)&hd,sizeof(HEADER_DATA_DATA)))<=0 )
            {
 	   printf("ERRORE:ricezione dati da simula KO\n");
 	   errore("connection close [read header<0]");
@@ -859,7 +893,7 @@ while(1)
 /*                  Aggancio e inserimento nuova SHM in tabella */
                     size = hd.num_punti * sizeof(float);
                     val = (float*)calloc(hd.num_punti,sizeof(float));
-                    if((nbyte_read=readn(fp,val,size))<=0)
+                    if((nbyte_read=readn(fp,(char *)val,size))<=0)
                              errore("connection close [read data NEWPAGE]");
 		    if(nbyte_read!=size)
 				errore("connection close [read data NEWPAGE >0]");
@@ -904,7 +938,7 @@ while(1)
 
                     size = hd.num_punti * sizeof(float);
                     val = (float*)calloc(hd.num_punti,sizeof(float));
-                    if((nbyte_read=readn(fp,val,size))<=0)
+                    if((nbyte_read=readn(fp,(char *)val,size))<=0)
                              errore("connection close [read data REFPAGE]");
 		    if(nbyte_read!=size)
 			     errore("connection close [read data REFPAGE>0]");

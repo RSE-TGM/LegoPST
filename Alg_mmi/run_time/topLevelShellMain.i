@@ -107,7 +107,7 @@ void    activateCB_pushButtonQuit();\
 \
 extern swidget create_teleperm();\
 \
-\
+extern OlDatabaseTopologiaObject OlCreateDatabaseTopologia(char *, char *, int , char *,char *,char *);\
 /** risorse che vengono lette dal Context\
 **/\
 static XtResource res_descrizione[]= {\
@@ -323,7 +323,7 @@ set_something(XmOptionLabelGadget(menuTipoPagina),XmNfontList,FontLabel);\
 set_something(buttonOpenPage,XmNfontList,FontLabel);\
 \
 \
-/* set hostbame della machhina dove Þ partito legommi\
+/* set hostbame della machhina dove ï¿½ partito legommi\
 */\
 if( gethostname(lochostname,MAXHOSTNAMELEN) != 0) \
 {\

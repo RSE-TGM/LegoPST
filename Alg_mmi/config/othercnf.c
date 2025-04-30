@@ -54,9 +54,12 @@ static char SccsID[] = "@(#)othercnf.c	5.2\t1/11/96";
 #include <Xl/XlDispReg.h>
 #include <Xl/XlWidgetRes.h>
 #include <Xd/Xd.h>
+#include <Xd/XdConn.h>
 #include <Ol/OlForm.h>
 #include <Ol/OlConn.h>
 
+
+#include "libutilx.h"
 
 extern Display *UxDisplay;
 extern int UxScreen;
@@ -67,8 +70,11 @@ extern void assign_name();
 extern swidget topLevelShell;
 
 static Boolean CreoNuovaInterfaccia();
-extern  void draw_conn(XdConnDraget);
+extern void draw_conn(XdConnDraget);
 
+extern int OlFindConnectionByPort(OlConnObject , char *, char* ,char *);
+extern void get_child();
+Boolean OlDelConnection(OlConnObject , int );
 /*
 	oggetto OlConn per la gestione delle connessioni di
 	interfaccia
@@ -298,7 +304,7 @@ int get_selected(PAGINA *pag,Widget **selezionati,Cardinal *num_selezionati)
    
 /* alloco inizialmente memoria per contenere la lista degli widget */
    *num_selezionati = 0;
-   if( (*selezionati = alloca_memoria(num_children,sizeof(Widget) )) == NULL) 
+   if( (*selezionati = (Widget *)alloca_memoria(num_children,sizeof(Widget) )) == NULL) 
       return(False);
 
    for(i=0;i<num_children;i++)
@@ -354,7 +360,7 @@ int get_selected(PAGINA *pag,Widget **selezionati,Cardinal *num_selezionati)
    if(top && notop)
    {
       SetMsg(topLevelShell,NULL,INFMSG,"ConfigInfo","Not Omogeneous Selection",NULL,False,NULL,False,NULL);
-      libera_memoria(selezionati);
+      libera_memoria((char*)selezionati);
       *num_selezionati=0;
       return(False);
    }
@@ -699,7 +705,7 @@ void disegna_linee(Window win,XRectangle *rubb,int nrub)
    
 /* alloco memoria per contenere i segmenti */
    nsegments = nrub*4;
-   if( (segments = alloca_memoria( nsegments, sizeof(XSegment) )) == NULL )
+   if( (segments = (XSegment *)alloca_memoria( nsegments, sizeof(XSegment) )) == NULL )
       return;
    
 /* assegno le coordinate ai segmenti su ciascun rubber */
@@ -727,7 +733,7 @@ void disegna_linee(Window win,XRectangle *rubb,int nrub)
    }
    XDrawSegments(UxDisplay,win,xorGC,segments,nsegments);
 
-   libera_memoria(segments);
+   libera_memoria((char*)segments);
 }
 
 /*-----------------------------------------------------------------------
@@ -739,7 +745,7 @@ void disegna_linee(Window win,XRectangle *rubb,int nrub)
 
 int draw_rubber(Widget drawing,Window win,XRectangle *rubber,int nrubber,XRectangle limiti,int operaz)
 {
-   extern MovePick();
+   extern void MovePick();
    Boolean fine=False;
    XEvent eve;
    Window root,child;
@@ -767,7 +773,7 @@ int draw_rubber(Widget drawing,Window win,XRectangle *rubber,int nrubber,XRectan
                      GrabModeSync, GrabModeAsync,
                      None, None, CurrentTime) !=  GrabSuccess)
    {
-      return;
+      return(0);
    }
 
    if((locale = (XRectangle *)alloca_memoria(nrubber,(int)sizeof(XRectangle))) == NULL)
@@ -1223,7 +1229,7 @@ int move_or_resize(Widget wid,XEvent *eve,String *param,Cardinal *nparam)
    Window wsrc,wdst,wind;
 
    if( *nparam < 1)
-      return;
+      return(False);
 
    sscanf(param[0],"%lx",&pag);
    if(pag == NULL)
@@ -1330,12 +1336,12 @@ int move_or_resize(Widget wid,XEvent *eve,String *param,Cardinal *nparam)
       break;
       otherwise:
       /* none */
-      libera_memoria(selected);
+      libera_memoria((char*)(selected));
       return(False);
       break;
    }
 
-   libera_memoria(selected);
+   libera_memoria((char*)selected);
 
 }
 
@@ -1569,7 +1575,7 @@ int resize_widget(PAGINA *pag,Widget wid,XEvent *eve,int id_rect)
    limiti.y = 0;
 
 /* alloco memoria per contenere i dati che utilizzo per il rubber */
-   if( (rubber = alloca_memoria( num_selected,sizeof(XRectangle) )) == NULL)
+   if( (rubber = (XRectangle *)alloca_memoria( num_selected,sizeof(XRectangle) )) == NULL)
       return(False);
    nrubber = num_selected;
 
@@ -1591,8 +1597,8 @@ int resize_widget(PAGINA *pag,Widget wid,XEvent *eve,int id_rect)
 
    if(!into)
    {
-      libera_memoria(selected);
-      libera_memoria(rubber);
+      libera_memoria((char*)selected);
+      libera_memoria((char*)rubber);
       return(False);
    }
 
@@ -1606,8 +1612,8 @@ int resize_widget(PAGINA *pag,Widget wid,XEvent *eve,int id_rect)
       {
          if(selected != NULL)
          {
-            libera_memoria(selected);
-            libera_memoria(rubber);
+            libera_memoria((char*)selected);
+            libera_memoria((char*)rubber);
          }
          return(False);
       }
@@ -1643,8 +1649,8 @@ int resize_widget(PAGINA *pag,Widget wid,XEvent *eve,int id_rect)
 /* libero la memoria occupata */
    if(selected != NULL)
    {
-      libera_memoria(selected);
-      libera_memoria(rubber);
+      libera_memoria((char*)selected);
+      libera_memoria((char*)rubber);
    }
    return(True);
 }
@@ -1692,7 +1698,7 @@ int move_widget(PAGINA *pag,Widget wid,XEvent *eve)
    limiti.y = -1;
 
 /* alloco memoria per contenere i dati che utilizzo per il rubber */
-   if( (rubber = alloca_memoria( num_selected,sizeof(XRectangle) )) == NULL)
+   if( (rubber = (XRectangle *)alloca_memoria( num_selected,sizeof(XRectangle) )) == NULL)
       return(False);
    nrubber = num_selected;
 
@@ -1721,9 +1727,9 @@ int move_widget(PAGINA *pag,Widget wid,XEvent *eve)
    if(!into)
    {
       if(selected != NULL)
-         libera_memoria(selected);
+         libera_memoria((char*)selected);
       if(rubber != NULL)
-         libera_memoria(rubber);
+         libera_memoria((char*)rubber);
       return(False);
    }
 
@@ -1737,9 +1743,9 @@ int move_widget(PAGINA *pag,Widget wid,XEvent *eve)
       if( ! isinlimit(wpag,rubber[i],limiti) )
       {
          if(selected != NULL)
-            libera_memoria(selected);
+            libera_memoria((char*)selected);
          if(rubber != NULL)
-            libera_memoria(rubber);
+            libera_memoria((char*)rubber);
 
          return(False); 
       }
@@ -1771,9 +1777,9 @@ int move_widget(PAGINA *pag,Widget wid,XEvent *eve)
 
 /* libero la memoria occupata */
    if(selected != NULL)
-      libera_memoria(selected);
+      libera_memoria((char*)selected);
    if(rubber != NULL)
-      libera_memoria(rubber);
+      libera_memoria((char*)rubber);
 
    return(True);
 }
@@ -1809,7 +1815,7 @@ void delete_interface(PAGINA *pag)
 				OlDelConnection(conn_obj,ret);
 	printf("Sconnetto l'icona di interfaccia %s porta %s pos = %d\n",
 			XtName(selected[i]),XtName(figli[j]),ret);
-				app_char = (char *)NULL;
+				app_char = '\0';
                                 XtSetArg(arg[0],XlNportNameConnect,app_char);
                 		XtSetValues(figli[j],arg,1);
 
@@ -1976,7 +1982,7 @@ int delete_widget(PAGINA *pag)
          strcat(strCres,".");
          strcat(strCres,"ListChildren");
 
-         if( XrmGetResource(pag->db, strNres, strCres, &xrm_type, &xrm_value) == NULL)
+         if( XrmGetResource(pag->db, strNres, strCres, (char**)&xrm_type, &xrm_value) == 0)
          {
             printf("DELETE WIDGET errore XrmGetResource ListChildren\n");
          }
@@ -1996,14 +2002,14 @@ int delete_widget(PAGINA *pag)
          strcat(strCres,".");
          strcat(strCres,"NumFigli");
 
-         if( XrmGetResource(pag->db, strNres, strCres, &xrm_type, &xrm_value) == NULL)
+         if( XrmGetResource(pag->db, strNres, strCres, (char **)&xrm_type, &xrm_value) == 0)
             return(False);
 
          num_figli = atoi(xrm_value.addr);
 
          if(num_figli < 1)
          {
-            libera_memoria(selected);
+            libera_memoria((char*)selected);
             return(False);
          }
 
@@ -2059,11 +2065,11 @@ int delete_widget(PAGINA *pag)
 
 
    if(ListaNew != NULL)
-      libera_memoria(ListaNew);
+      libera_memoria((char*)ListaNew);
    if(ListaOld != NULL)
-      libera_memoria(ListaOld);
+      libera_memoria((char*)ListaOld);
    if(selected != NULL)
-      libera_memoria(selected);
+      libera_memoria((char*)selected);
    UxDisplay->db = pag->db;
    return(True);
 }
@@ -2399,10 +2405,10 @@ int add_composite_child(PAGINA *pagina,Widget parent,WidgetClass wid_class,char 
    strcat(XlC,".");
    strcat(XlC,"ListChildren");
    ret = XrmGetResource(pagina->db, XlN, XlC, &str_type, &xrm_value);
-   if(ret == NULL)
+   if(ret == 0)
    {
       printf("error on GetResource listChildren\n");
-      return;
+      return(0);
    }
 
 /* recupero la resource numFigli */
@@ -2413,7 +2419,7 @@ int add_composite_child(PAGINA *pagina,Widget parent,WidgetClass wid_class,char 
    strcat(XlC,".");
    strcat(XlC,"NumFigli");
    ret = XrmGetResource(pagina->db, XlN, XlC, &str_type, &xrm_num);
-   if(ret == NULL)
+   if(ret == 0)
    {
       printf("GetResource numFigli = 0\n");
    }
@@ -2714,8 +2720,12 @@ void do_rubber(ICONLIB *plib,WidgetClass wid_class,Widget wid,Dimension w,Dimens
 					parent, NULL,0);
 	f_zoom= get_def_zoom(pagina->drawing);
 	perc_zoom =100.0 * f_zoom;
-      set_something(new_wid,XmNwidth, (void*) (w*f_zoom));  
-      set_something(new_wid,XmNheight, (void*) (h*f_zoom));  
+   sprintf(appo,"%s",(w*f_zoom));
+   set_something(new_wid,XmNwidth,  (void*) appo);  
+   sprintf(appo,"%s",(h*f_zoom));
+   set_something(new_wid,XmNheight, (void*) appo);    
+      // set_something(new_wid,XmNwidth,  (w*f_zoom));  
+      // set_something(new_wid,XmNheight, (h*f_zoom));  
       }
       else
       {
@@ -2726,9 +2736,17 @@ void do_rubber(ICONLIB *plib,WidgetClass wid_class,Widget wid,Dimension w,Dimens
       new_wid = XtCreateManagedWidget(new_name, wid_class,parent, NULL,0);
 	f_zoom= get_def_zoom(pagina->drawing);
 	perc_zoom =100.0 * f_zoom;
-      set_something(new_wid,XmNx, (void*) (wx/f_zoom));  
-      set_something(new_wid,XmNy, (void*) (wy/f_zoom));  
-        set_something(new_wid,XlNfattZoom,(void*) perc_zoom);
+   // GUAG2025 modifica di set_something con appo
+      // set_something(new_wid,XmNx, (void*) (wx/f_zoom));  
+      // set_something(new_wid,XmNy, (void*) (wy/f_zoom));  
+      // set_something(new_wid,XlNfattZoom,(void*) perc_zoom);
+
+       sprintf(appo,"%s",(wx/f_zoom));
+       set_something(new_wid,XmNx, (void*) appo);  
+       sprintf(appo,"%s",(wy/f_zoom));
+       set_something(new_wid,XmNy, (void*) appo); 
+       sprintf(appo,"%s",perc_zoom);
+       set_something(new_wid,XlNfattZoom, (void*) appo);  
 
       get_something(new_wid,XlNx0, (void*) &x0);  
       get_something(new_wid,XlNy0, (void*) &y0);  
@@ -3050,11 +3068,11 @@ int copy_new(PAGINA *pag)
 
    if(duplicate_widget(pag,selected,num_selected) == False)
    {
-      libera_memoria(selected);
+      libera_memoria((char*)selected);
       return(False);
    }
 
-   libera_memoria(selected);
+   libera_memoria((char*)selected);
    return(True);
 }
 
@@ -3089,7 +3107,7 @@ XRectangle pagedit_selection(Widget draw_wid,XEvent *eve)
 
 }
 
-aggiungi_pagedit_translation(Widget draw_wid)
+void aggiungi_pagedit_translation(Widget draw_wid)
 {
 }
 
@@ -3126,7 +3144,10 @@ void proc_deselect(Widget wgtsel)
       {
 
          pag_deselect_all(drawing);
-         DeselectAllDraget(drawing);
+
+//         DeselectAllDraget(drawing);
+// GUAG2025 forse True
+         DeselectAllDraget(drawing, True);
          set_something(wgtsel,XlNselected,(void*) True);
       }
    }
@@ -3486,7 +3507,7 @@ int xin,yin,xfin,yfin;
  setta al valore di flag (1 o 0) l'attributo di connessioni abilitate
  di tutte le porte presenti sulla pagina drawing
 */
-set_connect(drawing,set)
+void set_connect(drawing,set)
 Widget drawing;
 int set;
 {

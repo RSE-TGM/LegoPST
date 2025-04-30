@@ -192,7 +192,7 @@ static	void	okCallback_messageBoxDialog1( UxWidget, UxClientData, UxCallbackArg 
 	             save_conn();
 	             destroy_conn();
 	         }
-	         else if( new_save_context(param) == False)
+	         else if( new_save_context((PAGEDIT_CONTEXT *)param) == False)
 	         {
 	            printf("Non riesco a salvare la situazione\n");
 	            printf("provare a copiare il file Context precedente\n");
@@ -380,7 +380,7 @@ Widget	create_messageBoxDialog1( _Uxid_op, _Uxmessage, _Uxparam )
 		XtSetValues(rtrn,args,lnargs);
 		
 		XmStringFree(Msg);
-		libera_memoria(intern_msg);
+		libera_memoria((char*)intern_msg);
 		if( (id_op == EXIT_WITH_SAVE) || (id_op == KILL_SIMULATOR) ||
 		    (id_op == SAVE_AND_LOAD_NEWCTX) ||
 		    (id_op == SAVE_AND_LOAD_OLDCTX) || (id_op == EXIT_NO_CHANGE) ||

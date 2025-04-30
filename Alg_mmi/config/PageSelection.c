@@ -5,13 +5,18 @@
 *******************************************************************************/
 
 #include <stdio.h>
+#include <X11/Shell.h>
+
 #include <Xm/Xm.h>
 #include <Xm/MwmUtil.h>
-#include <X11/Shell.h>
-#include <Xm/MenuShell.h>
-#include "UxXt.h"
-
+#include <Xm/SelectioB.h>
 #include <Xm/FileSB.h>
+
+#include <Xm/MenuShell.h>
+
+#include "UxXt.h"
+#include "libutilx.h"
+
 
 /*******************************************************************************
        Includes, Defines, and Global variables from the Declarations Editor:
@@ -38,9 +43,13 @@
 #include <Xm/List.h>
 #include "config.h"
 #include "message.h"
+#include "libutilx.h"
+
 extern swidget topLevelShell;
 
 static void SelezioneMultipla( );
+extern Boolean file_exist(char *);
+extern void SetItemString();
 
 
 /*******************************************************************************
@@ -481,7 +490,7 @@ static	void	okCallback_PageSelection( UxWidget, UxClientData, UxCallbackArg )
 	            break;
 	         }
 	     
-	         if( system(NULL) == NULL)
+	         if( system(NULL) == 0)
 	         {
 	            SetMsg(topLevelShell,NULL,ERRMSG,"ConfigError","Unix Command Shell Not Available",NULL,False,NULL,False,NULL); 
 	            return;

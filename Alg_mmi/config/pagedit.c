@@ -41,6 +41,9 @@ static char SccsID[] = "@(#)pagedit.c	5.1\t11/13/95";
 #include <X11/StringDefs.h>
 #include <X11/Xresource.h>
 #include <Xm/Xm.h>
+
+#include "UxXt.h"
+
 #include <libgen.h>
 #include "config.h"
 #include "message.h"
@@ -53,9 +56,13 @@ extern Boolean file_exist();
 extern void TopMenuSetInsensitive();
 extern void TopMenuSetSensitive();
 
-extern void show_message();
+//extern void show_message();
 
 extern int path_rel_to_abs(char *,char *);
+
+extern OlDatabaseTopologiaObject OlCreateDatabaseTopologia(char *, char *, int , char *,char *,char *);
+
+
 extern char Context_Path[];
 
 Boolean GetRes = True;
@@ -277,7 +284,7 @@ int pagedit_context_getres(PAGEDIT_CONTEXT *pagctx)
 
    if(!errore)
    {
-      if(  XrmGetResource(pagctx->db, XlNpages, XlCPages, &tipo, &value) == NULL )
+      if(  XrmGetResource(pagctx->db, XlNpages, XlCPages, &tipo, &value) == 0 )
       {
          errcount++;
          strcat(reserr,"Pages \n");
@@ -289,7 +296,7 @@ int pagedit_context_getres(PAGEDIT_CONTEXT *pagctx)
    
    if( !errore )
    {
-      if( XrmGetResource(pagctx->db, XlNdescription, XlCDescription, &tipo, &value) == NULL)
+      if( XrmGetResource(pagctx->db, XlNdescription, XlCDescription, &tipo, &value) == 0)
       {
          errcount++;
          strcat(reserr,"Description \n");
@@ -301,7 +308,7 @@ int pagedit_context_getres(PAGEDIT_CONTEXT *pagctx)
 
    if(!errore )
    {
-      if( XrmGetResource(pagctx->db, XlNobjectLibraries, XlCObjectLibraries, &tipo, &value) == NULL)
+      if( XrmGetResource(pagctx->db, XlNobjectLibraries, XlCObjectLibraries, &tipo, &value) == 0)
       {
          errcount++;
          strcat(reserr,"ObjectLibraries \n");
@@ -313,7 +320,7 @@ int pagedit_context_getres(PAGEDIT_CONTEXT *pagctx)
 
    if( !errore)
    {
-      if( XrmGetResource(pagctx->db, XlNanimatedIconLibraries, XlCAnimatedIconLibraries, &tipo, &value) == NULL)
+      if( XrmGetResource(pagctx->db, XlNanimatedIconLibraries, XlCAnimatedIconLibraries, &tipo, &value) == 0)
       {
          errcount++;
          strcat(reserr,"AnimatedIconLibraries\n");
@@ -326,7 +333,7 @@ int pagedit_context_getres(PAGEDIT_CONTEXT *pagctx)
 
    if( !errore)
    {
-      if( XrmGetResource(pagctx->db, XlNsimulator, XlCSimulator, &tipo, &value) == NULL)
+      if( XrmGetResource(pagctx->db, XlNsimulator, XlCSimulator, &tipo, &value) == 0)
       {
          errcount++;
          strcat(reserr,"Simulator\n");
@@ -340,8 +347,7 @@ int pagedit_context_getres(PAGEDIT_CONTEXT *pagctx)
 /* hostname */
    if( !errore)
    {
-      if( XrmGetResource(pagctx->db, XlNhostName, XlCHostName, &tipo, &value)
-== NULL)
+      if( XrmGetResource(pagctx->db, XlNhostName, XlCHostName, &tipo, &value) == 0)
       {
          errcount++;
          strcat(reserr,"Hostname\n");
@@ -353,8 +359,7 @@ int pagedit_context_getres(PAGEDIT_CONTEXT *pagctx)
 /* hostnameS */
    if( !errore)
    {
-      if( XrmGetResource(pagctx->db, XlNhostNameS, XlCHostNameS, &tipo, &value)
-== NULL)
+      if( XrmGetResource(pagctx->db, XlNhostNameS, XlCHostNameS, &tipo, &value) == 0)
       {
          errcount++;
          strcat(reserr,"HostnameS\n");
@@ -366,7 +371,7 @@ int pagedit_context_getres(PAGEDIT_CONTEXT *pagctx)
 /* get numero delle pagine definite */
    if( !errore)
    {
-      if( XrmGetResource(pagctx->db, XtNpag_num, XtCPag_num, &tipo, &value) == NULL)
+      if( XrmGetResource(pagctx->db, XtNpag_num, XtCPag_num, &tipo, &value) == 0)
       {
          errcount++;
          strcat(reserr,"PagNum\n");
@@ -380,7 +385,7 @@ int pagedit_context_getres(PAGEDIT_CONTEXT *pagctx)
          if( (pagctx->page_list = (char **)alloca_memoria(pagctx->pag_num,sizeof(char *)) ) != NULL )
          {
             /* carico la lista delle pagine */
-            if( XrmGetResource(pagctx->db, XtNpage_list, XtCPage_list, &tipo, &value) == NULL)
+            if( XrmGetResource(pagctx->db, XtNpage_list, XtCPage_list, &tipo, &value) == 0)
 		{
                	errore = True;
 		errcount++;
@@ -434,7 +439,7 @@ int pagedit_context_getres(PAGEDIT_CONTEXT *pagctx)
 /* get numero delle iconlib definite */
    if(!errore)
    {
-      if( XrmGetResource(pagctx->db, XtNiconlib_num, XtCIconlib_num, &tipo, &value) == NULL)
+      if( XrmGetResource(pagctx->db, XtNiconlib_num, XtCIconlib_num, &tipo, &value) == 0)
 	{
         errcount++;
 	pagctx->iconlib_num = 0;
@@ -455,7 +460,7 @@ int pagedit_context_getres(PAGEDIT_CONTEXT *pagctx)
 /* carico la lista delle iconlib */
          if(!errore)
          {
-            if( XrmGetResource(pagctx->db, XtNiconlib_list, XtCIconlib_list, &tipo, &value) == NULL )
+            if( XrmGetResource(pagctx->db, XtNiconlib_list, XtCIconlib_list, &tipo, &value) == 0 )
                errore = True;
             else
             {
@@ -476,7 +481,7 @@ int pagedit_context_getres(PAGEDIT_CONTEXT *pagctx)
                }
 
 /* carico la lista delle label delle iconlib da attribuire ai bottoni del menu delle pagine */
-               if( XrmGetResource(pagctx->db, XtNiconlib_label, XtCIconlib_label, &tipo, &value) == NULL)
+               if( XrmGetResource(pagctx->db, XtNiconlib_label, XtCIconlib_label, &tipo, &value) == 0)
                   errore = True;
                else
                {
@@ -504,7 +509,7 @@ int pagedit_context_getres(PAGEDIT_CONTEXT *pagctx)
 /* get numero display  */
    if( !errore )
    {
-      if( XrmGetResource(pagctx->db, XlNnumDisplay, XlCNumDisplay, &tipo, &value) == NULL)
+      if( XrmGetResource(pagctx->db, XlNnumDisplay, XlCNumDisplay, &tipo, &value) == 0)
 	{
         errcount++;
 	pagctx->num_display = 0;
@@ -515,7 +520,7 @@ int pagedit_context_getres(PAGEDIT_CONTEXT *pagctx)
 
 
 /* get  display list */
-      if( XrmGetResource(pagctx->db, XlNdisplayList, XlCDisplayList, &tipo, &value) == NULL)
+      if( XrmGetResource(pagctx->db, XlNdisplayList, XlCDisplayList, &tipo, &value) == 0)
 	{
         errcount++;
 	errore = True;
@@ -552,7 +557,7 @@ int pagedit_context_getres(PAGEDIT_CONTEXT *pagctx)
 /* get numero TagPag  definite */
    if( !errore)
    {
-      if( XrmGetResource(pagctx->db, XlNnextTagPag, XlCNextTagPag, &tipo, &value) == NULL)
+      if( XrmGetResource(pagctx->db, XlNnextTagPag, XlCNextTagPag, &tipo, &value) == 0)
       {
 	 errcount++;
 	 strcpy(pagctx->nextTagPag,"00"); 
@@ -759,8 +764,8 @@ void richiedi_change_database()
 {
     extern Widget create_messageBoxDialog1();
 
-    UxPopupInterface( create_messageBoxDialog1(KILL_SIMULATOR,"Do You Want To Reload The Topology Defined in Context ?",(char *)NULL));
-}
+    UxPopupInterface( create_messageBoxDialog1(KILL_SIMULATOR,"Do You Want To Reload The Topology Defined in Context ?",(char *)NULL), no_grab);
+}   
 /*-------------------------------
  *
  * opera lo switch tra database
@@ -844,6 +849,7 @@ void change_database()
       }
 
 }
+
 
 /*-----------------------------------------------
  *
@@ -1012,7 +1018,7 @@ char *nextTagPagGet(PAGEDIT_CONTEXT *ctx)
 }
 
 
-int ContextLoad(char *nomeCtx,PAGEDIT_CONTEXT **pagedit)
+Boolean ContextLoad(char *nomeCtx,PAGEDIT_CONTEXT **pagedit)
 {
    extern Boolean ContextLoaded;
    extern Boolean ContextModified;
@@ -1208,7 +1214,7 @@ Boolean AddResPageContext(PAGEDIT_CONTEXT *pagctx, int i)
    else {
       /* Caricamento delle risorse relative alla pagina corrente */
       sprintf(risorsa,"%s.top_descrizione", pagctx->page_list[i]);
-      if( XrmGetResource(pagctx->db, risorsa, (char *)NULL, &tipo, &value) == NULL)
+      if( XrmGetResource(pagctx->db, risorsa, (char *)NULL, &tipo, &value) == 0)
       { 
 	 /* error = True;
 	 error_count++;  CAPPE */
@@ -1217,7 +1223,7 @@ Boolean AddResPageContext(PAGEDIT_CONTEXT *pagctx, int i)
       else
          strncpy(pagctx->res_page[i]->descr_page,value.addr,(int)value.size);
       sprintf(risorsa,"%s.top_tipo", pagctx->page_list[i]);
-      if( XrmGetResource(pagctx->db, risorsa, NULL, &tipo, &value) == NULL)
+      if( XrmGetResource(pagctx->db, risorsa, NULL, &tipo, &value) == 0)
       {
          /* error = True;
          error_count++; CAPPE */
@@ -1227,7 +1233,7 @@ Boolean AddResPageContext(PAGEDIT_CONTEXT *pagctx, int i)
          strncpy(pagctx->res_page[i]->type_page,value.addr,(int)value.size);
 
       sprintf(risorsa,"%s.tagPag", pagctx->page_list[i]);
-      if( XrmGetResource(pagctx->db, risorsa, NULL, &tipo, &value) == NULL)
+      if( XrmGetResource(pagctx->db, risorsa, NULL, &tipo, &value) == 0)
       {
          /* error = True;
 	 error_count++;  CAPPE */
@@ -1237,7 +1243,7 @@ Boolean AddResPageContext(PAGEDIT_CONTEXT *pagctx, int i)
          strncpy(pagctx->res_page[i]->tagPag,value.addr,(int)value.size);
 
       sprintf(risorsa,"%s.refresh_freq", pagctx->page_list[i]);
-      if( XrmGetResource(pagctx->db, risorsa, NULL, &tipo, &value) == NULL)
+      if( XrmGetResource(pagctx->db, risorsa, NULL, &tipo, &value) == 0)
       {
          /* error = True;
 	 error_count++; CAPPE */
@@ -1250,7 +1256,7 @@ Boolean AddResPageContext(PAGEDIT_CONTEXT *pagctx, int i)
       }
 
       sprintf(risorsa,"%s.schemeInUse", pagctx->page_list[i]);
-      if( XrmGetResource(pagctx->db, risorsa, NULL, &tipo, &value) == NULL)
+      if( XrmGetResource(pagctx->db, risorsa, NULL, &tipo, &value) == 0)
       {
          /* error = True;
 	 error_count++; CAPPE */
@@ -1263,7 +1269,7 @@ Boolean AddResPageContext(PAGEDIT_CONTEXT *pagctx, int i)
       }
 
       sprintf(risorsa,"%s.gerarchia", pagctx->page_list[i]);
-      if( XrmGetResource(pagctx->db, risorsa, NULL, &tipo, &value) == NULL)
+      if( XrmGetResource(pagctx->db, risorsa, NULL, &tipo, &value) == 0)
       {
          /* error = True;
 	 error_count++; CAPPE */

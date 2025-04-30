@@ -530,7 +530,7 @@ int PagGetType(PAGINA *pag)
  libera il database associato ad una pagina e la memoria occupata
  dalla struttura pagina e dai soui membri
 */
-pagina_free(PAGINA *pag)
+void pagina_free(PAGINA *pag)
 {
 char **p_testo;
 int i;
@@ -662,7 +662,22 @@ Boolean file_exist(char *filename)
    return(False);
 }
 
-
+// /*--------------------
+//  *
+//  *
+//  *
+//  ----------------------*/
+//  FILE *file_exists(char *filename)
+//  {
+//     FILE *fp;
+ 
+//     if(  (fp = fopen(filename,"r")) != NULL)
+//     {
+//        fclose(fp);
+//        return(True);
+//     }
+//     return(NULL);
+//  }
 
 /*--------------------
  *

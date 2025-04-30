@@ -9,9 +9,11 @@
 #include <Xm/MwmUtil.h>
 #include <Xm/DialogS.h>
 #include <Xm/MenuShell.h>
-#include "UxXt.h"
-
 #include <Xm/FileSB.h>
+#include <Xm/SelectioB.h>
+
+#include "UxXt.h"
+#include "libutilx.h"
 
 /*******************************************************************************
        Includes, Defines, and Global variables from the Declarations Editor:
@@ -35,8 +37,14 @@
 */
 
 #include <stdlib.h>
+
+
+#include <Xm/Xm.h>
+#include <Xm/List.h>
+
 #include "config.h"
 #include "message.h"
+
 extern swidget topLevelShell;
 int Oper; 
 Boolean chiudi_simul;

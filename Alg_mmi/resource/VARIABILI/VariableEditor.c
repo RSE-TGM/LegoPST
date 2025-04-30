@@ -52,6 +52,7 @@
 extern swidget create_OneList();
 extern swidget create_TwoList();
 extern swidget create_PerturbEditor();
+Widget XlGetSelectedWidget (Widget );
 
 
 /*******************************************************************************

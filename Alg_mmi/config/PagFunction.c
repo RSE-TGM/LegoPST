@@ -71,6 +71,7 @@ Widget	PagFunction;
 *******************************************************************************/
 
 Widget	creat_PagFunction();
+extern Boolean file_exist(char *);
 
 /*******************************************************************************
 Auxiliary code from the Declarations Editor:
@@ -169,12 +170,12 @@ static	void	okCallback_PagFunction( UxWidget, UxClientData, UxCallbackArg )
 	         strcat(filename,"/"); 
 	         strcat(filename,nomePag);
 	         strcat(filename,PAG_EXT);
-	         if( ( fp = file_exist(filename)) == NULL)
+	         if( file_exist(filename))
 	         {
 	            SetMsg(topLevelShell,NULL,INFMSG,"ConfigInfo","Page Not Exist",NULL,False,NULL,False,NULL); 
 	            return;
 	         }
-	         fclose(fp);
+	         //fclose(fp);
 	      }
 	      else
 	      {
@@ -183,13 +184,14 @@ static	void	okCallback_PagFunction( UxWidget, UxClientData, UxCallbackArg )
 	
 	         strcpy(filename,strpagname); 
 	         strcat(filename,PAG_EXT);
-	         if( ( fp = file_exist(filename)) == NULL)
+	         //if( ( fp = file_exist(filename)) == NULL)
+			 if( !file_exist(filename))
 	         {
 	            SetMsg(topLevelShell,NULL,INFMSG,"ConfigInfo","Page Not Exist",NULL,False,NULL,False,NULL); 
 	            return;
 	         }
 	     
-	         if( system(NULL) == NULL)
+	         if( system(NULL) == 0)
 	         {
 	            SetMsg(topLevelShell,NULL,ERRMSG,"ConfigError","Unix Command Shell Not Available",NULL,False,NULL,False,NULL); 
 	            return;

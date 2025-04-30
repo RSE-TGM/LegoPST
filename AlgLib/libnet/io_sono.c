@@ -44,7 +44,7 @@ static char SccsID[] = "@(#)io_sono.c	5.1\t11/7/95";
 
 #define MAXHOSTNAMELEN 256
 
-char *io_sono()
+char *io_sono(void)
 {
 char ptr[MAXHOSTNAMELEN];
 

@@ -17,7 +17,7 @@ static char SccsID[] = "@(#)client_scada.c	1.11\t3/20/95";
 /*
         Fine sezione per SCCS
 */
-#include <pthread.h>
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -42,6 +42,11 @@ static char SccsID[] = "@(#)client_scada.c	1.11\t3/20/95";
 #include <client_scada.h>
 #include <client_s.h>
 #include <sqlite3.h>
+#include "pthread.h"
+
+
+
+//#include "client_s.h"
 
 ZONE zone[MAX_ZONE];
 
@@ -71,8 +76,10 @@ int sem_mmi,sem_mmi_key; /*variabili globali associate a semforo per
                                   sincronizzazione miniASD */
 sqlite3 *db;
 
+int   socketclient (char *, int);
 
-main(argc,argv)
+
+int main(argc,argv)
 int argc;
 char **argv;
 {

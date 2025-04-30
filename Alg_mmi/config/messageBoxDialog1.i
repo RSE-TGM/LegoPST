@@ -93,7 +93,7 @@ if( (id_op == EXIT_WITH_SAVE) || (id_op == KILL_SIMULATOR) ||\
 XtSetValues(rtrn,args,lnargs);\
 \
 XmStringFree(Msg);\
-libera_memoria(intern_msg);\
+libera_memoria((char*)intern_msg);\
 if( (id_op == EXIT_WITH_SAVE) || (id_op == KILL_SIMULATOR) ||\
     (id_op == SAVE_AND_LOAD_NEWCTX) ||\
     (id_op == SAVE_AND_LOAD_OLDCTX) || (id_op == EXIT_NO_CHANGE) ||\

@@ -38,6 +38,7 @@
 #include "message.h"
 #include "libutilx.h"
 
+extern  void *		UxNewContext();
 
 /*******************************************************************************
        The definition of the context structure:

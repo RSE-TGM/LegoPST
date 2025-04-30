@@ -44,7 +44,7 @@ static char SccsID[] = "@(#)config.prj	5.1\t11/13/95";
 #endif /* DESIGN_TIME */
 
 #include "config.h"
-#include "CAP.h"		/* Serve per la gestione delle licenze software*/
+//#include "CAP.h"		/* Serve per la gestione delle licenze software*/
 // Guag2024 #include "skey_manager3.h"	/* Serve per la gestione delle licenze hardware*/
 
 #include <sqlite3.h>
@@ -54,7 +54,10 @@ static char SccsID[] = "@(#)config.prj	5.1\t11/13/95";
 #define COMMCOMPALL   "compall"
 #define COMMCREATASK   "creatask"
 
+//XtAppContext	UxAppContext = NULL;
 XtAppContext	UxAppContext;
+
+
 Widget		UxTopLevel;
 Display		*UxDisplay;
 int		UxScreen;
@@ -69,6 +72,11 @@ extern void proc_SelPort();
 extern void proc_DeleteConn();
 extern int crea_context();
 extern void UxInitGraphics(); 
+extern void crea_gc_xor(GC *);
+extern Boolean XlSetSelectPort(Boolean * );
+extern Boolean XdSetDeleteConn(void * );
+extern Boolean file_exist(char *);
+extern int info_top_schemi();
 
 XmString errorString; /* compound string per visualizzazione errori */
 int error_level;
@@ -93,7 +101,7 @@ extern int pagedit_context_init();
 extern swidget errorDialog;
 extern swidget create_errorDialog();
 
-extern int compile_all_reg();
+
 extern int compile_all_pag();
 extern void destroy_conn();
 
@@ -122,7 +130,7 @@ XrmDatabase defdb;
 
 sqlite3 *db;
 
-main(argc,argv)
+int main(argc,argv)
 	int 	argc;
 	char 	*argv[];
 {
@@ -153,11 +161,12 @@ main(argc,argv)
 
 char str_flag[5];
 char str_comm[20];
-char Buffer[ENELINFO_LEN + 1];
-int indiceSocieta; //serve per gestire eventualmente comportamenti differenziati
-char messaggioErrore[1024];
-int errorCode;
-int richiestaScrittura;
+// GUAG2025 raba per la licenza  CAP...
+//char Buffer[ENELINFO_LEN + 1];
+// int indiceSocieta; //serve per gestire eventualmente comportamenti differenziati
+//char messaggioErrore[1024];
+//int errorCode;
+//int richiestaScrittura;
 
 /*
    Si controlla se esiste la licenza per l'attivazione del programma.
