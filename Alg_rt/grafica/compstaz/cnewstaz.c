@@ -33,8 +33,8 @@ static char SccsID[] = "@(#)cnewstaz.c	1.4\t3/23/95";
 #include "xstaz.h"
 #include "compstaz.inc"
 
-void legge_riga( char *riga, int *lun, int *nriga );
-void separa_str( char *riga, int lun, int nstr, STRIN_ST strin[]);
+// void legge_riga( char *riga, int *lun, int *nriga );
+// void separa_str( char *riga, int lun, int nstr, STRIN_ST strin[]);
 
 extern  FILE *fp_s01;
 extern  FILE *fo;
@@ -54,7 +54,7 @@ extern char  *scolori_oggetti[];
 extern char  *stipo_perturb[];
 
 		
-compila_new_staz(istaz,itipo,nmod)
+int compila_new_staz(istaz,itipo,nmod)
 int	istaz;		/* indice stazione */
 int	itipo;		/* indice nuovo tipo in tabella new_staz */
 int	nmod;		/* numero modelli */

@@ -41,7 +41,7 @@ int numero_moduli=0;
 int numero_files=0;
 
 
-main(argc,argv)
+int main(argc,argv)
 int argc;
 char **argv;
 {

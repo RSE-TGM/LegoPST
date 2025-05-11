@@ -143,3 +143,56 @@ struct stato_monit_st
         };
 typedef struct stato_monit_st STATO_MONIT;
 #endif
+
+void testata(char *, char *);
+int     SD_aggancio (int , char *);
+int ControlParam(int );
+void init_colors ();
+void distruggi_voci_inutili();
+int     SD_inizializza (int);
+int vis_messaggio (char*,int);
+int sommari_to_snap();
+int     SD_savebt (int, int*, char*, char*);
+int     SD_run (int);
+int     SD_freeze (int);
+int     SD_saveic (int, int*, char*, char*);
+int     SD_lbtreg (int);
+int     SD_backtrack (int);
+int     SD_clear (int);
+int     SD_replay (int);
+int     SD_stop (int);
+int     SD_sgancio (int);
+int     SD_timescaling (int, float*);
+int     SD_stepcr (int, int*);
+int     SD_newvarcr (int);
+int     SD_stepscaling (int, float*);
+int     SD_goup ();
+int     SD_listaci (int, char*, int);
+int     SD_lsnapreg (int);
+int     SD_lsnapload ( int);  
+
+
+void   mo_var(Widget);
+void  mo_var_sel(Widget);
+void mo_blocchi(Widget);
+void mo_modelli(Widget);
+void carica_snapshot(Widget);
+void elenca_snapshot(Widget);
+void elenca_pert(Widget,Widget);
+void elenca_modpert();
+void mo_pert_sel(Widget);
+void elenca_staz(Widget);
+int attiva_graphics();
+void about(Widget);
+int monit_aggiorna(VALORI_AGG *);
+void bt_al_centro();
+int     SD_lbtload (int);
+void limiti_sessione();
+int     SD_loadbt ();
+int snap_to_sommari();
+int cambia_stato_menu ();
+Boolean RtCheckPointer(void *);
+int SD_editbt ();
+int SD_editpert ();
+
+

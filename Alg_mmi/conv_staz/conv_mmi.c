@@ -20,7 +20,7 @@ extern int max_x[MAX_PAG];
 extern int max_y[MAX_PAG];
 extern char nomi_ogg_pag[MAX_PAG][MAX_LUN_RIGA_ELENCO_WID];
 
-ApriFileMMI(int num,char* nome,char *descrizione)
+int ApriFileMMI(int num,char* nome,char *descrizione)
 {
 char nome_file[50];
 
@@ -45,7 +45,7 @@ char nome_file[50];
 	fprintf(fp_staz[num],"*drawing_background: %s\n",SFONDO_WINDOW);
 }
 
-ChiudiFileMMI()
+void ChiudiFileMMI()
 {
 int i;
 
@@ -62,7 +62,7 @@ for(i=0;i<MAX_PAG;i++)
 		}
 }
 
-AggiungiOggetto(int pagina,int num)
+void AggiungiOggetto(int pagina,int num)
 {
 sprintf(nomi_ogg_pag[pagina],"%s %dw XlComposite",nomi_ogg_pag[pagina],num);
 last_num[pagina]=num;
@@ -70,7 +70,7 @@ last_num[pagina]=num;
 }
 
 
-ScriviComposite(int pagina, int num, int x, int y, int width, int height)
+int ScriviComposite(int pagina, int num, int x, int y, int width, int height)
 {
 
 y=max_y[pagina]-y-height+2;
@@ -87,7 +87,7 @@ fprintf(fp_staz[pagina],"*%dw.background: %s\n",num,SFONDO_STAZ);
 
 }
 
-RegistraElencoFigliComposite(int pagina,  int num, int num_figli,
+int RegistraElencoFigliComposite(int pagina,  int num, int num_figli,
 	char *elenco_figli)
 {
 fprintf(fp_staz[pagina],"*%dw.numFigli:   %d\n",num,num_figli);
@@ -149,7 +149,7 @@ if(strcmp(pert,"UP_DOWN")==0)
 return(ret);
 }
 
-CercoPosMax(FILE *fp)
+void CercoPosMax(FILE *fp)
 {
 char riga [80];
 int lun;

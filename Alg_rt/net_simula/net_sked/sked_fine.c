@@ -430,7 +430,7 @@ int legge_riga_bin(riga,fp)
  return(1);
 }
 
-separa_str(
+int separa_str(
  char riga[],
  int nstr,
  STRIN_ST strin[])

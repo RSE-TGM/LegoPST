@@ -54,8 +54,11 @@ static char SccsID[] = "@(#)gen_stazionario.c	5.2\t11/30/95";
  char *linka= "f77 -o";
 #endif
 
+void XlOpenFileErrComp(char *nomeFile);
+void XlErrComp(char* ,char *,char *,char *);
+void XlSetFileErrComp(char *);
 
-main(argc, argv)
+int main(argc, argv)
 int argc;
 char *argv[];
 {

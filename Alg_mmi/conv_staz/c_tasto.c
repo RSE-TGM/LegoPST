@@ -29,8 +29,8 @@ extern char nomi_ogg_pag[MAX_PAG][MAX_LUN_RIGA_ELENCO_WID];
 
 
 extern float get_valore();
-void legge_riga( char *riga, int *lun, int *nriga );
-void separa_str( char *riga, int lun, int nstr, STRIN_ST strin[]);
+// void legge_riga( char *riga, int *lun, int *nriga );
+// void separa_str( char *riga, int lun, int nstr, STRIN_ST strin[]);
 
 extern  STRIN_ST string[];
 
@@ -43,7 +43,7 @@ extern	char *stipo_perturb[];
 extern	char *scolori_oggetti[];
 
 
-c_tasto(p_r02,sottotipo,pagina,num_w,cont_f,elenco,x,y)
+int c_tasto(p_r02,sottotipo,pagina,num_w,cont_f,elenco,x,y)
 TIPO_TASTO *p_r02;
 int pagina,num_w,x,y,sottotipo;
 int *cont_f;

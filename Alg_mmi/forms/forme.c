@@ -40,10 +40,11 @@ char *name_file_form( FILE * );
 int read_appo_file( FILE *, char **, int * );
 int write_file_form( int, int, char *, char *, char * );
 int write_var(FILE *, char *, char *, char *, char *, int );
+int intestazioni(FILE *, int , char *);
 
 
 
-main(argc,argv)
+int main(argc,argv)
 int argc;
 char **argv;
 {

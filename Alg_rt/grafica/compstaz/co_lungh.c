@@ -28,7 +28,7 @@ static char SccsID[] = "@(#)co_lungh.c	1.3\t3/23/95";
         /* rimuovere se inserita in compi.c */
 #include <string.h>
 
-lungh(
+void lungh(
  char riga[],
  int *lun,
  int nchar)

@@ -20,7 +20,7 @@ static char SccsID[] = "@(#)co_sep_s.c	1.2\t6/16/93";
 #include "sim_types.h"
 #include "compstaz.inc"
 
-separa_str(
+int separa_str(
  char riga[],
  int lun,
  int nstr,

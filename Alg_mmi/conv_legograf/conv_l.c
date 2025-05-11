@@ -32,9 +32,9 @@ static char SccsID[] = "@(#)conv_l.c	1.3\t3/20/95";
 #include "util.h"
 
 void skip_header(FILE *);
-int legge_riga(FILE *fp, char *riga);
-void legge_icona(FILE *fp, char *nome);
-void legge_sfondo(FILE *fp, char *nome);
+int legge_riga(FILE *, char *);
+void legge_icona(FILE *, char *);
+void legge_sfondo(FILE *, char *);
 
 
 char nome_file_input[100];

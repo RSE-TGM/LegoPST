@@ -33,8 +33,8 @@ static char SccsID[] = "@(#)c_indic.c	1.3\t3/23/95";
 #include "xstaz.h"
 #include "compstaz.inc"
 
-void legge_riga( char *riga, int *lun, int *nriga );
-void separa_str( char *riga, int lun, int nstr, STRIN_ST strin[]);
+// void legge_riga( char *riga, int *lun, int *nriga );
+// void separa_str( char *riga, int lun, int nstr, STRIN_ST strin[]);
 
 extern  STRIN_ST string[];
 
@@ -45,7 +45,7 @@ extern  int nriga;
 
 extern FILE *fo;
 
-c_indic(p_r02,sottotipo)
+int c_indic(p_r02,sottotipo)
 TIPO_INDICATORE *p_r02;
 int	sottotipo;
 {

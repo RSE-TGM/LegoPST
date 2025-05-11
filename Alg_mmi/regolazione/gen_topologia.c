@@ -43,9 +43,12 @@ static char SccsID[] = "@(#)gen_topologia.c	5.1\t11/13/95";
 #include <memory.h>
 #endif
 
+// #include <Rt/RtMemory.h>
+// #include "config.h"
 
-
-
+void XlOpenFileErrComp(char *nomeFile);
+void XlErrComp(char* ,char *,char *,char *);
+void XlSetFileErrComp(char *);
 
 /*
   Dichiarazione delle variabili che vengono caricate dalla lettura
@@ -73,12 +76,13 @@ static char SccsID[] = "@(#)gen_topologia.c	5.1\t11/13/95";
 
 char *minuscolo (char *);
 char *maiuscolo (char *);
+char *OlEstrRegTaskName(char *, char *);
 
 
 char id_task[3];
 char tag_reg[5];
 
-main(argc, argv)
+int main(argc, argv)
 int argc;
 char *argv[];
 {

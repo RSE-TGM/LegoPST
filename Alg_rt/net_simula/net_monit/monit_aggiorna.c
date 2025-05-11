@@ -28,6 +28,13 @@ static char SccsID[] = "@(#)monit_aggiorna.c	5.2\t2/20/96";
 */
 # include <stdio.h>
 # include <errno.h>
+#include <X11/Xlib.h>
+#include <Mrm/MrmAppl.h>
+#include <Mrm/MrmPublic.h>
+#include <Xm/Text.h>
+#include <Xm/List.h>
+#include <Xm/DrawingA.h>
+#include <Xm/RowColumn.h>
 #if defined UNIX
 # include <sys/types.h>
 # include <sys/ipc.h>
@@ -40,7 +47,9 @@ static char SccsID[] = "@(#)monit_aggiorna.c	5.2\t2/20/96";
 #include "sim_ipc.h"      /* paramteri generali LEGO              */
 #include "monit.h"
 #include "dispatcher.h"
+#include "libutilx.h"
 # include <Rt/RtMemory.h>
+
 
 /* coda di messaggi con sked */
 extern int id_msg_monit;
@@ -50,7 +59,7 @@ extern char *ind_sh_top;          /* puntatore inizio shared memory sh_var */
 STATISTICA_SKED statistica_sked;
 
 
-monit_aggiorna(val)
+int monit_aggiorna(val)
 VALORI_AGG *val;
 {
 static int bfirst=1;
@@ -81,13 +90,13 @@ if (bfirst==1)
 
 /* preleva i dati statistici inviati dallo sked */
 comando=DATI_ASINCRONI;
-from_dispatcher(MONIT,&comando,&tipo,&statistica_sked,&size,IPC_NOWAIT);
+from_dispatcher(MONIT,&comando,&tipo,(char *)&statistica_sked,&size,IPC_NOWAIT);
 if(size>0)
 {
 while(size>0) 
 	{
 	comando=DATI_ASINCRONI;
-	from_dispatcher(MONIT,&comando,&tipo,&statistica_sked,&size,IPC_NOWAIT);
+	from_dispatcher(MONIT,&comando,&tipo,(char*)&statistica_sked,&size,IPC_NOWAIT);
 	}
 dati_prelevati=1;
 }

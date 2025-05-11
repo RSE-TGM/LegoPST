@@ -34,8 +34,8 @@ static char SccsID[] = "@(#)c_tasto.c	1.3\t3/23/95";
 #include "compstaz.inc"
 
 extern float get_valore();
-void legge_riga( char *riga, int *lun, int *nriga );
-void separa_str( char *riga, int lun, int nstr, STRIN_ST strin[]);
+// void legge_riga( char *riga, int *lun, int *nriga );
+// void separa_str( char *riga, int lun, int nstr, STRIN_ST strin[]);
 
 extern  STRIN_ST string[];
 
@@ -48,7 +48,7 @@ extern	char *stipo_perturb[];
 extern	char *scolori_oggetti[];
 
 
-c_tasto(p_r02)
+int c_tasto(p_r02)
 TIPO_TASTO *p_r02;
 {
 int i,lun,nstr,j,imu,index;

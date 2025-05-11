@@ -24,8 +24,8 @@ extern FILE *fp_staz[MAX_PAG];
 extern int numero_el[MAX_PAG];
 extern char nomi_ogg_pag[MAX_PAG][MAX_LUN_RIGA_ELENCO_WID];
 
-void legge_riga( char *riga, int *lun, int *nriga );
-void separa_str( char *riga, int lun, int nstr, STRIN_ST strin[]);
+// void legge_riga( char *riga, int *lun, int *nriga );
+// void separa_str( char *riga, int lun, int nstr, STRIN_ST strin[]);
 
 extern  STRIN_ST string[];
 
@@ -37,7 +37,7 @@ extern	char *scolori_oggetti[];
 
 extern FILE *fo; 
 
-c_lamp(p_r02,sottotipo,pagina,num_w,cont_f,elenco,x,y)
+int c_lamp(p_r02,sottotipo,pagina,num_w,cont_f,elenco,x,y)
 TIPO_LAMPADA *p_r02;
 int pagina,num_w,x,y,sottotipo;
 int *cont_f;

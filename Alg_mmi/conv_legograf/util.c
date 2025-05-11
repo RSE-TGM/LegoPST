@@ -25,6 +25,7 @@ static char SccsID[] = "@(#)util.c	1.3\t3/20/95";
         Fine sezione per SCCS
 */
 #include <stdio.h>
+#include <ctype.h>
 #include <string.h>
 #include <stdlib.h>
 #include <math.h>
@@ -45,8 +46,8 @@ void sistema_file(char *);
 void legge_sfondo(FILE *fp, char *nome);
 void insert_icona(FILE *,FILE *);
 void insert_text(FILE *,FILE *);
-int dim_x_icona(char*);
-int dim_y_icona(char*);
+static int dim_x_icona(char*);
+static int dim_y_icona(char*);
 
 
 

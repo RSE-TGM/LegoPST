@@ -83,7 +83,7 @@ static XlResources resources[]= {
 
 /* dichiarazioni funzioni varie */
 /* dichiarazione di procedure varie */
-static void separa_str();
+static int separa_str();
 static Boolean controlla_confinfo();
 static int exec_dbmftc(char*,char*);
 
@@ -720,7 +720,7 @@ XtFree((char *)compilatore);
 return(True);
 }
 
-static void separa_str(
+static int separa_str(
  char riga[],
  int lun,
  int nstr,

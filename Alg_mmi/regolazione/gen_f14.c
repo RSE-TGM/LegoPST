@@ -37,6 +37,11 @@ static char SccsID[] = "@(#)gen_f14.c	5.1\t11/13/95";
 #define IRIGA 500
 #define URIGA 500
 
+void XlOpenFileErrComp(char *nomeFile);
+void XlErrComp(char* ,char *,char *,char *);
+void XlSetFileErrComp(char *);
+int read_topologia(char *);
+
 char riga[256];
 char fpath[50], mpath[50];
 
@@ -109,7 +114,7 @@ char tag_reg[5];     /* progessivo dello schema e tag della task
                         letti da schema.top per non avere in f14
                         il nome dello schema duplicato */
 
-main (int argc, char *argv[])
+int main (int argc, char *argv[])
 {
 int i;
 FILE *f14; /* Puntatore al file di output (f14.dat) */

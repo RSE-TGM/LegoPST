@@ -68,6 +68,9 @@ extern int _NUM_VAR;
 extern int _MAX_PERTUR;
 extern int _SPARE_SNAP;
 
+
+void costruisci_var (char  **, VARIABILI **, int    *);
+
 void monit_aggancia()
 {
 /* decodifica SHR_USR_KEY */

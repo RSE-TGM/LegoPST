@@ -34,8 +34,8 @@ static char SccsID[] = "@(#)c_selet.c	1.3\t3/23/95";
 #include "xstaz.h"
 #include "compstaz.inc"
 
-void legge_riga( char *riga, int *lun, int *nriga );
-void separa_str( char *riga, int lun, int nstr, STRIN_ST strin[]);
+// void legge_riga( char *riga, int *lun, int *nriga );
+// void separa_str( char *riga, int lun, int nstr, STRIN_ST strin[]);
 extern float get_valore();
 
 extern  STRIN_ST string[];

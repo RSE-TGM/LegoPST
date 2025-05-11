@@ -30,8 +30,8 @@ static char SccsID[] = "@(#)c_lamp.c	1.3\t3/23/95";
 #include "xstaz.h"
 #include "compstaz.inc"
 
-void legge_riga( char *riga, int *lun, int *nriga );
-void separa_str( char *riga, int lun, int nstr, STRIN_ST strin[]);
+// void legge_riga( char *riga, int *lun, int *nriga );
+// void separa_str( char *riga, int lun, int nstr, STRIN_ST strin[]);
 
 extern  STRIN_ST string[];
 
@@ -43,7 +43,7 @@ extern	char *scolori_oggetti[];
 
 extern FILE *fo; 
 
-c_lamp(p_r02)
+int c_lamp(p_r02)
 TIPO_LAMPADA *p_r02;
 {
 int i,lun,nstr,j,imu,index;

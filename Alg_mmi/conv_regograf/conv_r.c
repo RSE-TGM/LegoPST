@@ -36,16 +36,21 @@ static char SccsID[] = "@(#)conv_r.c	1.19\t11/10/95";
 #include <Xm/BulletinB.h>
 #include <Xm/DrawingA.h>
 #include <Xm/Xm.h>
+#include <Xm/MainW.h>
 #include <Xl/XlP.h>
 #include <Xl/XlCore.h>
 #include <Xl/XlComposite.h>
 #include <Xl/XlUtilBkg.h>
 #include <Xl/XlPort.h>
 #include <Xl/XlIconReg.h>
+#include <Xl/XlDispReg.h>
+
 #include <Ol/OlForm.h>
+#include <Ol/OlForm_regol.h>
 
 #include "util.h"
 #include "UxXt.h"
+#include "libutilx.h"
 #include <sqlite3.h>
 
 XtAppContext    UxAppContext;
@@ -98,6 +103,16 @@ char *getpul ();
 extern void sistema_file(char *);
 void legge_sfondo(FILE *fp, char *nome);
 int rd_f14 (int , int *, int *);
+void leggi_porte(char *);
+void get_size_icone(char *);
+void skip_header(FILE *);
+int legge_riga(FILE *, char *);
+void legge_icona(FILE *, char *);
+void leggi_posizioni_porte();
+void SistemaInputValue(WidgetList ,int );
+static void scrivi_connessioni(char *);
+int to_snap(int );
+static void SettaTags(char *, OlFormObject , Widget ,int ,char **);
 
 extern CONNESSIONI conn[3000];
 extern int num_conn;
@@ -154,7 +169,7 @@ int main(argc,argv)
 int argc;
 char **argv;
 {
-int riga[MAXRIGA];
+char riga[MAXRIGA];
 
 topLevel = XtAppInitialize(&app_context, "xaing",
                                      NULL, 0, &argc, argv, NULL, NULL, 0);
@@ -403,7 +418,7 @@ for(i=0;i<num_wid;i++)
 return(lista_wid);
 }
 
-scrivi_connessioni(char *nome_file)
+void scrivi_connessioni(char *nome_file)
 {
 FILE *fp_sfondo;
 int i,j,k;
@@ -548,7 +563,7 @@ else
  sistema la tipologia delle porte contenute nelle icone di interfaccia
  trasformando in porte del tipo interfaccia quelle non connesse.
 */
-SistemaInputValue(WidgetList wlist,int num_widget)
+void SistemaInputValue(WidgetList wlist,int num_widget)
 {
 int i,j,NumeroForm,k,z;
 OlFormObject PuntForm;
@@ -747,7 +762,7 @@ char valore[30];
    f14 = fopen (file_14, "r");
    if (!f14)
       {
-      XtFree(varsch);
+      XtFree((char*)varsch);
       strcpy(messaggio,"Errore in apertura del file ");
       strcat(messaggio,fil14);
       return(-1);
@@ -858,7 +873,7 @@ str1[n] = '\0';
 return (str1);
 }
          
-SettaTags(char *buffer, OlFormObject PuntForm, Widget w,int indice,char **Lista)
+void SettaTags(char *buffer, OlFormObject PuntForm, Widget w,int indice,char **Lista)
 {
 int num;
 char *buf;
@@ -918,7 +933,7 @@ for(i=0;i<num;i++)
  Ricava dalla libreria le posizioni e i tipi di tutte
  le porte
 */
-leggi_posizioni_porte()
+void leggi_posizioni_porte()
 {
 int i;
 int k,j;

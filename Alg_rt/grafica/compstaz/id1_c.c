@@ -36,7 +36,7 @@ static char SccsID[] = "@(#)id1_c.c	1.3\t3/23/95";
 #include "compstaz.inc"
 
 void legge_riga( char *riga, int *lun, int *nriga );
-void separa_str( char *riga, int lun, int nstr, STRIN_ST strin[]);
+// void separa_str( char *riga, int lun, int nstr, STRIN_ST strin[]);
 
 extern	FILE *fp_s01;
 extern	FILE *fo;

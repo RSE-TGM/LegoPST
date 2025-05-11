@@ -24,6 +24,8 @@ static char *_csrc = "@(#) %filespec: cleanlocmmi.c-10 %  (%full_filespec: clean
 
 #define MAXRIGA FILENAME_MAX *10
 
+static int legge_riga_bin_2(char *,FILE *);
+
 
 typedef struct strin_st {
   char *stringa;
@@ -32,7 +34,7 @@ typedef struct strin_st {
 
 
 
-int legge_riga_bin(riga,fp)
+int legge_riga_bin_2(riga,fp)
 char *riga;
 FILE *fp;
 {
@@ -53,7 +55,7 @@ FILE *fp;
 
 
 
-separa_str(char *riga, int nstr, STRIN_ST strin[])
+int separa_str(char *riga, int nstr, STRIN_ST strin[])
 {
 char *s;
 int i;
@@ -75,7 +77,7 @@ int i;
 
 
 
-elimina_processi_mmi(fp)
+void elimina_processi_mmi(fp)
 FILE *fp;
 {
 int      k, ret;
@@ -87,7 +89,7 @@ STRIN_ST strin[5];
 k=0;
 while(1)
    {
-   ret = legge_riga_bin(riga,fp);
+   ret = legge_riga_bin_2(riga,fp);
       if( ret==0 )
          break;
    separa_str(riga,2,strin);
@@ -106,7 +108,7 @@ return;
 
 
 
-main()
+int main()
 {
 int           shr_usr_key, shr_usr_keyS;
 char          pid_proc[10];
@@ -213,7 +215,7 @@ printf("Eliminazione shared memory\n");
    k=0;
    while(1)
       {
-      ret = legge_riga_bin(riga,fp);
+      ret = legge_riga_bin_2(riga,fp);
       if( ret==0 )
          break;
       separa_str(riga,3,strin);

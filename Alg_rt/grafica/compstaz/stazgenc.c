@@ -21,6 +21,9 @@ static char SccsID[] = "@(#)stazgenc.c	1.3\t3/23/95";
    data 3/23/95
    reserved @(#)stazgenc.c	1.3
 */
+int staz_am1_c(int,int,int);
+int staz_am2_c(int,int,int);
+
 /* stagenc.c : compila la stazione relativa al tipo */
 staz_gen_c(istaz,itipo,nmod)
 int istaz, itipo, nmod;

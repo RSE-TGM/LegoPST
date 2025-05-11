@@ -17,6 +17,8 @@ per LEGOMMI
 *********************************************************/
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
 #include <string.h>
 
 #include <X11/Xlib.h>
@@ -34,12 +36,25 @@ per LEGOMMI
 #include "newstaz.h"
 
 
+
+int read_staz1(int);
+extern int ApriFileMMI(int ,char* ,char *);
+
+
+
 typedef struct s_tipostaz {
 	char s[4]; 
 	} TIPOSTAZ;
 
-void legge_riga( char *riga, int *lun, int *nriga );
-void separa_str( char *riga, int lun, int nstr, STRIN_ST strin[]);
+
+// void legge_riga( char *riga, int *lun, int *nriga );
+// void separa_str( char *riga, int lun, int nstr, STRIN_ST strin[]);
+int fill_pagina(S_COMP_PAGINA *);
+extern void ChiudiFileMMI();
+int check_pagina(S_COMP_PAGINA *);
+
+
+
 
 FILE *fp_s01,*fperr,fpmmi;
 STRIN_ST string[10];
@@ -78,7 +93,7 @@ char nomi_ogg_pag[MAX_PAG][MAX_LUN_RIGA_ELENCO_WID];
 
 FILE *fo;
 
-main()
+int main()
 {
 char aux[80];
 char file [50];
@@ -128,7 +143,7 @@ for (;;)
 /* non esegue il test sulla lunghezza perche' puo' essere inserito un campo
    descrittivo della stazione  */
 
-		if (!strncmp( riga, "STAZIONE", 8))	read_staz(tot_modelli);
+		if (!strncmp( riga, "STAZIONE", 8))	read_staz1(tot_modelli);
 		else
 		{
 			 if (lun != 11 || strncmp( riga, "END_OF_FILE", 11))
@@ -197,7 +212,7 @@ for (;;)
 /**************************
 	gestione pagine
 ***************************/
-read_pagina()
+int read_pagina()
 {
 int i, lun, nstr, ipag, numbyte;
 char aux[80],*px;
@@ -283,7 +298,7 @@ errore:
 /**************************
 	gestione stazioni
 ***************************/
-read_staz(nmod)
+int read_staz1(nmod)
 int nmod;   /*numero modelli */
 {
 int i, lun, nstr, istaz, itipo;
@@ -397,7 +412,7 @@ return(0);
 	Completa la descrione delle pagine
 ***********************************************************************/
 
-fill_pagina(scomp)
+int fill_pagina(scomp)
 S_COMP_PAGINA *scomp;
 {
 int i, j, ipag, istaz;
@@ -467,7 +482,7 @@ return(0);
 	check_pagina()
 ********************************************************************/
 
-check_pagina(scomp)
+int check_pagina(scomp)
 S_COMP_PAGINA *scomp;
 {
 int ipag, istaz,  j, m, k, ipx0, ipy0, ipx1, ipy1;
@@ -557,7 +572,7 @@ int ipag, istaz,  j, m, k, ipx0, ipy0, ipx1, ipy1;
 	cerca_staz: verifica che le stazioni aventi lo stesso nome
 	abbiano anche gli stessi parametri
 */
-
+int 
 cerca_staz(nomestaz,istaz)
 char *nomestaz;		/* nome stazione */
 int istaz;		/* indice stazione */

@@ -29,8 +29,8 @@ extern int numero_el[MAX_PAG];
 extern char nomi_ogg_pag[MAX_PAG][MAX_LUN_RIGA_ELENCO_WID];
 
 
-void legge_riga( char *riga, int *lun, int *nriga );
-void separa_str( char *riga, int lun, int nstr, STRIN_ST strin[]);
+// void legge_riga( char *riga, int *lun, int *nriga );
+// void separa_str( char *riga, int lun, int nstr, STRIN_ST strin[]);
 
 extern  STRIN_ST string[];
 
@@ -42,7 +42,7 @@ extern	char *scolori_oggetti[];
 
 extern FILE *fo;
 
-c_stringa(p_r02,sottotipo,pagina,num_w,cont_f,elenco,x,y)
+int c_stringa(p_r02,sottotipo,pagina,num_w,cont_f,elenco,x,y)
 TIPO_STRINGA_DESCR *p_r02;
 int pagina,num_w,x,y,sottotipo;
 int *cont_f;
@@ -69,7 +69,7 @@ char *px, saveriga[80];
   }
   fprintf(fo,"\n etichetta %s ",p_r02->etic);
 if(strlen(p_r02->etic)==0)
-	return;
+	return(0);
 fprintf(fp_staz[pagina],"*%dw%dc.x0: %d\n",num_w,*cont_f,x);
 fprintf(fp_staz[pagina],"*%dw%dc.y0: %d\n",num_w,*cont_f,y);
 fprintf(fp_staz[pagina],"*%dw%dc.borderWidth: 0\n",num_w,*cont_f);

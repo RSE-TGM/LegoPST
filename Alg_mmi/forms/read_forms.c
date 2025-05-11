@@ -104,7 +104,9 @@ static char * GetTags();
 static char *WriteStrInp();
 static int Read_666();
 
-main(argc,argv)
+int main(argc,argv)
+int argc;
+char **argv;
 {
 char *buffer=NULL;
 char nome_file_form[10];
@@ -123,7 +125,7 @@ char ch;
     if(newform==NULL)
         {
         printf("OlForm OlCreateForm Impossibile allocare form in memoria\n");
-        return(NULL);
+        return(0);
         }
 
 /*   Allocazione e riempimento risorsa path-name della form */

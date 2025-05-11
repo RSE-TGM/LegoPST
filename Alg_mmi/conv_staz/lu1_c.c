@@ -23,21 +23,21 @@ static char SccsID[] = "@(#)lu1_c.c	1.2\t6/16/93";
 #include "xstaz.h"
 #include "compstaz.inc"
 
-void legge_riga( char *riga, int *lun, int *nriga );
-void separa_str( char *riga, int lun, int nstr, STRIN_ST strin[]);
+// void legge_riga( char *riga, int *lun, int *nriga );
+// void separa_str( char *riga, int lun, int nstr, STRIN_ST strin[]);
 
 
 extern	FILE *fp_s01;
 extern  FILE *fo;
 extern	STRIN_ST string[];
 
-extern	*ind_sh_top;
+extern	char *ind_sh_top;
 extern	S_PAGINE   pag;
 extern	S_STAZIONI staz;
 extern	char riga [80];
 extern	int nriga;
 
-staz_lu1_c(istaz,itipo,nmod)
+int staz_lu1_c(istaz,itipo,nmod)
 int istaz;
 int itipo;
 int nmod;

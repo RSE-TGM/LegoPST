@@ -22,6 +22,8 @@ static char SccsID[] = "@(#)modifica.c	1.1\t1/8/96";
 
 
 #include<stdio.h>
+#include<stdlib.h>
+
 #include<string.h>
 
 #define DIM 2000
@@ -36,7 +38,7 @@ static char SccsID[] = "@(#)modifica.c	1.1\t1/8/96";
 somma secondo parametro
 In questa Release vengono modificate solo quelle variabili delimitate da un fine
 campo '---' 
- se l' operazione è riuscita ritorna 1
+ se l' operazione ï¿½ riuscita ritorna 1
 */
 extern FILE *fp;
 unsigned int n_linea;
@@ -164,7 +166,7 @@ n_linea+=1;	/*contatore linee lette*/
 		 		car++;
 		 		}
 	/*
-	Se non 1° car non cancelletto -> errore
+	Se non 1ï¿½ car non cancelletto -> errore
 	*/	
 			if(((*car)!='#')&&((*car)!='n')){
 				
@@ -224,7 +226,7 @@ Copio un blank il risultato somma del 2o campo ed il resto della stringa
 					strcat(linea,buf2);
 					strcat(linea,stringa);
 					
-			/*cambiato 1° car*/	
+			/*cambiato 1ï¿½ car*/	
 			/*cambiato 2o car */
 						
 					}

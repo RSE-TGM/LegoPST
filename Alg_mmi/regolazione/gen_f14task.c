@@ -63,6 +63,9 @@ char *maiuscolo (char *);
 char *getpul (char *, int, FILE *);
 int estrai_nome(char *, char *);
 
+void XlOpenFileErrComp(char *nomeFile);
+void XlErrComp(char* ,char *,char *,char *);
+void XlSetFileErrComp(char *);
 
 
 int main (int argc, char *argv[])

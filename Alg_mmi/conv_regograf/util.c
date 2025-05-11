@@ -25,6 +25,7 @@ static char SccsID[] = "@(#)util.c	1.18\t11/10/95";
         Fine sezione per SCCS
 */
 #include <stdio.h>
+#include <ctype.h>
 #include <string.h>
 #include <stdlib.h>
 #include <math.h>
@@ -48,6 +49,16 @@ void read_circle(FILE *,FILE *);
 void sistema_file(char *);
 void insert_icona(FILE *,FILE *);
 void insert_text(FILE *,FILE *);
+int to_snap(int );
+void insert_icona_lib(char *);
+void sistema_connessioni(FILE *);
+static int dim_x_icona(char*);
+static int dim_y_icona(char*);
+static int min_x_icona(char*);
+static int min_y_icona(char*);
+void insert_figli_icona(char *,int ,FILE *,char *);
+static int to_snap_porte(int );
+
 
 int num_obj=0;
 char elenco_wid[8000];
@@ -65,7 +76,7 @@ CONNESSIONI conn[3000];
 int num_conn=0;
 
 int numTagReg=0;
-int maxtag[3];
+char maxtag[3];
 char tag_schema[3];
 
 char *cerca_tag();
@@ -73,7 +84,8 @@ char *cerca_id_i();
 
 void skip_header(FILE *);
 void read_polyline(FILE *,FILE *);
-
+void minuscolo(char *);
+static void sistema_posizione_porte(char *,int *x,int *);
 
 
 int legge_riga(fp,riga)
@@ -899,7 +911,7 @@ if(strlen(riga)>0)
  di appartenenza la posizione ed il colore delle porte medesime.
  I dati letti vengono memorizzati nel vettore di strutture tab_porte
 */ 
-leggi_porte(char *nome_file)
+void leggi_porte(char *nome_file)
 {
 FILE *fp;
 char riga[MAXRIGA];
@@ -954,7 +966,7 @@ fclose(fp);
 
 }
 
-insert_figli_icona(char *nome_icona,int num_obj,FILE *fp_out,char *id_i)
+void insert_figli_icona(char *nome_icona,int num_obj,FILE *fp_out,char *id_i)
 {
 int i;
 int num_figli=0;
@@ -1035,7 +1047,7 @@ if(num_figli>0)
  Ricava nomi e posizione icone di regolazione e
  descrizione delle connessioni
 */
-get_size_icone(char *nome_file)
+void get_size_icone(char *nome_file)
 {
 char riga[MAXRIGA];
 char riga_dir[MAXRIGA];
@@ -1161,7 +1173,7 @@ while (legge_riga(fp,riga)==1)
       }
 }
 
-sistema_posizione_porte(char *nome_icona,int *x,int *y)
+void sistema_posizione_porte(char *nome_icona,int *x,int *y)
 {
 int i;
 int min_x,min_y;
@@ -1247,7 +1259,7 @@ return(tab_icone[i].id_i);
  Inserisce il nome della porta connessa nelle due porte
  interessate dalla connessione medesima
 */
-sistema_connessioni(FILE *fp_pag)
+void sistema_connessioni(FILE *fp_pag)
 {
 int i,j;
 char porta_1[10];
@@ -1303,7 +1315,7 @@ printf("%s - %s ------------- %s - %s\n",
 	}
 }
 
-minuscolo(char *testo)
+void minuscolo(char *testo)
 {
 int i;
 for(i=0;i<strlen(testo);i++)
@@ -1330,7 +1342,7 @@ void TagPagCalcNext(char *Tag,char *nextTag)
    nextTag[2]=0; /* chiusura stringa */
 }
 
-int insert_icona_lib(char *nome_icona)
+void insert_icona_lib(char *nome_icona)
 {
 static int nwlib=0;
 static int py=0;

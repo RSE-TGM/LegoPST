@@ -36,7 +36,7 @@ static char SccsID[] = "@(#)co_legge.c	5.1\t11/7/95";
 
 #define MAXRIGA 85
 
-legge_riga(
+void legge_riga(
  char riga [MAXRIGA],
  int *lun)
 {

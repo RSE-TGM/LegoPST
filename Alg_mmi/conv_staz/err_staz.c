@@ -14,6 +14,7 @@ static char SccsID[] = "@(#)err_staz.c	1.2\t6/16/93";
 */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 char *tab_err[]={	 
@@ -57,7 +58,7 @@ char *tab_err[]={
 extern	int nriga;
 extern	FILE *fo;
 
-errore(ind,riga)
+void errore(ind,riga)
 int ind;				/* indice errori */
 char *riga;			
 {

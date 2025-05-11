@@ -24,15 +24,20 @@ static char SccsID[] = "@(#)crea_rego_lib.c	1.4\t10/19/95";
 #include <Xm/BulletinB.h>
 #include <Xm/DrawingA.h>
 #include <Xm/Xm.h>
+#include <Xm/MainW.h>
 #include <Xl/XlP.h>
 #include <Xl/XlCore.h>
 #include <Xl/XlUtilBkg.h>
 #include <Xl/XlPort.h>
 #include <Xl/XlIconReg.h>
+#include <Xl/XlDispReg.h>
 #include <Ol/OlForm.h>
+
+ 
 
 #include "util.h"
 #include "UxXt.h"
+#include "libutilx.h"
 
 #include <sqlite3.h>
 
@@ -86,12 +91,19 @@ static Widget * CreoOggetti();
 Boolean CreaPagina();
 static void   expose_drawing( );
 OlFormObject ResGetForm (Widget );
+void leggi_porte(char *);
+void skip_header(FILE *);
+int legge_riga(FILE *, char *);
+void SistemaInputValue(WidgetList ,int );
+void insert_icona_lib(char *);
+static void crea_header_lib();
+void legge_icona(FILE *, char *);
 
-main(argc,argv)
+int main(argc,argv)
 int argc;
 char **argv;
 {
-int riga[MAXRIGA];
+char riga[MAXRIGA];
 
 
 if(argc!=4)
@@ -189,7 +201,7 @@ XlPutenv("LEGOMMI_ICO",path_ico);
 
 
 
-crea_header_lib()
+void crea_header_lib()
 {
 FILE *fp;
 
@@ -278,7 +290,7 @@ for(i=0;i<num_wid;i++)
 return(lista_wid);
 }
 
-SistemaInputValue(WidgetList wlist,int num_widget)
+void SistemaInputValue(WidgetList wlist,int num_widget)
 {
 int i,j,NumeroForm,k,z;
 OlFormObject PuntForm;

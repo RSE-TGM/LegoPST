@@ -35,7 +35,7 @@ typedef struct {
  int lun_stringa;
  } STRIN_ST;
 
-separa_str(
+int separa_str(
  char riga[],
  int lun,
  int nstr,

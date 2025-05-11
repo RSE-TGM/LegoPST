@@ -80,7 +80,7 @@ extern int _M005;
 
 #endif
 
-void legge_riga( char *riga, int *lun);
+int legge_riga( char *riga, int *lun);
 void separa_str( char *riga, int lun, int nstr, STRIN_ST strin[]);
 void check_dt( MODEL model[], int nmod, int *nrip);
 void tabella( MODEL model[], TABEL tabel[], int nmod, int nrip);

@@ -66,6 +66,10 @@ char *strupr(),*strlwr();
 void array();
 char *getpul (char *, int , FILE *);
 
+void XlOpenFileErrComp(char *nomeFile);
+void XlErrComp(char* ,char *,char *,char *);
+void XlSetFileErrComp(char *);
+
 char con_sche[NSCHEMI][NINTE][9];   /* Vettorializzato NSCHEMI e letto
                                        da schemi.dsc contiene il nome
                                        completo <schema><progress><id_task>

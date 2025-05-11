@@ -483,7 +483,7 @@ static void Seleziona();
 static void AddSelez();
 
 /* dichiarazione di procedure varie */
-static void separa_str();
+static int separa_str();
 static void ReadCompiled();
 
 /* typedef per separa_str() */
@@ -1414,7 +1414,7 @@ return(confinfo);
 }
 
              
-static void separa_str(
+static int separa_str(
  char riga[],
  int lun,
  int nstr,

@@ -103,7 +103,7 @@ else *iu=0;
         specificato e se e' un ingresso non connesso
 */
 
-check_input(
+int check_input(
  char *nomevar,
  int imu,
  int *iu)
@@ -142,7 +142,7 @@ else *iu=0;
  Versioni provvisorie per convstaz
 */
 
-check_model(
+int check_model(
  char *stringa,
  int *imu)
 {
@@ -151,7 +151,7 @@ return(0);
 }
 
 
-check_output(
+int check_output(
  char *nomevar,
  int imu,
  int *iu)
@@ -161,7 +161,7 @@ return(0);
 }
 
 
-check_input(
+int check_input(
  char *nomevar,
  int imu,
  int *iu)

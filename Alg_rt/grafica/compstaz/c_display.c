@@ -34,8 +34,8 @@ static char SccsID[] = "@(#)c_display.c	1.3\t3/23/95";
 #include "xstaz.h"
 #include "compstaz.inc"
 
-void legge_riga( char *riga, int *lun, int *nriga );
-void separa_str( char *riga, int lun, int nstr, STRIN_ST strin[]);
+// void legge_riga( char *riga, int *lun, int *nriga );
+// void separa_str( char *riga, int lun, int nstr, STRIN_ST strin[]);
 
 extern  STRIN_ST string[];
 
@@ -46,7 +46,7 @@ extern	char *scolori_oggetti[];
 
 extern	FILE *fo;
 
-c_display(p_r02)
+int c_display(p_r02)
 TIPO_DISPLAY *p_r02;
 {
 int lun, nstr, imu, index;

@@ -29,8 +29,8 @@ extern int numero_el[MAX_PAG];
 extern char nomi_ogg_pag[MAX_PAG][MAX_LUN_RIGA_ELENCO_WID];
 
 
-void legge_riga( char *riga, int *lun, int *nriga );
-void separa_str( char *riga, int lun, int nstr, STRIN_ST strin[]);
+// void legge_riga( char *riga, int *lun, int *nriga );
+// void separa_str( char *riga, int lun, int nstr, STRIN_ST strin[]);
 extern float get_valore();
 
 extern  STRIN_ST string[];
@@ -43,7 +43,7 @@ extern  int nriga;
 extern	char *stipo_perturb[];
 
 
-c_selet(p_r02,sottotipo,pagina,num_w,cont_f,elenco,x,y)
+int c_selet(p_r02,sottotipo,pagina,num_w,cont_f,elenco,x,y)
 TIPO_SELETTORE *p_r02;
 int pagina,num_w,x,y,sottotipo;
 int *cont_f;

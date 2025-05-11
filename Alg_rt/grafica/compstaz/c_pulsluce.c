@@ -33,8 +33,8 @@ static char SccsID[] = "@(#)c_pulsluce.c	1.3\t3/23/95";
 #include "xstaz.h"
 #include "compstaz.inc"
 
-void legge_riga( char *riga, int *lun, int *nriga );
-void separa_str( char *riga, int lun, int nstr, STRIN_ST strin[]);
+// void legge_riga( char *riga, int *lun, int *nriga );
+// void separa_str( char *riga, int lun, int nstr, STRIN_ST strin[]);
 extern float get_valore();
 
 extern  STRIN_ST string[];
@@ -48,7 +48,7 @@ extern	char *stipo_perturb[];
 
 extern FILE *fo;
 
-c_pulsluce(p_r02)
+int c_pulsluce(p_r02)
 TIPO_PULS_LUCE *p_r02;
 {
 int i,lun,nstr,j,imu,index;

@@ -38,7 +38,7 @@ static char SccsID[] = "@(#)OlPert.c	5.1\t11/13/95";
 
 /* dichiarazioni funzioni varie */
 /* dichiarazione di procedure varie */
-static void separa_str();
+static int separa_str();
 
 /* typedef per separa_str() */
 typedef struct {
@@ -181,7 +181,7 @@ XtFree((char *)pert);
 return(True);
 }
 
-static void separa_str(
+static int separa_str(
  char riga[],
  int lun,
  int nstr,

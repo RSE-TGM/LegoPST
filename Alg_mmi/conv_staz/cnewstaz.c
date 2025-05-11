@@ -22,8 +22,10 @@ static char SccsID[] = "@(#)cnewstaz.c	1.3\t10/20/93";
 #include "compstaz.inc"
 #include "conv_mmi.h"
 
-void legge_riga( char *riga, int *lun, int *nriga );
-void separa_str( char *riga, int lun, int nstr, STRIN_ST strin[]);
+// void legge_riga( char *riga, int *lun, int *nriga );
+// void separa_str( char *riga, int lun, int nstr, STRIN_ST strin[]);
+
+void AggiungiOggetto(int ,int );
 
 extern  FILE *fp_s01;
 extern  FILE *fo;
@@ -44,8 +46,11 @@ extern char  *stipo_perturb[];
 
 extern FILE *fp_staz[MAX_PAG];
 
+extern int ScriviComposite(int , int , int , int , int , int );
+int RegistraElencoFigliComposite(int ,  int , int num_figli, char *);
+
 		
-compila_new_staz(istaz,itipo,nmod)
+int compila_new_staz(istaz,itipo,nmod)
 int	istaz;		/* indice stazione */
 int	itipo;		/* indice nuovo tipo in tabella new_staz */
 int	nmod;		/* numero modelli */
@@ -231,7 +236,7 @@ elenco_figli[0]=0;
                 break;
     	  }
    }
-RegistraElencoFigliComposite(ipag-1,istaz,num_figli,elenco_figli);
+RegistraElencoFigliComposite(ipag-1,istaz,num_figli,(char *)elenco_figli);
 }
 
 
@@ -240,7 +245,7 @@ RegistraElencoFigliComposite(ipag-1,istaz,num_figli,elenco_figli);
  riconosce se si desidera una variabile negata in ingresso
  (parola chiave NOT)
 */
-is_neg(str)
+int is_neg(str)
 char *str;
 {
 if(str==NULL) return(0);

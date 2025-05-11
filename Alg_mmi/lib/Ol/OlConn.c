@@ -40,7 +40,7 @@ static char SccsID[] = "@(#)OlConn.c	5.4\t2/16/96";
 
 /* dichiarazioni funzioni varie */
 static Boolean CompareConnection(CONNESSIONE *, CONNESSIONE *);
-static void separa_str();
+static int separa_str();
 static Boolean leggoRigaConn(FILE*, char *);
 
 /* dichiarazioni di strutture ad uso interno  */
@@ -485,7 +485,7 @@ static Boolean CompareConnection(CONNESSIONE *c1, CONNESSIONE *c2)
 		return(False);
 }
 
-static void separa_str(
+static int separa_str(
  char riga[],
  int nstr,
  STRIN_ST strin[])

@@ -41,6 +41,7 @@ static char SccsID[] = "@(#)macro_wdg.c	2.9\t4/11/95";
 #include <Xm/LabelG.h>
 #include <Xm/BulletinB.h>
 #include <Xm/ToggleB.h>
+#include <Xm/MainW.h>
 
 #include "macro.h"
 #include "ico_mesg.h"

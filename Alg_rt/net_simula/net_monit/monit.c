@@ -22,7 +22,9 @@ static char SccsID[] = "@(#)monit.c	5.6\t3/14/96";
    reserved @(#)monit.c	5.6
 */
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include <math.h>
 #include <signal.h>
 #include <X11/Xlib.h>
@@ -31,6 +33,7 @@ static char SccsID[] = "@(#)monit.c	5.6\t3/14/96";
 #include <Xm/Text.h>
 #include <Xm/List.h>
 #include <Xm/DrawingA.h>
+#include <Xm/RowColumn.h>
 #if defined UNIX
 # include <sys/types.h>
 # include <sys/ipc.h>
@@ -41,6 +44,7 @@ static char SccsID[] = "@(#)monit.c	5.6\t3/14/96";
 #include <stdlib.h>
 # include "vmsipc.h"
 #endif
+#include "UxXt.h"
 #include "monituil.h"
 #include "sim_param.h"
 #include "sim_types.h"
@@ -147,6 +151,8 @@ void frem_proc();
 int save_stato_monit();
 int load_stato_monit();
 #endif
+
+void refresh_stat();
 
 int  numero_messaggi = 0;
 FLAG_SEL flag_sel;
@@ -637,7 +643,7 @@ testata("net_monit",SccsID);
     MrmRegisterNames (reglist, reglist_num);
 
     if (MrmFetchWidget (s_RMHierarchy, "S_MAIN_WINDOW", toplevel_widget,
-		&main_window_widget, &dummy_class) != MrmSUCCESS)
+		&main_window_widget, (MrmType *)&dummy_class) != MrmSUCCESS)
 	s_error ("can't fetch main window");
     init_colors ();
 /* Manage the main part and realize everything.  The interface comes on the
@@ -679,13 +685,13 @@ Dialog_geometry geom;
     XtMainLoop ();
 }
 
-init_colors ()
+void init_colors ()
 {
 int     i;
     for (i = 0; i < NUM_COLORI; i++)
     {
 	if (MrmFetchColorLiteral (s_RMHierarchy, nomi_colori[i],
-		    display, NULL, &pix_val[i]) != MrmSUCCESS)
+		    display, (Colormap)NULL, &pix_val[i]) != MrmSUCCESS)
 	    fprintf (stderr," monit : errore FETCH colori\n");
     }
 }
@@ -806,10 +812,10 @@ widget_array[widget_num] = w;
 */
 if(widget_num == k_messaggi)
   XtAddEventHandler(w,ButtonPressMask,False,
-		clear_list_mouse,k_clear_list_popup);
+		clear_list_mouse,(XtPointer)k_clear_list_popup);
 }
 
-distruggi_voci_inutili()
+void distruggi_voci_inutili()
 {
 /*
 	Verifica a seconda della versione quali tasti
@@ -936,7 +942,7 @@ MSG_SKDIS messaggio;
 #if defined MFFR
         sommari_to_snap();
         if( SD_savebt(MONIT,&last_backtrack,"BT SNAP after LOADIC",
-                      &sommari)>0 )
+                      (char*)&sommari)>0 )
 #else
         if( SD_savebt(MONIT,&last_backtrack,"BT SNAP after LOADIC",
                       NULL)>0 )
@@ -1004,7 +1010,7 @@ char descrizione[80];
 
 #if defined MFFR
       sommari_to_snap();
-      if(SD_saveic(MONIT,&i,"SNAP AUTOMATICO",&sommari)>0)
+      if(SD_saveic(MONIT,&i,"SNAP AUTOMATICO",(char*)&sommari)>0)
 #else
       if(SD_saveic(MONIT,&i,"SNAP AUTOMATICO",NULL)>0)
 #endif
@@ -1676,14 +1682,17 @@ char    app[30];
 	/* dialog_proc(k_statistica_dialog,app); */
 	if (widget_array[k_statistica_dialog] == NULL)
 	    if (MrmFetchWidget (s_RMHierarchy, app, toplevel_widget,
-			&widget_array[k_statistica_dialog], &dummy_class) != MrmSUCCESS)
+			&widget_array[k_statistica_dialog], (MrmType *)&dummy_class) != MrmSUCCESS)
 		s_error ("can't fetch dialog box");
+    sprintf(app,"%d",25 * numero_modelli (ind_sh_top) + 85);    
 	set_something (widget_array[k_statistica_dialog],
-		XmNheight, (void*) 25 * numero_modelli (ind_sh_top) + 85);
+		XmNheight,  app);
+    sprintf(app,"%d",25 * numero_modelli (ind_sh_top) + 5);
 	set_something (widget_array[k_statistica_window],
-		XmNheight, (void*) 25 * numero_modelli (ind_sh_top) + 5);
-	set_something (widget_array[k_statistica_dialog_fine],
-		XmNy, (void*) 25 * numero_modelli (ind_sh_top) + 25);
+		XmNheight,  app);
+	sprintf(app,"%d",25 * numero_modelli (ind_sh_top) + 25);
+    set_something (widget_array[k_statistica_dialog_fine],
+		XmNy,       app);
 	XtManageChild (widget_array[k_statistica_dialog]);
 	refresh_stat ();
     }
@@ -2190,7 +2199,7 @@ else
 #if defined MFFR
             sommari_to_snap();
             strcpy (app_str,"BT SNAP");
-            if(SD_savebt(MONIT,&last_backtrack,app_str,&sommari)>0)
+            if(SD_savebt(MONIT,&last_backtrack,app_str,(char *)&sommari)>0)
 #else
             strcpy (app_str,"BT SNAP");
             if(SD_savebt(MONIT,&last_backtrack,app_str,NULL)>0)
@@ -2693,7 +2702,7 @@ else
     visualizza un messaggio nell'area della mein window dedicata
     ai messaggi di diagnostica
 */
-vis_messaggio (str,finestra)
+int vis_messaggio (str,finestra)
 char   *str;
 int finestra;
 {
@@ -2730,11 +2739,11 @@ strncpy(messaggi.mess[numero_messaggi],str,MAX_LUNG_MESSAGGIO);*/
         }
 }
 
-cambia_stato_menu (voci_array)
+int cambia_stato_menu (voci_array)
 VOCE_MENU * voci_array;
 {
 int     i;
-static prima_volta=1;
+static int prima_volta=1;
 if (prima_volta)
 	{
 	distruggi_voci_inutili();
@@ -2756,7 +2765,7 @@ char   *widget_name;
 
     if (widget_array[widget_num] == NULL)
 	if (MrmFetchWidget (s_RMHierarchy,widget_name , toplevel_widget,
-		    &widget_array[widget_num], &dummy_class) != MrmSUCCESS)
+		    &widget_array[widget_num], (MrmType *)&dummy_class) != MrmSUCCESS)
 	    s_error ("can't fetch dialog box");
     XtManageChild (widget_array[widget_num]);
 }
@@ -2809,7 +2818,7 @@ if (event -> button == Button3)
     	   {  
             if (MrmFetchWidget(s_RMHierarchy, "clear_list_popup" ,
 		widget_array[k_messaggi], &widget_array[k_clear_list_popup], 
-		&dummy_class) != MrmSUCCESS) {
+		(MrmType *)&dummy_class) != MrmSUCCESS) {
                        s_error("can't fetch pop widget");
                     }
            }
@@ -2841,7 +2850,7 @@ else
         }
 }
 
-load_stato_monit(stato_monit)
+int load_stato_monit(stato_monit)
 STATO_MONIT *stato_monit;
 {
 FILE *fp;
@@ -2891,7 +2900,7 @@ int i,k;
     if( (path_loc==NULL)||(path==NULL) )
        {
        printf("Errori nei pathname [%s] [%s]\n",path,path_loc);
-       return;
+       return(0);
        }
 
     for(i=0;i<2;i++)

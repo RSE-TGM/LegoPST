@@ -55,7 +55,7 @@ char   *nome_modello (char *, int);
 
 
 
-monit_stat(w, tag, str)
+int monit_stat(w, tag, str)
     Widget w;
     int *tag;
     XmDrawingAreaCallbackStruct *str;

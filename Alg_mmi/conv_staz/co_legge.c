@@ -15,8 +15,10 @@ static char SccsID[] = "@(#)co_legge.c	1.2\t6/16/93";
 */
 	/* rimuovere se inserita in compi.c */
 #include <stdio.h>
+#include <stdlib.h>
+void lungh(char[],int *,int );
 
-legge_riga(
+void legge_riga(
  char riga [],
  int *lun,
  int *nriga)

@@ -19,7 +19,7 @@ static char SccsID[] = "@(#)co_float.c	1.2\t6/16/93";
 /*
         conv_float
 */
-co_float(lmax,ldec,str,val)
+int co_float(lmax,ldec,str,val)
 int lmax,ldec;
 STRIN_ST *str;
 float *val;

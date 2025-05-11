@@ -14,6 +14,7 @@
 #include<stdio.h>
 #include<string.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 
 extern int cambiac(char *,char *);
@@ -32,7 +33,7 @@ FILE *fp,*fp1,*fp2;
 
 
 
-main (argc,argv)
+int main (argc,argv)
 int argc;
 char **argv;
 { 
@@ -62,7 +63,7 @@ if (argc<2) {
   fprintf(fp,"chgcompiled  offset1 offset2 < Inputfile_name.rtf >Outputfile_name.rtf ");
   fgetc(stdin);
   fprintf(fp,"\n offset1: primo parametro ");
-  fprintf(fp,"\n offset2 valore intero che verrà sommato al secondo parametro");
+  fprintf(fp,"\n offset2 valore intero che verrï¿½ sommato al secondo parametro");
   fprintf(fp,"\n Verranno modificati cosi' i primi 2 parametri di tutti i campi compiled");
   fclose(fp);	
   exit(2);
@@ -103,7 +104,7 @@ risultato=cambiac(offset1,offset2);
    		/*segnalazione di errore generico*/
    		fprintf(fp,"\n\t errore\n ");
    		getc(stdin);
-   		close(fp);
+   		fclose(fp);
    		exit(3);
    		break;
    		
@@ -114,7 +115,7 @@ risultato=cambiac(offset1,offset2);
    		case 4:
    		fprintf(fp,"\n\t errore sul campo(manca # o not compiled)\n ");
    		getc(stdin);
-   		close(fp);
+   		fclose(fp);
    		exit(4);
    		break;
    		
@@ -123,7 +124,7 @@ risultato=cambiac(offset1,offset2);
    			
    		} 	/* end switch */
   } 	/*end if ... else*/
-close(fp); /*chiudi file errori*/
+fclose(fp); /*chiudi file errori*/
 exit(0);
 } 	/* end main */
 

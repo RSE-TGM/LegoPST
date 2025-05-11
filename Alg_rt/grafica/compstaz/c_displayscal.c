@@ -45,7 +45,7 @@ extern	char *scolori_oggetti[];
 
 extern	FILE *fo;
 
-c_displayscal(p_r02)
+int c_displayscal(p_r02)
 TIPO_DISPLAY_SCALATO *p_r02;
 {
 int lun, nstr, imu, index;
