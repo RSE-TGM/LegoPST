@@ -32,6 +32,7 @@ static char SccsID[] = "@(#)sa1_r.c	1.4\t3/23/95";
 #include <Xm/Separator.h>
 #include "sim_param.h"
 #include "xstaz.h"
+#include "compstaz.h"
 
 #include "sa1.bmp"
 /*
@@ -84,7 +85,7 @@ XPoint sa1_posiz[]={{2,8},  /* minimo del valore */
                     {73,8},  /* massimo valore */
                     {42,8}}; /* valore intermedio */
 
-staz_sa1_r(flag,is,ip3)
+void staz_sa1_r(flag,is,ip3)
 int *flag;   /* flag */
 int *is;   /* indice stazione associata */
 int *ip3;  /* indice nel descrittore pagine visualizzate */
@@ -126,7 +127,7 @@ XtSetArg(args[i],XmNresizePolicy,XmRESIZE_NONE);i++;
 wDraw=XmCreateDrawingArea(pagvis[*ip3].w,"box",args,i);
 XtManageChild(wDraw);
 
-crea_sfondo(&sfondo,sa1_bits,sa1_width,sa1_height);
+crea_sfondoP(&sfondo,sa1_bits,sa1_width,sa1_height);
 for(i=0;i<2;i++)
         {
         val=stazione[*is-1].fs[i];
@@ -153,8 +154,8 @@ XtSetArg(args[i],XmNmarginWidth,0); i++;
 wDraw1=XmCreateDrawingArea(wDraw,"draw",args,i);
 wstaz[*is-1].w[k_draw_ana]=wDraw1;
 XtManageChild(wDraw1);
-XtAddCallback(wDraw1,XmNexposeCallback,sa1_draw2_callback,*is-1);
-XtAddCallback(wDraw1,XmNdestroyCallback,sa1_del_callback,*is-1);
+XtAddCallback(wDraw1,XmNexposeCallback,sa1_draw2_callback,(XtPointer)*is-1);
+XtAddCallback(wDraw1,XmNdestroyCallback,sa1_del_callback,(XtPointer)*is-1);
 
 i=0;
 XtSetArg(args[i],XmNx,0); i++;
@@ -210,7 +211,7 @@ XtManageChild(wLab);
 /*
  Aggiunge una routine di refresh alla stazione creata
  */
-if(add_refresh((caddr_t)sa1_refresh,*is-1)==-1)
+if(add_refresh((XtCallbackProc)sa1_refresh,(void*)*is-1)==-1)
 	printf("\n errore : refresh non aggiunto");
 
 }
@@ -221,7 +222,7 @@ caddr_t info;
 XmDrawingAreaCallbackStruct *str;
 {
 int is= (int)info;
-del_refresh(is);
+del_refresh((void*)is);
 }
       
          
@@ -276,7 +277,7 @@ sa1_ago_mis(win,valore,is);
 }
 
 
-sa1_ago_mis(win,valore,is)
+void sa1_ago_mis(win,valore,is)
 Window win;
 float valore;
 int is;

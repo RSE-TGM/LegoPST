@@ -88,6 +88,8 @@ $(LEGO_BIN)/main_modscreg: main_modscreg.o
 	$(CC) main_modscreg.o -o $@
 #
 
+$(info -------->  DEBUG FFLAGS impostata a = $(FFLAGS))
+
 .f.o:
 	$(FC) -c $(FFLAGS) $<
 .pf.f:

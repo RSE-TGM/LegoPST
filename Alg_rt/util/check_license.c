@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include "CAP.h"		/* Serve per la gestione delle licenze software*/
 #include "skey_manager3.h"	/* Serve per la gestione delle licenze hardware*/

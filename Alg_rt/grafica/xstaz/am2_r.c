@@ -31,8 +31,10 @@ static char SccsID[] = "@(#)am2_r.c	1.4\t3/23/95";
 #include <Xm/Label.h>
 #include <Xm/ToggleB.h>
 #include <Xm/Separator.h>
+#include <Xm/RowColumn.h>
 #include "sim_param.h"
 #include "xstaz.h"
+#include "compstaz.h"
 
 #include "am2.bmp"
 /*
@@ -100,7 +102,7 @@ XPoint am2_posiz[]={{10,90},  /* minimo del valore */
 
 
 #define PIGRECO 3.14159265358979323846
-staz_am2_r(flag,is,ip3)
+void staz_am2_r(flag,is,ip3)
 int *flag;   /* flag */
 int *is;   /* indice stazione associata */
 int *ip3;  /* indice nel descrittore pagine visualizzate */
@@ -172,7 +174,7 @@ XtManageChild(wLab);
 /*
  Crea area di draw
  */
-crea_sfondo(&sfondo,am2_bits,am2_width,am2_height);
+crea_sfondoP(&sfondo,am2_bits,am2_width,am2_height);
 
 for(i=0;i<4;i++)
 	{
@@ -194,8 +196,8 @@ XtSetArg(args[i],XmNbackgroundPixmap,sfondo); i++;
 wDraw1=XmCreateDrawingArea(wDraw,"draw",args,i);
 wstaz[*is-1].w[k_draw1]=wDraw1;
 
-XtAddCallback(wDraw1,XmNexposeCallback,am2_draw1_callback,*is-1);
-XtAddCallback(wDraw1,XmNdestroyCallback,am2_del_callback,*is-1);
+XtAddCallback(wDraw1,XmNexposeCallback,am2_draw1_callback,(XtPointer)*is-1);
+XtAddCallback(wDraw1,XmNdestroyCallback,am2_del_callback,(XtPointer)*is-1);
 XtManageChild(wDraw1);
 /*
  crea area di input testo
@@ -226,7 +228,7 @@ XtSetArg(args[i],XmNbackground,excolor[1].pixel); i++;
 XtSetArg(args[i],XmNfontList,fontlist); i++;
 wstaz[*is-1].w[k_tedit]=XmCreateToggleButton(wDraw,"text",args,i);
 XtManageChild(wstaz[*is-1].w[k_tedit]);
-XtAddCallback(wstaz[*is-1].w[k_tedit],XmNvalueChangedCallback,am2_edit_text_callback,*is-1);
+XtAddCallback(wstaz[*is-1].w[k_tedit],XmNvalueChangedCallback,am2_edit_text_callback,(XtPointer)*is-1);
 
 
 i=0;
@@ -326,9 +328,9 @@ wToggle3=XmCreateToggleButton(wRadioBox,"",args,i);
 wstaz[*is-1].w[k_toggle1]=wToggle1;
 wstaz[*is-1].w[k_toggle2]=wToggle2;
 wstaz[*is-1].w[k_toggle3]=wToggle3;
-XtAddCallback(wToggle2,XmNvalueChangedCallback,am2_btn2_callback,*is-1);
-XtAddCallback(wToggle1,XmNvalueChangedCallback,am2_btn1_callback,*is-1);
-XtAddCallback(wToggle3,XmNvalueChangedCallback,am2_btn3_callback,*is-1);
+XtAddCallback(wToggle2,XmNvalueChangedCallback,am2_btn2_callback,(XtPointer)*is-1);
+XtAddCallback(wToggle1,XmNvalueChangedCallback,am2_btn1_callback,(XtPointer)*is-1);
+XtAddCallback(wToggle3,XmNvalueChangedCallback,am2_btn3_callback,(XtPointer)*is-1);
 XtManageChild(wToggle1);
 XtManageChild(wToggle2);
 XtManageChild(wToggle3);
@@ -336,7 +338,7 @@ XtManageChild(wToggle3);
 /*
  Aggiunge una routine di refresh alla stazione creata
  */
-if(add_refresh((caddr_t)am2_refresh,*is-1)==-1)
+if(add_refresh((XtCallbackProc)am2_refresh,(XtPointer)*is-1)==-1)
 	printf("\n errore : refresh non aggiunto");
 
 }
@@ -348,7 +350,7 @@ caddr_t info;
 XmDrawingAreaCallbackStruct *str;
 {
 int is= (int)info;
-del_refresh(is);
+del_refresh((void*)is);
 }
                  
 
@@ -470,7 +472,7 @@ am2_ago_mis(win,valore,is);
 am2_ago_err(win,val_err,is);
 }
 
-am2_ago_mis(win,valore,is)
+void am2_ago_mis(win,valore,is)
 Window win;
 float valore;
 int is;
@@ -506,7 +508,7 @@ y2=(int)((float)90.0-40.0*dy);
 XDrawLine(display,win,gc[icolor],x1,y1,x2,y2);
 }
 
-am2_ago_err(win,valore,is)
+void am2_ago_err(win,valore,is)
 Window win;
 float valore;
 int is;
@@ -874,7 +876,7 @@ if(XmTextGetEditable(wstaz[is].w[k_text])==False)
 /*
  setta lo stato dei bottoni in base allo stato della stazione 
 */
-am2_set_button(stato,tipo,is)
+void am2_set_button(stato,tipo,is)
 int stato;
 int tipo;
 int is;

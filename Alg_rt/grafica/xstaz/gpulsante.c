@@ -32,6 +32,7 @@ static char SccsID[] = "@(#)gpulsante.c	1.5\t3/23/95";
 #include <Xm/Xm.h>
 #include "sim_param.h"
 #include "xstaz.h"
+#include "compstaz.h"
 #include "BottoneP.h"
 #include "Bottone.h"
 
@@ -65,7 +66,7 @@ extern DATI_REFRESH *occupa_tredraw();
 static void pressato_pulsante(),rilasciato_pulsante();
 
 
-crpulsante(istaz,wbox,p_ogg,p_r02)
+void crpulsante(istaz,wbox,p_ogg,p_r02)
 int	istaz;		/* indice stazione */
 Widget	wbox;		/* indice widget padre */
 OGGETTO	*p_ogg;		/* puntatore oggetto in tabella new_staz */

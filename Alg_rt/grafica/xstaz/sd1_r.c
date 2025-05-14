@@ -32,6 +32,7 @@ static char SccsID[] = "@(#)sd1_r.c	1.4\t3/23/95";
 #include <Xm/Separator.h>
 #include "sim_param.h"
 #include "xstaz.h"
+#include "compstaz.h"
 
 /*
   tabelle comuni utilizzate per tutte le stazioni
@@ -76,7 +77,7 @@ static void sd1_refresh();        /* callback da chiamarsi scaduto il
 
 float estr_sh();
 
-staz_sd1_r(flag,is,ip3)
+void staz_sd1_r(flag,is,ip3)
 int *flag;   /* flag */
 int *is;   /* indice stazione associata */
 int *ip3;  /* indice nel descrittore pagine visualizzate */
@@ -119,7 +120,7 @@ XtSetArg(args[i],XmNmarginHeight,0);i++;
 XtSetArg(args[i],XmNresizePolicy,XmRESIZE_NONE);i++;
 wDraw=XmCreateDrawingArea(pagvis[*ip3].w,"box",args,i);
 XtManageChild(wDraw);
-XtAddCallback(wDraw,XmNdestroyCallback,sd1_del_callback,*is-1);
+XtAddCallback(wDraw,XmNdestroyCallback,sd1_del_callback,(XtPointer)*is-1);
 
 
 c_str=XmStringCreateLtoR("",XmSTRING_DEFAULT_CHARSET);
@@ -131,7 +132,7 @@ XtSetArg(args[i],XmNbackground,excolor[1].pixel); i++;
 XtSetArg(args[i],XmNborderWidth,0); i++;
 XtSetArg(args[i],XmNlabelString,c_str); i++;
 wText=XmCreateLabel(wDraw,"text",args,i);
-XtFree(c_str);
+XtFree((char*)c_str);
 wstaz[*is-1].w[k_text_dig]=wText;
 XtManageChild(wText);
 
@@ -186,7 +187,7 @@ XtManageChild(wLab);
 /*
  Aggiunge una routine di refresh alla stazione creata
  */
-if(add_refresh((caddr_t)sd1_refresh,*is-1)==-1)
+if(add_refresh((XtCallbackProc)sd1_refresh,(void*)*is-1)==-1)
 	printf("\n errore : refresh non aggiunto");
 
 }
@@ -197,7 +198,7 @@ caddr_t info;
 XmDrawingAreaCallbackStruct *str;
 {
 int is= (int)info;
-del_refresh(is);
+del_refresh((void*)is);
 }
      
          

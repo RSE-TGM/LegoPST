@@ -34,6 +34,7 @@ static char SccsID[] = "@(#)cnewstaz.c	1.7\t3/23/95";
 #include <Xm/DrawingA.h>
 #include "sim_param.h"
 #include "xstaz.h"
+#include "compstaz.h"
 
 
 /*
@@ -54,7 +55,7 @@ extern int font_ascent;
 extern int font_width;
 
 
-crea_new_staz(flag,it,is,ip3)
+void crea_new_staz(flag,it,is,ip3)
 int flag;   /* flag */
 int it;	    /* tipo stazione indice tabella new_staz */
 int is;   /* indice stazione associata */
@@ -113,69 +114,69 @@ for (i=0; i< new_staz[itipo].num_oggetti; i++)
 	{
 	   case LED:
 
-		crled(istaz,wbox,&new_staz[itipo].ogg[i],p_r02);
+		crled(istaz,wbox,&new_staz[itipo].ogg[i],(TIPO_LED *)p_r02);
 		p_r02+=sizeof (TIPO_LED);
 	   break;
 
 	   case PULS_LUCE:
-		crpulsluce(istaz,wbox,&new_staz[itipo].ogg[i],p_r02);
+		crpulsluce(istaz,wbox,&new_staz[itipo].ogg[i],(TIPO_PULS_LUCE *)p_r02);
 		p_r02+=sizeof (TIPO_PULS_LUCE);
 	   break;
 
 	  case  STRINGA_DESCR:
-		crstringa(istaz,wbox,&new_staz[itipo].ogg[i],p_r02);
+		crstringa(istaz,wbox,&new_staz[itipo].ogg[i],(TIPO_STRINGA_DESCR *)p_r02);
 		p_r02+=sizeof (TIPO_STRINGA_DESCR);
 	  break;
 
            case LAMPADA:
-                crlampada(istaz,wbox,&new_staz[itipo].ogg[i],p_r02);
+                crlampada(istaz,wbox,&new_staz[itipo].ogg[i],(TIPO_LAMPADA *)p_r02);
                 p_r02+=sizeof (TIPO_LAMPADA);
            break;
 
            case PULSANTE:
-                crpulsante(istaz,wbox,&new_staz[itipo].ogg[i],p_r02);
+                crpulsante(istaz,wbox,&new_staz[itipo].ogg[i],(TIPO_PULS *)p_r02);
                 p_r02+=sizeof (TIPO_PULS);
            break;
 
            case SELETTORE:
-                crselet(istaz,wbox,&new_staz[itipo].ogg[i],p_r02,ltot);
+                crselet(istaz,wbox,&new_staz[itipo].ogg[i],(TIPO_SELETTORE *)p_r02,ltot);
                 p_r02+=sizeof (TIPO_SELETTORE);
            break;
 
            case INDICATORE:
-                crindic(istaz,wbox,&new_staz[itipo].ogg[i],p_r02,ltot);
+                crindic(istaz,wbox,&new_staz[itipo].ogg[i],(TIPO_INDICATORE *)p_r02,ltot);
                 p_r02+=sizeof (TIPO_INDICATORE);
            break;
 
            case DISPLAY:
-                crdisplay(istaz,wbox,&new_staz[itipo].ogg[i],p_r02);
+                crdisplay(istaz,wbox,&new_staz[itipo].ogg[i],(TIPO_DISPLAY *)p_r02);
                 p_r02+=sizeof (TIPO_DISPLAY);
 	   break;
 
            case LUCE:
-                crluce(istaz,wbox,&new_staz[itipo].ogg[i],p_r02);
+                crluce(istaz,wbox,&new_staz[itipo].ogg[i],(TIPO_LUCE *)p_r02);
                 p_r02+=sizeof (TIPO_LUCE);
            break;
 
            case TASTO:
-                crtasto(istaz,wbox,&new_staz[itipo].ogg[i],p_r02);
+                crtasto(istaz,wbox,&new_staz[itipo].ogg[i],(TIPO_TASTO *)p_r02);
                 p_r02+=sizeof (TIPO_TASTO);
            break;
 
 /* per AIX bisogna installare motif vers 2.0 perche' la versione attuale
    non gestisce la XmNchild */
            case SET_VALORE:
-                crsetval(istaz,wbox,&new_staz[itipo].ogg[i],p_r02);
+                crsetval(istaz,wbox,&new_staz[itipo].ogg[i],(TIPO_SET_VALORE *)p_r02);
                 p_r02+=sizeof (TIPO_SET_VALORE);
            break;
 
 	   case DISPLAY_SCALATO:
-                crdisplaysc(istaz,wbox,&new_staz[itipo].ogg[i],p_r02);
+                crdisplaysc(istaz,wbox,&new_staz[itipo].ogg[i],(TIPO_DISPLAY_SCALATO *)p_r02);
                 p_r02+=sizeof (TIPO_DISPLAY_SCALATO);
 	   break;
 
 	   case INDICATORE_SINCRO:
-                crsincro(istaz,wbox,&new_staz[itipo].ogg[i],p_r02,ltot);
+                crsincro(istaz,wbox,&new_staz[itipo].ogg[i],(TIPO_INDICATORE_SINCRO *)p_r02,ltot);
                 p_r02+=sizeof (TIPO_INDICATORE_SINCRO);
            break;
                                                          
@@ -208,7 +209,7 @@ p_ret=NULL;
 return(p_ret);
 }
 
-libera_trefr(p_refr)
+int libera_trefr(p_refr)
 DATI_REFRESH *p_refr;
 {
 
@@ -242,7 +243,7 @@ p_ret=NULL;
 return(p_ret);
 }
 
-libera_tredraw(p_refr)
+int libera_tredraw(p_refr)
 DATI_REFRESH *p_refr;
 {
 

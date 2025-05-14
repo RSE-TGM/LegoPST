@@ -32,6 +32,7 @@ static char SccsID[] = "@(#)glampada.c	1.4\t3/23/95";
 #include <Xm/Xm.h>
 #include "sim_param.h"
 #include "xstaz.h"
+#include "compstaz.h"
 #include "BottoneP.h"
 #include "Bottone.h"
 
@@ -62,7 +63,7 @@ void lampada_del_callback();
 
 float estr_sh();
 
-crlampada(istaz,wbox,p_ogg,p_r02)
+void crlampada(istaz,wbox,p_ogg,p_r02)
 int	istaz;		/* indice stazione */
 Widget	wbox;		/* indice widget padre */
 OGGETTO	*p_ogg;		/* puntatore oggetto in tabella new_staz */
@@ -95,7 +96,7 @@ wlampada=XtCreateManagedWidget("bt",bottoneWidgetClass,wbox,args,i);
 
         p_refr=occupa_trefr(wlampada,p_r02);
         if (p_refr ==  NULL )
-		exit("glampada : troppi oggetti creati ");
+		exit(puts("glampada : troppi oggetti creati "));
 /*
 	aggiunge la callback di cancellazione dell 'oggetto
 */
@@ -105,7 +106,7 @@ XtAddCallback(wlampada,XmNdestroyCallback,lampada_del_callback,p_refr);
 	aggiunge la callbacks  di refresh della lampada
 */
 
-	if(add_refresh((caddr_t)lampada_refresh,p_refr)==-1)
+	if(add_refresh((XtCallbackProc)lampada_refresh,(caddr_t)p_refr)==-1)
 	{
 		libera_trefr(p_refr);
        		printf("\n errore : refresh non aggiunto");
@@ -117,8 +118,8 @@ Widget w;
 caddr_t info;
 XmDrawingAreaCallbackStruct *str;
 {
-del_refresh(info);
-libera_trefr(info);
+del_refresh((void*)info);
+libera_trefr((DATI_REFRESH *)info);
 }
 
 void lampada_refresh(info)
@@ -171,7 +172,7 @@ else
 }
 
 
-blink_lampada(wled,pr02)
+void blink_lampada(wled,pr02)
 Widget wled;
 TIPO_LAMPADA *pr02;
 {

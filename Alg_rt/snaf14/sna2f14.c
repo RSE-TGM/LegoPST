@@ -28,17 +28,25 @@ static char *_csrc = "@(#) %filespec: sna2f14.c-8.1.1 %  (%full_filespec: sna2f1
 #include <stdio.h>
 #include <errno.h>
 #include <string.h>
-#include <sim_param.h>
-#include <sim_types.h>
+
+#include <X11/Xlib.h>
+#include <Mrm/MrmAppl.h>
 #include <Rt/RtDbPunti.h>
 #include <Rt/RtErrore.h>
 #include <Rt/RtMemory.h>
+#include "sim_param.h"
+#include "sim_types.h"
+#include "xstaz.h"
+#include "compstaz.h"
+//#include "monit.h"
+//#include "conv_mmi.h"
 
+extern int ControlParam(int );
 
 #define MAXLINE 150
 
 RtDbPuntiOggetto	dbpunti;
-RtErroreOggetto		errore;
+RtErroreOggetto		errore1;
 SNTAB			   *snapshot_hea;	/* area shm per tabella snapshot */
 int					size_area_dati;	/* size in byte dell'area dati di tutte le task */
 float			   *area_dati;		/* puntatore all'inizio dell'area dati delle task */
@@ -71,7 +79,7 @@ int    _PERT_CLEAR;
 
 SIMULATOR simpar;
 
-main(int argc, char **argv)
+int main(int argc, char **argv)
 
 {
 FILE *fp_snap;
@@ -136,21 +144,21 @@ int err;
 	shr_usr_key = atoi((char *) getenv("SHR_USR_KEY"));
 
 	/* aggancio al database dei punti */
-	errore = RtCreateErrore(RT_ERRORE_TERMINALE,"net_sked");
+	errore1 = RtCreateErrore(RT_ERRORE_TERMINALE,"net_sked");
 #if defined SCO_UNIX
-	dbpunti = RtCreateDbPunti(errore,"S02_SCO",DB_PUNTI_INT,&simpar);
+	dbpunti = RtCreateDbPunti(errore1,"S02_SCO",DB_PUNTI_INT,&simpar);
 #endif
 #if defined OSF1
-	dbpunti = RtCreateDbPunti(errore,"S02_OSF1",DB_PUNTI_INT,&simpar);
+	dbpunti = RtCreateDbPunti(errore1,"S02_OSF1",DB_PUNTI_INT,&simpar);
 #endif
 #if defined LINUX
-	dbpunti = RtCreateDbPunti(errore,"S02_LINUX",DB_PUNTI_INT,&simpar);
+	dbpunti = RtCreateDbPunti(errore1,"S02_LINUX",DB_PUNTI_INT,&simpar);
 #endif
 #if defined AIX
-	dbpunti = RtCreateDbPunti(errore,"S02_AIX",DB_PUNTI_INT,&simpar);
+	dbpunti = RtCreateDbPunti(errore1,"S02_AIX",DB_PUNTI_INT,&simpar);
 #endif
 #if defined VMS
-	dbpunti = RtCreateDbPunti(errore,"S02_VMS",DB_PUNTI_INT,&simpar);
+	dbpunti = RtCreateDbPunti(errore1,"S02_VMS",DB_PUNTI_INT,&simpar);
 #endif
 
 /* Breve spiegazione del programma */

@@ -31,8 +31,10 @@ static char SccsID[] = "@(#)gstringa.c	1.6\t3/23/95";
 #include <math.h>
 #include <X11/Xlib.h>
 #include <Xm/Xm.h>
+#include <Xm/Label.h>
 #include "sim_param.h"
 #include "xstaz.h"
+#include "compstaz.h"
 
 
 /*
@@ -56,7 +58,7 @@ extern XmFontList fontlist ,fontlist_big;
 extern DATI_REFRESH *occupa_trefr();
 extern DATI_REFRESH *occupa_tredraw();
 
-crstringa(istaz,wbox,p_ogg,p_r02)
+void crstringa(istaz,wbox,p_ogg,p_r02)
 int	istaz;		/* indice stazione */
 Widget	wbox;		/* indice widget padre */
 OGGETTO	*p_ogg;		/* puntatore oggetto in tabella new_staz */

@@ -28,9 +28,14 @@ static char SccsID[] = "@(#)tr1_r.c	1.4\t3/23/95";
 #include <X11/Xlib.h>
 #include <Mrm/MrmAppl.h>
 #include <Xm/Text.h>
+#include <Xm/Label.h>
 #include <Xm/DrawingA.h>
+#include <Xm/ToggleB.h>
+#include <Xm/Separator.h>
+#include <Xm/RowColumn.h>
 #include "sim_param.h"
 #include "xstaz.h"
+#include "compstaz.h"
 
 /*
   tabelle comuni utilizzate per tutte le stazioni
@@ -79,7 +84,7 @@ static void tr1_refresh();        /* callback da chiamarsi scaduto il
 static void tr1_edit_text_callback();
 
 float estr_sh();
-staz_tr1_r(flag,is,ip3)
+void staz_tr1_r(flag,is,ip3)
 int *flag;   /* flag */
 int *is;   /* indice stazione associata */
 int *ip3;  /* indice nel descrittore pagine visualizzate */
@@ -122,7 +127,7 @@ XtSetArg(args[i],XmNmarginWidth,0);i++;
 XtSetArg(args[i],XmNmarginHeight,0);i++;
 XtSetArg(args[i],XmNresizePolicy,XmRESIZE_NONE);i++;
 wbox=XmCreateDrawingArea(pagvis[*ip3].w,"box",args,i);
-XtAddCallback(wbox,XmNdestroyCallback,tr1_del_callback,*is-1);
+XtAddCallback(wbox,XmNdestroyCallback,tr1_del_callback,(XtPointer)*is-1);
 XtManageChild(wbox);
 
 
@@ -164,7 +169,7 @@ XtSetArg(args[i],XmNbackground,excolor[1].pixel); i++;
 XtSetArg(args[i],XmNfontList,fontlist); i++;
 wstaz[*is-1].w[k_tedit]=(Widget) XmCreateToggleButton(wbox,"text",args,i);
 XtManageChild(wstaz[*is-1].w[k_tedit]);
-XtAddCallback(wstaz[*is-1].w[k_tedit],XmNvalueChangedCallback,tr1_edit_text_callback,*is-1);
+XtAddCallback(wstaz[*is-1].w[k_tedit],XmNvalueChangedCallback,tr1_edit_text_callback,(XtPointer)*is-1);
 
 i=0;
 XtSetArg(args[i],XmNx,0); i++;
@@ -197,7 +202,7 @@ XtManageChild(wLab);
 
 i=0;
 memset(app,' ',17);
-memcpy(app,stazione[*is-1].descrizione,strlen(stazione[*is-1].descrizione));
+memcpy(app,stazione[*is-1].descrizione,strlen((char*)stazione[*is-1].descrizione));
 app[17]=0;
 XtSetArg(args[i],XmNlabelString,XmStringCreateLtoR(app,
 XmSTRING_DEFAULT_CHARSET)); i++;
@@ -216,7 +221,7 @@ XtManageChild(wLab);
  Aggiunge una routine di refresh alla stazione creata
  */
 
-if(add_refresh((caddr_t)tr1_refresh,*is-1)==-1)
+if(add_refresh((XtCallbackProc)tr1_refresh,(void*)*is-1)==-1)
 	printf("\n errore : refresh non aggiunto");
 
 }
@@ -297,7 +302,7 @@ caddr_t info;
 XmDrawingAreaCallbackStruct *str;
 {
 int is= (int)info;
-del_refresh(is);
+del_refresh((void*)is);
 }
 
 static void tr1_draw1_callback(w,info,str)

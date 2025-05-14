@@ -34,6 +34,7 @@ static char SccsID[] = "@(#)gdisplay.c	1.5\t3/23/95";
 
 #include "sim_param.h"
 #include "xstaz.h"
+#include "compstaz.h"
 #include "LedP.h"
 #include "Led.h"
 
@@ -65,7 +66,7 @@ void display_del_callback();
 
 float estr_sh();
 
-crdisplay(istaz,wbox,p_ogg,p_r02)
+void crdisplay(istaz,wbox,p_ogg,p_r02)
 int	istaz;		/* indice stazione */
 Widget	wbox;		/* indice widget padre */
 OGGETTO	*p_ogg;		/* puntatore oggetto in tabella new_staz */
@@ -122,7 +123,7 @@ XtManageChild(wdisplay);
 */
         p_refr= (DATI_REFRESH *) occupa_trefr(wdisplay,p_r02);
         if (p_refr ==  NULL )
-		exit("gdisplay : troppi oggetti creati ");
+		exit(puts("gdisplay : troppi oggetti creati "));
 /*
 	aggiunge la callback di cancellazione dell 'oggetto
 */
@@ -132,7 +133,7 @@ XtAddCallback(wdisplay,XmNdestroyCallback,display_del_callback,p_refr);
 	aggiunge la callbacks  di refresh del display
 */
 
-	if(add_refresh((caddr_t)display_refresh,p_refr)==-1)
+	if(add_refresh((XtCallbackProc)display_refresh,(caddr_t)p_refr)==-1)
 	{
 		libera_trefr(p_refr);
        		printf("\n errore : refresh non aggiunto");
@@ -144,8 +145,8 @@ Widget w;
 caddr_t info;
 XmDrawingAreaCallbackStruct *str;
 {
-del_refresh(info);
-libera_trefr(info);
+del_refresh((void*)info);
+libera_trefr((DATI_REFRESH *)info);
 }
 
 void display_refresh(info)
@@ -180,7 +181,7 @@ if(XmStringCompare(c_str1,c_str2)==0)
 	XtSetArg(args[i],XmNlabelString,c_str1);i++;
 	XtSetValues(p_refr->w,args,i); 
 	}
-XtFree(c_str1);
-XtFree(c_str2);
+XtFree((char*)c_str1);
+XtFree((char*)c_str2);
 }
 

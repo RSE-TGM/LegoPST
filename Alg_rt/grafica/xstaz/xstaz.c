@@ -26,6 +26,9 @@ static char SccsID[] = "@(#)xstaz.c	1.13\t9/13/95";
  *   processo staz realizzato sotto MOTIF 
  */
 #include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+
 #include <string.h>
 #include <stdlib.h>
 #include <math.h>
@@ -40,6 +43,9 @@ static char SccsID[] = "@(#)xstaz.c	1.13\t9/13/95";
 #include <Xm/Text.h>
 #include <Xm/DrawingA.h>
 #include <Xm/ScrolledW.h>
+#include <Xm/PushB.h>
+#include <Xm/Form.h>
+#include <Xm/RowColumn.h>
 
 #if defined UNIX
 # include <sys/ipc.h>
@@ -51,16 +57,18 @@ static char SccsID[] = "@(#)xstaz.c	1.13\t9/13/95";
 #endif
 
 /* exit( puts( "ATTENZIONE: compilare con -DAIX (o -DVMS / -DULTRIX)"));*/
-
+#include <Rt/RtDbPunti.h>
+#include <Rt/RtErrore.h>
 #include "sim_param.h"
 #include "sim_ipc.h"
 #include "sim_types.h"
 #include "comandi.h"
 #include "xstaz.h"
+#include "compstaz.h"
+
 /* include tabella di definizione delle nuove stazioni TIPI_NEW_STAZ */
 #include "newstaz.h"
-# include <Rt/RtDbPunti.h>
-# include <Rt/RtErrore.h>
+//#include "libutilx.h"
 
 
 /* definizioni per la coda di messaggio delle perturbazioni 
@@ -172,7 +180,9 @@ int id_msg_staz;
 RtDbPuntiOggetto dbpunti;
 RtErroreOggetto errore_obj;
 
-main(argc,argv)
+void testata(char *, char *);
+
+int main(argc,argv)
 unsigned int argc;                  /* Command line argument count. */
 char *argv[];                       /* Pointers to command line args.*/
 {
@@ -503,7 +513,7 @@ msg_close_fam();
 exit(0);
 }
 
-cnew_staz(ip3)
+int cnew_staz(ip3)
 int ip3;
 {
 Widget wTopLev;
@@ -663,7 +673,7 @@ XtSetArg(args[i],XmNlabelString,XmStringCreateLtoR("Quit ",XmSTRING_DEFAULT_CHAR
 wbutton=(Widget) XmCreatePushButton(wpopup,"bottone",args,i);
 XtManageChild(wbutton);
 
-XtAddCallback(wbutton,XmNactivateCallback,pag_del_callback,ip3);
+XtAddCallback(wbutton,XmNactivateCallback,pag_del_callback,(XtPointer)ip3);
 XtAddEventHandler(pagvis[ip3].w,ButtonPressMask,False,PostIt,wpopup);
 
 return(0); /* ritorno corretto */
@@ -688,7 +698,7 @@ if(event->button == Button3)
 
 
 
-init_staz()
+void init_staz()
 {
 int i;
 for(i=0;i<header.tot_staz;i++)
@@ -710,14 +720,11 @@ for(i=0;i<header.tot_staz * MAX_WIDGET_STAZ;i++)
     verra' generalmente associata una routine di refresh per ogni
     stazione creata
  */
-add_refresh(proc,closure)
+int add_refresh(proc,closure)
 XtCallbackProc proc;   /* in Dec era caddr_t */
 caddr_t closure;
 {
 int i;
-
-
-
 for(i=0;i<header.tot_staz*MAX_WIDGET_STAZ;i++)
 	{
 	if(t_call[i].callback == NULL)
@@ -737,7 +744,7 @@ return(-1);   /* mancanza di memoria per aggiunta routine di refresh */
   elimina la funzione di refresh associata ad una stazione
  */
 
-del_refresh(closure)
+int del_refresh(closure)
 caddr_t closure;
 {
 int i;
@@ -758,7 +765,7 @@ return(-1);   /* routine di callback non trovata */
  add_redraw 
     permette di associare una funzione di redraw ad un oggetto
  */
-add_redraw(proc,closure)
+int add_redraw(proc,closure)
 XtCallbackProc proc;   /* in Dec era caddr_t */
 caddr_t closure;
 {
@@ -780,7 +787,7 @@ return(-1);   /* mancanza di memoria per aggiunta routine di redraw */
   elimina la funzione di redraw associata ad un oggetto
  */
 
-del_redraw(closure)
+int del_redraw(closure)
 caddr_t closure;
 {
 int i;
@@ -796,7 +803,7 @@ for(i=0;i<header.tot_staz*MAX_WIDGET_STAZ;i++)
 return(-1);   /* routine di callback non trovata */
 }
 
-init_gc()
+void init_gc()
 {
 XGCValues values;
 XColor color;
@@ -825,8 +832,8 @@ char *font_name = "fixed";
 char *font_name_big = "-adobe-times-bold-r-normal--25-180-100-100-p-132-iso8859-1";
 #endif
 
-load_font(&font_info,&fontlist,font_name);
-load_font(&font_info_big,&fontlist_big,font_name_big);
+load_font(&font_info,(XmFontList *)&fontlist,(char*)font_name);
+load_font(&font_info_big,(XmFontList *)&fontlist_big,(char*)font_name_big);
 font_ascent= font_info->ascent;
 font_height= font_info->ascent + font_info->descent;
 font_width= font_info->max_bounds.width;
@@ -858,10 +865,10 @@ for(i=0;i<5;i++)
 }
 
 
-load_font(font_info,flist,fontname)
+void load_font(font_info,flist,fontname)
 XFontStruct **font_info;
-char fontname[];
 XmFontList *flist;
+char fontname[];
 {
 /* Carica il font ottenendo la descrizione del font stesso */
 
@@ -879,7 +886,7 @@ if((*font_info = XLoadQueryFont(display,fontname)) == NULL)
 	}
 }
           
-crea_sfondo(stip,bits,width,height)
+int crea_sfondoP(stip,bits,width,height)
 Pixmap *stip;
 char *bits;
 int width,height;
@@ -941,12 +948,12 @@ return(val);
 	chiama la routine perturba di scrittura in area shared
 */
 
-int g_perturba(nul1,tipo,valfin,vnul2,nul3,imodel,ipunti)
-int  nul1,nul3;	   /* valore nullo */
-int tipo;	   /* tipo operazione (step o rampa )*/
-int imodel,ipunti; /* indice modello e indice di punto */
-float valfin;      /* valore variabile */
-float vnul2;	   /* valore nullo */
+int g_perturba(int nul1,int tipo,float valfin,float vnul2,int nul3,int imodel,int ipunti)
+// int  nul1,nul3;	   /* valore nullo */
+// int tipo;	   /* tipo operazione (step o rampa )*/
+// float valfin;      /* valore variabile */
+// float vnul2;	   /* valore nullo */
+// int imodel,ipunti; /* indice modello e indice di punto */
 {
 int iret;
 
@@ -982,7 +989,7 @@ int iret;
 return(iret);
 }
 
-pr_pagina()
+void pr_pagina()
 {
 int i,j;
 for (i=0; i< header.tot_pagine; i++)
@@ -996,7 +1003,7 @@ for (j=0; j<pagina[i].num_staz; j++)
 
 }
 
-pr_stazione()
+void pr_stazione()
 {
 int i,j;
 for (i=0; i< header.tot_staz; i++)
@@ -1009,7 +1016,7 @@ printf("\n posmx= %d %d  posmy= %d %d%",stazione[i].posix0,stazione[i].posix1,st
 
 
 
-LoadColor(w)
+void LoadColor(w)
 Widget w;
 {
 Colormap default_cmap;

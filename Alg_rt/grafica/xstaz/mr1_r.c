@@ -33,6 +33,7 @@ static char SccsID[] = "@(#)mr1_r.c	1.4\t3/23/95";
 #include <Xm/PushB.h>
 #include "sim_param.h"
 #include "xstaz.h"
+#include "compstaz.h"
 
 /*
   tabelle comuni utilizzate per tutte le stazioni
@@ -79,7 +80,7 @@ static void mr1_refresh();        /* callback da chiamarsi scaduto il
                                       timeout di refresh */
 
 float estr_sh();
-staz_mr1_r(flag,is,ip3)
+void staz_mr1_r(flag,is,ip3)
 int *flag;   /* flag */
 int *is;   /* indice stazione associata */
 int *ip3;  /* indice nel descrittore pagine visualizzate */
@@ -127,12 +128,12 @@ XtSetArg(args[i],XmNmarginWidth,0);i++;
 XtSetArg(args[i],XmNmarginHeight,0);i++;
 XtSetArg(args[i],XmNresizePolicy,XmRESIZE_NONE);i++;
 wDraw=XmCreateDrawingArea(pagvis[*ip3].w,"box",args,i);
-XtAddCallback(wDraw,XmNdestroyCallback,mr1_del_callback,*is-1);
+XtAddCallback(wDraw,XmNdestroyCallback,mr1_del_callback,(XtPointer)*is-1);
 XtManageChild(wDraw);
 
 
 memset(app,' ',17);
-memcpy(app,stazione[*is-1].descrizione,strlen(stazione[*is-1].descrizione));
+memcpy(app,stazione[*is-1].descrizione,strlen((char*)stazione[*is-1].descrizione));
 app[17]=0;
 i=0;
 XtSetArg(args[i],XmNlabelString,XmStringCreateLtoR(app,
@@ -180,14 +181,14 @@ XtSetArg(args[i],XmNlabelString,XmStringCreateLtoR("   ",XmSTRING_DEFAULT_CHARSE
 wToggle1=XmCreatePushButton(wRadioBox,"push",args,i);
 wstaz[*is-1].w[k_toggle1]=wToggle1;
 XtManageChild(wToggle1);
-XtAddCallback(wToggle1,XmNactivateCallback,mr1_btn1_callback,*is-1);
+XtAddCallback(wToggle1,XmNactivateCallback,mr1_btn1_callback,(XtPointer)*is-1);
 
 stato=(int)estr_sh(stazione[*is-1].slstaz,1);
 stazione[*is-1].incorso=stato; 
 /*
  Aggiunge una routine di refresh alla stazione creata
  */
-if(add_refresh((caddr_t)mr1_refresh,*is-1)==-1)
+if(add_refresh((XtCallbackProc)mr1_refresh,(void*)*is-1)==-1)
 	printf("\n errore : refresh non aggiunto");
 
 }
@@ -198,7 +199,7 @@ caddr_t info;
 XmDrawingAreaCallbackStruct *str;
 {
 int is= (int)info;
-del_refresh(is);
+del_refresh((void*)is);
 }
        
 

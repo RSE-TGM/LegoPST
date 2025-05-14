@@ -50,7 +50,7 @@ all:
 #
 #	snaf14
 #
-	 cd ./snaf14; $(MAKE) -f Makefile.mk
+########	 cd ./snaf14; $(MAKE) -f Makefile.mk
 #
 #	procedure
 #
@@ -58,7 +58,7 @@ all:
 #
 #       sqlite_test
 #
-	cd ./sqlite_test; $(MAKE) -f Makefile
+#### 	cd ./sqlite_test; $(MAKE) -f Makefile
 #
 #	util
 #

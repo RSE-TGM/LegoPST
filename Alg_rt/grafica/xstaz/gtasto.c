@@ -33,6 +33,7 @@ static char SccsID[] = "@(#)gtasto.c	1.4\t3/23/95";
 #include <Xm/PushB.h>
 #include "sim_param.h"
 #include "xstaz.h"
+#include "compstaz.h"
 
 
 /*
@@ -60,7 +61,7 @@ static void pressato_tasto();
 extern DATI_REFRESH *occupa_trefr();
 extern DATI_REFRESH *occupa_tredraw();
 
-crtasto(istaz,wbox,p_ogg,p_r02)
+void crtasto(istaz,wbox,p_ogg,p_r02)
 int	istaz;		/* indice stazione */
 Widget	wbox;		/* indice widget padre */
 OGGETTO	*p_ogg;		/* puntatore oggetto in tabella new_staz */

@@ -34,6 +34,7 @@ static char SccsID[] = "@(#)amd_r.c	1.4\t3/23/95";
 #include <Xm/RowColumn.h>
 #include "sim_param.h"
 #include "xstaz.h"
+#include "compstaz.h"
 
 /*
   tabelle comuni utilizzate per tutte le stazioni
@@ -86,7 +87,7 @@ static void amd_refresh();        /* callback da chiamarsi scaduto il
 
 float estr_sh();
 
-staz_amd_r(flag,is,ip3)
+void staz_amd_r(flag,is,ip3)
 int *flag;   /* flag */
 int *is;   /* indice stazione associata */
 int *ip3;  /* indice nel descrittore pagine visualizzate */
@@ -132,7 +133,7 @@ XtSetArg(args[i],XmNmarginWidth,0);i++;
 XtSetArg(args[i],XmNmarginHeight,0);i++;
 XtSetArg(args[i],XmNresizePolicy,XmRESIZE_NONE);i++;
 wDraw=XmCreateDrawingArea(pagvis[*ip3].w,"box",args,i);
-XtAddCallback(wDraw,XmNdestroyCallback,amd_del_callback,*is-1);
+XtAddCallback(wDraw,XmNdestroyCallback,amd_del_callback,(void*)*is-1);
 XtManageChild(wDraw);
 
 
@@ -148,7 +149,7 @@ XtSetArg(args[i],XmNlabelString,c_str); i++;
 wDraw1=XmCreateLabel(wDraw,"draw",args,i);  
 wstaz[*is-1].w[k_text]=wDraw1;
 XtManageChild(wDraw1);
-XtFree(c_str);
+XtFree((char*)c_str);
 
 i=0;
 XtSetArg(args[i],XmNx,0); i++;
@@ -203,7 +204,7 @@ XtManageChild(wSep);
 
 
 memset(app,' ',17);
-memcpy(app,stazione[*is-1].descrizione,strlen(stazione[*is-1].descrizione));
+memcpy(app,stazione[*is-1].descrizione,strlen((const char *)stazione[*is-1].descrizione));
 app[17]=0;
 i=0;
 XtSetArg(args[i],XmNlabelString,XmStringCreateLtoR(app,
@@ -274,16 +275,16 @@ wToggle3=XmCreateToggleButton(wRadioBox,"",args,i);
 wstaz[*is-1].w[k_toggle1]=wToggle1;
 wstaz[*is-1].w[k_toggle2]=wToggle2;
 wstaz[*is-1].w[k_toggle3]=wToggle3;
-XtAddCallback(wToggle2,XmNvalueChangedCallback,amd_btn2_callback,*is-1);
-XtAddCallback(wToggle1,XmNvalueChangedCallback,amd_btn1_callback,*is-1);
-XtAddCallback(wToggle3,XmNvalueChangedCallback,amd_btn3_callback,*is-1);
+XtAddCallback(wToggle2,XmNvalueChangedCallback,amd_btn2_callback,(XtPointer)*is-1);
+XtAddCallback(wToggle1,XmNvalueChangedCallback,amd_btn1_callback,(XtPointer)*is-1);
+XtAddCallback(wToggle3,XmNvalueChangedCallback,amd_btn3_callback,(XtPointer)*is-1);
 XtManageChild(wToggle1);
 XtManageChild(wToggle2);
 XtManageChild(wToggle3);
 /*
  Aggiunge una routine di refresh alla stazione creata
  */
-if(add_refresh((caddr_t)amd_refresh,*is-1)==-1)
+if(add_refresh((XtCallbackProc)amd_refresh,(void *)*is-1)==-1)
 	printf("\n errore : refresh non aggiunto");
 
 }
@@ -294,7 +295,7 @@ caddr_t info;
 XmDrawingAreaCallbackStruct *str;
 {
 int is= (int)info;
-del_refresh(is);
+del_refresh((void*)is);
 }
        
 
@@ -669,7 +670,7 @@ if(XmStringCompare(c_str,c_str2)==0)
 /*
  setta lo stato dei bottoni in base allo stato della stazione 
 */
-amd_set_button(stato,tipo,is)
+void amd_set_button(stato,tipo,is)
 int stato;
 int tipo;
 int is;

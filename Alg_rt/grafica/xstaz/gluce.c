@@ -32,6 +32,7 @@ static char SccsID[] = "@(#)gluce.c	1.4\t3/23/95";
 #include <Xm/Xm.h>
 #include "sim_param.h"
 #include "xstaz.h"
+#include "compstaz.h"
 #include "LedP.h"
 #include "Led.h"
 
@@ -63,7 +64,7 @@ void luce_del_callback();
 float estr_sh();
 
 
-crluce(istaz,wbox,p_ogg,p_r02)
+void crluce(istaz,wbox,p_ogg,p_r02)
 int	istaz;		/* indice stazione */
 Widget	wbox;		/* indice widget padre */
 OGGETTO	*p_ogg;		/* puntatore oggetto in tabella new_staz */
@@ -94,7 +95,7 @@ wluce=XtCreateManagedWidget("bt",ledWidgetClass,wbox,args,i);
 
         p_refr=(DATI_REFRESH *) occupa_trefr(wluce,p_r02);
         if (p_refr ==  NULL )
-		exit("gluce : troppi oggetti creati ");
+		exit(puts("gluce : troppi oggetti creati "));
 /*
 	aggiunge la callback di cancellazione dell 'oggetto
 */
@@ -104,7 +105,7 @@ XtAddCallback(wluce,XmNdestroyCallback,luce_del_callback,p_refr);
 	aggiunge la callbacks  di refresh del luce
 */
 
-	if(add_refresh((caddr_t)luce_refresh,p_refr)==-1)
+	if(add_refresh((XtCallbackProc)luce_refresh,(caddr_t)p_refr)==-1)
 	{
 		libera_trefr(p_refr);
        		printf("\n errore : refresh non aggiunto");
@@ -116,8 +117,8 @@ Widget w;
 caddr_t info;
 XmDrawingAreaCallbackStruct *str;
 {
-del_refresh(info);
-libera_trefr(info);
+del_refresh((void*)info);
+libera_trefr((DATI_REFRESH *)info);
 }
 
 void luce_refresh(info)
@@ -158,7 +159,7 @@ XtSetValues(p_refr->w,args,i);
 }
 
 
-blink_luce(wled)
+void blink_luce(wled)
 Widget wled;
 {
 int i;
@@ -168,13 +169,13 @@ if(stato_blink)
         {
         i=0;
         XtSetArg(args[i],XmNbackground,cw->led.color_blink); i++;
-        XtSetValues(cw,args,i);
+        XtSetValues((Widget)cw,args,i);
         }
 else
         {
         i=0;
         XtSetArg(args[i],XmNbackground,cw->led.color_norm); i++;
-        XtSetValues(cw,args,i);
+        XtSetValues((Widget)cw,args,i);
         }
 }
 

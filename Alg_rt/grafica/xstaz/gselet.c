@@ -30,8 +30,10 @@ static char SccsID[] = "@(#)gselet.c	1.5\t3/23/95";
 #include <math.h>
 #include <X11/Xlib.h>
 #include <Xm/Xm.h>
+#include <Xm/Label.h>
 #include "sim_param.h"
 #include "xstaz.h"
+#include "compstaz.h"
 
 #include "Selettore.h"
 #include "sele_a_0.bmp"
@@ -71,7 +73,7 @@ Pixmap pixmap_0,pixmap_1;
 typedef char*  XtPointer;
 #endif
 
-crselet(istaz,wbox,p_ogg,p_r02,ltot)
+void crselet(istaz,wbox,p_ogg,p_r02,ltot)
 int	istaz;		/* indice stazione */
 Widget	wbox;		/* indice widget padre */
 OGGETTO	*p_ogg;		/* puntatore oggetto in tabella new_staz */
@@ -120,7 +122,7 @@ XFreePixmap(XtDisplay(wbox),pixmap_1);
 
         p_redraw=(DATI_REFRESH *) occupa_tredraw(wselet,p_r02);
         if (p_redraw ==  NULL )
-                exit("gselet : troppi oggetti creati ");
+                exit(puts("gselet : troppi oggetti creati "));
 /*
         aggiunge la callback di cancellazione dell 'oggetto
 */
@@ -156,7 +158,7 @@ XtManageChild(wlab);
         aggiunge la callbacks  di redraw del selettore
 */
 
-        if(add_redraw((caddr_t)selet_redraw,p_redraw)==-1)
+        if(add_redraw((XtCallbackProc)selet_redraw,(caddr_t)p_redraw)==-1)
         {
                 libera_tredraw(p_redraw);
                 printf("\n errore : redraw non aggiunto");
@@ -170,7 +172,7 @@ caddr_t info;
 XmDrawingAreaCallbackStruct *str;
 {
 del_redraw(info);
-libera_tredraw(info);
+libera_tredraw((DATI_REFRESH *)info);
 }
 
 /* vengono inviate solo se perturbazioni di tipo UP-DOWN */
@@ -197,7 +199,7 @@ if (p_r02->out.tipo_pert == NEGAZIONE)
 
 
 /*  crea i 2 pixmap per il selettore del tipo  A o B */
-LoadPixmapSelet(w,tipo_selet)
+void LoadPixmapSelet(w,tipo_selet)
 Widget w;
 int tipo_selet;
 {

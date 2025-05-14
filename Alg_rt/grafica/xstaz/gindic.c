@@ -30,8 +30,11 @@ static char SccsID[] = "@(#)gindic.c	1.5\t3/23/95";
 #include <math.h>
 #include <X11/Xlib.h>
 #include <Xm/Xm.h>
+#include <Xm/Label.h>
+#include <Xm/DrawingA.h>
 #include "sim_param.h"
 #include "xstaz.h"
+#include "compstaz.h"
 
 #include "barra1.bmp"
 #include "barra2.bmp"
@@ -70,7 +73,7 @@ GC	gc_indic[2];
 
 #define PIGRECO 3.14159265358979323846
 
-crindic(istaz,wbox,p_ogg,p_r02,ltot)
+void crindic(istaz,wbox,p_ogg,p_r02,ltot)
 int	istaz;		/* indice stazione */
 Widget	wbox;		/* indice widget padre */
 OGGETTO	*p_ogg;		/* puntatore oggetto in tabella new_staz */
@@ -91,42 +94,42 @@ float val[4];
 switch (p_ogg->sottotipo)
 {
         case INDIC_BARRA1:
-	crea_sfondo(&sfondo,barra1_bits,barra1_width,barra1_height);
+	crea_sfondoP(&sfondo,barra1_bits,barra1_width,barra1_height);
 	width=barra1_width;
 	height=barra1_height;
 	wborder=0;
         break;
 
         case INDIC_BARRA2:
-	crea_sfondo(&sfondo,barra2_bits,barra2_width,barra2_height);
+	crea_sfondoP(&sfondo,barra2_bits,barra2_width,barra2_height);
 	width=barra2_width;
 	height=barra2_height;
 	wborder=0;
         break;
 
         case INDIC_BARRA_VD:
-	crea_sfondo(&sfondo,barravd_bits,barravd_width,barravd_height);
+	crea_sfondoP(&sfondo,barravd_bits,barravd_width,barravd_height);
 	width=barravd_width;
 	height=barravd_height;
 	wborder=0;
         break;
 
         case INDIC_BARRA_VS:
-	crea_sfondo(&sfondo,barravs_bits,barravs_width,barravs_height);
+	crea_sfondoP(&sfondo,barravs_bits,barravs_width,barravs_height);
 	width=barravs_width;
 	height=barravs_height;
 	wborder=0;
         break;
 
 	case INDIC_AGO:
-	crea_sfondo(&sfondo,am1_bits,am1_width,am1_height);
+	crea_sfondoP(&sfondo,am1_bits,am1_width,am1_height);
 	width=am1_width;
 	height=am1_height;
 	wborder=1;
 	break;
 
         case INDIC_AGO_ERR:
-        crea_sfondo(&sfondo,am2_bits,am2_width,am2_height);
+        crea_sfondoP(&sfondo,am2_bits,am2_width,am2_height);
         width=am2_width;
         height=am2_height;
 	wborder=1;
@@ -155,7 +158,7 @@ XFreePixmap(display,sfondo);
 
         p_refr= (DATI_REFRESH *) occupa_trefr(windic,p_r02);
         if (p_refr ==  NULL )
-                exit("gindic : troppi oggetti creati ");
+                exit(puts("gindic : troppi oggetti creati "));
 /*
         aggiunge la callback di cancellazione dell 'oggetto
 */
@@ -279,7 +282,7 @@ p_refr->flag = p_ogg->sottotipo;
         aggiunge la callbacks  di refresh 
 */
 
-        if(add_refresh((caddr_t)indic_refresh,p_refr)==-1)
+        if(add_refresh((XtCallbackProc)indic_refresh,(caddr_t)p_refr)==-1)
         {
                 libera_trefr(p_refr);
                 printf("\n errore : refresh non aggiunto");
@@ -292,8 +295,8 @@ Widget w;
 caddr_t info;
 XmDrawingAreaCallbackStruct *str;
 {
-del_refresh(info);
-libera_trefr(info);
+del_refresh((void*)info);
+libera_trefr((DATI_REFRESH *)info);
 }
 
 
@@ -344,7 +347,7 @@ switch (p_refr->flag)
 
 /* draw per indicatore a barra */
 
-draw_barra(w,valore,p_r02)
+void draw_barra(w,valore,p_r02)
 Widget w;
 float valore;
 TIPO_INDICATORE *p_r02;
@@ -381,7 +384,7 @@ XDrawLine(display,XtWindow(w),gc[icolor],x1,y1,x2,y2);
 
 /* draw per indicatore a barra verticale (disegna barra orizzontale) */
 
-draw_barra_or(w,valore,p_r02,flag)
+void draw_barra_or(w,valore,p_r02,flag)
 Widget w;
 float valore;
 TIPO_INDICATORE *p_r02;
@@ -414,7 +417,7 @@ XDrawLine(display,XtWindow(w),gc[icolor],x1,y1,x2,y2);
 }
 
 /* draw ago per indicatore analogico */
-draw_ago(w,valore,p_r02)
+void draw_ago(w,valore,p_r02)
 Widget w;
 float valore;
 TIPO_INDICATORE *p_r02;
@@ -455,7 +458,7 @@ XDrawLine(display,XtWindow(w),gc[icolor],x1,y1,x2,y2);
 }
 
 /* draw ago per indicatore analogico  piu' indicatore di errore */
-draw_ago_err(w,valore,valerr,p_r02)
+void draw_ago_err(w,valore,valerr,p_r02)
 Widget w;
 float valore,valerr;
 TIPO_INDICATORE *p_r02;
@@ -516,7 +519,7 @@ XDrawLine(display,XtWindow(w),gc[icolor],x1,y1,x2,y2);
 
 }
 
-crea_gc_indic()
+void crea_gc_indic()
 {
 XGCValues values;
 unsigned long valuemask= GCForeground | GCBackground | GCLineWidth

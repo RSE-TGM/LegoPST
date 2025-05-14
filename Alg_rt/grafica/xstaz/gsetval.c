@@ -33,8 +33,10 @@ static char SccsID[] = "@(#)gsetval.c	1.5\t3/23/95";
 #include <Xm/Label.h>
 #include <Xm/Text.h>
 #include <Xm/ToggleB.h>
+#include <Xm/DrawingA.h>
 #include "sim_param.h"
 #include "xstaz.h"
+#include "compstaz.h"
 
 /*
   tabelle comuni utilizzate per tutte le stazioni
@@ -68,7 +70,7 @@ void setval_press();
 float estr_sh();
 
 
-crsetval(istaz,wbox,p_ogg,p_r02)
+void crsetval(istaz,wbox,p_ogg,p_r02)
 int	istaz;		/* indice stazione */
 Widget	wbox;		/* indice widget padre */
 OGGETTO	*p_ogg;		/* puntatore oggetto in tabella new_staz */
@@ -99,7 +101,7 @@ XtManageChild(wsetval);
 */
         p_refr= (DATI_REFRESH *) occupa_trefr(wsetval,p_r02);
         if (p_refr ==  NULL )
-                exit("gsetval : troppi oggetti creati ");
+                exit(puts("gsetval : troppi oggetti creati "));
 	XtAddCallback(wsetval,XmNdestroyCallback,setval_del_callback,p_refr);
 /*
 	aggiunge il toggle_button per l' input del valore
@@ -158,7 +160,7 @@ XtManageChild(wlab);
         aggiunge la callbacks  di refresh 
 */
 
-        if(add_refresh((caddr_t)setval_refresh,p_refr)==-1)
+        if(add_refresh((XtCallbackProc)setval_refresh,(caddr_t)p_refr)==-1)
         {
                 libera_trefr(p_refr);
                 printf("\n errore : refresh non aggiunto");
@@ -171,8 +173,8 @@ Widget w;
 caddr_t info;
 XmDrawingAreaCallbackStruct *str;
 {
-del_refresh(info);
-libera_trefr(info);
+del_refresh((void*)info);
+libera_trefr((DATI_REFRESH *)info);
 }
 
 

@@ -30,8 +30,11 @@ static char SccsID[] = "@(#)gsincro.c	1.2\t3/23/95";
 #include <math.h>
 #include <X11/Xlib.h>
 #include <Xm/Xm.h>
+#include <Xm/Label.h>
+#include <Xm/DrawingA.h>
 #include "sim_param.h"
 #include "xstaz.h"
+#include "compstaz.h"
 
 #include "sincro.bmp"
 /*
@@ -66,7 +69,7 @@ GC	gc_sincro[2];
 
 #define PIGRECO 3.14159265358979323846
 
-crsincro(istaz,wbox,p_ogg,p_r02,ltot)
+void crsincro(istaz,wbox,p_ogg,p_r02,ltot)
 int	istaz;		/* indice stazione */
 Widget	wbox;		/* indice widget padre */
 OGGETTO	*p_ogg;		/* puntatore oggetto in tabella new_staz */
@@ -83,7 +86,7 @@ float val[4];
 
 /* crea l'indicatore del tipo specificato nel campo sottotipo */
 
-crea_sfondo(&sfondo,sincro_bits,sincro_width,sincro_height);
+crea_sfondoP(&sfondo,sincro_bits,sincro_width,sincro_height);
 width=sincro_width;
 height=sincro_height;
 wborder=0;
@@ -110,7 +113,7 @@ XFreePixmap(display,sfondo);
 
         p_refr= (DATI_REFRESH *) occupa_trefr(wsincro,p_r02);
         if (p_refr ==  NULL )
-                exit("gsincro : troppi oggetti creati ");
+                exit(puts("gsincro : troppi oggetti creati "));
 /*
         aggiunge la callback di cancellazione dell 'oggetto
 */
@@ -152,7 +155,7 @@ p_refr->flag = p_ogg->sottotipo;
         aggiunge la callbacks  di refresh 
 */
 
-        if(add_refresh((caddr_t)sincro_refresh,p_refr)==-1)
+        if(add_refresh((XtCallbackProc)sincro_refresh,(caddr_t)p_refr)==-1)
         {
                 libera_trefr(p_refr);
                 printf("\n errore : refresh non aggiunto");
@@ -165,8 +168,8 @@ Widget w;
 caddr_t info;
 XmDrawingAreaCallbackStruct *str;
 {
-del_refresh(info);
-libera_trefr(info);
+del_refresh((void*)info);
+libera_trefr((DATI_REFRESH *)info);
 }
 
 
@@ -228,7 +231,7 @@ if(valore_5!=0)
 
 
 /* draw ago per indicatore analogico per sincronoscopio*/
-draw_ago_sincro(w,valore,p_r02)
+void draw_ago_sincro(w,valore,p_r02)
 Widget w;
 float valore;
 TIPO_INDICATORE_SINCRO *p_r02;
@@ -264,7 +267,7 @@ XDrawLine(display,XtWindow(w),gc[icolor],x1,y1,x2,y2);
 
 }
 
-crea_gc_sincro()
+void crea_gc_sincro()
 {
 XGCValues values;
 unsigned long valuemask= GCForeground | GCBackground | GCLineWidth

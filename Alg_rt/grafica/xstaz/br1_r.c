@@ -33,6 +33,8 @@ static char SccsID[] = "@(#)br1_r.c	1.4\t3/23/95";
 #include <Xm/Separator.h>
 #include "sim_param.h"
 #include "xstaz.h"
+#include "compstaz.h"
+
 /*
   tabelle comuni utilizzate per tutte le stazioni
 */
@@ -79,7 +81,7 @@ static void br1_refresh();        /* callback da chiamarsi scaduto il
                                       timeout di refresh */
 
 float estr_sh();
-staz_br1_r(flag,is,ip3)
+void staz_br1_r(flag,is,ip3)
 int *flag;   /* flag */
 int *is;   /* indice stazione associata */
 int *ip3;  /* indice nel descrittore pagine visualizzate */
@@ -123,11 +125,11 @@ XtSetArg(args[i],XmNmarginHeight,0);i++;
 XtSetArg(args[i],XmNresizePolicy,XmRESIZE_NONE);i++;
 wDraw=XmCreateDrawingArea(pagvis[*ip3].w,"box",args,i);
 XtManageChild(wDraw);
-XtAddCallback(wDraw,XmNdestroyCallback,br1_del_callback,*is-1);
+XtAddCallback(wDraw,XmNdestroyCallback,br1_del_callback,(XtPointer)*is-1);
                                                         
 
 memset(app,' ',17);
-memcpy(app,stazione[*is-1].descrizione,strlen(stazione[*is-1].descrizione));
+memcpy(app,stazione[*is-1].descrizione,strlen((char*)stazione[*is-1].descrizione));
 app[17]=0;
 i=0;
 XtSetArg(args[i],XmNlabelString,XmStringCreateLtoR(app,
@@ -183,14 +185,14 @@ XtSetArg(args[i],XmNlabelString,XmStringCreateLtoR(app,XmSTRING_DEFAULT_CHARSET)
 wToggle3=XmCreatePushButton(wRadioBox,"push",args,i);
 wstaz[*is-1].w[k_toggle1]=wToggle1;
 wstaz[*is-1].w[k_toggle3]=wToggle3;
-XtAddCallback(wToggle1,XmNactivateCallback,br1_btn1_callback,*is-1);
-XtAddCallback(wToggle3,XmNactivateCallback,br1_btn3_callback,*is-1);
+XtAddCallback(wToggle1,XmNactivateCallback,br1_btn1_callback,(XtPointer)*is-1);
+XtAddCallback(wToggle3,XmNactivateCallback,br1_btn3_callback,(XtPointer)*is-1);
 XtManageChild(wToggle1);
 XtManageChild(wToggle3);
 /*
  Aggiunge una routine di refresh alla stazione creata
  */
-if(add_refresh((caddr_t)br1_refresh,*is-1)==-1)
+if(add_refresh((XtCallbackProc)br1_refresh,(void*)*is-1)==-1)
 	printf("\n errore : refresh non aggiunto");
 
 }
@@ -201,7 +203,7 @@ caddr_t info;
 XmDrawingAreaCallbackStruct *str;
 {
 int is= (int)info;
-del_refresh(is);
+del_refresh((void*)is);
 }
        
 

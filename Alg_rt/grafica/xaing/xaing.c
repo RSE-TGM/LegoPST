@@ -121,6 +121,9 @@ static  void tipo_malf_callback ();  /* callback del bottone
  */
 float   estr_sh ();
 
+int add_refresh (XtCallbackProc, caddr_t);
+
+
 RtDbPuntiOggetto dbpunti;
 RtErroreOggetto errore_obj;
 
@@ -213,14 +216,15 @@ void init_aing ();
 void costruisci_var (char**, VARIABILI **, int*);
 void init_gc (int );
 int new_aing (int);
-int del_refresh (void*);
+//int del_refresh (void*);
+int del_refresh ();
 int cerca_umis(char*);
 void agg_stato (int);
-int add_refresh (XtCallbackProc, void*);
+//int add_refresh (XtCallbackProc, void*);
 int pert_malfunction(int ,int ,float ,float ,float );
 int pert_malfunction_stop(int ,int ,float );
 void agg_stato (int);
-int add_refresh (XtCallbackProc, void*);
+//int add_refresh (XtCallbackProc, void*);
 void load_font (XFontStruct **,int);
 
 
@@ -3570,7 +3574,8 @@ int     i;
  */
 int add_refresh (proc, closure)
 XtCallbackProc proc;
-void * closure;
+caddr_t closure;
+//void * closure;
 {
 int     i;
     for (i = 0; i < MAX_AING; i++)

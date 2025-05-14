@@ -31,6 +31,7 @@ static char SccsID[] = "@(#)lu1_r.c	1.4\t3/23/95";
 #include <Xm/Separator.h>
 #include "sim_param.h"
 #include "xstaz.h"
+#include "compstaz.h"
 
 /*
   tabelle comuni utilizzate per tutte le stazioni
@@ -76,7 +77,7 @@ static void lu1_refresh();        /* callback da chiamarsi scaduto il
                                       timeout di refresh */
 
 float estr_sh();
-staz_lu1_r(flag,is,ip3)
+void staz_lu1_r(flag,is,ip3)
 int *flag;   /* flag */
 int *is;   /* indice stazione associata */
 int *ip3;  /* indice nel descrittore pagine visualizzate */
@@ -120,7 +121,7 @@ XtSetArg(args[i],XmNmarginHeight,0);i++;
 XtSetArg(args[i],XmNresizePolicy,XmRESIZE_NONE);i++;
 wDraw=XmCreateDrawingArea(pagvis[*ip3].w,"box",args,i);
 XtManageChild(wDraw);
-XtAddCallback(wDraw,XmNdestroyCallback,lu1_del_callback,*is-1);
+XtAddCallback(wDraw,XmNdestroyCallback,lu1_del_callback,(XtPointer)*is-1);
 
 
 /*
@@ -128,7 +129,7 @@ XtAddCallback(wDraw,XmNdestroyCallback,lu1_del_callback,*is-1);
  */
 
 memset(app,' ',17);
-memcpy(app,stazione[*is-1].descrizione,strlen(stazione[*is-1].descrizione));
+memcpy(app,stazione[*is-1].descrizione,strlen((char*)stazione[*is-1].descrizione));
 app[17]=0;
 i=0;
 XtSetArg(args[i],XmNlabelString,XmStringCreateLtoR(app,
@@ -184,7 +185,7 @@ XtManageChild(wToggle1);
 /*
  Aggiunge una routine di refresh alla stazione creata
  */
-if(add_refresh((caddr_t)lu1_refresh,*is-1)==-1)
+if(add_refresh((XtCallbackProc)lu1_refresh,(void*)*is-1)==-1)
 	printf("\n errore : refresh non aggiunto");
 
 }
@@ -195,7 +196,7 @@ caddr_t info;
 XmDrawingAreaCallbackStruct *str;
 {
 int is= (int)info;
-del_refresh(is);
+del_refresh((void*)is);
 }
        
 

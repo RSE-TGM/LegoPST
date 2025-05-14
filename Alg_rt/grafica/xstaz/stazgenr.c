@@ -10,6 +10,21 @@
 #ifndef lint
 static char *_csrc = "@(#) %filespec: %  (%full_filespec: %)";
 #endif
+
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <math.h>
+#include <X11/Xlib.h>
+#include <Xm/Text.h>
+#include <Xm/DrawingA.h>
+#include <Xm/Label.h>
+#include <Xm/PushB.h>
+#include <Xm/Separator.h>
+#include "sim_param.h"
+#include "xstaz.h"
+#include "compstaz.h"
+
 /*
 	Variabile per identificazione della versione
 */
@@ -22,7 +37,7 @@ static char SccsID[] = "@(#)stazgenr.c	1.4\t3/23/95";
    reserved @(#)stazgenr.c	1.4
 */
 /* stagenr.c :  esegue  stazione relativa al tipo */
-staz_gen_r(flag,itipo,istaz,indice)
+void staz_gen_r(flag,itipo,istaz,indice)
 int *flag, *itipo, *istaz, *indice;
 { 
 switch (*itipo)

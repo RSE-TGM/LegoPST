@@ -9,9 +9,14 @@ static char SccsID[] = "@(#)stazgenc.c	1.2\t6/16/93";
    data 6/16/93
    reserved @(#)stazgenc.c	1.2
 */
+
+#include <X11/Xlib.h>
+#include <Mrm/MrmAppl.h>
 #include "sim_param.h"
 #include "sim_types.h"
+#include "xstaz.h"
 #include "compstaz.h"
+#include "conv_mmi.h"
 
 // int staz_am1_c(int,int,int);
 // int staz_am2_c(int,int,int);

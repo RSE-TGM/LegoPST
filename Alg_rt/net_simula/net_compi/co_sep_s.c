@@ -26,14 +26,24 @@ static char SccsID[] = "@(#)co_sep_s.c	5.1\t11/7/95";
   Conversione f-c:        1991-05-09      Autore: C.Lusso (CISE)
 */
 	/* rimuovere se inserita in compi.c */
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
 
-typedef struct {
- char *stringa;
- int lun_stringa;
- } STRIN_ST;
+
+#include <stdio.h>>
+#include <stdlib.h>>
+#include <string.h>>
+
+#include <X11/Xlib.h>
+#include <Mrm/MrmAppl.h>
+#include "sim_param.h"
+#include "sim_types.h"
+#include "xstaz.h"
+#include "compstaz.h"
+//#include "conv_mmi.h"
+
+// typedef struct {
+//  char *stringa;
+//  int lun_stringa;
+//  } STRIN_ST;
 
 int separa_str(
  char riga[],

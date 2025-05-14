@@ -21,7 +21,7 @@ static char *_csrc = "@(#) %filespec: %  (%full_filespec: %)";
 #define  ARGV_PATHS02	"-pathS02"
 #define  ARGV_N_MOD     "-nummod"
 SIMULATOR *simpar;     /* Struttura con parametri */    
-main(argc,argv)
+int main(argc,argv)
 int argc;
 char **argv;
 

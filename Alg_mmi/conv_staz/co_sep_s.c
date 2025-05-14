@@ -16,9 +16,13 @@ static char SccsID[] = "@(#)co_sep_s.c	1.2\t6/16/93";
 	/* rimuovere se inserita in compi.c */
 #include <string.h>
 
+#include <X11/Xlib.h>
+#include <Mrm/MrmAppl.h>
 #include "sim_param.h"
 #include "sim_types.h"
+#include "xstaz.h"
 #include "compstaz.h"
+#include "conv_mmi.h"
 
 int separa_str(
  char riga[],
