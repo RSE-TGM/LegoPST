@@ -15,7 +15,7 @@ static char *_csrc = "@(#) %filespec: %  (%full_filespec: %)";
  initav.c
  Alloca in memoria e legge le tavole del vapore presenti nel file TAVOLE.DAT
 */
-main()
+int main()
 {
 int iret;
 ism01_(&iret);

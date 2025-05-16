@@ -5,11 +5,15 @@
    data 6/15/93
    reserved @(#)compstaz.inc    1.1
 */
+
+#ifndef _compstaz_h_
+#define _compstaz_h_
+
+
 #include <stdio.h>
 #include <X11/Xlib.h>
 #include <X11/Intrinsic.h>
 #include <Xm/Xm.h>
-
 
 typedef char* caddr_t;
 
@@ -233,7 +237,7 @@ int pert_scalino(int ,int ,float ,float );
 
 
 
-
+#endif
 
 
 

@@ -1,5 +1,7 @@
 
 
+#ifndef _sked_fun_h_
+#define _sked_fun_h_
 
 
 int skey_stampa_errore(int , char * );
@@ -89,3 +91,6 @@ int sked_raccogli_datisnap(int , int , PACCHETTO_NET *, int );
 int remove_updown_file_snap(float *, TIPO_PERT *, TIPO_PERT *);
 int  StampePertFile(TIPO_PERT *, TIPO_PERT *, int , int );
 int bktk_tab_read_piac();
+
+
+#endif

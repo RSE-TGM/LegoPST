@@ -44,14 +44,14 @@ CFLAGS=$(C_FLAGS) -g
 #
 #CCM_MAKE_SERIAL=cc f77 ar ranlib /lib/cpp $(LEGO_BIN)/creatav
 .SUFFIXES:  .pf .o .f .c .sh .h .a
-C_FLAGS=-fpermissive
+#C_FLAGS=-fpermissive
 FFLAGS=$(F_FLAGS)
 CFLAGS=$(C_FLAGS) -D$(OS) 
 TAVOLE=../bin
 #
 #
 ##all:  $(TAVOLE)/TAVOLE.DAT $(LEGO_BIN)/initav $(LEGO_LIB)/vapo.a $(LEGO_BIN)/provatav $(LEGO_BIN)/killtav $(LEGO_BIN)/killshrmem
-all:  $(TAVOLE)/TAVOLE.DAT $(LEGO_BIN)/initav $(LEGO_LIB)/vapo.a $(LEGO_BIN)/killtav $(LEGO_BIN)/killshrmem
+all:  $(TAVOLE)/TAVOLE.DAT $(LEGO_BIN)/initav $(LEGO_LIB)/vapo.a $(LEGO_BIN)/killtav $(LEGO_BIN)/killshrmem  $(LEGO_BIN)/provatav
 #
 # Initav inizializza l'area shared contenente i dati.
 #
@@ -79,17 +79,17 @@ $(LEGO_LIB)/vapo.a: $(VAPO_C_OBJ) $(VAPO_FORTRAN_OBJ)
 	ar -crsv $(LEGO_LIB)/vapo.a $(VAPO_C_OBJ) $(VAPO_FORTRAN_OBJ)
 #	ranlib $(LEGO_LIB)/vapo.a 
 #
-## $(LEGO_BIN)/provatav: provatav.f $(VAPO_C_OBJ) $(VAPO_FORTRAN_OBJ) 
-## 	$(FC) $(FFLAGS) provatav.f $(VAPO_C_OBJ) $(VAPO_FORTRAN_OBJ) -lc -o $(LEGO_BIN)/provatav
+$(LEGO_BIN)/provatav: provatav.f $(VAPO_C_OBJ) $(VAPO_FORTRAN_OBJ) 
+	$(FC) $(FFLAGS) provatav.f $(VAPO_C_OBJ) $(VAPO_FORTRAN_OBJ) -lc -o $(LEGO_BIN)/provatav
 #
 # killtav libera l'area shared dopo l'uso o permette di ricaricare le tavole
 # usando initav, killshrmem fa lo stesso con l'area condivisa tra tasks.
 #
 $(LEGO_BIN)/killtav: killtav.c
-	$(CC) -fpermissive killtav.c  -o  $@
+	$(CC)  killtav.c  -o  $@
 #
 $(LEGO_BIN)/killshrmem: killshrmem.c
-	$(CC) -fpermissive killshrmem.c -o $@
+	$(CC)  killshrmem.c -o $@
 #
 #  nuova regola per precompilare un .pf
 #

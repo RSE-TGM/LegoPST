@@ -287,11 +287,11 @@ C*********************************************************
       CALL DIAGN (4,SD,PD)
       PD=PRT(IREG+1)
 C*********************************************************
-8       I0=IREG
-	IP=IC(IREG)*6
-	I=0
-	IF(IREG.LT.KK) I=1
-	INCR=(I1-1)*IP+6*I+IOFFSET(IREG)
+    8 I0=IREG
+	    IP=IC(IREG)*6
+	    I=0
+	    IF(IREG.LT.KK) I=1
+	    INCR=(I1-1)*IP+6*I+IOFFSET(IREG)
       RETURN
       END
       BLOCK DATA CONLIS
@@ -345,16 +345,16 @@ C*********************************************************
      &38.15,640.65,643.15,645.15,646.65,647.3/
       DATA CK/-7.691234564D+0,-2.608023696D+1,-1.681706546D+2,6.42328550
      &4D+1,-1.189646225D+2,4.16711732D+0,2.09750676D+1,1.D+9,6.0D+0/
-	DATA COE1,COE2,COE3,ETA1,ETA2/.9012087711D+03,.6208479236D-01,
+	    DATA COE1,COE2,COE3,ETA1,ETA2/.9012087711D+03,.6208479236D-01,
      &       .2776015497D+02,.2330250165D+03,.2025000213D+03/
-	DATA ALAM,ALBM,ALCM/.4369649291D+00,.1110928059D+00,
+	    DATA ALAM,ALBM,ALCM/.4369649291D+00,.1110928059D+00,
      &                      -.2328296876D-01/
-	DATA IOFFSET/0,2706,5610,8778,11880,15048,18282,21516,24882,
+	    DATA IOFFSET/0,2706,5610,8778,11880,15048,18282,21516,24882,
      &28314,31812,35376,39138,43032,47124,51480,56034,60588,65142,69828,
      &74646,79266,83886,88506,93126,97746,102366,106986,111606,116160,
      &120714,125202/
-	DATA II,KK,KLIM/11,21,32/
-	DATA PD,SD/0.,-.2/
+	    DATA II,KK,KLIM/11,21,32/
+	    DATA PD,SD/0.,-.2/
 C
       END
       FUNCTION ETEV(P,T,R,RA,Y,YC,NFL)
@@ -841,52 +841,52 @@ C*********************************************************
 C*********************************************************
       RETURN
       END
-	FUNCTION PHSAT(HNOW)
-	COMMON/INIT/II,KK,KLIM,I0,S(5)
-	COMMON/TABL/PRT(33),PAP(32),IC(32),IOFFSET(32)
-	COMMON/LECT/VALDA(129690)
+	    FUNCTION PHSAT(HNOW)
+	    COMMON/INIT/II,KK,KLIM,I0,S(5)
+	    COMMON/TABL/PRT(33),PAP(32),IC(32),IOFFSET(32)
+	    COMMON/LECT/VALDA(129690)
 C
 C  ricerca regione (test su HWS(ultima isobara))
 C				=1a isobara regione superiore
-	IA=1
-	IF=KK-1		! ultima regione sottocritica
-	DO 10 IREG=IA,IF
-	IP=IC(IREG)*6	! occupazione di una isobara
-	IF(HNOW.LE.VALDA(IOFFSET(IREG+1)-IP+2)) GOTO 20
+	    IA=1
+	    IF=KK-1		! ultima regione sottocritica
+	    DO 10 IREG=IA,IF
+	    IP=IC(IREG)*6	! occupazione di una isobara
+	    IF(HNOW.LE.VALDA(IOFFSET(IREG+1)-IP+2)) GOTO 20
   10	CONTINUE
-	GOTO 50		! fine regioni sottocritiche
+	    GOTO 50		! fine regioni sottocritiche
 C
 C  ricerca isobara 	! dalla seconda all'ultima
 C
   20	IF((IREG.EQ.1).AND.(HNOW.LT.VALDA(2))) GOTO 50	! errore
-	IS1=1
+	    IS1=1
   30	IS1=IS1+1
-        IF(IS1.GT.II) STOP '.....STOP in PHSAT ?????'   ! assurdo
-	IF(HNOW.GT.VALDA(IOFFSET(IREG)+IP*(IS1-1)+2)) GOTO 30
-	IS0=IS1-1			! n. isobara di P0
-	IF(IS1.EQ.II) IS0=IS0-1		! limite superiore di regione
+      IF(IS1.GT.II) STOP '.....STOP in PHSAT ?????'   ! assurdo
+	    IF(HNOW.GT.VALDA(IOFFSET(IREG)+IP*(IS1-1)+2)) GOTO 30
+	    IS0=IS1-1			! n. isobara di P0
+	    IF(IS1.EQ.II) IS0=IS0-1		! limite superiore di regione
 C
-	PASP=PAP(IREG)			! passo in pressione
-	P0=PRT(IREG)+(IS0-1)*PASP
-	IP0=IOFFSET(IREG)+IP*(IS0-1)+2	! puntatore ad HWS(P0)
-	HW0=VALDA(IP0)
-	HW1=VALDA(IP0+IP)
-	HW2=VALDA(IP0+IP+IP)
+	    PASP=PAP(IREG)			! passo in pressione
+	    P0=PRT(IREG)+(IS0-1)*PASP
+	    IP0=IOFFSET(IREG)+IP*(IS0-1)+2	! puntatore ad HWS(P0)
+	    HW0=VALDA(IP0)
+	    HW1=VALDA(IP0+IP)
+	    HW2=VALDA(IP0+IP+IP)
 C
 C  inversione interpolazione in P
 C
-	AA=HW2-2.*HW1+HW0
-	BB=-AA+2.*HW1-2.*HW0
-	CC=-2.*(HNOW-HW0)
-	CSI=-2.*CC/(BB+SIGN(1.,BB)*SQRT(BB*BB-4.*AA*CC))
+	    AA=HW2-2.*HW1+HW0
+	    BB=-AA+2.*HW1-2.*HW0
+	    CC=-2.*(HNOW-HW0)
+	    CSI=-2.*CC/(BB+SIGN(1.,BB)*SQRT(BB*BB-4.*AA*CC))
 C
-	PHSAT=P0+CSI*PASP
+	    PHSAT=P0+CSI*PASP
 C
-	RETURN
+	    RETURN
 C
   50	WRITE(6,*) '.....H = ',HNOW,' non esiste PSAT(H)'
-	STOP       '.....STOP in PHSAT'
-	END
+	    STOP       '.....STOP in PHSAT'
+	    END
       SUBROUTINE DROPH(P,NCAL,RES1,RES2,RES3)
       COMMON/CONT/PD,SD
       COMMON/INTE/ID,IP,X(2),Y(2),INCR,PAE,PAI
@@ -940,7 +940,7 @@ C
 C
 C*********************************************************
    8  CALL DIAGN (5,SD,P)
-           P=221.2E+05
+      P=221.2E+05
 C*********************************************************
       RETURN
       END
@@ -982,24 +982,25 @@ C
 	      STEV = ENTROP(P,T,TSAT)
       else
 C
-	        CALL SATUR(P,7,TSAT,Z,N)
-		IF(Y.EQ.0.) THEN
+	     CALL SATUR(P,7,TSAT,Z,N)
+		   IF(Y.EQ.0.) THEN
 C--- ACQUA SOTTORAFFREDDATA O SATURA
-		      	IF(T.GT.TSAT) T=TSAT
-	      		STEV = ENTROP(P,T+1.E-4,TSAT)
+		     IF(T.GT.TSAT) T=TSAT
+	       STEV = ENTROP(P,T+1.E-4,TSAT)
 C      
-		ELSE IF(Y.EQ.1.) THEN
+       ELSE IF(Y.EQ.1.) THEN
 C--- VAPORE SURRISCALDATO O SATURO
-	      		IF(T.LT.TSAT) T=TSAT
-	      		STEV = ENTROP(P,T+1.E-4,TSAT)
+	       IF(T.LT.TSAT) T=TSAT
+	       STEV = ENTROP(P,T+1.E-4,TSAT)
 C
-      		ELSE
+        ELSE
 C--- MISCELA
-                CALL SATUR(P,1,SA,SV,N)
-	        STEV =  SA*(1.-Y)+SV*Y
-	        ENDIF
+         CALL SATUR(P,1,SA,SV,N)
+	       STEV =  SA*(1.-Y)+SV*Y
+	      ENDIF
 C
       endif
+      
       RETURN
       END      
 C**********************************************************************
