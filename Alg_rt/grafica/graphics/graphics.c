@@ -56,6 +56,8 @@ static char SccsID[] = "@(#)graphics.c	1.7\t2/9/96";
 
 typedef char* caddr_t;
 
+char bufford[50];
+
 /***** #define NUM_VAR 6000 *****/
 
 /*
@@ -462,7 +464,8 @@ static void crea_sfondo(Widget,Dimension,Dimension);
 static void formatta(char*,float);
 static int x_cerca_stringa(XmString,XmString*);
 static int cerca_nome(char*);
-extern int converti_tempo(float,long  *,long  *,long  *,long  *,long  *,long  *);
+static int converti_tempoGR(float,long  *,long  *,long  *,long  *,long  *,long  *);
+static int AnnoBisGR(long anno);
 static  int prep_draw(float,float,S_MIN_MAX *);
 static  int draw_grid(Window);
 extern void set_cur_wait();
@@ -546,6 +549,13 @@ int RileggiF22Par=1;
  * then calls XtMainLoop.
  */
 char *path_uid;
+
+
+
+
+
+
+
 int main(argc, argv)
     unsigned int argc;                  /* Command line argument count. */
     char *argv[];                       /* Pointers to command line args. */
@@ -1286,7 +1296,18 @@ int set_ordinate(int ind)
     ord=max;
     for(i=0;i<5;i++)
     {
+//        sprintf(bufford, "%s", sg.str_ord[i][ind]);
+        strcpy(bufford, "CiaoCiao");
+        
+//        printf("set_ordinate DEBUG - prima di formatta - bufford=%s, ord=%f\n",bufford,ord);
+//        formatta(bufford,ord);
+//        printf("set_ordinate DEBUG - DOPO formatta - bufford=%s, ord=%f\n",bufford,ord);
+
+//        printf("set_ordinate DEBUG - prima di formatta - s->str_ord[i][ind]=%s, ord=%f\n",s->str_ord[i][ind],ord);
         formatta(s->str_ord[i][ind],ord);
+//        printf("set_ordinate DEBUG - DOPO formatta - s->str_ord[i][ind]=%s, ord=%f\n",s->str_ord[i][ind],ord);
+
+//        formatta(s->str_ord[i][ind],ord);
         ord-=delta;
     }
     
@@ -1558,7 +1579,9 @@ float t_ini,t_fin;
     }
     
     t_delta=(t_fin-t_ini)/6;
-    t_asc=t_ini;
+// GUAG2025 meglio t_fin?
+//    t_asc=t_ini;
+    t_asc=t_fin;
     
     for(i=0;i<7;i++)
     {
@@ -1575,7 +1598,8 @@ float t_ini,t_fin;
             sprintf(str_tims[i],"ERR");
             sprintf(str_tim[i],"ERR");
         } else {
-            converti_tempo(t_asc,&ora,&min,&sec,&giorno,&mese,&anno);
+
+            converti_tempoGR(t_asc,&ora,&min,&sec,&giorno,&mese,&anno);
             sprintf(str_tims[i],"%.2f",t_asc);
             sprintf(str_tim[i],"%.2d:%.02d:%.02d",ora,min,sec);
             if(i==0)
@@ -1681,7 +1705,7 @@ int y_pix;  /* posizione in pixel delle ordinate */
 int j,jprec; /* scorron il buffer circolare dati */
 int indice; /* indice della misura da visualizzare */
 long anno,mese,giorno,ora,min,sec;
-switch(widget_num)
+  switch(widget_num)
 	{
   	case k_draw1:  
 	get_something(w,XmNwidth,(char *)&draw_width);
@@ -1786,7 +1810,7 @@ switch(widget_num)
       ora=0;
       min=0;
       sec=0;
-      converti_tempo(t_ultimo,&ora,&min,&sec,&giorno,&mese,&anno);
+      converti_tempoGR(t_ultimo,&ora,&min,&sec,&giorno,&mese,&anno);
 	if(tempo_sec)
                 {
                 sprintf(appstr,"sec. %.2f",t_ultimo);
@@ -1846,79 +1870,70 @@ switch(widget_num)
                 }
 	break;
 
-	// case k_ord1:
-	// get_something(widget_array[k_ord1],XmNheight,(char *)&ord_height);
-	// for(i=1;i<4;i++)
-	// 	{
-	// 	if(strcmp(sg.str_ord[0][i],"         ")==0)
-	// 		ord_unica=1;
-	// 	else
-	// 		{
-	// 		ord_unica=0;
-	// 		break;
-	// 		}
-	// 	}
-	// for(k=0;k<5;k++)
-	// 	{
-	// 	y_line=k*((ord_height-5*font_height)/4);
-	// 	for(i=0;i<4;i++)
-	// 		{
-	// 		if(ord_unica)
-	// 			y_line+=(font_height*3);
-	// 		else
-	// 			y_line+=font_height;
-    //                     if(sg.ind_mis[i]==-1) continue;
-	// 		if(HC_on)
-    //         			XDrawString(display,win,gc2[0],20,y_line,
-    //                			sg.str_ord[k][i],
-	// 				strlen(sg.str_ord[k][i]));
-	// 		else
-	// 			XDrawString(display,win,gc[i],20,y_line,
-    //                                    sg.str_ord[k][i],
-	// 				strlen(sg.str_ord[k][i]));
-	// 		}
-	// 	}
-	// break;
-
 	case k_ord1:
-    get_something(widget_array[k_ord1],XmNheight,(char *)&ord_height);
+	get_something(widget_array[k_ord1],XmNheight,(char *)&ord_height);
+	for(i=1;i<4;i++)
+		{
+		if(strcmp(sg.str_ord[0][i],"         ")==0)
+			ord_unica=1;
+		else
+			{
+			ord_unica=0;
+			break;
+			}
+		}
+	for(k=0;k<5;k++)
+		{
+		y_line=k*((ord_height-5*font_height)/4);
+		for(i=0;i<4;i++)
+			{
+			if(ord_unica)
+				y_line+=(font_height*3);
+			else
+				y_line+=font_height;
+                        if(sg.ind_mis[i]==-1) continue;
+			if(HC_on)
+            			XDrawString(display,win,gc2[0],20,y_line,
+                   			sg.str_ord[k][i],
+					strlen(sg.str_ord[k][i]));
+			else
+				XDrawString(display,win,gc[i],20,y_line,
+                                       sg.str_ord[k][i],
+					strlen(sg.str_ord[k][i]));
+			}
+		}
+	break;
+
+// 	case k_ord1:
+//     get_something(widget_array[k_ord1],XmNheight,(char *)&ord_height);
     
-    // Calcolo semplificato delle posizioni
-    for(k=0;k<5;k++)
-    {
-        // Posizione base per ogni linea di ordinata
-        y_line = (k + 1) * ((ord_height - font_height) / 5);
+//     // Calcolo semplificato delle posizioni
+//     for(k=0;k<5;k++)
+//     {
+//         // Posizione base per ogni linea di ordinata
+//         y_line = (k + 1) * ((ord_height - font_height) / 5);
         
-        for(i=0;i<4;i++)
-        {
-            if(sg.ind_mis[i]==-1) continue;
+//         for(i=0;i<4;i++)
+//         {
+//             if(sg.ind_mis[i]==-1) continue;
             
-            // Se non c'è scala unica o è la prima variabile, disegna
-            if(!ord_unica || i==0)
-            {
-                if(HC_on)
-                    XDrawString(display,win,gc2[0],20,y_line,
-                               sg.str_ord[k][i],
-                               strlen(sg.str_ord[k][i]));
-                else
-                    XDrawString(display,win,gc[i],20,y_line,
-                               sg.str_ord[k][i],
-                               strlen(sg.str_ord[k][i]));
-            }
-        }
-    }
-    break;
+//             // Se non c'è scala unica o è la prima variabile, disegna
+//             if(!ord_unica || i==0)
+//             {
+//                 if(HC_on)
+//                     XDrawString(display,win,gc2[0],20,y_line,
+//                                sg.str_ord[k][i],
+//                                strlen(sg.str_ord[k][i]));
+//                 else
+//                     XDrawString(display,win,gc[i],20,y_line,
+//                                sg.str_ord[k][i],
+//                                strlen(sg.str_ord[k][i]));
+//             }
+//         }
+//     }
+//     break;
 
-
-
-
-
-
-
-
-
-
-	}  
+  }  // fine switch
 }
 
 
@@ -2817,10 +2832,11 @@ switch(widget_num)
 }
 
 
-void formatta(str,fval)
-char *str;
-float fval;
+static void formatta(char *str,float fval)
 {
+         // Debug per vedere cosa viene passato
+//    printf("DEBUG formatta: stringa=%s input=%f \n", str, fval);
+       
     // Aggiungi controllo per valore esattamente zero
     if(fval == 0.0) {
         sprintf(str,"   0.0000");
@@ -3647,5 +3663,114 @@ if(read_22dat_circGR(TUTTI)==1)
 */
 t_finale=bufdati[n_last].t;
 t_iniziale=bufdati[0].t;
+}
+
+int AnnoBis(long );
+
+/*
+    converti_tempoGR
+
+      Converte il tempo di simulazione espresso come valore floating 
+      sempre crescente, come data e ora a partire dalle 
+      ora:min:sec del gior/mes/anno.
+             
+   Parametri
+
+      flot temposim: tempo di simulazione in secondi (valore multiplo del
+                    passo di simulazione di 1.2 sec)
+      long *ora:    ora di partenza da cui calcolare il tempo trascorso;
+      long *min:    minuto di partenza da cui calcolare il tempo trascorso;
+      long *sec:    secondo di partenza da cui calcolare il tempo trascorso;
+      long *gior:   giorno di partenza da cui calcolare il tempo trascorso;
+      long *mes:    mese di partenza da cui calcolare il tempo trascorso;
+      long *anno:   anno di partenza da cui calcolare il tempo trascorso;
+
+*/
+
+static int converti_tempoGR(temposim,ora,min,sec,gior,mes,anno)
+float temposim;
+long  *ora,*min,*sec,*gior,*mes,*anno;
+{
+float tsim;
+short i,incr; 
+short giorni;
+short lastgiorno;
+static short giomese[]={31,28,31,30,31,30,31,31,30,31,30,31};
+long appoggio;
+
+
+   giorni=(short)(temposim/86400.);           /* giorni trascorsi */
+   tsim=temposim-giorni*86400.; 		
+   incr=(short)(tsim/3600.);              /* ore trascorse */
+   (*ora)=(*ora)+(long)incr;
+   tsim=tsim-incr*3600.; 		
+   incr=(short)(tsim/60.);                /* minuti trascorsi */
+   (*min)=(*min)+(long)incr;
+   incr=(short)(tsim-incr*60.); 		
+   (*sec)=(*sec)+(long)incr;                           /* secondi trascorsi */
+   
+/*
+   test overflow
+*/
+   if((*sec)>=60)          /* secondi */
+   {
+      (*sec)=0;
+      (*min)++;
+   }
+   if((*min)>=60)           /* minuti */
+   {
+      (*min)=0;
+      (*ora)++;
+   }
+   if((*ora)>=24)              /* ore */
+   {
+      (*ora)=(*ora)-24;
+      giorni++;
+   }
+
+/*
+   data
+*/   
+   appoggio = (*mes) - 1;
+
+   lastgiorno=giomese[(short)appoggio];
+
+   if(AnnoBisGR((*anno)) && (*mes)==2) lastgiorno++;
+   for (i=0;i<giorni;i++)
+   {
+      (*gior)++;
+      if((*gior)>lastgiorno)        /* giorno */
+      {
+         (*gior)=1;
+         (*mes)++;
+         if((*mes)>12)                          /* mese */
+         {
+            (*mes)=1;
+            (*anno)++;
+         }
+         lastgiorno=giomese[(short)(*mes)-1];
+         if(AnnoBis((*anno)) && (*mes)==2) lastgiorno++;
+      }
+   }
+}
+
+
+/*
+   AnnoBis()
+      Dato un anno verifica se e' bisestile.
+
+   Parametri:
+      short anno: anno da analizzare
+
+   Ritorno:
+      0:     anno non bisestile
+      1:     anno bisestile
+
+   9 Dicembre 1992
+*/
+static int AnnoBisGR(long anno)
+{
+   if(!(anno % 4) && (anno % 100) || !(anno % 400)) return(1);
+   return(0);
 }
 

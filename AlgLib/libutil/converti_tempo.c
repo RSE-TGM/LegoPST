@@ -34,22 +34,22 @@ int AnnoBis(long );
              
    Parametri
 
-      flot simtime: tempo di simulazione in secondi (valore multiplo del
+      flot temposim: tempo di simulazione in secondi (valore multiplo del
                     passo di simulazione di 1.2 sec)
-      long *ora:    ora di partenza da cui calcolre il tempo trascorso;
-      long *min:    minuto di partenza da cui calcolre il tempo trascorso;
-      long *sec:    secondo di partenza da cui calcolre il tempo trascorso;
-      long *gior:   giorno di partenza da cui calcolre il tempo trascorso;
-      long *mes:    mese di partenza da cui calcolre il tempo trascorso;
-      long *anno:   anno di partenza da cui calcolre il tempo trascorso;
+      long *ora:    ora di partenza da cui calcolare il tempo trascorso;
+      long *min:    minuto di partenza da cui calcolare il tempo trascorso;
+      long *sec:    secondo di partenza da cui calcolare il tempo trascorso;
+      long *gior:   giorno di partenza da cui calcolare il tempo trascorso;
+      long *mes:    mese di partenza da cui calcolare il tempo trascorso;
+      long *anno:   anno di partenza da cui calcolare il tempo trascorso;
 
 */
 
-int converti_tempo(simtime,ora,min,sec,gior,mes,anno)
-float simtime;
+int converti_tempo(temposim,ora,min,sec,gior,mes,anno)
+float temposim;
 long  *ora,*min,*sec,*gior,*mes,*anno;
 {
-float tempsim;
+float tsim;
 short i,incr; 
 short giorni;
 short lastgiorno;
@@ -57,14 +57,14 @@ static short giomese[]={31,28,31,30,31,30,31,31,30,31,30,31};
 long appoggio;
 
 
-   giorni=(short)(simtime/86400.);           /* giorni trascorsi */
-   tempsim=simtime-giorni*86400.; 		
-   incr=(short)(tempsim/3600.);              /* ore trascorse */
+   giorni=(short)(temposim/86400.);           /* giorni trascorsi */
+   tsim=temposim-giorni*86400.; 		
+   incr=(short)(tsim/3600.);              /* ore trascorse */
    (*ora)=(*ora)+(long)incr;
-   tempsim=tempsim-incr*3600.; 		
-   incr=(short)(tempsim/60.);                /* minuti trascorsi */
+   tsim=tsim-incr*3600.; 		
+   incr=(short)(tsim/60.);                /* minuti trascorsi */
    (*min)=(*min)+(long)incr;
-   incr=(short)(tempsim-incr*60.); 		
+   incr=(short)(tsim-incr*60.); 		
    (*sec)=(*sec)+(long)incr;                           /* secondi trascorsi */
    
 /*
