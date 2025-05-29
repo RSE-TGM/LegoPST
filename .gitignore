@@ -17,10 +17,10 @@
 *.pch
 
 # Libraries
-*.lib
-*.a
-*.la
-*.lo
+#*.lib
+#*.a
+#*.la
+#*.lo
 
 # Shared objects (inc. Windows DLLs)
 *.dll
@@ -29,7 +29,7 @@
 *.dylib
 
 # Executables
-*.exe
+#*.exe
 *.out
 *.app
 *.i*86
