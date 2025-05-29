@@ -65,7 +65,7 @@ export LEGO_EMM=YES
 export LEGOCAD_STARTUP=YES
 export ALG_FPE=YES
 #export ALTERLEGO_CAP_DIR=/etc/alterlego/lic_rhe4
-export ALTERLEGO_CAP_DIR=/etc/alterlego/lic_ubuntu20_04
+export ALTERLEGO_CAP_DIR=$LEGOROOT/alterlego/lic_ubuntu20_04
 
 
 unset ALGENV_SET
