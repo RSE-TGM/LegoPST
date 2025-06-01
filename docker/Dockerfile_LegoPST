@@ -23,6 +23,7 @@ RUN dnf update -y && \
         ksh \
         which \
         sudo \
+        ps \
         passwd \
         shadow-utils && \
     dnf clean all

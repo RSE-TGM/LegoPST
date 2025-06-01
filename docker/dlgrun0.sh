@@ -49,6 +49,8 @@ docker run --rm -it \
         su - $HOST_USERNAME -c \"
             cd /home/$HOST_USERNAME
             ln -sf /host_home host_data
+            ln -sf /host_home/legocad legocad
+            ln -sf /host_home/sked sked
             echo 'Link alla home host creato: /home/$HOST_USERNAME/host_data'
         \"
         
@@ -60,7 +62,7 @@ docker run --rm -it \
         # Avvio shell come utente specifico
         su - $HOST_USERNAME -c \"
             echo 'Sessione utente avviata come: \$(whoami) (UID: \$(id -u), GID: \$(id -g))'
-            
+            ls -la 
             # Source del profile LegoPST se esiste
             if [ -f /home/legoroot_fedora41/.profile_legoroot ]; then
                 echo 'Sourcing profile legoroot...'
@@ -79,8 +81,10 @@ docker run --rm -it \
             echo 'Home host: ~/host_data'
             echo '========================================='
             echo ''
-            
-            exec bash -l
+            export DISPLAY=$DISPLAY 
+#            cat echo source /home/legoroot_fedora41/.profile_legoroot >> .bashrc
+#            exec bash -l -c source "/home/legoroot_fedora41/.profile_legoroot"
+            exec bash -l 
         \"
     "
 
