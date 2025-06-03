@@ -483,7 +483,7 @@ extern Widget WidErrore(Widget,char*,int);
 
 void init_gcs();
 void load_file_header(char *nome_file);
-void load_variablesGR(int num_nomi,char*nome);
+void load_variablesGR(int num_nomi,char*nome[]);
 int open_22dat_circGR();
 int read_22dat_circGR(char flag);
 void close_22dat_circ();
@@ -688,7 +688,7 @@ if(argc>1)
  Se il file specificato esiste 
  */
 	if(!nofile)
-		load_variablesGR(argc-(2+scala_unica),argv[2+scala_unica]);
+		load_variablesGR(argc-(2+scala_unica),&argv[2+scala_unica]);
 	}
 XtMainLoop();
 }
@@ -735,7 +735,7 @@ abilita_menu(nofile);
 	
 }
 
-void load_variablesGR(int num_nomi,char*nome)
+void load_variablesGR(int num_nomi,char*nome[])
 //int num_nomi;
 //char *nome[];
 {
@@ -753,8 +753,8 @@ for(i=0;i<4;i++)
 	if(i<num_nomi)
 		{
 // GUAG2025
-// indice=cerca_stringa(nome[i],simboli);
-		indice=cerca_stringa(&nome[i],simboli);
+         indice=cerca_stringa(nome[i],simboli);
+// 		indice=cerca_stringa(&nome[i],simboli);
 		}
 	else
 		indice= -1;
