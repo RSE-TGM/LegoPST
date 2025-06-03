@@ -59,6 +59,7 @@ extern "C" {
 #	include "UxLib.h"
 #	include "method.h"
 #endif /* XT_CODE */
+#include "UxXt.h"
 
 
 #ifdef DESIGN_TIME
@@ -391,12 +392,12 @@ int UxMethodRegister(int cid, char *name, void 	(*function) ())
 
 
 
- static int UxGetIfClassCode( Widget  );
+ int UxGetIfClassCode( Widget  );
 #ifdef _NO_PROTO
-int	UxGetSwidgetClassCode(sw)
+int	UxGetSwidgetClassCode(swidgetsw)
 	swidget sw;
 #else /* _NO_PROTO */
-int	UxGetSwidgetClassCode(swidget sw);
+int	UxGetSwidgetClassCode(swidget sw)
 #endif /* _NO_PROTO */
 {
 	if (sw)
@@ -423,7 +424,7 @@ int	UxGetSwidgetClassCode(swidget sw);
 
  
 
- static int	UxGetClassCode(swidget );
+ int	UxGetClassCode(swidget );
 
 #ifdef _NO_PROTO
 int	UxGetClassCode(sw)

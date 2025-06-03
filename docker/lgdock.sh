@@ -9,6 +9,7 @@ HOST_USERNAME=$(whoami)
 HOST_USER_ID=$(id -u)
 HOST_GROUP_ID=$(id -g)
 HOST_USER_HOME="/home/$HOST_USERNAME" # Home dell'utente SULL'HOST
+DESIRED_USER_PASSWORD=$HOST_USERNAME
 
 echo "Avviando container per utente: $HOST_USERNAME (UID: $HOST_USER_ID, GID: $HOST_GROUP_ID)"
 echo "Directory home host: $HOST_USER_HOME"
@@ -50,6 +51,10 @@ docker run --rm -it \
         if ! getent passwd \"$HOST_USER_ID\" >/dev/null 2>&1; then
             echo \"Creando utente '$HOST_USERNAME' (UID: $HOST_USER_ID, GID: $HOST_GROUP_ID)\"
             useradd -u \"$HOST_USER_ID\" -g \"$HOST_GROUP_ID\" -m -d \"\$USER_HOME_IN_CONTAINER\" -s /bin/bash \"$HOST_USERNAME\"
+            # # Imposta la password per il nuovo utente
+            # echo \"Impostazione password per l'utente '$HOST_USERNAME'...\"
+            # echo \"$HOST_USERNAME:\$DESIRED_PASSWORD\" | chpasswd
+            # echo \"Password impostata: $DESIRED_PASSWORD\"
         else
             EXISTING_USER_WITH_UID=\$(getent passwd \"$HOST_USER_ID\" | cut -d: -f1)
             if [ \"\$EXISTING_USER_WITH_UID\" != \"$HOST_USERNAME\" ]; then
@@ -60,14 +65,26 @@ docker run --rm -it \
                 usermod -g \"$HOST_GROUP_ID\" -d \"\$USER_HOME_IN_CONTAINER\" -s /bin/bash -md \"$HOST_USERNAME\"
             fi
         fi
-                
+
+        # --- INIZIO BLOCCO SUDO ---
+        SUDOERS_FILE_CONTENT=\"${HOST_USERNAME} ALL=(ALL) NOPASSWD:ALL\"
+        SUDOERS_FILE_PATH=\"/etc/sudoers.d/${HOST_USERNAME}\"
+
+        echo \"Configurazione sudo per ${HOST_USERNAME} in \${SUDOERS_FILE_PATH}...\"
+        printf \"%s\\n\" \"\${SUDOERS_FILE_CONTENT}\" > \"\${SUDOERS_FILE_PATH}\"
+        chmod 0440 \"\${SUDOERS_FILE_PATH}\"
+        echo \"Contenuto di \${SUDOERS_FILE_PATH}:\"
+        cat \"\${SUDOERS_FILE_PATH}\"
+        echo \"Permessi di \${SUDOERS_FILE_PATH}:\"
+        ls -l \"\${SUDOERS_FILE_PATH}\"
+        # --- FINE BLOCCO SUDO ---
+
         echo \"Creazione link simbolici in \$USER_HOME_IN_CONTAINER...\"
         mkdir -p \"\$USER_HOME_IN_CONTAINER\" # Assicurati che esista
         ln -sf /host_home \"\$USER_HOME_IN_CONTAINER/host_data\"
-        ln -sf /host_home/legocad  \"\$USER_HOME_IN_CONTAINER/legocad\"
-        ln -sf /host_home/sked  \"\$USER_HOME_IN_CONTAINER/sked\"
-        #ln -sf \"\$USER_HOME_IN_CONTAINER/host_data/legocad /host_home/legocad
-        #ln -sf \"\$USER_HOME_IN_CONTAINER/host_data/sked /host_home/sked
+        ln -sf /host_home/legocad  \"\$USER_HOME_IN_CONTAINER/legocad\"   # se esiste viene creato un link per legocad       
+        ln -sf /host_home/sked  \"\$USER_HOME_IN_CONTAINER/sked\"  # se esiste viene creato un link per sked
+        ln -sf /host_home/defaults  \"\$USER_HOME_IN_CONTAINER/defaults\"  # se esiste viene creato un link per defaults
         chown -h \"$HOST_USER_ID:$HOST_GROUP_ID\" \"\$USER_HOME_IN_CONTAINER/host_data\"
         
         # Aggiungi il comando source e l'esportazione di DISPLAY a .bash_profile dell'utente
@@ -104,6 +121,9 @@ docker run --rm -it \
         echo \"UID: $HOST_USER_ID, GID: $HOST_GROUP_ID\"
         echo \"DISPLAY che dovrebbe essere usato: \$DISPLAY_FROM_ENV\"
         echo ''
+            # echo \"Impostazione password per l'utente '$HOST_USERNAME'...\"
+            # echo \"$HOST_USERNAME:\$DESIRED_USER_PASSWORD\" | chpasswd
+            # echo \"Password impostata: $DESIRED_USER_PASSWORD\"
         
         exec su - \"$HOST_USERNAME\"
     "

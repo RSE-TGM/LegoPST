@@ -16,6 +16,8 @@ static char *_csrc = "@(#) %filespec: archivio.c-10 %  (%full_filespec: archivio
  */
 #include <stdio.h>
 #include <ctype.h>
+#include <unistd.h>
+#include <stdlib.h>
 
 #include <X11/Xlib.h>
 #include <Xm/List.h>
@@ -23,20 +25,25 @@ static char *_csrc = "@(#) %filespec: archivio.c-10 %  (%full_filespec: archivio
 #include <Xm/Label.h>
 #include <Xm/Form.h>
 #include <Xm/Xm.h>
-
-#if defined AIX || defined LINUX
 #include <sys/statfs.h>
-#else if defined OSF1
-#include <sys/param.h>
-#include <sys/mount.h>
-#endif  
+// #if defined AIX || defined LINUX
+// #include <sys/statfs.h>
+// #else if defined OSF1
+// #include <sys/param.h>
+// #include <sys/mount.h>
+// #endif  
 
 #include "sim_param.h"
 #include "sim_types.h"
 #include "dispatcher.h"
+//#include "banco_globals.h"
 
 #include "parametri.h"
 #include "archivi.h"
+
+
+int SD_archive (int, ARCHIVE_REQ *);
+int add_message (Widget, char*, int);
 
 
 /**********************************************************/
@@ -44,9 +51,12 @@ int free_disk()
 {
 int spazio;
 struct statfs buf;
-char *curr_path;
-
-   curr_path = (char *)get_current_dir_name();
+// char *curr_path;
+//    curr_path = (char *)get_current_dir_name();
+   char curr_path[256];
+   if (getcwd(curr_path, sizeof(curr_path)) == NULL)
+        perror("getcwd() error");
+    
    statfs(curr_path,&buf);
    spazio=(int)buf.f_bavail*4 ;   
 	return (spazio/1000); /* in MB */

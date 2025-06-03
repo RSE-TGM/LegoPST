@@ -35,18 +35,22 @@
 #include <Xm/Protocols.h>
 #include "master_monit.h"
 #include "init_sim.h"
+
 #ifndef DESIGN_TIME
 #include "interf_attive.h"
 #include "parametri.h"
 #endif
+
 #include "sked.h"
 #include "malfunzioni.h"
+#include "filtri.h"
+#include "tabelle_malf.h"
 #include "banco_globals.h"
 extern int stato_sim;
 #include "malfunzioni.h"
 #include "messaggi.h" 
 #include "messages.h"
-#include "filtri.h"
+//#include "filtri.h"
 extern MESSAGES mStr[maxIndxMessages];
 extern Widget create_selVar();
 extern char *create_processStart();
@@ -56,6 +60,27 @@ extern swidget create_scenarioMalf();
 extern swidget create_resourceSetting();
 extern swidget create_archiveSess();
 char defaultDisplay[MAX_DISPLAY_NAME];
+
+int richiesta_velocita (Widget);
+int simulatorShutdown (Widget);
+int switch_to_run(Widget);
+int execute_freeze_button (Widget);
+int attiva_lista_scenari(Widget,int);
+int richiesta_maxtime (Widget);
+int richiesta_stepscale (Widget);
+int set_max_speed(Widget);
+int recording_reset(Widget);
+Widget	create_editPert( swidget  );
+int showProcessList(Widget);
+int switchDatabase();
+int connessioni(Widget);
+int startup_simulatore(Widget);
+int update_titolo_sessione (Widget);
+int attiva_timer_masterMenu(Widget);
+int free_disk();
+int check_data_save_req();
+int richiesta_save_arch();
+
 
 
 static	int _UxIfClassId;
@@ -333,7 +358,7 @@ static void	_UxmasterMenuMenuPost( wgt, client_data, event, ctd )
 	Widget		wgt;
 	XtPointer	client_data;
 	XEvent		*event;
-
+    int  ctd;
 {
 	Widget	menu = (Widget) client_data;
 	int 	which_button;

@@ -31,6 +31,10 @@
 #include "sked.h"
 #include "messaggi.h"
 #include "bistrutt.h"
+#include "option.h"
+#include "filtri.h"
+#include "tabelle_malf.h"
+#include "banco_globals.h"
 #include "refresh.h"
 #ifndef DESIGN_TIME
 #include "masterMenu.h"

@@ -52,6 +52,11 @@ int tasto_initic_attivabile = False;
 extern OPTIONS_FLAGS options;
 extern Boolean *IcProt;
 
+
+#include "filtri.h"
+#include "tabelle_malf.h"
+#include "banco_globals.h"
+
 extern int snap_interface_active;
 SNTAB *snap_header;
 int colore_sfondo;
@@ -75,6 +80,9 @@ extern swidget previewSnap;
 extern swidget create_previewSnap();
 int nuova_attivazione;
 #include "messaggi.h"
+
+int crea_snapshot_entry(Widget);
+int attiva_timer_initialCondition (Widget);
 
 
 static	int _UxIfClassId;
@@ -176,7 +184,7 @@ static void	_UxinitialConditionMenuPost( wgt, client_data, event, ctd )
 	Widget		wgt;
 	XtPointer	client_data;
 	XEvent		*event;
-
+    int ctd;
 {
 	Widget	menu = (Widget) client_data;
 	int 	which_button;
@@ -200,6 +208,20 @@ Widget	icMenuEditPaste;
 *******************************************************************************/
 
 Widget	create_initialCondition();
+int stampa_ci (Widget);
+//int cancella_ci (Widget);
+int copia_ci (Widget,Widget, int);
+int paste_ci (Widget, int);
+int accetta_ci(Widget, int);
+int salva_ci(Widget, int);
+int AllocaAreeSnapshot();
+int display_header_snap (SNTAB *);
+int cancella_ci(Widget, int);
+
+
+
+
+
 
 /*******************************************************************************
 Auxiliary code from the Declarations Editor:

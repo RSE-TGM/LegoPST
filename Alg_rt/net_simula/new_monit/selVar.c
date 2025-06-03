@@ -48,11 +48,15 @@
 #include "sim_types.h"
 #include "dispatcher.h"
 #include "bistrutt.h"
-#include "cursore.h"
+
 #include "option.h"
 #include "filtri.h"
-#include "malfunzioni.h"
 #include "tabelle_malf.h"
+#include "banco_globals.h"
+
+
+#include "cursore.h"
+#include "malfunzioni.h"
 
 extern M_COMP_TYPE *m_comp_type;
 extern MALF_SET *malf_set;
@@ -382,6 +386,25 @@ static _UxCselVar              *UxSelVarContext;
 #define header                  UxSelVarContext->Uxheader
 
 
+int default_aing (Widget);
+int lettura_filtro_tipo (Widget);
+int get_byte_kks (Widget,char*);
+int add_preview_entry (Widget, PREVIEW_DATA *, int,int);
+int attiva_aing (Widget,char*);
+int add_item_scenario_malf (Widget, Widget, int, SCENARIO *, int);
+int display_var (Widget, int, int, int, int);
+int display_conf_malf (Widget, M_COMPONENT *, MALF_SET *, M_COMP_TYPE *, int, int, int, int);
+int manage_widget_filter (Widget, Widget, Boolean, int,int);
+int next_pos_bloc (Widget, int, Widget);
+char *extract_string(XmString);
+int readConfMalf (Widget , int );
+
+
+
+
+
+
+
 /*******************************************************************************
        The following function is an event-handler for posting menus.
 *******************************************************************************/
@@ -390,6 +413,7 @@ static void	_UxselVarMenuPost( wgt, client_data, event, ctd )
 	Widget		wgt;
 	XtPointer	client_data;
 	XEvent		*event;
+	int ctd;
 
 {
 	Widget	menu = (Widget) client_data;
@@ -636,7 +660,7 @@ if (chi == PREVIEW_CALLING)
       {
       i = get_label_indx (label_sel);
 printf ("selvarok: :%s: ind %d\n",label_sel,i);
-      add_preview_entry (w, p, NON_NOTA, i);
+      add_preview_entry (w, (PREVIEW_DATA *)p, NON_NOTA, i);
       get_val_view (w);
       display_view (w);
       }
@@ -652,7 +676,7 @@ else if (chi == AING_CALLING)
 else   /* malf o frem */
    {
    if (add_item_scenario_malf (w,selVar,
-                 conf_malf_select, p, chi) > MAX_VAR_SCENARIO)
+                 conf_malf_select, (SCENARIO *)p, chi) > MAX_VAR_SCENARIO)
       {  
       XtVaSetValues (selOkpb,XmNsensitive,False,NULL);
       XtVaSetValues (selVarMenuPopupSelect,XmNsensitive,False,NULL);
@@ -681,7 +705,7 @@ else
          display_conf_malf (selVarToSelect1,m_component,
                    malf_set, m_comp_type,mod_sel,blocco_sel,
                    kks_filter_act,tipo_filter_act);
-   
+  
          break;
       case FUNZIONI_REMOTE:
       case SOMMARIO_FREM:
@@ -1053,7 +1077,7 @@ static void  activateCB_selVarCrSaveFilterpb1( UxWidget, UxClientData, UxCallbac
 	UxSelVarContext = UxContext =
 			(_UxCselVar *) UxGetContext( UxWidget );
 	{
-	if (SD_optsave (BANCO, &options,IcProt) > 0)
+	if (SD_optsave3 (BANCO, (char*)&options,IcProt) > 0)
 	      fprintf (stderr,"OPZIONI salvate\n");
 	else
 	      fprintf (stderr,"*** errore save opzioni\n");
@@ -1495,7 +1519,7 @@ static void  activateCB_selVarMenuPopupSaveFilter( UxWidget, UxClientData, UxCal
 	UxSelVarContext = UxContext =
 			(_UxCselVar *) UxGetContext( UxWidget );
 	{
-	if (SD_optsave (BANCO, &options,IcProt) > 0)
+	if (SD_optsave3 (BANCO, (char*)&options,IcProt) > 0)
 	      fprintf (stderr,"OPZIONI salvate\n");
 	else
 	      fprintf (stderr,"*** errore save opzioni\n");

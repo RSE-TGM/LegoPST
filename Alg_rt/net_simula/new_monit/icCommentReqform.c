@@ -20,6 +20,7 @@
 #include <Xm/Form.h>
 #include <Xm/Frame.h>
 #include <Xm/Form.h>
+#include <Xm/Text.h>
 
 /*******************************************************************************
        Includes, Defines, and Global variables from the Declarations Editor:
@@ -31,6 +32,10 @@
 #include "dispatcher.h"
 #include "bistrutt.h"
 #include "messaggi.h"
+#include "option.h"
+#include "filtri.h"
+#include "tabelle_malf.h"
+#include "banco_globals.h"
 extern SNTAB *snap_header;
 extern swidget initialCondition;
 

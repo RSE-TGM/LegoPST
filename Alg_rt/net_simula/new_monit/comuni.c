@@ -17,6 +17,8 @@ static char *_csrc = "@(#) %filespec: comuni.c-11 %  (%full_filespec: comuni.c-1
  */
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
+#include <ctype.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 
@@ -38,6 +40,7 @@ static char *_csrc = "@(#) %filespec: comuni.c-11 %  (%full_filespec: comuni.c-1
 #include "sim_param.h"
 #include "sim_types.h"
 #include "dispatcher.h"
+#include "libdispatcher.h"
 
 #include "sked.h"
 
@@ -45,7 +48,12 @@ static char *_csrc = "@(#) %filespec: comuni.c-11 %  (%full_filespec: comuni.c-1
 #include "messaggi.h"
 #include "master_monit.h"
 #include "bistrutt.h"
+
+#include "option.h"
+#include "filtri.h"
+#include "tabelle_malf.h"
 #include "banco_globals.h"
+
 #include "cursore.h"
 
 static int last_message=0;
@@ -77,6 +85,14 @@ extern STATISTICA_SKED statistiche;
 char *get_pwd();
 char *read_sim_name();
 int getCampoString();
+int     SD_clear (int);
+int update_sessionName (Widget);
+int not_executable (Widget);
+int SD_sessione (int, char*);
+int update_titolo_sessione (Widget);
+
+
+
 /********************************************************************/
 int init_message_list()
 {
@@ -684,7 +700,8 @@ char filename[]="S01";
 char path[MAX_PATH_LEN];
 FILE *fp;
 char riga[MAX_PATH_LEN];
-char riga2[MAX_PATH_LEN];
+// GUAG2025 ggiunto static
+static char riga2[MAX_PATH_LEN];
 int i,k;
 int inizio = 1;
 int dopo_nome = 1;

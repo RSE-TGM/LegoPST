@@ -519,3 +519,11 @@ void	UxPutComponentRef (Widget adapter, void* ref);
 
 #endif /* ! _UX_XT_H_ */
 
+//GUAG2025
+int UxNewClassId();
+int UxMethodRegister(int , char *, void (*) ());
+int	UxPutClassCode( Widget , int );
+void* UxMethodLookup(Widget , int , char*);
+
+extern  void *		UxNewContext();
+

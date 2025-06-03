@@ -39,7 +39,11 @@ extern int sommario_frem_active;
 Widget sommarioMalf;
 Widget sommarioFrem;
 #endif
-
+#include "bistrutt.h"
+#include "option.h"
+#include "filtri.h"
+#include "tabelle_malf.h"
+#include "banco_globals.h"
 
 /*******************************************************************************
        The definition of the context structure:

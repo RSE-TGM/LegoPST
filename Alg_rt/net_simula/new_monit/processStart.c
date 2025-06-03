@@ -27,6 +27,7 @@
 #include "sim_param.h"
 #include "messaggi.h"
 #include "option.h"
+
 extern OPTIONS_FLAGS options;
 
 
@@ -93,6 +94,9 @@ static _UxCprocessStart        *UxProcessStartContext;
 *******************************************************************************/
 
 char	*create_processStart();
+int DistruggiInterfaccia (Widget );
+int crea_display_selection (Widget, OPTIONS_FLAGS);
+
 
 /*******************************************************************************
        The following are callback functions.
@@ -335,7 +339,7 @@ char	*create_processStart( _UxUxParent, _Uxtesto )
 		UxPutClassCode( processStart, _UxIfClassId );
 
 		crea_display_selection (displaySelectForm,options);
-		UxPopupInterface (rtrn);
+		UxPopupInterface (rtrn,no_grab);
 		while (closeRequest == 0)
 		   {
 		   XtAppProcessEvent (UxAppContext,XtIMAll);

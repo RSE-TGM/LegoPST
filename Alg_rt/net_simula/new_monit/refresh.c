@@ -17,6 +17,7 @@ static char *_csrc = "@(#) %filespec: refresh.c-12 %  (%full_filespec: refresh.c
  * timer usati nell' applicazione banco istruttore
  */
 #include <stdio.h>
+#include <unistd.h>
 #include <sys/ipc.h>
 #include <X11/Intrinsic.h>
 #include <X11/Xlib.h>
@@ -35,6 +36,11 @@ static char *_csrc = "@(#) %filespec: refresh.c-12 %  (%full_filespec: refresh.c
 
 #include "backtrack.h"
 
+#include "filtri.h"
+#include "option.h"
+#include "dispatcher.h"
+#include "tabelle_malf.h"
+
 #include "banco_globals.h"
 #include "masterMenu.h"
 #include "malfConfig.h"
@@ -43,7 +49,8 @@ static char *_csrc = "@(#) %filespec: refresh.c-12 %  (%full_filespec: refresh.c
 #include "scenarioMalf.h"
 #include "parametri.h"
 #include "malfunzioni.h"
-#include "tabelle_malf.h"
+//#include "dispatcher.h"
+
 
 #ifndef OLD_STAT
 extern STATISTICHE statistiche;   /* ricezione statistiche da sked */
@@ -94,6 +101,7 @@ static void refresh_sommarioMalf();
 static void refresh_malfConfig();
 extern void refresh_scenarioMalf();
 
+
 float intervallo_backtrack;
 
 extern Widget masterMenu;
@@ -136,6 +144,36 @@ char   *nome_modello (char *, int);
 
 int read_background_color (Widget);
 int colore_default;
+
+int leggiPertMalf ();
+int refreshSommarioMalf (Widget , SCENARIO *, TIPO_PERT *);
+int aggiorna_pert (Widget);
+int leggiPert ();
+int displayPert (Widget );
+int SD_editpert (int , TIPO_PERT *, int , int );
+int update_tasti_initialCondition (Widget);
+int reset_replay_mode(Widget);
+int update_btload (Widget,int);
+int refresh_colors_bt (Widget, int, int);
+int update_tasti_initci(Widget);
+int update_tasti_initbt(Widget);
+int main_refresh(Widget);
+int riceve_statistiche(Widget,int*);
+int update_tasti_masterMenu(Widget);
+int statistiche_refresh (Widget,int);
+int trigger_backtrack(Widget);
+int checkMaxTime(Widget);
+int sblocca_tastiera(Widget);
+int blocca_tastiera(Widget);
+int simulator_error(Widget);
+int preset_statistiche();
+int check_statistiche();
+int read_last_backtrack(Widget);
+int esegui_snap_bt (int,char*);
+
+
+
+
 
 /***************************************************************/
 int attiva_timer_mainIface (w)
@@ -1001,13 +1039,13 @@ static int primo_giro = 1;
 
 /* printf ("test per ricezione statistiche ......\n"); */
 	comando=DATI_ASINCRONI;
-	from_dispatcher(BANCO,&comando,&tipo,&statistiche,&size,IPC_NOWAIT);
+	from_dispatcher(BANCO,&comando,&tipo,(char*)&statistiche,&size,IPC_NOWAIT);
 	if(size>0)
 		{
 		while(size>0)
    		{
    		comando=DATI_ASINCRONI;
-   		from_dispatcher(BANCO,&comando,&tipo,&statistiche,&size,IPC_NOWAIT);
+   		from_dispatcher(BANCO,&comando,&tipo,(char*)&statistiche,&size,IPC_NOWAIT);
    		}
 		dati_prelevati=1;
 		*flag = 1;
@@ -1431,7 +1469,7 @@ if ((prima_volta == 1) && (stato_sim == STATO_REPLAY))
 
         ic_num = _MAX_SNAP_SHOT;
         messaggio = (char *)malloc (strlen(LOAD_CI)+strlen(OPER_FALLITA) + 20);
-        if (SD_loadic (BANCO,&ic_num, &old_mffr) > 0)
+        if (SD_loadic (BANCO,&ic_num,(int*)&old_mffr) > 0)
            {
            sprintf (messaggio,"%s %d",LOAD_CI,ic_num);
 /*

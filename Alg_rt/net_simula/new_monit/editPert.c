@@ -37,7 +37,11 @@ extern int _MAX_PERTUR;
 TIPO_PERT *perturbazioni;
 TIPO_PERT *perturbazioni_old;
 
-
+#include "bistrutt.h"
+#include "option.h"
+#include "filtri.h"
+#include "tabelle_malf.h"
+#include "banco_globals.h"
 /*******************************************************************************
        The definition of the context structure:
        If you create multiple copies of your interface, the context
@@ -107,6 +111,15 @@ Widget	editPert;
 *******************************************************************************/
 
 Widget	create_editPert();
+int SD_editpert (int , TIPO_PERT *, int , int );
+int richiesta_editPertRate (Widget);
+int updateEditPertLabel (Widget);
+int displayPert (Widget );
+int attiva_timer_editPert (Widget );
+int read_background_color (Widget);
+int read_foreground_color (Widget);
+int creaCampiVarSec (Widget , Widget ,M_COMP_TYPE *, MALF_SET *, M_COMPONENT *);
+
 
 /*******************************************************************************
 Auxiliary code from the Declarations Editor:

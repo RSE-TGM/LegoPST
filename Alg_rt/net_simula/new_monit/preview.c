@@ -33,6 +33,9 @@
 #include "selVar.h"
 #include "tabelle_malf.h"
 
+#include "option.h"
+#include "banco_globals.h"
+
 void viewToggleCb();
 extern char *creaTestoMalfList ();
 SNAP_VIEW snap_view;
@@ -47,6 +50,32 @@ extern char *ind_sh_top;
 extern char *FILES_PATH;
 
 char   *nome_blocco(char *,int,int);
+
+
+int set_variabili_default (Widget);
+int scrivi_lista_var (FILE *,Widget);
+int leggi_lista_var (FILE *,Widget);
+int check_lista_var(Widget);
+int selezione_file (Widget,int,int,char*);
+int load_preview (Widget,char*);
+void set_cursor (Widget,int);
+int carica_lista_var(Widget);
+int clear_preview_entry(PREVIEW_DATA *,int);
+int SD_snapview (int, SNAP_VIEW *);
+int add_preview_entry (Widget, PREVIEW_DATA *, int,int);
+int lista_modblock (int,int,int**,int*,int*,int);
+int lista_match(Widget,char*,Boolean *,int);
+
+
+char *Utstrstr(char *,char *);
+
+
+
+
+
+
+
+
 
 int crea_preview_entry (parent)
 Widget parent;

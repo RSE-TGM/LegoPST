@@ -30,7 +30,7 @@ echo $0
 echo $1
   if [ -z ${1+x} ]
   then 
-  echo "--->  Force LEGOROOT path  is unset"
+  echo "--->  Force LEGOROOT path: is unset"
   echo "--->  Setting the path of the script $BASH_SOURCE as LEGOROOT path ..."
 #LEGOROOT=$(realpath $(dirname $0))
   LEGOROOT=$(realpath $(dirname $BASH_SOURCE))
@@ -51,7 +51,7 @@ echo $1
 #LEGOROOT=/home/antonio/svn_wa/branches/LegoPST2010A_RHE5_64
 #LEGOROOT=/usr/users/lomgr/svn_wa/branches/LegoPST2010A_RHE6_64
 fi
-echo $LEGOROOT
+echo "legoroot path is: $LEGOROOT"
 LEGOCAD_USER=~
 LEGO_BACK=/usr/users/cfb_back
 export LEGOROOT LEGOCAD_USER LEGO_BACK
@@ -67,7 +67,7 @@ export ALG_FPE=YES
 #export ALTERLEGO_CAP_DIR=/etc/alterlego/lic_rhe4
 export ALTERLEGO_CAP_DIR=$LEGOROOT/alterlego/lic_ubuntu20_04
 
-
+echo "Setting LEGOROOT environment variables .."
 unset ALGENV_SET
         if [ ! "$ALGENV_SET" ]
         then
@@ -217,13 +217,13 @@ export DEBUG=YES
 alias lgpcloc='/usr/users/guag/work/tcltktix/bin/tixwish8.1.8.3 $LG_TIX/legopc.tix'
 alias lgpclocult='/usr/users/guag/work/tcltktixultimo/bin/wish8.4 $LG_TIX/legopc.tix'
 alias llgpc='export LG_TIX=/usr/users/testguag/bin_lgtixloc ; wish $LG_TIX/legopc.tix'
-# In .profile_legoroot
-if [ -n "$DISPLAY" ] && [ -S "/tmp/.X11-unix/X${DISPLAY#:*.}" ]; then
-    echo "Display $DISPLAY trovato, eseguo xhost..."
-    xhost +
-#    xhost +SI:localuser:$(whoami) # O qualsiasi comando xhost tu stia usando
-else
-    echo "Nessun display X11 valido trovato o DISPLAY non impostato, salto xhost."
-fi
+# # In .profile_legoroot
+# if [ -n "$DISPLAY" ] && [ -S "/tmp/.X11-unix/X${DISPLAY#:*.}" ]; then
+#     echo "Display $DISPLAY trovato, eseguo xhost..."
+#     xhost +
+# #    xhost +SI:localuser:$(whoami) # O qualsiasi comando xhost tu stia usando
+# else
+#     echo "Nessun display X11 valido trovato o DISPLAY non impostato, salto xhost."
+# fi
 #
 #xhost +

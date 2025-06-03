@@ -965,7 +965,7 @@ manage_widget_filter (UxGetWidget(selVar),\
 *selVarCrSaveFilterpb1.height: 30
 *selVarCrSaveFilterpb1.labelString: SAVEFILTER
 *selVarCrSaveFilterpb1.activateCallback: {\
-if (SD_optsave (BANCO, &options,IcProt) > 0)\
+if (SD_optsave3 (BANCO, &options,IcProt) > 0)\
       fprintf (stderr,"OPZIONI salvate\n");\
 else\
       fprintf (stderr,"*** errore save opzioni\n");\
@@ -1796,7 +1796,7 @@ switch (chi)\
 *selVarMenuPopupSaveFilter.parent: menu13
 *selVarMenuPopupSaveFilter.labelString: "Save Filter"
 *selVarMenuPopupSaveFilter.activateCallback: {\
-if (SD_optsave (BANCO, &options,IcProt) > 0)\
+if (SD_optsave3 (BANCO, &options,IcProt) > 0)\
       fprintf (stderr,"OPZIONI salvate\n");\
 else\
       fprintf (stderr,"*** errore save opzioni\n");\

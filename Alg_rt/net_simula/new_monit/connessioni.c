@@ -37,8 +37,14 @@ static char *_csrc = "@(#) %filespec: connessioni.c-10 %  (%full_filespec: conne
 #include "dispatcher.h"
 
 #include "sked.h"
+//#include "sked_fun.h"
 #include "bistrutt.h"
+
+#include "option.h"
+#include "filtri.h"
+#include "tabelle_malf.h"
 #include "banco_globals.h"
+
 #include "risorse.h"
 
 #include "Rt/RtDbPunti.h"
@@ -51,7 +57,7 @@ static char *_csrc = "@(#) %filespec: connessioni.c-10 %  (%full_filespec: conne
 #include "master_monit.h"
 #include "cont_rec.h"
 #include "mainOptions.h"
-#include "tabelle_malf.h"
+#include "libdispatcher.h"
 
 VARIABILI *variabili;
 IND_VARIABILI *ind_variabili;
@@ -96,7 +102,18 @@ extern XrmDatabase Xdb;
 int errsked=0,errdisp=0,errshm=0,errmonit=0,errtotali=0;
 
 char   *nome_modello (char *, int);
-legge_sel(char *);
+void legge_sel(char *);
+int get_colors();
+int caricaMessages (int );
+int aggancia_dispatcher (Widget, char*);
+int ControlParam(int );
+int init_message_list();
+int not_initialized (Widget,char*);
+int     SD_lbtreg (int);
+ 
+
+
+
 
 /********************************************************************/
 int main_init(n,parm)

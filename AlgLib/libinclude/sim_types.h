@@ -691,7 +691,7 @@ void read_S02_net(void);
 void write_S02_net(int);
 
 void scrive_default(char*);
-char   *nome_modello (char*, int);
+char *nome_modello (char*, int);
 void scrive_default(char*);
 
 //void reg_wrshm(float (*)[], float (*)[], float (*)[], float (*)[],

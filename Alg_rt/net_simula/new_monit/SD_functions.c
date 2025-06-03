@@ -194,7 +194,7 @@ int k;
 	return (0);
 }
 /****************************************************************/
-int SD_optsave (processo, dati, IcDati)
+int SD_optsave3 (processo, dati, IcDati)
 int processo;
 char *dati;
 Boolean *IcDati;

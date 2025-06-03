@@ -24,9 +24,12 @@
 #include "dispatcher.h"
 
 #include "bistrutt.h"
+#include "option.h"
+#include "filtri.h"
+#include "tabelle_malf.h"
+#include "banco_globals.h"
+
 #endif
-
-
 /*******************************************************************************
        The following header file defines the context structure.
 *******************************************************************************/

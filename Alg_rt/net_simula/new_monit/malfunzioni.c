@@ -50,6 +50,11 @@ extern XtIntervalId timer_listaScenFrem;
 #include "scenarioMalf.h"
 #include "malfConfig.h"
 
+#include "option.h"
+#include "bistrutt.h"
+#include "tabelle_malf.h"
+#include "banco_globals.h"
+
 
 extern int tot_variabili;
 extern char *FILES_PATH;
@@ -88,7 +93,7 @@ extern int nuovoScenarioFrem;
 
 extern RtDbPuntiOggetto dbpunti;
 
-extern char titolo_sessione[100];
+extern char titolo_sessione[MAX_LUN_COMMENTO];
 
 extern int id_msg_pert;
 extern char *ind_sh_top;
@@ -107,6 +112,12 @@ int startMalfunzione (int a, float v, REC_SCENARIO s);
 
 void refresh_scenarioMalf ();
 static   void  varSecInModifica();
+int SD_listascenari (int,int, SCENARI *);
+int add_item_list (Widget,char*);
+int caricaTipologiaMalf (Widget,int);
+int carica_conf_malf(Widget,int);
+int completa_conf_malf (Widget, int, M_COMPONENT *, MALF_SET *, M_COMP_TYPE *);
+
 
 struct riga_val_st
 	{

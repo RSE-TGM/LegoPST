@@ -7,8 +7,8 @@ DOCKERFILE := Dockerfile_LegoPST
 BUILD_SCRIPT := ./BuildImage
 
 # Dipendenze per la regola di build dell'immagine
-#BUILD_DEPENDENCIES := $(DOCKERFILE) dlgrun dlgrun_compose startDock
-BUILD_DEPENDENCIES := $(DOCKERFILE) dlgrun 
+#BUILD_DEPENDENCIES := $(DOCKERFILE) lgdock lgdock startDock
+BUILD_DEPENDENCIES := $(DOCKERFILE) lgdock 
 
 # Target principale, spesso chiamato 'all' o il nome dell'eseguibile/immagine principale
 # In questo caso, potremmo considerare il risultato di BuildImage come un file "segnaposto"
@@ -19,7 +19,7 @@ BUILD_DEPENDENCIES := $(DOCKERFILE) dlgrun
 # Questo è il modo più semplice se BuildImage non crea un file specifico tracciabile da Make.
 .PHONY: all build clean check_docker
 
-all: build $(LEGORT_BIN)/dlgrun
+all: build $(LEGORT_BIN)/lgdock
 
 check_docker:
 	@if ! command -v docker >/dev/null 2>&1; then \
@@ -51,7 +51,7 @@ build: check_docker $(BUILD_DEPENDENCIES)
 # 	@echo "Esecuzione di $(BUILD_SCRIPT) completata."
 # 	@touch $(LAST_BUILD_STAMP) # Aggiorna il timestamp se la build ha successo
 
-$(LEGORT_BIN)/dlgrun: dlgrun.sh
+$(LEGORT_BIN)/lgdock: lgdock.sh
 	cp $? $@
 	chmod 755 $@
 
@@ -62,8 +62,8 @@ clean:
 	docker rmi $(IMAGE_NAME) || true
 	# Rimuovi il file timestamp se usi l'Opzione 2
 	# -rm -f $(LAST_BUILD_STAMP)
-	@echo "Rimuovo dlgrun"
-	rm -f $(LEGORT_BIN)/dlgrun
+	@echo "Rimuovo lgdock"
+	rm -f $(LEGORT_BIN)/lgdock
 	@echo "Pulizia completata."
 
 # Nota: L'uso di '@' all'inizio di un comando sopprime la stampa del comando stesso.

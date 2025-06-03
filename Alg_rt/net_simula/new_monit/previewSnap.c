@@ -42,7 +42,8 @@
 #define MAX_VIEW_ENTRY 10
 #endif
 extern Widget create_selVar ();
-
+//#include "res_edit.h"
+//int UxNewClassId();
 
 static	int _UxIfClassId;
 int	UxpreviewSnap_readFile_Id = -1;
@@ -191,6 +192,21 @@ static _UxCpreviewSnap         *UxPreviewSnapContext;
 #define s                       UxPreviewSnapContext->Uxs
 
 
+
+#include "option.h"
+
+#include "tabelle_malf.h"
+#include "banco_globals.h"
+
+int get_file_view(Widget);
+int display_view (Widget);
+int load_preview (Widget,char*);
+int salva_preview_list(Widget,char*);
+int loadas_preview (Widget, int, int);
+int saveas_preview(Widget, int, int);
+int delete_preview_entry(PREVIEW_DATA *,Widget);
+int clear_preview_entry(PREVIEW_DATA *,int);
+
 /*******************************************************************************
        The following function is an event-handler for posting menus.
 *******************************************************************************/
@@ -199,7 +215,7 @@ static void	_UxpreviewSnapMenuPost( wgt, client_data, event, ctd )
 	Widget		wgt;
 	XtPointer	client_data;
 	XEvent		*event;
-
+    int ctd;
 {
 	Widget	menu = (Widget) client_data;
 	int 	which_button;
@@ -219,6 +235,10 @@ static void	_UxpreviewSnapMenuPost( wgt, client_data, event, ctd )
 *******************************************************************************/
 
 Widget	create_previewSnap();
+int crea_preview_entry (Widget);
+int get_val_view (Widget);
+
+
 
 /*******************************************************************************
 Declarations of methods
@@ -1097,16 +1117,16 @@ Widget	create_previewSnap( _Uxwhich, _Uxn, _Uxs )
 		_UxIfClassId = UxNewClassId();
 		UxpreviewSnap_readFile_Id = UxMethodRegister( _UxIfClassId,
 					UxpreviewSnap_readFile_Name,
-					_previewSnap_readFile );
+					(void*)_previewSnap_readFile );
 		UxpreviewSnap_displayVal_Id = UxMethodRegister( _UxIfClassId,
 					UxpreviewSnap_displayVal_Name,
-					_previewSnap_displayVal );
+					(void*)_previewSnap_displayVal );
 		UxpreviewSnap_crea_entry_Id = UxMethodRegister( _UxIfClassId,
 					UxpreviewSnap_crea_entry_Name,
-					_previewSnap_crea_entry );
+					(void*)_previewSnap_crea_entry );
 		UxpreviewSnap_readVal_Id = UxMethodRegister( _UxIfClassId,
 					UxpreviewSnap_readVal_Name,
-					_previewSnap_readVal );
+					(void*)_previewSnap_readVal );
 		_Uxinit = 1;
 	}
 

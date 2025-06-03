@@ -28,6 +28,7 @@ extern swidget masterMenu;
 #include "dispatcher.h"
 #include "messaggi.h"
 
+
 #ifndef DESIGN_TIME
 #include "option.h"
 extern int opt_interface_active;
@@ -36,6 +37,10 @@ extern Boolean *IcProt;
 #endif
 extern int isSuperuser;
 
+#include "bistrutt.h"
+#include "filtri.h"
+#include "tabelle_malf.h"
+#include "banco_globals.h"
 
 /*******************************************************************************
        The definition of the context structure:
@@ -122,6 +127,12 @@ Widget	optionSet;
 *******************************************************************************/
 
 Widget	create_optionSet();
+int aggiorna_opzioni_show (Widget, OPTIONS_FLAGS *p);
+int aggiorna_opzioni(Widget, OPTIONS_FLAGS *p);
+//int SD_optsave (int, char*);
+int carica_options (Widget, int);
+
+
 
 /*******************************************************************************
 Auxiliary code from the Declarations Editor:
@@ -169,7 +180,7 @@ static	void	activateCB_optionSetMenuSavepb( UxWidget, UxClientData, UxCallbackAr
 			(_UxCoptionSet *) UxGetContext( UxWidget );
 	{
 #ifndef  DESIGN_TIME
-	if (SD_optsave (BANCO, &options,IcProt) > 0)
+	if (SD_optsave3 (BANCO, (char*)&options,IcProt) > 0)
 	   fprintf (stderr,"OPZIONI salvate\n");
 	else
 	   fprintf (stderr,"*** errore save opzioni\n");

@@ -49,6 +49,7 @@
 #include "cursore.h"
 #include "option.h"
 
+
 #ifndef DESIGN_TIME
 #include "cont_rec.h"
 #endif
@@ -65,6 +66,8 @@ int tipo_filter;
 extern OPTIONS_FLAGS options;
 extern Boolean *IcProt;
 
+#include "tabelle_malf.h"
+#include "banco_globals.h"
 
 /*******************************************************************************
        The following header file defines the context structure.
@@ -96,6 +99,29 @@ static void	_UxselVarCrMenuPost(
 }
 
 Widget	selVarCr;
+
+
+int carica_filtro_tipo ();
+int loadas_cr (Widget,int,int);
+int saveas_cr (Widget,int,int);
+int richiesta_timer_cr (Widget);
+int manage_widget_filter (Widget, Widget, Boolean, int,int);
+int display_lista_var (Widget,int,int,int,int);
+int applicaFiltri (Widget,int);
+int next_bloc (Widget, int, Widget);
+int display_lista_blocchi (Widget);
+int get_kks_filter (Widget);
+int next_pos_to_sel (Widget, int, Widget);
+int add_var (Widget, Widget);
+int seleziona_all_to_sel(Widget, Widget);
+int del_var (Widget, Widget);
+int next_pos_to_unsel (Widget, int, Widget);
+int seleziona_all_to_unsel(Widget, Widget);
+int display_lista_sistema (Widget);
+
+
+
+
 
 /*******************************************************************************
 Auxiliary code from the Declarations Editor:
@@ -490,7 +516,7 @@ static	void	activateCB_selVarMenuFilter_b2(
 	UxSelVarCrContext = UxContext =
 			(_UxCselVarCr *) UxGetContext( UxWidget );
 	{
-	if (SD_optsave (BANCO, &options,IcProt) > 0)
+	if (SD_optsave3 (BANCO, (char*)&options,IcProt) > 0)
 	      fprintf (stderr,"OPZIONI salvate\n");
 	else
 	      fprintf (stderr,"*** errore save opzioni\n");
@@ -676,7 +702,7 @@ static	void	activateCB_selVarCrSaveFilterpb(
 	UxSelVarCrContext = UxContext =
 			(_UxCselVarCr *) UxGetContext( UxWidget );
 	{
-	if (SD_optsave (BANCO, &options,IcProt) > 0)
+	if (SD_optsave3 (BANCO, (char*)&options,IcProt) > 0)
 	      fprintf (stderr,"OPZIONI salvate\n");
 	else
 	      fprintf (stderr,"*** errore save opzioni\n");
@@ -1214,7 +1240,7 @@ static	void	activateCB_selVarCrPopupSaveFilter(
 	UxSelVarCrContext = UxContext =
 			(_UxCselVarCr *) UxGetContext( UxWidget );
 	{
-	if (SD_optsave (BANCO, &options,IcProt) > 0)
+	if (SD_optsave3 (BANCO, (char*)&options,IcProt) > 0)
 	      fprintf (stderr,"OPZIONI salvate\n");
 	else
 	      fprintf (stderr,"*** errore save opzioni\n");

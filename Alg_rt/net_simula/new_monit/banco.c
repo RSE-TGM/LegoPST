@@ -76,6 +76,8 @@ int inizializzazione;
 
 RICHIESTA_STAT richiesta_stat;
 STATISTICHE    statistiche; 
+#include "filtri.h"
+#include "tabelle_malf.h"
 #include "banco_globals.h"
 #include "sked.h"
 #endif

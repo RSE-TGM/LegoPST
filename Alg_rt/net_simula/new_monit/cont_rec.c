@@ -498,7 +498,7 @@ switch (filter)
 	return (0);
 }
 /**********************************************************/
-applicaFiltri (padre, interfaccia)
+int applicaFiltri (padre, interfaccia)
 Widget padre;
 int interfaccia;
 {

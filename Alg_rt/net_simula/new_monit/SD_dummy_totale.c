@@ -102,7 +102,7 @@ BKTAB *pp;
 int SD_loadic (a,n,c)
 int a;
 int *n;
-int c;
+int *c;
 {
 	printf ("SD_loadic : dummy function\n");
 	return(1);
@@ -133,7 +133,7 @@ int SD_saveic (a,n,s,c)
 int a;
 int *n;
 char *s;
-int c;
+char *c;
 {
 	printf ("SD_saveic : dummy function commento %s\n",s);
 	return(1);
@@ -217,7 +217,7 @@ char *dati;
 	return(0);
 }
 /****************************************************************/
-int SD_optload (processo, dati)
+int SD_optload0 (processo, dati)
 int processo;
 char *dati;
 {
@@ -276,7 +276,7 @@ char *dati;
    return (1);
 }
 /****************************************************************/
-int SD_snapview (processo, dati)
+int SD_snapview0 (processo, dati)
 int processo;
 char *dati;
 {
@@ -292,7 +292,7 @@ int i;
    return (1); 
 }
 /****************************************************************/
-int SD_btrecstep (processo, dati)
+int SD_btrecstep0 (processo, dati)
 int processo;
 float *dati;
 {

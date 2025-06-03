@@ -34,6 +34,11 @@
 #endif
 extern char *fileSelectionCb();
 
+#include "bistrutt.h"
+#include "option.h"
+#include "filtri.h"
+#include "tabelle_malf.h"
+#include "banco_globals.h"
 
 /*******************************************************************************
        The definition of the context structure:

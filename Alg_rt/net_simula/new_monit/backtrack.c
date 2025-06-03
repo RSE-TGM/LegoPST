@@ -41,7 +41,12 @@ extern int bt_interface_active;
 
 #include "backtrack.h"
 #include "backtrackManagement.h"
+
+#include "option.h"
+#include "filtri.h"
+#include "tabelle_malf.h"
 #include "banco_globals.h"
+
 #include "refresh.h"
 extern BKTAB *bt_header;
 int numeroBtLista;			/* contatore numero bt in lista				*/
@@ -55,6 +60,21 @@ extern int stato_sim;  /* stato simulatore come aggiornato da statistiche */
 extern int inizializzazione;  /* flag per eventuale cambio sessione       */
 
 extern int _MAX_BACK_TRACK;
+
+int SD_editbt (int,BKTAB *,int);
+int crea_cambio_sessione (Widget,char*);
+int crea_backtrack_entry(Widget,int);
+int displayDatiRecordBt (BKTAB *, int );
+int ricarica_default_ci (Widget);
+int SD_btrecstep (int, float*);
+int     SD_validatebt (int);
+int prossimo_step();
+int mess_replay (Widget, Boolean);
+int tasti_replay(Widget, Boolean);
+int attiva_timer_replayOn (Widget);
+int lastBtLoad(Widget);
+int     SD_lbtload (int);
+
 
 /**********************************************************/
 /*
@@ -82,7 +102,7 @@ static int primo_giro = 1;
 int read_lista_bt (BKTAB *bthead)
 {
 
-	if (SD_editbt(BANCO, bthead, 0, _MAX_BACK_TRACK) > 0)
+	if (SD_editbt(BANCO, bthead, _MAX_BACK_TRACK) > 0)
 		return(0);
 	return (-1);
 }
@@ -431,7 +451,7 @@ extern BKTAB *bt_header;
    return(0);
 }
 /******************************************************************/
-int uscita_backtrack (w)
+void uscita_backtrack (w)
 Widget w;
 {
 extern int backtrack_caricato;

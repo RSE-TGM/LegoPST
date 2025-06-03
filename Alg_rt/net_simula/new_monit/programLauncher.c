@@ -24,6 +24,7 @@
 
 #include "sim_param.h"
 #include "option.h"
+
 char selectedCommand[MAX_USERPROG_LUN];
 
 
@@ -79,6 +80,12 @@ static _UxCprogramLauncher     *UxProgramLauncherContext;
 *******************************************************************************/
 
 Widget	create_programLauncher();
+int DistruggiInterfaccia (Widget );
+int creaBottoniLauncher (Widget);
+int loadPrograms(Widget);
+
+
+
 
 /*******************************************************************************
        The following are callback functions.
@@ -344,7 +351,7 @@ Widget	create_programLauncher( _UxUxParent )
 
 		creaBottoniLauncher (programLauncher);
 		loadPrograms (programLauncher);
-		UxPopupInterface (rtrn);
+		UxPopupInterface (rtrn,no_grab);
 		return(rtrn);
 	}
 }

@@ -15,6 +15,7 @@
 
 #include "UxXt.h"
 #include <Xm/SelectioB.h>
+#include <Xm/Text.h>
 
 /*******************************************************************************
        Includes, Defines, and Global variables from the Declarations Editor:
@@ -24,6 +25,10 @@
 #include "sim_types.h"
 #include "dispatcher.h"
 #include "bistrutt.h"
+#include "option.h"
+#include "filtri.h"
+#include "tabelle_malf.h"
+#include "banco_globals.h"
 char stringa[MAX_LUN_COMMENTO];
 int risp;
 

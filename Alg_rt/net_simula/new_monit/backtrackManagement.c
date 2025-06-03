@@ -48,6 +48,10 @@ extern int bt_interface_active;
 #include "cursore.h"
 #include "sked.h"
 #include "messaggi.h"
+#include "option.h"
+#include "filtri.h"
+#include "tabelle_malf.h"
+#include "banco_globals.h"
 BKTAB *bt_header;
 SNTAB *snap_header;
 extern int inizializzazione;
@@ -187,6 +191,7 @@ static void	_UxbacktrackManagementMenuPost( wgt, client_data, event, ctd )
 	Widget		wgt;
 	XtPointer	client_data;
 	XEvent		*event;
+	int ctd;
 
 {
 	Widget	menu = (Widget) client_data;
@@ -208,6 +213,17 @@ Widget	backtrackManagement;
 *******************************************************************************/
 
 Widget	create_backtrackManagement();
+int set_colore_riga_bt (int, int);
+int read_lista_bt (BKTAB *);
+int display_header_bt (Widget,BKTAB *);
+void uscita_backtrack (Widget);
+int abilita_replay_mode(Widget);
+int update_btload (Widget,int);
+int btload_ok (Widget);
+int richiesta_timer_bt (Widget);
+int AllocaAreeBacktrack();
+
+
 
 /*******************************************************************************
 Auxiliary code from the Declarations Editor:

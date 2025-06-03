@@ -5,6 +5,8 @@
 *******************************************************************************/
 
 #include <stdio.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 #ifdef MOTIF
 #include <Xm/Xm.h>
@@ -54,6 +56,9 @@ int recoveryInfoSession();
 int createDirSession();
 int recoveryRangeF22(float *,float *);
 int liberaAllocDinam();
+int load_stato_cr(STATO_CR *);
+int	create_attenzioneDialog( Widget, unsigned char	*, int );
+//int UxGetIfClassCode( Widget  );
 
 
 static	int _UxIfClassId;
@@ -156,14 +161,14 @@ float		time_st_f22,time_end_f22,time_st_sess;
       bk_sess_head=(BKTAB*)XtCalloc(_MAX_BACK_TRACK,sizeof(BKTAB));
       if(bk_sess_head==NULL) {
          fprintf(stderr,"Error in XtCalloc:bk_sess_head\n");
-         XtFree(pos_sess_bktab);
+         XtFree((char*)pos_sess_bktab);
          return(-1);
       }
       list_sess=(XmString *)XtCalloc(_MAX_BACK_TRACK,sizeof(XmString));
       if(list_sess==NULL) {
         fprintf(stderr,"Error in XtCalloc: list_sess\n");
-        XtFree(pos_sess_bktab);
-        XtFree(bk_sess_head);
+        XtFree((char*)pos_sess_bktab);
+        XtFree((char*)bk_sess_head);
         return(-1);
       }  
          
@@ -225,8 +230,8 @@ printf("pos_sess_bktab[%d] = %d\n",ind_list,pos_sess_bktab[ind_list].position);
             giorno=1;
             mese=1;
             anno=2000;
-            converti_tempo((bk_sess_head[k-1].tempo/1000.0),&ore,&minuti,&secondi,&giorno,
-                           &mese,&anno);
+            converti_tempo((bk_sess_head[k-1].tempo/1000.0),(long int*)&ore,(long int*)&minuti,(long int*)&secondi,(long int*)&giorno,
+                           (long int*)&mese,(long int*)&anno);
             time_st_sess=(bk_sess_head[k-1].tempo)/1000.0;
 /*
 printf("time_st_sess= %f\n", time_st_sess); 
@@ -413,13 +418,13 @@ int	i;
       }
    }
    if(list_sess!=NULL) {
-      XtFree(list_sess);
+      XtFree((char*)list_sess);
    }
    if(bk_sess_head!=NULL) {
-      XtFree(bk_sess_head);
+      XtFree((char*)bk_sess_head);
    }
    if(pos_sess_bktab!=NULL) {
-      XtFree(pos_sess_bktab);
+      XtFree((char*)pos_sess_bktab);
    }
 
 }
@@ -472,7 +477,7 @@ static void  activateCB_pushButOk( UxWidget, UxClientData, UxCallbackArg )
 	printf("TEMPO INIZIALE (sec) -----> %f\n",time_start_sess);
 	printf("TEMPO FINALE (sec)   -----> %f\n",time_end_sess);
 	  
-	      XtFree(pos_list);
+	      XtFree((char*)pos_list);
 	
 	      descr_str=XmTextFieldGetString(textField1);
 	      if(createDirSession(descr_str,stat_first_bk)==0) {

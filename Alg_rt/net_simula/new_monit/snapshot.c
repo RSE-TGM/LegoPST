@@ -38,6 +38,9 @@ static char *_csrc = "@(#) %filespec: snapshot.c-9 %  (%full_filespec: snapshot.
 #include "init_ci.h"
 #include "messaggi.h"
 #include "bistrutt.h"
+#include "option.h"
+#include "filtri.h"
+#include "tabelle_malf.h"
 #include "banco_globals.h"
 #include "mainOptions.h"
 #include "option.h"
@@ -45,6 +48,8 @@ static char *_csrc = "@(#) %filespec: snapshot.c-9 %  (%full_filespec: snapshot.
 #include "Lucchetto.bmp"
 #include "OldTopology.bmp"
 #include "nullSpace.bmp"
+
+//#include "libutilx.h"
 
 extern int init_bt_interface_active;
 extern int bt_interface_active;
@@ -67,6 +72,20 @@ extern int nuovoSnapCaricato;
 extern int nuovoSnapCaricato2;
 
 int read_background_color (Widget);
+int SD_saveic (int,int*,char*,char*);
+int display_header_snap (SNTAB *);
+int carica_lista_bt ();
+int backtrack_sim();
+int salva_ci(Widget, int);
+int not_executable (Widget);
+int SD_loadbt (int,int*,int);
+int stampa (char *, int );
+int SD_cancellaic (int,int*);
+int SD_checkci (int,int*);
+
+
+
+
 
 /**********************************************************/
 /* 
@@ -110,7 +129,7 @@ extern SNTAB *snap_header;
 	esito = 0;
 	messaggio = (char *)malloc (strlen(SAVE_CI) + strlen(s) + 
 							strlen(OPER_FALLITA) + 20);
-	if (SD_saveic(BANCO, &ic_num, s,&old_mffr) >0)
+	if (SD_saveic(BANCO, &ic_num, s,(char*)&old_mffr) >0)
 		{
 		sprintf (messaggio,"%s %d: %s",SAVE_CI,ic_num,s);
 		read_lista_snap (snap_header);
@@ -149,7 +168,7 @@ int esito;
    esito = 0;
    messaggio = (char *)malloc (strlen(SAVE_BT) + strlen(s) + 
 							strlen(OPER_FALLITA) + 20);
-   if (SD_savebt(BANCO, &bt_num, s,&old_mffr) >0)
+   if (SD_savebt(BANCO, &bt_num, s,(char*)&old_mffr) >0)
       {
       sprintf (messaggio,"%s %d: %s",SAVE_BT,bt_num,s);
 		if (init_bt_interface_active)
@@ -194,7 +213,7 @@ extern SNTAB *snap_header;
    esito = 0;
    messaggio = (char *)malloc (strlen(SAVE_CI) + strlen(s) + 
 										strlen(OPER_FALLITA) + 20);
-   if (SD_saveic(BANCO, &ic_num, s,&old_mffr) >0)
+   if (SD_saveic(BANCO, &ic_num, s,(char*)&old_mffr) >0)
       {
       sprintf (messaggio,"%s %d: %s",SAVE_CI,ic_num,s);
       read_lista_snap (snap_header);
@@ -233,7 +252,7 @@ char *s;
 	sprintf (s,"%s",DEFAULT_SNAP);
    messaggio = (char *)malloc (strlen(SAVE_CI) + strlen(s) + 
 								strlen(OPER_FALLITA) + 20);
-   if (SD_saveic(BANCO, &ic_num, s,&old_mffr) >0)
+   if (SD_saveic(BANCO, &ic_num, s,(char*)&old_mffr) >0)
       {
       sprintf (messaggio,"%s %d: %s",SAVE_CI,ic_num,s);
       read_lista_snap (snap_list);
@@ -287,7 +306,7 @@ int esito;
 
 	messaggio = (char *)malloc (strlen(LOAD_BT)+strlen(OPER_FALLITA) + 20);
 printf ("carica_bt passa %d\n",bt_num);
-  if (SD_loadbt (BANCO,&bt_num, &old_mffr) > 0)
+  if (SD_loadbt (BANCO,&bt_num, (int)&old_mffr) > 0)
 		{
 		sprintf (messaggio,"%s %d",LOAD_BT,bt_num);
 		inizializzazione = 1;
@@ -348,7 +367,7 @@ int esito;
 
    messaggio = (char *)malloc (strlen(LOAD_BT)+strlen(OPER_FALLITA) + 20);
 printf ("init_from_bt passa %d\n",bt_num);
-  if (SD_loadbt (BANCO,&bt_num, &old_mffr) > 0)
+  if (SD_loadbt (BANCO,&bt_num, (int)&old_mffr) > 0)
       {
       sprintf (messaggio,"%s %d",LOAD_BT,bt_num);
       inizializzazione = 1;
@@ -405,7 +424,7 @@ printf("carica_ci DEBUG: stato_sim = %d ic_num = %d\n",stato_sim, ic_num);
      	}
 
 	messaggio = (char *)malloc (strlen(LOAD_CI)+strlen(OPER_FALLITA) + 20);
-	if (SD_loadic (BANCO,&ic_num, &old_mffr) > 0)
+	if (SD_loadic (BANCO,&ic_num, (int*)&old_mffr) > 0)
 		{
       sprintf (messaggio,"%s %d",LOAD_CI,ic_num);
 		inizializzazione = 1;

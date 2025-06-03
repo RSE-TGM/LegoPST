@@ -279,7 +279,7 @@ richiesta_timer_cr (selVarCr);\
 *selVarMenuFilter_b2.parent: selVarMenuFilter
 *selVarMenuFilter_b2.labelString: "Save Selection"
 *selVarMenuFilter_b2.activateCallback: {\
-if (SD_optsave (BANCO, &options,IcProt) > 0)\
+if (SD_optsave3 (BANCO, &options,IcProt) > 0)\
       fprintf (stderr,"OPZIONI salvate\n");\
 else\
       fprintf (stderr,"*** errore save opzioni\n");\
@@ -682,7 +682,7 @@ manage_widget_filter (UxGetWidget(selVarCr),\
 *selVarCrSaveFilterpb.height: 30
 *selVarCrSaveFilterpb.labelString: SAVEFILTER
 *selVarCrSaveFilterpb.activateCallback: {\
-if (SD_optsave (BANCO, &options,IcProt) > 0)\
+if (SD_optsave3 (BANCO, &options,IcProt) > 0)\
       fprintf (stderr,"OPZIONI salvate\n");\
 else\
       fprintf (stderr,"*** errore save opzioni\n");\
@@ -1656,7 +1656,7 @@ set_cursor (padre,NORMALE);\
 *selVarCrPopupSaveFilter.parent: selVarCrPopup
 *selVarCrPopupSaveFilter.labelString: SAVEFILTER
 *selVarCrPopupSaveFilter.activateCallback: {\
-if (SD_optsave (BANCO, &options,IcProt) > 0)\
+if (SD_optsave3 (BANCO, &options,IcProt) > 0)\
       fprintf (stderr,"OPZIONI salvate\n");\
 else\
       fprintf (stderr,"*** errore save opzioni\n");\

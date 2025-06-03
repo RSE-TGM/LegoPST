@@ -23,16 +23,26 @@
 #include "sim_types.h"
 #include "dispatcher.h"
 
+
 extern int _MAX_SNAP_SHOT;
 extern char *FILES_PATH;
 
 #include "parametri.h"
+#include "bistrutt.h"
 #include "option.h"
 extern int opt_interface_active;
 int present_context;
 #include "messaggi.h"
 #include "refresh.h"
 #include "programLauncher.h"
+
+#include "option.h"
+#include "filtri.h"
+#include "tabelle_malf.h"
+#include "banco_globals.h"
+
+#include "richiestaDati.h"
+#include "libdispatcher.h"
 
 extern int isSuperuser;
 extern int tempo_finale_impostato;
@@ -85,6 +95,25 @@ extern char selectedCommand[MAX_USERPROG_LUN];
 void optchg();
 void selectCommand();
 void selectIcProt();
+int clear_prec ();
+int add_opt_init (Widget);
+int    add_opt_snap(Widget);
+int add_opt_recording(Widget);
+int add_opt_mffr(Widget);
+int add_opt_archive(Widget);
+int add_opt_show(Widget);
+int add_opt_display(Widget);
+int add_opt_userprog(Widget);
+int add_opt_icprotect(Widget);
+int SD_optload (int, char*, Boolean*);
+int carica_options_default(OPTIONS_FLAGS *, Boolean *);
+int SD_optsave (int, char*);
+int aggiorna_opzioni_display(Widget, OPTIONS_FLAGS *);
+int aggiorna_opzioni_userprog(Widget, OPTIONS_FLAGS *);
+int aggiorna_opzioni_icprotect(Widget, OPTIONS_FLAGS *);
+int SD_maxtime (int, float*);
+int SD_stepscaling (int, float*);
+
 
 
 /********************************************************************/
@@ -546,7 +575,7 @@ static int primo_giro = 1;
 		IcProt = (Boolean *)malloc(sizeof(Boolean)*_MAX_SNAP_SHOT);
 		primo_giro = 0;
 		}
-	if (SD_optload(BANCO, &options, IcProt) > 0)
+	if (SD_optload(BANCO, (char*)&options, IcProt) > 0)
 		fprintf (stderr,"OPZIONI caricate\n");
 	else
 		fprintf (stderr,"*** errore load opzioni\n");
@@ -570,8 +599,10 @@ int n_snap;
 	if ((fp = fopen (path,"r")) == NULL)
 		{
 		printf ("il file %s non esiste: setta defaults\n",path);
-		carica_options_default(opt,IcDati);
-		if (SD_optsave(BANCO, opt, IcDati) > 0)
+		carica_options_default((OPTIONS_FLAGS *)opt,IcDati);
+// GUAG2025
+//		if (SD_optsave(BANCO, opt, IcDati) > 0)
+		if (SD_optsave(BANCO, opt) > 0)
 			fprintf (stderr,"OPZIONI salvate\n");
 		else
 			fprintf (stderr,"*** errore save opzioni\n");
@@ -980,8 +1011,8 @@ Boolean stato;
 	return;
 }
 /**************************************************************/
-int richiesta_velocita (w)
-Widget w;
+int richiesta_velocita (Widget w)
+//Widget w;
 {
 char risp [10];
 char old_val[10];

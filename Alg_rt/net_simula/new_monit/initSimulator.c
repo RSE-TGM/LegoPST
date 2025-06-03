@@ -33,6 +33,11 @@ extern int _MAX_BACK_TRACK;
 #include "backtrack.h"
 #include "bistrutt.h"
 #include "preview.h"
+#include "option.h"
+#include "filtri.h"
+#include "tabelle_malf.h"
+#include "banco_globals.h"
+
 /* #include "interf_attive.h"  */
 extern int init_ci_interface_active;
 extern int init_bt_interface_active;
@@ -48,7 +53,8 @@ int tasto_loadci_attivabile = False;
 int tasto_loadbt_attivabile = False;
 #endif
 
-
+int attiva_timer_initSimci (Widget);
+int attiva_timer_initSimbt (Widget);
 /*******************************************************************************
        The definition of the context structure:
        If you create multiple copies of your interface, the context
@@ -101,6 +107,11 @@ static _UxCinitSimulator       *UxInitSimulatorContext;
 #define tipo                    UxInitSimulatorContext->Uxtipo
 
 
+
+int carica_ci (Widget,int);
+int init_from_bt (Widget,int);
+
+
 /*******************************************************************************
        The following function is an event-handler for posting menus.
 *******************************************************************************/
@@ -109,7 +120,7 @@ static void	_UxinitSimulatorMenuPost( wgt, client_data, event, ctd )
 	Widget		wgt;
 	XtPointer	client_data;
 	XEvent		*event;
-
+    int ctd;
 {
 	Widget	menu = (Widget) client_data;
 	int 	which_button;

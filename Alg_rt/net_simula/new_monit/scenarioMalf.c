@@ -31,6 +31,13 @@
 #include "sim_types.h"
 #include "dispatcher.h"
 #include "bistrutt.h"
+
+#include "option.h"
+#include "filtri.h"
+#include "tabelle_malf.h"
+#include "banco_globals.h"
+
+
 #include "malfunzioni.h"
 #include "tabelle_malf.h"
 #include "file_selection.h"
@@ -207,6 +214,22 @@ static _UxCscenarioMalf        *UxScenarioMalfContext;
 #define tipo                    UxScenarioMalfContext->Uxtipo
 #define num_scen                UxScenarioMalfContext->Uxnum_scen
 
+int countScenariValidi (SCENARI *);
+int remove_timer_editPertMalf ();
+int save_scenmalf (Widget, int, int);
+int nuovoScenarioNotify (Widget , Widget );
+int delete_item_scen_malf (Widget);
+int attivaMalfSelect (Widget , int );
+int readConfMalf (Widget , int );
+int attiva_timer_editPertMalf (Widget);
+int caricaScenario (Widget,SCENARI *,SCENARIO *,int,int);
+int displayScenario (Widget,SCENARIO *, M_COMPONENT *, MALF_SET *, M_COMP_TYPE *);
+int attiva_timer_sommarioMalf(Widget);
+int attiva_timer_scenarioMalf(Widget);
+
+
+
+
 
 /*******************************************************************************
        The following function is an event-handler for posting menus.
@@ -216,6 +239,7 @@ static void	_UxscenarioMalfMenuPost( wgt, client_data, event, ctd )
 	Widget		wgt;
 	XtPointer	client_data;
 	XEvent		*event;
+	int ctd;
 
 {
 	Widget	menu = (Widget) client_data;

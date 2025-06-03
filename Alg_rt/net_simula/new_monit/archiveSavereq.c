@@ -36,7 +36,10 @@
 /* #include "interf_attive.h" */
 extern int archsave_interface_active;
 #endif
-
+#include "option.h"
+#include "filtri.h"
+#include "tabelle_malf.h"
+#include "banco_globals.h"
 
 /*******************************************************************************
        The definition of the context structure:
@@ -123,6 +126,9 @@ Widget	archiveSavereq;
 *******************************************************************************/
 
 Widget	create_archiveSavereq();
+int free_disk();
+int check_data_save_req();
+int richiesta_save_arch();
 
 /*******************************************************************************
 Auxiliary code from the Declarations Editor:

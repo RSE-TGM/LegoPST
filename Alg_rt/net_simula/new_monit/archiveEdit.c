@@ -77,6 +77,8 @@ Widget	archiveEdit;
 *******************************************************************************/
 
 Widget	create_archiveEdit();
+int richiesta_save_arch();
+int DistruggiInterfaccia (Widget );
 
 /*******************************************************************************
        The following are callback functions.

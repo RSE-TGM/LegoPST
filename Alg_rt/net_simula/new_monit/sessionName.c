@@ -19,7 +19,7 @@
 #include <Xm/PushB.h>
 #include <Xm/Frame.h>
 #include <Xm/Form.h>
-#include <Xm/Form.h>
+#include <Xm/Text.h>
 
 /*******************************************************************************
        Includes, Defines, and Global variables from the Declarations Editor:

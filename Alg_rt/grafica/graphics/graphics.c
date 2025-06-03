@@ -961,8 +961,8 @@ Verifica se e' possibile allocare i colori dinamici.
 if(XAllocColorCells(display,default_cmap,False,plane_masks,1,colors,6)== 0)
 	{
 	/*Restituito NULL: impossibile allocare color dyn */
-	printf("\n spazio per allocazione colormap esaurito\n ");
-	printf("Impossibile allocare i colori dinamici\n");
+// printf("\n DEBUG - spazio per allocazione colormap esaurito\n ");
+// printf("DEBUG - Impossibile allocare i colori dinamici\n");
 	dynamic_colors=False;	
 	}
 else

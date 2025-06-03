@@ -28,6 +28,13 @@
 #include "messaggi.h"
 #include "risorse_default.h"
 
+#include "sim_types.h"
+#include "bistrutt.h"
+#include "option.h"
+#include "filtri.h"
+#include "tabelle_malf.h"
+#include "banco_globals.h"
+
 RESOURCE_DEF *Rdef; /* risorse configurabili da utente */
 
 
