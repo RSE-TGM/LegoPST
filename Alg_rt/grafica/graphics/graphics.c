@@ -786,7 +786,9 @@ for(i=0;i<4;i++)
 		if(s->ind_umis[i]==-1)
 			{
 // GUAG2025 s->ind_umis[i]=num_umis-1;
-			s->ind_umis[i]=0; // Usa prima unità invece dell'ultima
+//			s->ind_umis[i]=0; // Usa prima unità invece dell'ultima
+			s->ind_umis[i]=num_umis-1; // Usa ultima unità 
+        
             printf("AVVISO: load_variablesGR: unità di misura non trovata per variabile %d, uso default\n", i);			
 			} 
 
@@ -1521,33 +1523,33 @@ XClearArea(display,XtWindow(sg.w_tim),0,0,0,0,True);
 XClearArea(display,XtWindow(sg.w_mis),0,0,0,0,True);
 XClearArea(display,XtWindow(widget_array[k_tempo]),0,0,0,0,True);
 
-//GUAG2025 
-    // Forza il redraw chiamando direttamente draw_proc
-    if(sg.w_ord && XtWindow(sg.w_ord))
-    {
-        XmDrawingAreaCallbackStruct cb_data;
-        int tag = k_ord1;
-        cb_data.window = XtWindow(sg.w_ord);
-        cb_data.event = NULL;
-        cb_data.reason = XmCR_EXPOSE;
-        draw_proc(sg.w_ord, &tag, &cb_data);
-    }
+ //GUAG2025 
+     // Forza il redraw chiamando direttamente draw_proc. Commento per ritornare all'originale
+//     if(sg.w_ord && XtWindow(sg.w_ord))
+//     {
+//         XmDrawingAreaCallbackStruct cb_data;
+//         int tag = k_ord1;
+//         cb_data.window = XtWindow(sg.w_ord);
+//         cb_data.event = NULL;
+//         cb_data.reason = XmCR_EXPOSE;
+//         draw_proc(sg.w_ord, &tag, &cb_data);
+//     }
     
-    if(sg.w_tim && XtWindow(sg.w_tim))
-    {
-        XmDrawingAreaCallbackStruct cb_data;
-        int tag = k_tim1;
-        cb_data.window = XtWindow(sg.w_tim);
-        cb_data.event = NULL;
-        cb_data.reason = XmCR_EXPOSE;
-        draw_proc(sg.w_tim, &tag, &cb_data);
-    }
+//     if(sg.w_tim && XtWindow(sg.w_tim))
+//     {
+//         XmDrawingAreaCallbackStruct cb_data;
+//         int tag = k_tim1;
+//         cb_data.window = XtWindow(sg.w_tim);
+//         cb_data.event = NULL;
+//         cb_data.reason = XmCR_EXPOSE;
+//         draw_proc(sg.w_tim, &tag, &cb_data);
+//     }
     
-    // Forza il flush
-    XFlush(display);
-    XSync(display, False);
+//     // Forza il flush
+//     XFlush(display);
+//     XSync(display, False);
     
-// GUAG2025 FINE
+// // GUAG2025 FINE
 
 
 timer= XtAppAddTimeOut(XtWidgetToApplicationContext(main_window_widget),
@@ -1579,9 +1581,9 @@ float t_ini,t_fin;
     }
     
     t_delta=(t_fin-t_ini)/6;
-// GUAG2025 meglio t_fin?
-//    t_asc=t_ini;
-    t_asc=t_fin;
+// GUAG2025 meglio t_fin? nell'originale c'è t_ini
+    t_asc=t_ini;
+//    t_asc=t_fin;
     
     for(i=0;i<7;i++)
     {
@@ -3687,9 +3689,7 @@ t_iniziale=bufdati[0].t;
 
 */
 
-int converti_tempoGR(temposim,ora,min,sec,gior,mes,anno)
-float temposim;
-long  *ora,*min,*sec,*gior,*mes,*anno;
+int converti_tempoGR(float temposim,long*ora,long*min,long*sec,long*gior,long*mes,long*anno)
 {
 #define BISESTO(year) !(year % 4) && (year % 100) || !(year % 400)
 float tsim;

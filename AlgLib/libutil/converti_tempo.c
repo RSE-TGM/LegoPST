@@ -45,9 +45,7 @@ int AnnoBis(long );
 
 */
 
-int converti_tempo(temposim,ora,min,sec,gior,mes,anno)
-float temposim;
-long  *ora,*min,*sec,*gior,*mes,*anno;
+int converti_tempo(float temposim,long*ora,long*min,long*sec,long*gior,long*mes,long*anno)
 {
 float tsim;
 short i,incr; 

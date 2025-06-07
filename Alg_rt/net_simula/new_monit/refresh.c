@@ -1566,9 +1566,7 @@ char  *list_par[4];
 }
 
 
-int converti_tempo_new_monit(temposim,ora,min,sec,gior,mes,anno)
-float temposim;
-long  *ora,*min,*sec,*gior,*mes,*anno;
+int converti_tempo_new_monit(float temposim,long*ora,long*min,long*sec,long*gior,long*mes,long*anno)
 {
 #define BISESTO(year) !(year % 4) && (year % 100) || !(year % 400)
 float tsim;
