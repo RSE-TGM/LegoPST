@@ -18,9 +18,16 @@
 .PHONY: all clean force_version_h # Aggiunto .PHONY
 
 VERSION_H = version.h
-GIT_VERSION := $(shell git describe --tags --dirty --always --long)
+GIT_VERSION := $(shell git describe --tags --always --long)
 GIT_COMMIT_COUNT := $(shell git rev-list --count HEAD)
 BUILD_DATE := $(shell date +%Y%m%d)
+
+# Esempio di utizzo di version.h in un progetto C
+# Per includere version.h nei tuoi file C, usa:
+# #include "version.h"
+# my_program: main.c $(VERSION_H)
+# 	gcc main.c -o my_program -I.
+
 
 # 'all' è ora il primo target esplicito
 all: $(VERSION_H) # Dipende da version.h
@@ -55,13 +62,15 @@ $(VERSION_H):
 force_version_h:
 	@echo "--- Forcing regeneration of $(VERSION_H) ---"
 	@rm -f $(VERSION_H) # Rimuove il file per forzare la sua ricreazione
-	$(MAKE) $(VERSION_H) # Chiama make per ricrearlo
+	$(MAKE) -f $(firstword $(MAKEFILE_LIST)) $(VERSION_H)
+#	$(MAKE) $(VERSION_H) # Chiama make per ricrearlo
 
 clean:
 	@echo "--- Cleaning project ---"
 	rm -f $(VERSION_H)
 	find . -type f -name "*.o" -exec rm -f {} \;
 	find . -type f -name "*.a" -exec rm -f {} \;
+	$(MAKE) -f $(firstword $(MAKEFILE_LIST)) force_version_h # Forza la rigenerazione di version.h
 	@echo "--- Clean finished ---"
 
 $(info Makefile.mk: Startup - F_FLAGS is currently set to = $(F_FLAGS))

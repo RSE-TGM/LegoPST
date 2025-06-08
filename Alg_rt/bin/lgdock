@@ -20,6 +20,7 @@ docker run --rm -it \
     -e DISPLAY="$DISPLAY" \
     -v /tmp/.X11-unix:/tmp/.X11-unix \
     -v "$HOST_USER_HOME:/host_home" \
+    --network=host \
     aguagliardi/legopst:2.0 \
     bash -c "
         set -e # Esce immediatamente se un comando fallisce
