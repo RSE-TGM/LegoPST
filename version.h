@@ -1,0 +1,3 @@
+#define GIT_VERSION_STRING "638b80d-dirty"
+#define BUILD_NUMBER 47
+#define BUILD_DATE_STRING "20250608"
