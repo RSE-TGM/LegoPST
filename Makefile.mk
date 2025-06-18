@@ -48,10 +48,13 @@ all: $(VERSION_H) # Dipende da version.h
 
 # La regola per version.h.
 # Viene eseguita se version.h non esiste, o se 'force_version_h' è invocato.
-# Per farla rigenerare se cambiano le info Git, servirebbe un meccanismo più complesso
-# o rendere questa regola dipendente da un file che "tocchi" quando le info Git cambiano.
-# Per ora, la dipendenza da 'all' è sufficiente per crearla se non esiste.
-$(VERSION_H):
+
+# Per forzare la rigenerazione di version.h, puoi usare il target 'force_version_h'.
+# Trova il ref attuale (branch o commit diretto)
+GIT_REF := $(shell if [ -f .git/HEAD ]; then ref=$$(cat .git/HEAD | sed 's/^ref: //'); \
+  if [ -n "$$ref" ] && [ -f .git/$$ref ]; then echo .git/$$ref; else echo .git/HEAD; fi; else echo .git/HEAD; fi)
+
+$(VERSION_H): .git/HEAD $(GIT_REF)
 	@echo "--- Generating $(VERSION_H) ---"
 	@echo "#define GIT_VERSION_STRING \"$(GIT_VERSION)\"" > $(VERSION_H)
 	@echo "#define BUILD_NUMBER $(GIT_COMMIT_COUNT)" >> $(VERSION_H)

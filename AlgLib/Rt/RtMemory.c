@@ -189,7 +189,7 @@ for(i=0;i<num_punt_rtmemory;i++)
 		break;
 if(i == num_punt_rtmemory)
 	{
-	fprintf(stderr,"Errore [RtFree] puntatore non trovato pid=[%d] file %s line %d\n",getpid(),file,line);
+	fprintf(stderr,"Errore [RtFree] puntatore=%s non trovato pid=[%d] file %s line %d\n",punt, getpid(),file,line);
 	return;
 	}
 
