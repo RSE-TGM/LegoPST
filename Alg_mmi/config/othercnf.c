@@ -1473,8 +1473,8 @@ void assegna_whfisiche(XrmDatabase db,Widget wid,Dimension w,Dimension h)
    Position w0,h0;
    char appo[100];
 
-   set_something(wid,XmNwidth,(void*) w);
-   set_something(wid,XmNheight,(void*) h);
+   set_something(wid,XmNwidth,(char*) &w);
+   set_something(wid,XmNheight,(char*) &h);
 
    get_something(wid,XlNwidth0, (void*) &w0);
    get_something(wid,XlNheight0, (void*) &h0);
@@ -1496,8 +1496,8 @@ void assegna_xyfisiche(XrmDatabase db,Widget wid,Position x,Position y)
    Position x0,y0;
    char appo[100];
 
-   set_something(wid,XmNx,(void*) x);
-   set_something(wid,XmNy,(void*) y);
+   set_something(wid,XmNx,(char*) &x);
+   set_something(wid,XmNy,(char*) &y);
 
    get_something(wid,XlNx0, (void*) &x0);
    get_something(wid,XlNy0, (void*) &y0);
@@ -2111,7 +2111,7 @@ void add_def_translation(Widget wid,char *stringa)
            switch( *policy )
            {
                case 'r':
-                 set_something(wid, XtNtranslations, (void*) tr);
+                 set_something(wid, XtNtranslations, (char*) tr);
                break;
                case 'a':
                   XtAugmentTranslations(wid, tr);
@@ -2618,8 +2618,8 @@ void do_rubber(ICONLIB *plib,WidgetClass wid_class,Widget wid,Dimension w,Dimens
 */
       new_wid = XtCreateWidget(new_name, wid_class,parent, NULL,0);
 
-      set_something(new_wid,XmNx,(void*) wx);  
-      set_something(new_wid,XmNy,(void*) wy);  
+      set_something(new_wid,XmNx,(char*) &wx);  
+      set_something(new_wid,XmNy,(char*) &wy);  
      
       get_something(new_wid,XlNx0, (void*) &x0);  
       get_something(new_wid,XlNy0, (void*) &y0);  
@@ -2653,10 +2653,10 @@ void do_rubber(ICONLIB *plib,WidgetClass wid_class,Widget wid,Dimension w,Dimens
 		if(app_rotate >= ROTATE_COMPLETO)
 			app_rotate -= ROTATE_COMPLETO;
 		}
-        set_something(new_wid,XlNrotate,(void*) &app_rotate);  
+        set_something(new_wid,XlNrotate,(char*) &app_rotate);  
         sprintf(appo,"%d",app_rotate);
         XlSetResourceByName(&pagina->db,new_name,XlNrotate,appo);
-        set_something(new_wid,XlNassRotate,(void*) &app_ass_rotate);  
+        set_something(new_wid,XlNassRotate,(char*) &app_ass_rotate);  
         sprintf(appo,"%d",app_ass_rotate);
         XlSetResourceByName(&pagina->db,new_name,XlNassRotate,appo);
 	}
@@ -2730,10 +2730,11 @@ void do_rubber(ICONLIB *plib,WidgetClass wid_class,Widget wid,Dimension w,Dimens
 					parent, NULL,0);
 	f_zoom= get_def_zoom(pagina->drawing);
 	perc_zoom =100.0 * f_zoom;
-   sprintf(appo,"%s",(w*f_zoom));
-   set_something(new_wid,XmNwidth,  (void*) appo);  
-   sprintf(appo,"%s",(h*f_zoom));
-   set_something(new_wid,XmNheight, (void*) appo);    
+   // GUAG2025 modifica di set_something con appo
+   sprintf(appo,"%f",(w*f_zoom));
+   set_something(new_wid,XmNwidth,  (char*) appo);  
+   sprintf(appo,"%f",(h*f_zoom));
+   set_something(new_wid,XmNheight, (char*) appo);    
       // set_something(new_wid,XmNwidth,  (w*f_zoom));  
       // set_something(new_wid,XmNheight, (h*f_zoom));  
       }
@@ -2750,13 +2751,12 @@ void do_rubber(ICONLIB *plib,WidgetClass wid_class,Widget wid,Dimension w,Dimens
       // set_something(new_wid,XmNx, (void*) (wx/f_zoom));  
       // set_something(new_wid,XmNy, (void*) (wy/f_zoom));  
       // set_something(new_wid,XlNfattZoom,(void*) perc_zoom);
-
-       sprintf(appo,"%s",(wx/f_zoom));
-       set_something(new_wid,XmNx, (void*) appo);  
-       sprintf(appo,"%s",(wy/f_zoom));
-       set_something(new_wid,XmNy, (void*) appo); 
-       sprintf(appo,"%s",perc_zoom);
-       set_something(new_wid,XlNfattZoom, (void*) appo);  
+       sprintf(appo,"%f",(wx/f_zoom));
+       set_something(new_wid,XmNx, (char*) appo);  
+       sprintf(appo,"%f",(wy/f_zoom));
+       set_something(new_wid,XmNy, (char*) appo); 
+       sprintf(appo,"%f",perc_zoom);
+       set_something(new_wid,XlNfattZoom, (char*) appo);  
 
       get_something(new_wid,XlNx0, (void*) &x0);  
       get_something(new_wid,XlNy0, (void*) &y0);  
@@ -3158,7 +3158,7 @@ void proc_deselect(Widget wgtsel)
 //         DeselectAllDraget(drawing);
 // GUAG2025 forse True
          DeselectAllDraget(drawing, True);
-         set_something(wgtsel,XlNselected,(void*) True);
+         set_something(wgtsel,XlNselected,(char*) True);
       }
    }
 }
@@ -4266,13 +4266,13 @@ for(i=0;i<num_figli;i++)
   for(j=0;j<num_nipoti;j++)
 	{
 	if((pag->dispreg_visual_mode != dispReg) && XlIsDispReg(m_nipoti[j]))
-	    set_something(m_nipoti[j],XlNdispRegMode,(void*) dispReg);
+	    set_something(m_nipoti[j],XlNdispRegMode,(char*) &dispReg);
 	if((pag->port_visual_mode != port) && XlIsPort(m_nipoti[j]) && 
 		!XlIsInterfacePort(m_nipoti[j]))
-	    	set_something(m_nipoti[j],XlNvisibleMode,(void*) port);
+	    	set_something(m_nipoti[j],XlNvisibleMode,(char*) &port);
 	if((pag->interfaceport_visual_mode != interfacePort) &&  
 		XlIsInterfacePort(m_nipoti[j]))
-	    	set_something(m_nipoti[j],XlNvisibleMode,(void*) interfacePort);
+	    	set_something(m_nipoti[j],XlNvisibleMode,(char*) &interfacePort);
 	}
   XtFree(m_nipoti);
   }
@@ -4312,22 +4312,22 @@ else
 	}
 
 if(XlIsDispReg(w))
-    set_something(w,XlNdispRegMode,(void*) dispReg);
+    set_something(w,XlNdispRegMode,(char*) &dispReg);
 if(XlIsPort(w) && !XlIsInterfacePort(w))
-    	set_something(w,XlNvisibleMode,(void*) port);
+    	set_something(w,XlNvisibleMode,(char*) &port);
 if(XlIsInterfacePort(w))
-    	set_something(w,XlNvisibleMode,(void*) interfacePort);
+    	set_something(w,XlNvisibleMode,(char*) &interfacePort);
 if(XlIsIconReg(w))
   {
   get_child(w,&figli,&num_figli);
   for(i=0;i<num_figli;i++)
 	{
 	if(XlIsDispReg(figli[i]))
-    		set_something(figli[i],XlNdispRegMode,(void*) dispReg);
+    		set_something(figli[i],XlNdispRegMode,(char*) &dispReg);
 	if(XlIsPort(figli[i]) && !XlIsInterfacePort(figli[i]))
-    		set_something(figli[i],XlNvisibleMode,(void*) port);
+    		set_something(figli[i],XlNvisibleMode,(char*) &port);
 	if(XlIsInterfacePort(figli[i]))
-    		set_something(figli[i],XlNvisibleMode,(void*) interfacePort);
+    		set_something(figli[i],XlNvisibleMode,(char*) &interfacePort);
 	}
   }
 }
