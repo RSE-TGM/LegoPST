@@ -13,7 +13,7 @@
 /*
 Modifica del 5/12/97 per task-nolego-SICRE
 */
-#define N000SICRE              160                    /* MOLTIPLICATORE    */
+#define N000SICRE              250                    /* MOLTIPLICATORE    */
 #define N001SICRE              N000SICRE*10               /* N. MODULI         */
 #define N002SICRE              N000SICRE*25               /* N. BLOCCHI        */
 #define N003SICRE              N000SICRE*1000               /* N. STATI + ALG. =

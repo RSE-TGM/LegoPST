@@ -8,8 +8,10 @@ C******************************************************************************
 C-----------------------------------------------------------------
 C
       SUBROUTINE READ_F04_()
-C
-      INCLUDE '[--.include]PARAMETER.F'
+
+            include '../../../lego_big/lib/lg_parameter.fh'
+C  GUAG2025 
+C        INCLUDE '[--.include]PARAMETER.F'
 C
         DIMENSION
      &  NOSUB(N002),      NOBLC(N002,2),      NUSTA(N002),

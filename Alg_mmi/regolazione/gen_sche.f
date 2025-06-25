@@ -53,22 +53,23 @@ C     &           N005=N000*100,
 C     &           N006=200,
 C     &           N007=N000*500,
 C     &           N008=200)
-
-         PARAMETER  (N000=160,
-     &              N001=N000*10,
-     &              N002=N000*25,
-     &              N003=N000*50,
-     &              N004=N000*25,
-     &              N005=N000*100,
-     &              N006=1000,
-     &              N007=N000*500,
-     &              N008=1000)
+        include '../../lego_big/lib/lg_parameter.fh'
+C  GUAG2025        
+C         PARAMETER  (N000=160,
+C     &              N001=N000*10,
+C     &              N002=N000*25,
+C     &              N003=N000*50,
+C     &              N004=N000*25,
+C     &              N005=N000*100,
+C     &              N006=1000,
+C     &              N007=N000*500,
+C     &              N008=1000)
 C
 C
 C
 C
 C
-         parameter (MN005=2*N005)
+C         parameter (MN005=2*N005)
          parameter (MAXCAR=70)
 C
 C

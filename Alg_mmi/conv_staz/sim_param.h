@@ -9,25 +9,47 @@
 **********************************************************************/
 
 /* ************************ Parametri LEGO  ************************ */
-
-#define N000              160                    /* MOLTIPLICATORE    */
+// GUAG 2025
+#define N000              250                    /* MOLTIPLICATORE    */
 #define N001              N000*10               /* N. MODULI         */
 #define N002              N000*25               /* N. BLOCCHI        */
-#define N003              N000*60               /* N. STATI + ALG. =
+#define N003              N000*80               /* N. STATI + ALG. =
                                                    ORDINE MASSIMO
                                                    SISTEMA ALGEBRICO */
-#define N004              N000*25               /* N. INGRESSI       */
-#define N005              N000*100              /* N. VARIABILI      */
+#define N004              N000*80               /* N. INGRESSI       */
+#define N005              N000*180              /* N. VARIABILI      */
 #define N007              N000*500              /* N. dati           */
 
 /* *****   M001 = N. TOTALE INGRESSI = N005-N003             ******* */
 /* *****   M002 = N. INGRESSI = USCITE = M001-N004           ******* */
 
 #define M001             N005-N003
-#define M002             M001-N004
+#define M002             M001
 #define M003             N002+1
 #define M004             N003+1
 #define M005             N004+1
+
+
+/* ************************ Vecchi Parametri LEGO  ************************ */
+
+// #define N000              160                    /* MOLTIPLICATORE    */
+// #define N001              N000*10               /* N. MODULI         */
+// #define N002              N000*25               /* N. BLOCCHI        */
+// #define N003              N000*60               /* N. STATI + ALG. =
+//                                                    ORDINE MASSIMO
+//                                                    SISTEMA ALGEBRICO */
+// #define N004              N000*25               /* N. INGRESSI       */
+// #define N005              N000*100              /* N. VARIABILI      */
+// #define N007              N000*500              /* N. dati           */
+
+// /* *****   M001 = N. TOTALE INGRESSI = N005-N003             ******* */
+// /* *****   M002 = N. INGRESSI = USCITE = M001-N004           ******* */
+
+// #define M001             N005-N003
+// #define M002             M001-N004
+// #define M003             N002+1
+// #define M004             N003+1
+// #define M005             N004+1
 
 /* ************************ Parametri SKED  ************************ */
 

@@ -77,19 +77,48 @@ unset ALGENV_SET
 #export LG_TEXTEDITOR=nedit
 export LG_TEXTEDITOR=leafpad
 #############PRODUCTINSTEND##########
-######     NET_COMPI PARAMETERS    ######
-export N000=160
+######     NET_COMPI E LEGO PARAMETERS    ######
+#### GUAG2025
+
+export N000=250
 export N001=`expr $N000 \* 10`
 export N002=`expr $N000 \* 25`
-export N003=60000
-export N004=35000
-export N005=130000
-export N007=`expr $N000 \* 300`
+export N003=`expr $N000 \* 100`
+export N004=`expr $N000 \* 80`
+export N005=`expr $N000 \* 180`
+export N006=200
+export N007=`expr $N000 \* 500`
+export N008=150
+export NR00=50
+export NP00=10
+
 export M001=`expr $N005 \- $N003`
-export M002=`expr $M001 \- $N004`
+export M002=`expr $M001`
 export M003=`expr $N002 \+ 1`
 export M004=`expr $N003 \+ 1`
 export M005=`expr $N004 \+ 1`
+export M006=`expr $N003 \* $NR00`
+export M007=`expr 2 \* $M006`
+export M008=`expr 8 \* $N003`
+export M009=`expr 8 \* $N003`
+export M010=`expr $N004 \+ $N003`
+export MP01=`expr $NP00 \+ 1`
+export MP02=`expr $NP00 \* 200`
+
+# VECCHI PARAMETERS :
+# export N000=160
+# export N001=`expr $N000 \* 10`
+# export N002=`expr $N000 \* 25`
+# export N003=60000
+# export N004=35000
+# export N005=130000
+# export N007=`expr $N000 \* 300`
+# export M001=`expr $N005 \- $N003`
+# export M002=`expr $M001 \- $N004`
+# export M003=`expr $N002 \+ 1`
+# export M004=`expr $N003 \+ 1`
+# export M005=`expr $N004 \+ 1`
+
 #############################################################
 #     SID ENVIRONEMENT                                      #
 #############################################################
