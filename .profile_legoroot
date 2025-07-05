@@ -79,7 +79,7 @@ export LG_TEXTEDITOR=leafpad
 #############PRODUCTINSTEND##########
 ######     NET_COMPI E LEGO PARAMETERS    ######
 ####  GUAG2025: Nuovi parametri (cambiare lg_parameter.fh, sim_param.h e qui .profile_legoroot)
-export N000=250
+export N000=200
 export N001=`expr $N000 \* 10`
 export N002=`expr $N000 \* 25`
 export N003=`expr $N000 \* 100`
