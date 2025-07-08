@@ -65,7 +65,7 @@ HEADER_DATI *header_dati; /* tabella parallela a nom_bloc che per ogni
 			   */
 
 extern char **nom_bloc;
-extern int cerca_umis(char*);
+extern int cerca_umis(char*,int);
 
 void crea_array_valori_f14(int,int);
 void read_valori_f14(FILE*,int,int);
@@ -212,7 +212,7 @@ strapp[1]=0;
 /* esamina in base alla prima lettera della sigla quale e'
    l'unita' di misura utilizzata (nel caso di indice = 0)
    si tratta di digitale */
-        val->ind_umis=cerca_umis(&temp[OFF_SIGLA]);
+        val->ind_umis=cerca_umis(&temp[OFF_SIGLA],0);
 
 /* estrae il valore */
         sscanf(&temp[OFF_VAL],"%10f",&val->val);

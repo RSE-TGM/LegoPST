@@ -226,7 +226,7 @@ void apply_proc();
 void timer_proc();
 void find_proc();
 void HC_proc();
-extern int cerca_umis(char*);
+extern int cerca_umis(char*, int);
  int init_application(void);
 extern  void open_path();
 extern int open_gruppi();
@@ -489,7 +489,7 @@ for(i=0;i<4;i++)
   if(s->ind_mis[i]!=-1)
     {
     loaded=1;
-    s->ind_umis[i]=cerca_umis(simboli[indice]);
+    s->ind_umis[i]=cerca_umis(simboli[indice],0);
     if ( strlen(WW->grafico.descr_var[i])!=0 )
       strncpy (s->descr_mis[i],WW->grafico.descr_var[i],LUN_SIMB);
     else strcpy(s->descr_mis[i],simboli[indice]);
@@ -2490,7 +2490,7 @@ switch(ind_widget)
 		if(s->ind_mis[i]!=-1)
 			{
 			strcpy(s->descr_mis[i],simboli[indice]);
-			(s->ind_umis[i])=cerca_umis(s->descr_mis[i]);
+			(s->ind_umis[i])=cerca_umis(s->descr_mis[i],0);
 			if(s->ind_umis[i]==-1)
 				{
 				s->ind_umis[i]=num_umis-1;

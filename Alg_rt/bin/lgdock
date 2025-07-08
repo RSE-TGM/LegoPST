@@ -8,7 +8,8 @@
 HOST_USERNAME=$(whoami)
 HOST_USER_ID=$(id -u)
 HOST_GROUP_ID=$(id -g)
-HOST_USER_HOME="/home/$HOST_USERNAME" # Home dell'utente SULL'HOST
+#HOST_USER_HOME="/home/$HOST_USERNAME" # Home dell'utente SULL'HOST
+HOST_USER_HOME="$HOME" # Home dell'utente SULL'HOST
 DESIRED_USER_PASSWORD=$HOST_USERNAME
 
 echo "Avviando container per utente: $HOST_USERNAME (UID: $HOST_USER_ID, GID: $HOST_GROUP_ID)"
@@ -17,6 +18,7 @@ echo "DISPLAY dell'host che verr passato: $DISPLAY"
 
 # Crea l'utente dinamicamente nel container e avvia la shell
 docker run --rm -it \
+    --platform linux/amd64 \
     -e DISPLAY="$DISPLAY" \
     -v /tmp/.X11-unix:/tmp/.X11-unix \
     -v "$HOST_USER_HOME:/host_home" \

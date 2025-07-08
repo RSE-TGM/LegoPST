@@ -68,7 +68,7 @@ extern  void formatta(char*,float);
 extern void prep_draw(float,float,S_MIN_MAX *,Widget);
 extern void draw_grid(Window);
 extern Widget	create_S_MAIN_WINDOW_PLOT(Widget,S_XLGRAFICO *);
-extern int cerca_umis(char*);
+extern int cerca_umis(char*,int);
 extern int set_ordinate(int,S_XLGRAFICO *);
 extern void GetPuntXlGrafico (Widget);
 
@@ -245,7 +245,7 @@ In questo modo pero' non si ha a disposizione la descrizione della variabile.
       {
       if ( strlen(WW->grafico.descr_var[i])!=0 )
 	{
-        s->ind_umis[i]=cerca_umis(NomeVar);
+        s->ind_umis[i]=cerca_umis(NomeVar,0);
 	XtFree (NomeVar);
 	NomeVar = XtNewString (WW->grafico.descr_var[i]);
         }

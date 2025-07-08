@@ -218,7 +218,7 @@ void init_gc (int );
 int new_aing (int);
 //int del_refresh (void*);
 int del_refresh ();
-int cerca_umis(char*);
+int cerca_umis(char*,int);
 void agg_stato (int);
 //int add_refresh (XtCallbackProc, void*);
 int pert_malfunction(int ,int ,float ,float ,float );
@@ -657,7 +657,7 @@ else
 /*
  ricava l'unita' di misura utilizzata
  */
-    ind_umis = cerca_umis (aing[ip3].nome_var);
+    ind_umis = cerca_umis (aing[ip3].nome_var,0);
     aing[ip3].a = uni_mis[ind_umis].A[uni_mis[ind_umis].sel];
     aing[ip3].b = uni_mis[ind_umis].B[uni_mis[ind_umis].sel];
     strcpy (aing[ip3].umis, uni_mis[ind_umis].codm[uni_mis[ind_umis].sel]);

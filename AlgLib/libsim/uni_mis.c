@@ -37,7 +37,7 @@ static char SccsID[] = "@(#)uni_mis.c	5.1\t11/10/95";
 //#include <sim_types.h>
  void init_umis();
  void agg_umis();
- int cerca_umis(char*);
+ int cerca_umis(char*,int);
 
 
 /*
@@ -62,7 +62,7 @@ if(fpUMIS==NULL)
 fpUMIS=fopen("uni_misc.dat","w");
         if(fpUMIS == NULL)
                 {
-                printf("\n errore apertura file unita' di misura\n");
+                printf("\n init_umis:  errore apertura file unita' di misura\n");
                 exit(0);
                 }
         for(i=0;i<num_umis;i++)
@@ -97,8 +97,14 @@ fclose(fpUMIS);
  *      al primo carattere della sigla.
  */
 
-int cerca_umis(descr)
-char *descr;
+int cerca_umis(char *descr, int silent)
+// cerca_umis
+// Cerca l'indice della unità di misura in base alla descrizione
+//
+// Se silent è 1 non stampa l'errore se non trova l'unità di misura
+// ritorna l'indice della unità di misura trovata, oppure l'ultima
+// unità di misura se non trova quella richiesta.
+// Se descr è NULL o vuota ritorna 0 come default:
 {
 int i,num_umis;
 
@@ -114,13 +120,13 @@ for(i=0;i<num_umis;i++)
 	if(toupper(descr[0]) == (int) uni_mis[i].type)
 		return(i);
 	}
-printf("AVVISO: unità di misura non trovata per '%s', uso default\n", descr);
+if (!silent) {fprintf(stderr,"ERRORE: cerca_umis: unità di misura non trovata per '%s', uso default\n", descr);}
 return(num_umis-1); /* se non e' stata trovata l'unita' di misura
                        assume come umis l'ultima in tabella che 
                        corrisponde al caso di undefined */  
 }
 
-
+\
 
 /*
    ricerca quante unita' di misura sono previste
@@ -133,3 +139,4 @@ int i;
 i= sizeof (uni_mis) / sizeof (S_UNI_MIS);
 return(i);
 }
+

@@ -1,5 +1,4 @@
 
-
 package require Tix
 
 source $env(LG_TIX)/checkopen.tcl
@@ -126,6 +125,7 @@ set ::styledrag 0
 
 #determinazione del fattore di scala corrente
 set  ::fattsca [ tk scaling ]
+####tk scaling 1
 #determinazione della risoluzione del monitor
 set  ::dpimon [winfo fpixels . 1i ]
 #tk_messageBox -message "$::tcl_platform(os) scale=$::fattsca dpimon=$::dpimon convConst=$::convConst"  -type ok
@@ -209,8 +209,8 @@ proc switchuser {} {
        return
        } 
 
-#	set repathULTIMO {HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager\Environment}
 	set repathULTIMO {HKEY_CURRENT_USER\Environment}
+###	set repathULTIMO {HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager\Environment}
 	registry set $repathULTIMO "LG_ENTRY" $curdirectory
 
 #	set repath1 {HKEY_LOCAL_MACHINE\SYSTEM\ControlSet001\Control\Session Manager\Environment}
@@ -314,6 +314,8 @@ puts "legopc.tix: tolerance=$::tolerance"
 proc ssopt {} {
 global calcmode jacob damp tolerance peso0 epsilon percent
 #tk_messageBox -icon warning -message "calcmode:$calcmode" -type ok
+# calcmode 1=MA28   0=Schmidt
+set calcmode 1
      if [file exists lg3.inp] {
         set f [checkopen lg3.inp r]
         gets $f line
@@ -674,7 +676,7 @@ if {$mult_sel == 0} {
          if [info exists ::select_list] {set risul [lsearch -exact $::select_list $tid]}
          
          if { $risul != -1} {
-         #	tk_messageBox -icon warning -message "itemStartDrag_mult C'e già" -type ok
+         #	tk_messageBox -icon warning -message "itemStartDrag_mult C'e gi�" -type ok
          	set x [$c canvasx $x]
          	set y [$c canvasy $y]
          
@@ -724,7 +726,7 @@ if {$mult_sel == 0} {
 #catch [set risul [lsearch -exact $::select_list $tid]]
 #
 #if { $risul != -1} {
-##	tk_messageBox -icon warning -message "itemStartDrag_mult C'e già" -type ok
+##	tk_messageBox -icon warning -message "itemStartDrag_mult C'e gi�" -type ok
 #	set x [$c canvasx $x]
 #	set y [$c canvasy $y]
 #
@@ -1048,7 +1050,7 @@ proc itemAdd {c x y} {
 #tk_messageBox -message "itemAdd: mymodId=$mymodId"
 }
 
-proc itemAddFromfile {c x y ctool libp prnum ori} {
+proc itemAddFromfile {c x y ctool libp prnum ori curname} {
 global progNumb
 	set ff_progNumb $prnum
 	set fromfile "yes"
@@ -1064,10 +1066,11 @@ global progNumb
 		if {[string length $enval] > 4} {set enval [string range $enval 0 3]}
 		if {[string length $enval] < 4} {set enval [string range ${enval}____ 0 3]}
 		set ff_progNumb [string toupper $enval]
+		set prnum $ff_progNumb
 	
 	
 	}
-
+    if { $curname != "?" } { aggiungi_eccedi14 $curname $ff_progNumb }
 
 	source [file join $libp $ctool.tcl]
 	set modified 1
@@ -1101,9 +1104,9 @@ proc finishJoin {c} {
 
 
 proc plotPS {c} {
-	global env curFileName wsXsiz wsYsiz
+	global env curFileName wsXsiz wsYsiz modalita
 	#overwrite pixmap image with bitmaps (yeck)
-#  trasformazione delle icone a colori in icone bianco/nero.( GUAG: perchï¿½???)		
+#  trasformazione delle icone a colori in icone bianco/nero.( GUAG: perch�???)		
 #	foreach pitem [$c find withtag module] {
 #           	set modname [$c itemcget $pitem -image]
 #		set lc [$c bbox $pitem] 
@@ -1133,7 +1136,8 @@ proc plotPS {c} {
 	set largh [expr $wsXsiz + 0]
 	set altez  [expr $wsYsiz + 0]
 #	set altez $wsYsiz 
-
+update
+#if {$modalita == 1} { tk_messageBox -icon info -type ok -message " sono in c"} else {tk_messageBox -icon info -type ok -message " sono in c2"}
 #tk_messageBox -icon info -type ok -message "$largh  $altez"
 
 #	$c postscript -width $wsXsiz -height $wsXsiz -pagewidth 210m -pageheight 297m \
@@ -1682,9 +1686,9 @@ if {[info vars ::currTid] == ""} {return}
 
 proc CambiaNome {c } {
 global modified needbuild
+global progName  showon enval progNumb mnamedone
+
 if {[info vars ::currTid] == ""} {return}
-
-
       	       	
   set myTags [$c gettags $::currTid]
 
@@ -1692,7 +1696,6 @@ if {[lsearch -exact $myTags  remarkdescr] != -1} {
 # è un remark, non  permetto il cambiamento del nome
       	       	return }
     
-   global progName  showon enval progNumb mnamedone
    set nome [file rootname [lindex $myTags [lsearch $myTags *.name]]]
 ##   set tid [lindex $myTags 0]   
 #   tk_messageBox -message "prima=$myTags\n nome=$nome\n tid=$tid"
@@ -1755,6 +1758,7 @@ if {[lsearch -exact $myTags  remarkdescr] != -1} {
 	   set ok1 0
 	   grab release $mndlg
 	   $c delete $wid
+	   aggiungi_eccedi14 $nome $progName 
 	   }
 	  }
 	}
@@ -1794,6 +1798,7 @@ catch {unset  ::currTags};catch {unset  ::currTid}; catch {unset  ::currTid_x}; 
 proc esiste_processo { prid } {
 
 # ritorna 1 se esiste il processo con il process id "prid"
+
 switch $::LINUXPLAT {
 			0 { 
 				set compslist "pslist" 
@@ -2229,7 +2234,6 @@ $c bind connection <3> {
 #####$c bind module <Shift-Button-1> "itemDelete $c"
 
 $c bind port <1> "portSelect $c"
-
 if { $::LINUXNOMATLAB != 1 } {
 # se PC
   $c bind port <Alt-ButtonPress-3> "showMathVar $c %x %y"
@@ -2237,7 +2241,6 @@ if { $::LINUXNOMATLAB != 1 } {
 # se linux
   $c bind port <Shift-Alt-ButtonPress-3> "showMathVar $c %x %y"
 }
-
 bind $c <Alt-ButtonRelease-3> "destroyMathVar $c"
 
 # tolgo il comando da tastiera di delete della connessione
@@ -2332,9 +2335,9 @@ bind $c <B1-ButtonRelease> {
     $pop add command -label "Select All" -under 0 -command  {set ::mult_sel 1; itemStartDrag_mult_all $c 1} 
 #    $pop add command -label "Copy" -under 0 -command {set ::currTidCopy $::currTid; set ::currTagsCopy $::currTags}
     $pop add command -label "Copy" -under 0 -command {
-    	if {$::mult_sel == 0} {set ::currTidCopy $::currTid}  else {
+    	if {$::mult_sel == 0} then {set ::currTidCopy $::currTid}  else {
     		set ::currTidCopy $::select_list; 
-#    		tk_messageBox -message "Copy: ::currTidCopy=$::currTidCopy"
+#    		tk_messageBox -message "Copy 1: ::currTidCopy=$::currTidCopy"
     		}
     	}
     $pop add command -label "Paste" -under 0 -command "IncollaItem $c"                                    
@@ -2357,7 +2360,7 @@ bind $c <B1-ButtonRelease> {
 #	             tk_messageBox -message $::currTags
                      set ::currTid [lindex $::currTags 0]
                      set pop $c.pop
-                     if {[lsearch [$c gettags $::currTid] link*] != -1} {
+                     if {[lsearch [$c gettags $::currTid] link*] != -1} then {
 # è un link              
                      itemStartDrag $c $::currTid_x $::currTid_y 
                      $pop entryconfigure 1 -state disabled 	
@@ -2368,10 +2371,10 @@ bind $c <B1-ButtonRelease> {
                      $pop entryconfigure 6 -state disabled 	
                      $pop entryconfigure 7 -state disabled 	
                      $pop entryconfigure 8 -state normal -label "Delete link"
-                    } elseif { $::currTid == ""} { 
+                    } elseif { $::currTid == ""} then { 
 # è lo sfondo
                      $pop entryconfigure 1 -state disabled 	
-                     if {[info exists ::currTidCopy] == 1} {$pop entryconfigure 2 -state normal
+                     if {[info exists ::currTidCopy] == 1} then {$pop entryconfigure 2 -state normal
                           } else {$pop entryconfigure 2 -state disabled} 	
                      $pop entryconfigure 3 -state disabled 	
                      $pop entryconfigure 4 -state normal 	
@@ -2379,7 +2382,7 @@ bind $c <B1-ButtonRelease> {
                      $pop entryconfigure 6 -state disabled 	
                      $pop entryconfigure 7 -state disabled
                      $pop entryconfigure 8 -state disabled -label "Delete"
-                    } elseif {[lsearch -exact $::currTags  remarkdescr] != -1} { 
+                    } elseif {[lsearch -exact $::currTags  remarkdescr] != -1} then { 
 # è un testo
                      itemStartDrag $c $::currTid_x $::currTid_y
                      $pop entryconfigure 1 -state normal 	
@@ -2391,14 +2394,14 @@ bind $c <B1-ButtonRelease> {
                      $pop entryconfigure 7 -state disabled
                      $pop entryconfigure 8 -state normal -label "Delete"
                      
-                   } elseif {[lsearch -exact $::currTags  module] != -1}  { 
+                   } elseif {[lsearch -exact $::currTags  module] != -1} then { 
 # è un modulo                	
                      itemStartDrag $c $::currTid_x $::currTid_y
                      $pop entryconfigure 1 -state normal 	
                      $pop entryconfigure 2 -state disabled 	
                      $pop entryconfigure 3 -state normal 	
                      $pop entryconfigure 4 -state disabled 	
-                     if {$::mult_sel == 0}  {
+                     if {$::mult_sel == 0} then {
                         $pop entryconfigure 3 -state normal 	
                         $pop entryconfigure 4 -state disabled 	
                         $pop entryconfigure 5 -state disabled 	
@@ -2448,7 +2451,7 @@ if {[lsearch [$c gettags $::currTid] link*] != -1} {
 	}
 ####
 }
-}
+
 
 #foreach ::currTid $::select_list {
 #if {[lsearch [$c gettags $::currTid] link*] != -1} {
@@ -2468,7 +2471,8 @@ if {[lsearch [$c gettags $::currTid] link*] != -1} {
 
 proc IncollaItem {c} {
 	
-global progNumb
+global progNumb needbuild modified   
+
 
 # tolgo da currtidcopy le tag dei rettagoli di selezione
 #set tidcopy ""
@@ -2480,7 +2484,7 @@ foreach tid $::currTidCopy {
 }
 
 #lappend tidcopy [lindex $tid [lsearch -regexp $tid id]]
-#debug tk_messageBox -message "IncollaItem:tidcopy=$tidcopy"
+#debug   tk_messageBox -message "IncollaItem 00:tidcopy=$tidcopy"
 #set qq [puts $::tidcopy]
 #set lc [$c bbox $::tidcopy ]
 #set lc [$c bbox id1 id5 id8 id14 id24]
@@ -2506,11 +2510,12 @@ foreach mytid  $tidcopy 	{
 
 set delta_x [expr $::currTid_x - $xmin]
 set delta_y [expr $::currTid_y - $ymin]
-#tk_messageBox -message "IncollaItem: xmin=$xmin\n ymin=$ymin"
+#debug tk_messageBox -message "IncollaItem: xmin=$xmin\n ymin=$ymin"
 foreach mytid  $tidcopy 	{
 	set mytags [$c gettags $mytid]
+set curname [file rootname [lindex [$c gettags $mytid] [lsearch [$c gettags $mytid] *.name]]]	
 	
-#	tk_messageBox -message "IncollaItem: $mytid\n mytags=$mytags"	
+#debug 	tk_messageBox -message "IncollaItem 0: $mytid\n mytags=$mytags\n curname=$curname"	
 #  if  {[lsearch -exact $mytags  selectitem] != -1} {continue}
 	
 	if {[lsearch -exact $mytags  remarkdescr] != -1} { set isremark 1; set lpath [file rootname [lindex $mytags 5]]
@@ -2532,9 +2537,10 @@ foreach mytid  $tidcopy 	{
 	if {[string length $enval] > 4} {set enval [string range $enval 0 3]}
 	if {[string length $enval] < 4} {set enval [string range ${enval}____ 0 3]}
 	set prnum [string toupper $enval]
-	#tk_messageBox -message "IncollaItem: $::currTags\n lpath=$lpath ctool=$ctool ori=$ori\n progNumb=$progNumb\n prnum=$prnum"
+#debug tk_messageBox -message "IncollaItem 1: $::currTags\n lpath=$lpath ctool=$ctool ori=$ori\n progNumb=$progNumb\n prnum=$prnum"
 	lappend prnum_list $prnum
-	set mymod_paste [itemAddFromfile $c $x $y $ctool $lpath $prnum $ori]
+	set mymod_paste [itemAddFromfile $c $x $y $ctool $lpath $prnum $ori $curname]
+#tk_messageBox -message "IncollaItem 2: $::currTags\n lpath=$lpath ctool=$ctool ori=$ori\n progNumb=$progNumb\n prnum=$prnum curname=$curname"
 	
 	if {$isremark == 1} {
 		set testo_attuale [$c itemcget $mytid -text ]
@@ -2546,6 +2552,8 @@ foreach mytid  $tidcopy 	{
                 leggi_font $c $mymod_paste 2 $xfont_color 
                 $c itemconfigure $mymod_paste -text $testo_attuale -font $xfont -fill $colore
          }
+   set needbuild 1
+   set modified 1  
          		
 lappend tidpaste $mymod_paste
  }	
@@ -2558,6 +2566,20 @@ incollaitem_connetti $c $tidcopy $tidpaste
 
 
 }
+
+proc aggiungi_eccedi14 { sorgname destname } {
+ if [ file exists edi14_eccezioni_letto.out ] {
+ file delete -force edi14_eccezioni.inp
+ file delete -force edi14_eccezioni_letto.out
+ }
+ 
+ set f [checkopen edi14_eccezioni.inp a+]
+       puts $f "$sorgname,$destname"
+       close $f
+
+}
+
+
 
 proc incollaitem_connetti {c tidcopy tidpaste} {
 #debug tk_messageBox -message "incollaitem_connetti: tidcopy=$tidcopy   tidpaste=$tidpaste"	
@@ -2623,8 +2645,8 @@ if {[string length $enval] < 4} {set enval [string range ${enval}____ 0 3]}
 set prnum [string toupper $enval]
 #tk_messageBox -message "IncollaItem: $::currTags\n lpath=$lpath ctool=$ctool ori=$ori\n progNumb=$progNumb\n prnum=$prnum"
 
-
-itemAddFromfile $c $x $y $ctool $lpath $prnum $ori
+set curname "?"
+itemAddFromfile $c $x $y $ctool $lpath $prnum $ori $curname
 
 }
 
@@ -2863,7 +2885,17 @@ $c2 bind module <1> {
 #  pack $nn.lg3txt $nn.golg3 $nn.rich $nn.vrich $nn.imp $nn.vimp $nn.out $nn.vout $nn.input $nn.vinput -side left
 #  pack $nn -side top -padx 2m -padx 2m -anchor w
 
+#GUAG2012
+if { $::LINUXNOMATLAB != 1 } {
+# se PC
+  $c2 bind port <Alt-ButtonPress-3> "showMathVar $c2 %x %y"
+} else {
+# se linux
+  $c2 bind port <Shift-Alt-ButtonPress-3> "showMathVar $c2 %x %y"
+}
+bind $c2 <Alt-ButtonRelease-3> "destroyMathVar $c2"
 
+#fine GUAG2012
 
 return $c2
 
@@ -3004,8 +3036,12 @@ set mod 4
             puts "ShowNamesfilt: eccomi 1 mod=$mod"	
               set lgsincropid 1
           }
+
+          if  { $::LINUXPLAT == 0 } {
+# per window
 #se si vuole togliere il blocco sulla assenza di lgsincro, scommetare la successiva...
-#if  { $lgsincropid == -1 } { set lgsincropid 1 }
+              if  { $lgsincropid == -1 } { set lgsincropid 1 }
+          }
 
 # metto in animazione lo schema con i valori del transitorio
     	if { $lgsincropid != -1 } {
@@ -3309,26 +3345,21 @@ proc CreateBanner {} {
    set build_date "N/A"
 
    set version_file "$env(LEGOROOT)/version.h"
-   set version_file "$env(LEGOROOT)/version.h"
 
-# Controlla se il file esiste
 # Controlla se il file esiste
    if {![file exists $version_file]} {
        # Se il file non esiste, lo generiamo
        puts "Info: Genero il file di versione mancante..."
        if {[catch {exec make -s -C $env(LEGOROOT) -f Makefile.mk version.h} result]} {
-           puts "ERRORE: Impossibile generare il file di versione."
+           puts "ERRORE: Impossibile generare il file di versione 'version.h'."
            puts "Dettagli: $result"
-           # Mostriamo un errore e usciamo dalla procedura
-           tk_messageBox -icon error -title "Errore" -message "Impossibile generare il file 'version.h'"
-           return
+        #    tk_messageBox -icon error -title "Errore" -message "Impossibile generare il file 'version.h'"
+        #    return
        } else {
            puts "Info: File di versione generato con successo."
        }
-   }
-
-   # Ora leggiamo il file (che dovrebbe esistere)
-   if {[file exists $version_file]} {
+   } else {
+	   # Se il file version.h esiste, lo leggiamo per estrarre le informazioni
        set f [open $version_file r]
        while {[gets $f line] >= 0} {
            # Controlliamo le righe una per una con elseif
@@ -3388,10 +3419,7 @@ proc CreateBanner {} {
    pack .relinfo.frame .relinfo.but -side top -pady 1m
 }
 		   
-#-------------------------------------------------------------
-#  Include files for LegoPc
-# LogPC accessory files
-
+# Includo, per il main di legopc.tix, varie proc -----------------------------------------------
 source $env(LG_TIX)/golg3_v2.tcl
 source $env(LG_TIX)/simul_v2.tix
 
@@ -3402,6 +3430,7 @@ source $env(LG_TIX)/fileio.tcl
 source $env(LG_TIX)/rotate.tcl
 source $env(LG_TIX)/legodat_v2.tix
 source $env(LG_TIX)/openhelp.tcl
+# Fine nel  main di legopc.tix ----------------------------------------------------------
 
 proc raisetopol { c } {
 	   	global showon  curFileName
@@ -3545,7 +3574,8 @@ proc createtask { f c c2} {
 #####################################################
 
 
-    global model_img data_img task_img curSimulPathName
+    global model_img data_img task_img curSimulPathName, modalita
+	set modalita 0
     set oldeimage ""
     set curTool none
     set progNumb 0
@@ -3789,8 +3819,10 @@ if { $::LINUXPLAT == 0 } {
     $m add separator
     $m add command -label "Set canvas size" -command "sizeCanv $c both"
     $m add separator
+    if { $::LINUXPLAT == 1 } {
     set modalita 1
     global modalita
+    }
     $m add command -label "Postscript" -command "if { $modalita == 1} {plotPS $c2 } else { plotPS $c2 } "
      
 #    $m add separator
@@ -3847,13 +3879,15 @@ if { $::LINUXPLAT != 0 } {
     $m add radio -label "Show Names" -variable showon -value 2 -command "ShowNamesfilt $c $c2 1; ShowNamesfilt $c $c2 2"
     $m add radio -label "Show Classes" -variable showon -value 3 -command "ShowNamesfilt $c $c2 1; ShowNamesfilt $c $c2 3"
     $m add radio -label "Show Value" -variable showon -value 4 -command "ShowNamesfilt $c $c2 1; ShowNamesfilt $c $c2 4"
-#    $m add radio -label "Show infoitemname" -variable showon -value 4 -command "ShowNamesfilt $c $c2 5"
+    
 
 
 set ::stileanim 1
 set ::stileanim_prec $::stileanim    
     if { $::LINUXPLAT } {
     $m add checkbutton -label "StileAnim" -variable ::stileanim
+    } else {
+    $m add radio -label "Show infoitemname" -variable showon -value 4 -command "ShowNamesfilt $c $c2 5"
     }
     
     set m .menu.util

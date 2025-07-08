@@ -130,7 +130,7 @@ if {$modified == 0 } { return 0}
 	   foreach item [$c find withtag tiporeg] {
             set blo_ite($nelem) $item
             set blo_nam($nelem) [file rootname [lindex [$c gettags $item] [lsearch [$c gettags $item] *.name]]]
-puts "writeFiles: $item è un REGOL. nelem=$nelem  blo_nam=$blo_nam($nelem)"
+#puts "writeFiles: $item è un REGOL. nelem=$nelem  blo_nam=$blo_nam($nelem)"
             
 	    incr nelem
         }	    
@@ -138,7 +138,7 @@ puts "writeFiles: $item è un REGOL. nelem=$nelem  blo_nam=$blo_nam($nelem)"
 	   if {[lsearch [$c gettags $item] tiporeg] == -1} {
             set blo_ite($nelem) $item
             set blo_nam($nelem) [file rootname [lindex [$c gettags $item] [lsearch [$c gettags $item] *.name]]]
-puts "writeFiles: $item è un MODULO nelem=$nelem  blo_nam=$blo_nam($nelem)"
+#puts "writeFiles: $item è un MODULO nelem=$nelem  blo_nam=$blo_nam($nelem)"
             
 	    incr nelem
 	   }

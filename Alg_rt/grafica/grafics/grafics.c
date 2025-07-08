@@ -444,7 +444,7 @@ static void apply_proc();
 static void timer_proc();
 static void find_proc();
 static void HC_proc();
-extern int cerca_umis(char*);
+extern int cerca_umis(char*,int);
 static int init_application();
 //static void load_file(char*);
 static int cerca_stringa(char*,char **);
@@ -748,7 +748,7 @@ for(i=0;i<4;i++)
 		{
 		loaded=1;
 		strcpy(s->descr_mis[i],simboli[indice]);
-		(s->ind_umis[i])=cerca_umis(s->descr_mis[i]);
+		(s->ind_umis[i])=cerca_umis(s->descr_mis[i],0);
 		if(s->ind_umis[i]==-1)
 			{
 			s->ind_umis[i]=num_umis-1;
@@ -2634,7 +2634,7 @@ switch(*tag)
 		if(s->ind_mis[i]!=-1)
 			{
 			strcpy(s->descr_mis[i],simboli[indice]);
-			(s->ind_umis[i])=cerca_umis(s->descr_mis[i]);
+			(s->ind_umis[i])=cerca_umis(s->descr_mis[i],0);
 			if(s->ind_umis[i]==-1)
 				{
 				s->ind_umis[i]=num_umis-1;
