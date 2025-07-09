@@ -48,12 +48,17 @@ PATHBIN = $(LEGORT_BIN)
 
 SORGENTI = main_viewval.c viewshr.c 
 OGGETTI = main_viewval.o viewshr.o 
+SORGENTI_LEGACY = main_viewval_legacy.c viewshr.c 
+OGGETTI_LEGACY = main_viewval_legacy.o viewshr.o 
 
 
 
 
-all: $(PATHBIN)/viewval $(OGGETTI) Makefile.mk
+all: $(PATHBIN)/viewval $(OGGETTI) $(PATHBIN)/viewval_legacy $(OGGETTI_LEGACY)Makefile.mk
 
 
 $(PATHBIN)/viewval: $(OGGETTI)
 	cc $(CFLAGS) $(OGGETTI) $(LIBSVIL) $(LIBUTIL) $(STUB_LIBS) -o $(PATHBIN)/viewval
+
+$(PATHBIN)/viewval_legacy: $(OGGETTI_LEGACY)
+	cc $(CFLAGS) $(OGGETTI_LEGACY) $(LIBSVIL) $(LIBUTIL) $(STUB_LIBS) -o $(PATHBIN)/viewval_legacy
