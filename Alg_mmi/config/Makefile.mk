@@ -17,7 +17,8 @@ GUI_BUILD=/usr/bin/aic
 OS=LINUX
 SQLITE_LIB=-lsqlite3
 #SQLITE_LIB=-L$(LEGOROOT_LIB)/sqlite_lib -lsqlite3
-THREAD_LIB=-L$(LEGOROOT_LIB)/dcethreads_lib -ldcethreads -ldl
+#THREAD_LIB=-L$(LEGOROOT_LIB)/dcethreads_lib -ldcethreads -ldl
+THREAD_LIB=-lpthread -ldl
 X_LIB=-L/usr/X11R6/lib -lMrm -lXm -lXt -lX11
 X_INCLUDE=-I. -I/usr/local/include -I/usr/lib/gcc-lib/i386-redhat-linux/2.96/include -I/usr/include -I/usr/include/uil -I/usr/include/Xt -I/usr/include/lib 
 #C_FLAGS=-g  -DLINUX -DLINUX9   -DXT_CODE -DXOPEN_CATALOG -DUNIX -Dmmap=_mmap_32_ -DXPRINTER_USED -DXLIB_ILLEGAL_ACCESS -I$(LEGOROOT_LIB)/dcethreads_include -I$(LEGOROOT_LIB)/sqlite_include  -I/usr/include
@@ -39,7 +40,7 @@ APPL_INCL       = -I$(LEGOROOT_INCLUDE) -I$(LEGOMMI_INCLUDE) -I$(X_INCLUDE)\
 X_CFLAGS        = -I/usr/include/ $(X_INCLUDE)
 
 CFLAGS          = $(C_FLAGS) -DXLIB_ILLEGAL_ACCESS -DON_PAGEDIT $(VERSIONE) \
-                  $(APPL_INCL) $(X_CFLAGS) $(MOTIF_CFLAGS)
+                  $(APPL_INCL) $(X_CFLAGS) $(MOTIF_CFLAGS) $(THREAD_LIB)
                   
 all:
 	$(MAKE) -f config.mk
