@@ -593,7 +593,7 @@ printf("dopo di genera 2...\n");
 		}
 		else if(tipo_op == REORDER_MODEL)
 		{
-		   set_something( XtParent(SelectModelBox),XmNtitle,(void*) "DeleteModelBox");
+		   set_something_val( XtParent(SelectModelBox),XmNtitle, (XtArgVal) "DeleteModelBox");
 		   wid = XmSelectionBoxGetChild( SelectModel, XmDIALOG_OK_BUTTON );
 		   XtUnmanageChild( wid );
 		}

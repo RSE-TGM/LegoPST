@@ -462,12 +462,12 @@ char *message;
 menu_modulo_non_attivo ()
 {
 
-   set_something (UxGetWidget(pb_edit_ftn),XmNsensitive,(void*) False);
-   set_something (UxGetWidget(pb_modify_newmod),XmNsensitive,(void*) False);
-   set_something (UxGetWidget(pb_delete),XmNsensitive,(void*) False);
-   set_something (UxGetWidget(pb_edicole),XmNsensitive,(void*) False);
+   set_something_val (UxGetWidget(pb_edit_ftn),XmNsensitive, (XtArgVal) False);
+   set_something_val (UxGetWidget(pb_modify_newmod),XmNsensitive, (XtArgVal) False);
+   set_something_val (UxGetWidget(pb_delete),XmNsensitive, (XtArgVal) False);
+   set_something_val (UxGetWidget(pb_edicole),XmNsensitive, (XtArgVal) False);
 /***
-   set_something (UxGetWidget(pb_library),XmNsensitive,(void*) False);
+   set_something_val (UxGetWidget(pb_library),XmNsensitive, (XtArgVal) False);
 ***/
    menu_sbloccato = False;
 }
@@ -481,14 +481,14 @@ menu_modulo_non_attivo ()
  ***/
 menu_modulo_attivo ()
 {
-   set_something (UxGetWidget(pb_edit_ftn),XmNsensitive,(void*) True);
-   set_something (UxGetWidget(pb_delete),XmNsensitive,(void*) True);
-   set_something (UxGetWidget(pb_edicole),XmNsensitive,(void*) True);
-   set_something (UxGetWidget(pb_library),XmNsensitive,(void*) True);
+   set_something_val (UxGetWidget(pb_edit_ftn),XmNsensitive, (XtArgVal) True);
+   set_something_val (UxGetWidget(pb_delete),XmNsensitive, (XtArgVal) True);
+   set_something_val (UxGetWidget(pb_edicole),XmNsensitive, (XtArgVal) True);
+   set_something_val (UxGetWidget(pb_library),XmNsensitive, (XtArgVal) True);
 
 /* Abilita la modifica con la NEWMOD nel caso dei moduli di processo */
    if (tipo_modulo == LIBUT)
-      set_something (UxGetWidget(pb_modify_newmod),XmNsensitive,(void*) True);
+      set_something_val (UxGetWidget(pb_modify_newmod),XmNsensitive, (XtArgVal) True);
 
    menu_sbloccato = True;
 }
@@ -874,15 +874,15 @@ XmPushButtonCallbackStruct *zip;
       case LIBUT:
          percorso_libreria(nomefile, LIBUT, LIB_UTENTE);
          set_label(UxGetWidget(label_path_lib), nomefile);
-         set_something(UxGetWidget(pb_create_newmod),XmNsensitive, (void*) True);
+         set_something_val(UxGetWidget(pb_create_newmod),XmNsensitive, (XtArgVal) True);
 
 /*11-1-95 Micheletti */
-         /* set_something(UxGetWidget(pb_stdlib),XmNsensitive, (void*) True); */
-         set_something(UxGetWidget(pb_stdlib),XmNsensitive, (void*) False); 
-         set_something(UxGetWidget(pb_stdlib_base),XmNsensitive, (void*) True);
-         set_something(UxGetWidget(pb_stdlib_auxiliary),XmNsensitive,(void*) True );
-         set_something(UxGetWidget(pb_stdlib_nuclear),XmNsensitive,(void*) True );
-         set_something(UxGetWidget(pb_stdlib_special),XmNsensitive,(void*) True );
+         /* set_something_val(UxGetWidget(pb_stdlib),XmNsensitive, (XtArgVal) True); */
+         set_something_val(UxGetWidget(pb_stdlib),XmNsensitive, (XtArgVal) False); 
+         set_something_val(UxGetWidget(pb_stdlib_base),XmNsensitive, (XtArgVal) True);
+         set_something_val(UxGetWidget(pb_stdlib_auxiliary),XmNsensitive, (XtArgVal) True );
+         set_something_val(UxGetWidget(pb_stdlib_nuclear),XmNsensitive, (XtArgVal) True );
+         set_something_val(UxGetWidget(pb_stdlib_special),XmNsensitive, (XtArgVal) True );
 
          strcat(nomefile, FILE_DATI_LIBUT);
       break;
@@ -890,14 +890,14 @@ XmPushButtonCallbackStruct *zip;
       case LIBUTREG:
          percorso_libreria(nomefile, LIBUTREG, LIB_UTENTE);
          set_label(UxGetWidget(label_path_lib), nomefile);
-         set_something(UxGetWidget(pb_create_newmod),XmNsensitive, (void*) False);
-         set_something(UxGetWidget(pb_stdlib),XmNsensitive, (void*) False);
+         set_something_val(UxGetWidget(pb_create_newmod),XmNsensitive, (XtArgVal) False);
+         set_something_val(UxGetWidget(pb_stdlib),XmNsensitive, (XtArgVal) False);
 
 /*11-1-95 Micheletti */
-         set_something(UxGetWidget(pb_stdlib_base),XmNsensitive, (void*) False);
-         set_something(UxGetWidget(pb_stdlib_auxiliary),XmNsensitive, (void*) False);
-         set_something(UxGetWidget(pb_stdlib_nuclear),XmNsensitive, (void*) False);
-         set_something(UxGetWidget(pb_stdlib_special),XmNsensitive, (void*) False);
+         set_something_val(UxGetWidget(pb_stdlib_base),XmNsensitive, (XtArgVal) False);
+         set_something_val(UxGetWidget(pb_stdlib_auxiliary),XmNsensitive, (XtArgVal) False);
+         set_something_val(UxGetWidget(pb_stdlib_nuclear),XmNsensitive, (XtArgVal) False);
+         set_something_val(UxGetWidget(pb_stdlib_special),XmNsensitive, (XtArgVal) False);
 
          strcat(nomefile, FILE_DATI_LIBUTREG);
       break;
@@ -905,14 +905,14 @@ XmPushButtonCallbackStruct *zip;
       case LIBREG:
          percorso_libreria(nomefile, LIBREG, LIB_UTENTE);
          set_label(UxGetWidget(label_path_lib), nomefile);
-         set_something(UxGetWidget(pb_create_newmod),XmNsensitive, (void*) False);
-         set_something(UxGetWidget(pb_stdlib),XmNsensitive, (void*) True);
+         set_something_val(UxGetWidget(pb_create_newmod),XmNsensitive, (XtArgVal) False);
+         set_something_val(UxGetWidget(pb_stdlib),XmNsensitive, (XtArgVal) True);
 
 /*11-1-95 Micheletti */
-         set_something(UxGetWidget(pb_stdlib_base),XmNsensitive, (void*) False);
-         set_something(UxGetWidget(pb_stdlib_auxiliary),XmNsensitive, (void*) False);
-         set_something(UxGetWidget(pb_stdlib_nuclear),XmNsensitive, (void*) False);
-         set_something(UxGetWidget(pb_stdlib_special),XmNsensitive, (void*) False);
+         set_something_val(UxGetWidget(pb_stdlib_base),XmNsensitive, (XtArgVal) False);
+         set_something_val(UxGetWidget(pb_stdlib_auxiliary),XmNsensitive, (XtArgVal) False);
+         set_something_val(UxGetWidget(pb_stdlib_nuclear),XmNsensitive, (XtArgVal) False);
+         set_something_val(UxGetWidget(pb_stdlib_special),XmNsensitive, (XtArgVal) False);
 
          strcat(nomefile, FILE_DATI_LIBREG);
       break;
@@ -1765,7 +1765,7 @@ static void	activateCB_pb_edit_ftn( UxWidget, UxClientData, UxCallbackArg )
 	      strcpy(edit_struct[0].descr_mod, descr_modulo);
 	      edit_struct[0].tipo_lib = tipo_modulo;
 	
-	      set_something(weditcode, XmNuserData, (void*) edit_struct);
+	      set_something_val(weditcode, XmNuserData, (XtArgVal) edit_struct);
 	   }
 	}
 	}
@@ -1925,7 +1925,7 @@ static void	valueChangedCB_tb_debug( UxWidget, UxClientData, UxCallbackArg )
 	else
 	    xmstr = XmStringCreateSimple("Compiler Debug OFF");
 	
-	set_something(UxWidget,XmNlabelString,(void*) xmstr);
+	set_something_val(UxWidget,XmNlabelString, (XtArgVal) xmstr);
 	
 	set_debug(stato);
 	}

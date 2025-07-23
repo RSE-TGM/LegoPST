@@ -563,8 +563,7 @@ int ind_macro;
 	      /* marcati DELETED */
                   memcpy( &mblock->blocks[j], &mblock->blocks[i],
                           sizeof(BlockType));
-                  set_something( mblock->blocks[j].wpixmap, XmNuserData,
-				 (void*) &mblock->blocks[j] );
+                  set_something_val( mblock->blocks[j].wpixmap, XmNuserData, (XtArgVal) &mblock->blocks[j] );
 	      /* gestione della selezione */
 		  def_translations_block(ind_macro, j);
                   j++;

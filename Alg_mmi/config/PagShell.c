@@ -3843,7 +3843,7 @@ Widget	create_PagShell( _Uxnome_pagina, _Uxindice, _Uxtipop )
 		set_something_val(actual_page->topwidget,XmNtitle,(XtArgVal) titolo);
 		/***
 		if(!CompilerOk)
-		   set_something(PagPane_top_b4,XmNsensitive,(void*) False);
+		   set_something_val(PagPane_top_b4,XmNsensitive, (XtArgVal) False);
 		***/ 
 		PostOpenPage(actual_page->drawing);
 		
@@ -3851,8 +3851,8 @@ Widget	create_PagShell( _Uxnome_pagina, _Uxindice, _Uxtipop )
 		{
 		   PageMenuSetInterfaceModeOn();
 		/**
-		   set_something(SaveTmp,XmNsensitive,(void*) False);
-		   set_something(Option_b2,XmNsensitive,(void*) False);
+		   set_something_val(SaveTmp,XmNsensitive, (XtArgVal) False);
+		   set_something_val(Option_b2,XmNsensitive, (XtArgVal) False);
 		   set_connect(actual_page->drawing,(int)1);   
 		*/
 		}

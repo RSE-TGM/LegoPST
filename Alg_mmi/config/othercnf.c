@@ -2731,11 +2731,11 @@ void do_rubber(ICONLIB *plib,WidgetClass wid_class,Widget wid,Dimension w,Dimens
 					parent, NULL,0);
 	f_zoom= get_def_zoom(pagina->drawing);
 	perc_zoom =100.0 * f_zoom;
-    // GUAG2025 modifica di set_something con appo
+    // GUAG2025 modifica di set_something_val con appo
    // sprintf(appo,"%f",(w*f_zoom));
-   // set_something(new_wid,XmNwidth,  (char*) appo);  
+   // set_something_val(new_wid,XmNwidth, (XtArgVal) appo);  
    // sprintf(appo,"%f",(h*f_zoom));
-   // set_something(new_wid,XmNheight, (char*) appo);    
+   // set_something_val(new_wid,XmNheight, (XtArgVal) appo);    
    set_something_val(new_wid,XmNwidth,  (XtArgVal)(w*f_zoom));  
    set_something_val(new_wid,XmNheight, (XtArgVal)(h*f_zoom));  
       }
@@ -2748,16 +2748,16 @@ void do_rubber(ICONLIB *plib,WidgetClass wid_class,Widget wid,Dimension w,Dimens
       new_wid = XtCreateManagedWidget(new_name, wid_class,parent, NULL,0);
 	f_zoom= get_def_zoom(pagina->drawing);
 	perc_zoom =100.0 * f_zoom;
-   // GUAG2025 modifica di set_something con appo
+   // GUAG2025 modifica di set_something_val con appo
       set_something_val(new_wid,XmNx,  (XtArgVal)(wx/f_zoom));  
       set_something_val(new_wid,XmNy,  (XtArgVal)(wy/f_zoom));  
       set_something_val(new_wid,XlNfattZoom,(XtArgVal)perc_zoom);
       //  sprintf(appo,"%f",(wx/f_zoom));
-      //  set_something(new_wid,XmNx, (char*) appo);  
+      //  set_something_val(new_wid,XmNx, (XtArgVal) appo);  
       //  sprintf(appo,"%f",(wy/f_zoom));
-      //  set_something(new_wid,XmNy, (char*) appo); 
+      //  set_something_val(new_wid,XmNy, (XtArgVal) appo); 
       //  sprintf(appo,"%f",perc_zoom);
-      //  set_something(new_wid,XlNfattZoom, (char*) appo);  
+      //  set_something_val(new_wid,XlNfattZoom, (XtArgVal) appo);  
 
       get_something_val(new_wid,XlNx0, (XtPointer)&x0);  
       get_something_val(new_wid,XlNy0, (XtPointer)&y0);  
@@ -3223,7 +3223,10 @@ PAGINA *pag;
  una copia della risorsa di input value ricavata dall'oggetto
 */
 	newvalue=XtNewString(value);
-        InsTagVal(form,OL_FORM_INPUT_VALUE,nome_var,2,&newvalue,valore);
+   char *newvalue_input;
+   newvalue_input = newvalue;  //GUAG2025 copio il puntatore per liberare memoria dopo
+   int ret=InsTagVal(form,OL_FORM_INPUT_VALUE,nome_var,2,&newvalue,valore);
+   if(ret==2) XtFree(newvalue_input);
 	XtFree(valore);
 /*
  Inserisco nell'oggetto il nuovo valore

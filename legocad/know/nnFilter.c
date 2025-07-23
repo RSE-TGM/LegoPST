@@ -305,7 +305,7 @@ static void	createCB_nnF_slistMod( UxWidget, UxClientData, UxCallbackArg )
 	   xs = XmStringCreateSimple( "(none)");
 	   XmListAddItemUnselected( nnF_slistMod, xs, 0);
 	   XmStringFree( xs);
-	   set_something( nnF_slistMod, XmNvisibleItemCount, (void*) nst+2);
+	   set_something_val( nnF_slistMod, XmNvisibleItemCount, (XtArgVal) nst+2);
 	}
 	UxNnFilterContext = UxSaveCtx;
 }
@@ -356,7 +356,7 @@ static void	createCB_nnF_slistBloc( UxWidget, UxClientData, UxCallbackArg )
 	      XmListAddItemUnselected( nnF_slistBloc, xs, i+1);
 	      XmStringFree( xs);
 	   }
-	   set_something( nnF_slistBloc, XmNvisibleItemCount, (void*) nbl);
+	   set_something_val( nnF_slistBloc, XmNvisibleItemCount, (XtArgVal) nbl);
 	}
 	UxNnFilterContext = UxSaveCtx;
 }
@@ -449,8 +449,8 @@ static void	activateCB_nnF_aroVars( UxWidget, UxClientData, UxCallbackArg )
 	         XmListAddItemUnselected( nnF_slistVars, xs, 0);
 	         XmStringFree( xs);
 	      }
-	      set_something( nnF_slistVars,
-	       XmNvisibleItemCount, (void*) ? cSelVars : 1);
+	      set_something_val( nnF_slistVars,
+	       XmNvisibleItemCount, (XtArgVal) ? cSelVars : 1);
 	   }
 	   mostra_selVars();
 	}

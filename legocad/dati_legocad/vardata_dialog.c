@@ -1245,7 +1245,7 @@ if(lista_edit_on)
  esegue la callback relativa allo spostamento effettuato dallo 
  slider
 */ 
-	set_something(w_bar,XmNvalue,(void*) pos_slider); 
+	set_something_val(w_bar,XmNvalue, (XtArgVal) pos_slider); 
 	call_data.value=pos_slider;
 	set_selez_lista(poslista);
 
@@ -1582,9 +1582,8 @@ else
 		sw_sel=valori_Data;
 		break;
 		}
-	set_something(menu_valori,
-                     XmNmenuHistory,
-                     (void*) sw_sel);
+	set_something_val(menu_valori,
+                     XmNmenuHistory, (XtArgVal) sw_sel);
 	}
 
 }
@@ -2490,7 +2489,7 @@ static Widget	_Ux_popup_vardata( _Uxtipolista )
 				sw_sel=valori_Data;
 				break;
 			}
-		set_something(UxGetWidget(menu_valori),
+		set_something_val(UxGetWidget(menu_valori),
 		                       XmNmenuHistory,
 		                       UxGetWidget(sw_sel));
 		

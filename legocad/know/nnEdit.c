@@ -1059,8 +1059,8 @@ static void	valueChangedCB_nnE_scale( UxWidget, UxClientData, UxCallbackArg )
 	   XtSetValues( nnE_sWinLout, a, 1);
 	   XtSetValues( nnE_sWinLinp, a, 1);
 	*/
-	   set_something( nnE_sWinLout, XmNrightPosition, (void*) pA->value);
-	   set_something( nnE_sWinLinp, XmNrightPosition, (void*) pA->value);
+	   set_something_val( nnE_sWinLout, XmNrightPosition, (XtArgVal) pA->value);
+	   set_something_val( nnE_sWinLinp, XmNrightPosition, (XtArgVal) pA->value);
 	}
 	UxNnEditContext = UxSaveCtx;
 }
@@ -1110,7 +1110,7 @@ static void	activateCB_nnE_pbOadd( UxWidget, UxClientData, UxCallbackArg )
 	      loStato |=NN_CHG_NN;
 	   }
 	   XtFree( (char *) aiPos);
-	   set_something( nnE_sListMout, XmNvisibleItemCount, (void*) cMout);
+	   set_something_val( nnE_sListMout, XmNvisibleItemCount, (XtArgVal) cMout);
 	   mostra_cLMP();
 	   XmListDeselectAllItems( nnE_sListLout);
 	   XtSetSensitive( UxWidget, False);
@@ -1185,8 +1185,8 @@ static void	activateCB_nnE_pbOdel( UxWidget, UxClientData, UxCallbackArg )
 	      }
 	   }
 	   XmListDeselectAllItems( nnE_sListMout);
-	   set_something( nnE_sListMout, XmNvisibleItemCount, (void*) cMout ? cMout : 1);
-	   set_something( nnE_sListMinp, XmNvisibleItemCount, (void*) cMinp ? cMinp : 1);
+	   set_something_val( nnE_sListMout, XmNvisibleItemCount, (XtArgVal) cMout ? cMout : 1);
+	   set_something_val( nnE_sListMinp, XmNvisibleItemCount, (XtArgVal) cMinp ? cMinp : 1);
 	   mostra_cLMP();
 	   XtFree( (char *) aiPos);
 	   }
@@ -1352,7 +1352,7 @@ static void	activateCB_nnE_pbIadd( UxWidget, UxClientData, UxCallbackArg )
 	      loStato |= NN_CHG_NN;
 	   }
 	   XtFree( (char *) aiPos);
-	   set_something( nnE_sListMinp, XmNvisibleItemCount, (void*) cMinp);
+	   set_something_val( nnE_sListMinp, XmNvisibleItemCount, (XtArgVal) cMinp);
 	   mostra_cLMP();
 	   XmListDeselectAllItems( nnE_sListLinp);
 	   XtSetSensitive( UxWidget, False);
@@ -1427,8 +1427,8 @@ static void	activateCB_nnE_pbIdel( UxWidget, UxClientData, UxCallbackArg )
 	      }
 	   }
 	   XmListDeselectAllItems( nnE_sListMinp);
-	   set_something( nnE_sListMinp, XmNvisibleItemCount, (void*) cMinp ? cMinp : 1);
-	   set_something( nnE_sListMout, XmNvisibleItemCount, (void*) cMout ? cMout : 1);
+	   set_something_val( nnE_sListMinp, XmNvisibleItemCount, (XtArgVal) cMinp ? cMinp : 1);
+	   set_something_val( nnE_sListMout, XmNvisibleItemCount, (XtArgVal) cMout ? cMout : 1);
 	   mostra_cLMP();
 	   XtFree( (char *) aiPos);
 	   }

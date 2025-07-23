@@ -211,7 +211,7 @@ riempi_campi(MODELLO *mod)
 
 set_menu_actual_button(swidget menuId,swidget buttonId)
 {
-   set_something( menuId,XmNmenuHistory, (void*) buttonId);
+   set_something_val( menuId,XmNmenuHistory, (XtArgVal) buttonId);
 } 
 
 set_menu(int operaz,MODELLO *model)

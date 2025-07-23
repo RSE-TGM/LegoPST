@@ -158,8 +158,8 @@ XmAnyCallbackStruct *call_data;
 	/* Passaggio del TITOLO alla finestra */
          sprintf(temp,"BLOCK BY BLOCK JACOBIAN MATRIX AT ITERATION # %d",
 		  iterazione_selezionata);
-         set_something( widget_array[*client_data],
-                        XmNdialogTitle,(void*) CREATE_CSTRING(temp));
+         set_something_val( widget_array[*client_data],
+                        XmNdialogTitle, (XtArgVal) CREATE_CSTRING(temp));
 
          numero_item = nbl+1;
 
@@ -219,8 +219,8 @@ XmAnyCallbackStruct *call_data;
       /* Passaggio del TITOLO alla finestra */
          sprintf(temp,"JACOBIAN VALUES OF SYSTEM VARIABLES AT ITERATION # %d",
 		  iterazione_selezionata);
-         set_something( widget_array[*client_data],
-                        XmNdialogTitle,(void*) CREATE_CSTRING(temp));
+         set_something_val( widget_array[*client_data],
+                        XmNdialogTitle, (XtArgVal) CREATE_CSTRING(temp));
         
          numero_item = neqsis;
 
@@ -294,8 +294,8 @@ XmAnyCallbackStruct *call_data;
 	/* Passaggio del TITOLO alla finestra */
          sprintf(temp,"NULL ROWS LIST AT ITERATION # %d",
 		  iterazione_selezionata);
-         set_something( widget_array[*client_data],
-                        XmNdialogTitle,(void*) CREATE_CSTRING(temp));
+         set_something_val( widget_array[*client_data],
+                        XmNdialogTitle, (XtArgVal) CREATE_CSTRING(temp));
 
       /* Alloca la memoria */
          alloca_memoria_x_items(n_null_row);
@@ -339,8 +339,8 @@ XmAnyCallbackStruct *call_data;
       /* Passaggio del TITOLO alla finestra */
          sprintf(temp,"NULL COLUMNS LIST AT ITERATION # %d",
 		  iterazione_selezionata);
-         set_something( widget_array[*client_data],
-                        XmNdialogTitle,(void*) CREATE_CSTRING(temp));
+         set_something_val( widget_array[*client_data],
+                        XmNdialogTitle, (XtArgVal) CREATE_CSTRING(temp));
 
       /* Alloca la memoria */
          alloca_memoria_x_items(n_null_column);
@@ -375,11 +375,9 @@ XmAnyCallbackStruct *call_data;
           strcpy (temp,
 "The values of the above shown variables couldn't be computed by any equation");
 	  strcat (temp,"\nin the whole system.");
-	  set_something (widget_array[K_JAC_SING_COL_REASON_1],XmNlabelString,
-			 (void*) CREATE_CSTRING(temp));
+	  set_something_val (widget_array[K_JAC_SING_COL_REASON_1],XmNlabelString, (XtArgVal) CREATE_CSTRING(temp));
 	  strcpy(temp,"Such variables are likely to be set KNOWN.");
-	  set_something (widget_array[K_JAC_SING_COL_REASON_2],XmNlabelString,
-			 (void*) CREATE_CSTRING(temp));
+	  set_something_val (widget_array[K_JAC_SING_COL_REASON_2],XmNlabelString, (XtArgVal) CREATE_CSTRING(temp));
        break;
    }
    undef_cursore (widget_array[K_JACOBIAN_WINDOW]);
@@ -695,8 +693,7 @@ XmListCallbackStruct *list_info;
 	    else
 		strcpy (temp,
 	     "At least one of the above shown variables must be set UNKNOWN.");
-	    set_something(widget_array[K_JAC_SING_ROW_REASON],XmNlabelString,
-			  (void*) CREATE_CSTRING(temp));
+	    set_something_val(widget_array[K_JAC_SING_ROW_REASON],XmNlabelString, (XtArgVal) CREATE_CSTRING(temp));
 
             argcount = 0;
             XtSetArg(args[argcount], XmNitemCount, i); argcount++;

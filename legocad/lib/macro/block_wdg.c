@@ -343,7 +343,7 @@ BlockType *ptr_block;
      ptr_macro->num_blocchi_selez--;
      if (ptr_block->wblock != NULL)
      {
-        set_something(ptr_block->wblock,XmNborderColor, (void*) apix[BLOCKS_TABLE_BG]);
+        set_something_val(ptr_block->wblock,XmNborderColor, (XtArgVal) apix[BLOCKS_TABLE_BG]);
        cambia_edit_blk_menu(ptr_macro);  /* Abilita/disabilita voci menu pop-up */
      }
   }
@@ -1707,7 +1707,7 @@ int crea_icona( Widget wdest, PixmapInfo *pixmap_info, char *nome_modulo, int x,
 
            ptr_macro = &macroblocks[ind_macro];
 
-           set_something(icon_pixmap,XmNuserData, (void*) &ptr_macro->blocks[ind_blk]);
+           set_something_val(icon_pixmap,XmNuserData, (XtArgVal) &ptr_macro->blocks[ind_blk]);
 
         /* aggiorna la struttura del blocco */
            ptr_macro->blocks[ind_blk].wblock  = form_icona;
@@ -1791,9 +1791,9 @@ Boolean boh;
     extern PixmapInfo *pixm_ico_selez;
 
     if (wdg_ico_selez != NULL)
-       set_something (XtParent(wdg_ico_selez), XmNborderColor,
+       set_something_val (XtParent(wdg_ico_selez), XmNborderColor,
 		      (char*)apix[BLOCKS_TABLE_BG]);
-    set_something( XtParent(w), XmNborderColor, (void*) apix[ RED ]);
+    set_something_val( XtParent(w), XmNborderColor, (XtArgVal) apix[ RED ]);
     wdg_ico_selez = w;
     pixm_ico_selez = pixm_info;
 }
@@ -2101,7 +2101,7 @@ Widget widget_sup;
    if (find_form == NULL)
        find_form = find_kit(dbx_nuovo_blocco,args,nargs,&find_module);
 
-   set_something (find_module.ID_testo,XmNbackground,(void*) apix[WHITE]);
+   set_something_val (find_module.ID_testo,XmNbackground, (XtArgVal) apix[WHITE]);
    return(find_form);
 }
 
@@ -2115,22 +2115,14 @@ MacroBlockType *ptr;
    int i,tipo;
 
 #ifdef DATI
-   set_something(ptr->menu_edit_blocchi[K_VAR_BLOCK], XmNsensitive,
-                         (void*) (ptr->num_blocchi_selez > 0) ? True : False );
-   set_something(ptr->menu_edit_blocchi[K_DATA_BLOCK], XmNsensitive,
-                         (void*) (ptr->num_blocchi_selez > 0) ? True : False );
-   set_something(ptr->menu_edit_blocchi[K_KNOW_BLOCK], XmNsensitive,
-                         (void*) (ptr->num_blocchi_selez > 0) ? True : False );
-   set_something(ptr->menu_edit_blocchi[K_NORM_BLOCK], XmNsensitive,
-                         (void*) (ptr->num_blocchi_selez > 0) ? True : False );
-   set_something(ptr->pop_edit_blocchi[K_VAR_BLOCK], XmNsensitive,
-                         (void*) (ptr->num_blocchi_selez > 0) ? True : False );
-   set_something(ptr->pop_edit_blocchi[K_DATA_BLOCK], XmNsensitive,
-                         (void*) (ptr->num_blocchi_selez > 0) ? True : False );
-   set_something(ptr->pop_edit_blocchi[K_KNOW_BLOCK], XmNsensitive,
-                         (void*) (ptr->num_blocchi_selez > 0) ? True : False );
-   set_something(ptr->pop_edit_blocchi[K_NORM_BLOCK], XmNsensitive,
-                         (void*) (ptr->num_blocchi_selez > 0) ? True : False );
+   set_something_val(ptr->menu_edit_blocchi[K_VAR_BLOCK], XmNsensitive, (XtArgVal) (ptr->num_blocchi_selez > 0) ? True : False );
+   set_something_val(ptr->menu_edit_blocchi[K_DATA_BLOCK], XmNsensitive, (XtArgVal) (ptr->num_blocchi_selez > 0) ? True : False );
+   set_something_val(ptr->menu_edit_blocchi[K_KNOW_BLOCK], XmNsensitive, (XtArgVal) (ptr->num_blocchi_selez > 0) ? True : False );
+   set_something_val(ptr->menu_edit_blocchi[K_NORM_BLOCK], XmNsensitive, (XtArgVal) (ptr->num_blocchi_selez > 0) ? True : False );
+   set_something_val(ptr->pop_edit_blocchi[K_VAR_BLOCK], XmNsensitive, (XtArgVal) (ptr->num_blocchi_selez > 0) ? True : False );
+   set_something_val(ptr->pop_edit_blocchi[K_DATA_BLOCK], XmNsensitive, (XtArgVal) (ptr->num_blocchi_selez > 0) ? True : False );
+   set_something_val(ptr->pop_edit_blocchi[K_KNOW_BLOCK], XmNsensitive, (XtArgVal) (ptr->num_blocchi_selez > 0) ? True : False );
+   set_something_val(ptr->pop_edit_blocchi[K_NORM_BLOCK], XmNsensitive, (XtArgVal) (ptr->num_blocchi_selez > 0) ? True : False );
 #elif TOPOLOGIA
 
   if(ptr->num_blocchi_selez == 1)
@@ -2139,54 +2131,32 @@ MacroBlockType *ptr;
            tipo = ptr->blocks[i].tipo;
   
 
-  set_something(ptr->pop_edit_blocchi[K_VARIABLES_BLOCK], XmNsensitive,
-                         (void*) ( (ptr->num_blocchi_selez == 1  && tipo == TP_BLOCK) ) ? True : False );
-  set_something(ptr->pop_edit_blocchi[K_NEW_BLOCK], XmNsensitive,
-                         (void*) (ptr->num_blocchi_selez == 0) ? True : False );
-  set_something(ptr->pop_edit_blocchi[K_NEW_PROCESS_BLOCK], XmNsensitive,
-                         (void*) (ptr->num_blocchi_selez == 0) ? True : False );
-  set_something(ptr->pop_edit_blocchi[K_NEW_REGULATION_BLOCK], XmNsensitive,
-                         (void*) (ptr->num_blocchi_selez == 0) ? True : False );
-   set_something(ptr->pop_edit_blocchi[K_MODIFY_BLOCK], XmNsensitive,
-                         (void*) (ptr->num_blocchi_selez == 1) ? True : False );
-   set_something(ptr->pop_edit_blocchi[K_DELETE_BLOCK], XmNsensitive,
-                         (void*) (ptr->num_blocchi_selez > 0 ) ? True : False );
+  set_something_val(ptr->pop_edit_blocchi[K_VARIABLES_BLOCK], XmNsensitive, (XtArgVal) ( (ptr->num_blocchi_selez == 1  && tipo == TP_BLOCK) ) ? True : False );
+  set_something_val(ptr->pop_edit_blocchi[K_NEW_BLOCK], XmNsensitive, (XtArgVal) (ptr->num_blocchi_selez == 0) ? True : False );
+  set_something_val(ptr->pop_edit_blocchi[K_NEW_PROCESS_BLOCK], XmNsensitive, (XtArgVal) (ptr->num_blocchi_selez == 0) ? True : False );
+  set_something_val(ptr->pop_edit_blocchi[K_NEW_REGULATION_BLOCK], XmNsensitive, (XtArgVal) (ptr->num_blocchi_selez == 0) ? True : False );
+   set_something_val(ptr->pop_edit_blocchi[K_MODIFY_BLOCK], XmNsensitive, (XtArgVal) (ptr->num_blocchi_selez == 1) ? True : False );
+   set_something_val(ptr->pop_edit_blocchi[K_DELETE_BLOCK], XmNsensitive, (XtArgVal) (ptr->num_blocchi_selez > 0 ) ? True : False );
 
-  set_something(ptr->menu_edit_blocchi[K_VARIABLES_BLOCK], XmNsensitive,
-                         (void*) ((ptr->num_blocchi_selez == 1 && tipo == TP_BLOCK)) ? True : False );
-  set_something(ptr->menu_edit_blocchi[K_NEW_BLOCK], XmNsensitive,
-                         (void*) (ptr->num_blocchi_selez == 0) ? True : False );
-  set_something(ptr->menu_edit_blocchi[K_NEW_PROCESS_BLOCK], XmNsensitive,
-                         (void*) (ptr->num_blocchi_selez == 0) ? True : False );
-  set_something(ptr->menu_edit_blocchi[K_NEW_REGULATION_BLOCK], XmNsensitive,
-                         (void*) (ptr->num_blocchi_selez == 0) ? True : False );
-   set_something(ptr->menu_edit_blocchi[K_MODIFY_BLOCK], XmNsensitive,
-                         (void*) (ptr->num_blocchi_selez == 1) ? True : False );
-   set_something(ptr->menu_edit_blocchi[K_DELETE_BLOCK], XmNsensitive,
-                         (void*) (ptr->num_blocchi_selez > 0 ) ? True : False );
+  set_something_val(ptr->menu_edit_blocchi[K_VARIABLES_BLOCK], XmNsensitive, (XtArgVal) ((ptr->num_blocchi_selez == 1 && tipo == TP_BLOCK)) ? True : False );
+  set_something_val(ptr->menu_edit_blocchi[K_NEW_BLOCK], XmNsensitive, (XtArgVal) (ptr->num_blocchi_selez == 0) ? True : False );
+  set_something_val(ptr->menu_edit_blocchi[K_NEW_PROCESS_BLOCK], XmNsensitive, (XtArgVal) (ptr->num_blocchi_selez == 0) ? True : False );
+  set_something_val(ptr->menu_edit_blocchi[K_NEW_REGULATION_BLOCK], XmNsensitive, (XtArgVal) (ptr->num_blocchi_selez == 0) ? True : False );
+   set_something_val(ptr->menu_edit_blocchi[K_MODIFY_BLOCK], XmNsensitive, (XtArgVal) (ptr->num_blocchi_selez == 1) ? True : False );
+   set_something_val(ptr->menu_edit_blocchi[K_DELETE_BLOCK], XmNsensitive, (XtArgVal) (ptr->num_blocchi_selez > 0 ) ? True : False );
 /******************************************************************************
-   set_something(ptr->menu_edit_blocchi[K_MOVE_BLOCK], XmNsensitive,
-                         (void*) (ptr->num_blocchi_selez > 0 ) ? True : False );
-   set_something(ptr->pop_edit_blocchi[K_MODIFY_BLOCK], XmNsensitive,
-                         (void*) (ptr->num_blocchi_selez == 1) ? True : False );
-   set_something(ptr->pop_edit_blocchi[K_DELETE_BLOCK], XmNsensitive,
-                         (void*) (ptr->num_blocchi_selez > 0 ) ? True : False );
-   set_something(ptr->pop_edit_blocchi[K_MOVE_BLOCK], XmNsensitive,
-                         (void*) (ptr->num_blocchi_selez > 0 ) ? True : False );
+   set_something_val(ptr->menu_edit_blocchi[K_MOVE_BLOCK], XmNsensitive, (XtArgVal) (ptr->num_blocchi_selez > 0 ) ? True : False );
+   set_something_val(ptr->pop_edit_blocchi[K_MODIFY_BLOCK], XmNsensitive, (XtArgVal) (ptr->num_blocchi_selez == 1) ? True : False );
+   set_something_val(ptr->pop_edit_blocchi[K_DELETE_BLOCK], XmNsensitive, (XtArgVal) (ptr->num_blocchi_selez > 0 ) ? True : False );
+   set_something_val(ptr->pop_edit_blocchi[K_MOVE_BLOCK], XmNsensitive, (XtArgVal) (ptr->num_blocchi_selez > 0 ) ? True : False );
 *******************************************************************************/
 #else
-   set_something(ptr->menu_edit_blocchi[K_MODIFY_BLOCK], XmNsensitive,
-                         (void*) (ptr->num_blocchi_selez == 1) ? True : False );
-   set_something(ptr->menu_edit_blocchi[K_DELETE_BLOCK], XmNsensitive,
-                         (void*) (ptr->num_blocchi_selez > 0 ) ? True : False );
-   set_something(ptr->menu_edit_blocchi[K_MOVE_BLOCK], XmNsensitive,
-                         (void*) (ptr->num_blocchi_selez > 0 ) ? True : False );
-   set_something(ptr->pop_edit_blocchi[K_MODIFY_BLOCK], XmNsensitive,
-                         (void*) (ptr->num_blocchi_selez == 1) ? True : False );
-   set_something(ptr->pop_edit_blocchi[K_MOVE_BLOCK], XmNsensitive,
-                         (void*) (ptr->num_blocchi_selez > 0 ) ? True : False );
-   set_something(ptr->pop_edit_blocchi[K_DELETE_BLOCK], XmNsensitive,
-                         (void*) (ptr->num_blocchi_selez > 0 ) ? True : False );
+   set_something_val(ptr->menu_edit_blocchi[K_MODIFY_BLOCK], XmNsensitive, (XtArgVal) (ptr->num_blocchi_selez == 1) ? True : False );
+   set_something_val(ptr->menu_edit_blocchi[K_DELETE_BLOCK], XmNsensitive, (XtArgVal) (ptr->num_blocchi_selez > 0 ) ? True : False );
+   set_something_val(ptr->menu_edit_blocchi[K_MOVE_BLOCK], XmNsensitive, (XtArgVal) (ptr->num_blocchi_selez > 0 ) ? True : False );
+   set_something_val(ptr->pop_edit_blocchi[K_MODIFY_BLOCK], XmNsensitive, (XtArgVal) (ptr->num_blocchi_selez == 1) ? True : False );
+   set_something_val(ptr->pop_edit_blocchi[K_MOVE_BLOCK], XmNsensitive, (XtArgVal) (ptr->num_blocchi_selez > 0 ) ? True : False );
+   set_something_val(ptr->pop_edit_blocchi[K_DELETE_BLOCK], XmNsensitive, (XtArgVal) (ptr->num_blocchi_selez > 0 ) ? True : False );
 #endif
 }
 
@@ -2333,7 +2303,7 @@ Boolean flag;
       macro->num_blocchi_selez++;
       if( blocco->wblock != NULL )
       {
-         set_something (blocco->wblock, XmNborderColor, (void*) apix[ RED ]);
+         set_something_val (blocco->wblock, XmNborderColor, (XtArgVal) apix[ RED ]);
       }
 #ifdef TOPOLOGIA
       if(blocco->tipo == TP_BLOCK || blocco->tipo == TP_BLOCK_REG)
@@ -2344,7 +2314,7 @@ Boolean flag;
    {
       macro->num_blocchi_selez--;
       if( blocco->wblock  != NULL )
-         set_something (blocco->wblock, XmNborderColor, (void*) apix[BLOCKS_TABLE_BG]);
+         set_something_val (blocco->wblock, XmNborderColor, (XtArgVal) apix[BLOCKS_TABLE_BG]);
 #ifdef TOPOLOGIA
       if(blocco->tipo == TP_BLOCK || blocco->tipo == TP_BLOCK_REG)
          Ideselect_this_block_from_list(widget_list_blocchi,blocco->nome_blocco);
@@ -2474,7 +2444,7 @@ display_icone_selezionate(ind_macro)
    {
       for( j=0 ; j<macroblocks[ind_macro].num_blocchi; j++ )
          if ( blocks[j].tipo == TP_BLOCK && blocks[j].selezionato )
-            set_something (blocks[j].wblock, XmNborderColor, (void*) apix[ RED ]);
+            set_something_val (blocks[j].wblock, XmNborderColor, (XtArgVal) apix[ RED ]);
    }
 
 }

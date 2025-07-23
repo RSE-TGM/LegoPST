@@ -267,7 +267,7 @@ XmAnyCallbackStruct *call_data;
 /* Visualizzazione dei toggle-button delle funzioni */
    display_toggle_function();
 
-   set_something(atoggles[0],XmNset,(void*) True);
+   set_something_val(atoggles[0],XmNset, (XtArgVal) True);
    cdata.set=1;
    toggle_on(atoggles[0],0,&cdata);
 }
@@ -426,7 +426,7 @@ XmAnyCallbackStruct *call_data;
 
 /* Per ogni label dei risultati viene cancellato il suo contenuto. */
    for (i=0 ; i<tavola_scelta[ toggle_premuto ].num_output ; i++)
-       set_something( aresultlabel[i],  XmNlabelString, (void*) stringa_nulla );
+       set_something_val( aresultlabel[i],  XmNlabelString, (XtArgVal) stringa_nulla );
 }
 
 /*----------------------------------------------------------------------*/
@@ -530,7 +530,7 @@ Struct_toggle funzione[];
    cstring = CREATE_CSTRING(stringa);
    XmListAddItemUnselected(function_list,cstring,0);
    XmListSetBottomPos(function_list,0);
-   set_something(function_list,XmNvisibleItemCount,(void*) VISIBLE_ITEMS);
+   set_something_val(function_list,XmNvisibleItemCount, (XtArgVal) VISIBLE_ITEMS);
    XmStringFree(cstring);
 }
 
@@ -585,11 +585,11 @@ int num_funzione;
    {
      XBell (display,50);  /* N.B. 100 = massimo volume */
      cstring = CREATE_CSTRING(mesg_errore(K_VAPORE, iret));
-     set_something( info_risultati, XmNlabelString, (void*) cstring);
+     set_something_val( info_risultati, XmNlabelString, (XtArgVal) cstring);
      XmStringFree(cstring);
    }
    else
-     set_something( info_risultati, XmNlabelString, (void*) stringa_nulla );
+     set_something_val( info_risultati, XmNlabelString, (XtArgVal) stringa_nulla );
 }
 
 /*

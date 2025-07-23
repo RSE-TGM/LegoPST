@@ -48,7 +48,7 @@ int     tempo_time;
 
     *giorno = strutt_tempo -> tm_mday;
     *mese = strutt_tempo -> tm_mon + 1;
-    *anno = strutt_tempo -> tm_year;
+    *anno = strutt_tempo -> tm_year+1900; // l'anno è a partire dal 1900 !!
     return (1);
 }
 

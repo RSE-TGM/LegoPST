@@ -108,8 +108,8 @@ static void	activateCB_pushButton9( UxWidget, UxClientData, UxCallbackArg )
 		{
 		strcpy (stringa, "Input value is not valid\0");
 		Messaggio = XmStringCreate (stringa, XmSTRING_DEFAULT_CHARSET);
-		set_something (Message, XmNdialogType, (void*) XmDIALOG_ERROR);
-		set_something (Message, XmNmessageString, (void*) Messaggio);
+		set_something_val (Message, XmNdialogType, (XtArgVal) XmDIALOG_ERROR);
+		set_something_val (Message, XmNmessageString, (XtArgVal) Messaggio);
 		UxPopupInterface (Message, no_grab);
 		XmStringFree (Messaggio);
 		}

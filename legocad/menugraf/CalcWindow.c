@@ -639,45 +639,45 @@ static Widget	_Ux_create_CalcWindow( _UxNumero )
 
 		if (TypeCalc == ELAB_LINEARE)
 			{
-			set_something (textFieldParA, XmNsensitive, (void*) True);
-			set_something (textFieldParB, XmNsensitive, (void*) True);
+			set_something_val (textFieldParA, XmNsensitive, (XtArgVal) True);
+			set_something_val (textFieldParB, XmNsensitive, (XtArgVal) True);
 			indVar = Numero[0] - 1;
 			parametro = XmStringCreate (simboli[indVar], XmSTRING_DEFAULT_CHARSET);
-			set_something (labSourceVar1, XmNlabelString, (void*) parametro);
+			set_something_val (labSourceVar1, XmNlabelString, (XtArgVal) parametro);
 			strcpy (strPara,"Ax + B\0");
 			parametro = XmStringCreate (strPara, XmSTRING_DEFAULT_CHARSET);
-			set_something (labOpType, XmNlabelString, (void*) parametro);
+			set_something_val (labOpType, XmNlabelString, (XtArgVal) parametro);
 			strcpy (strPara,"                \0");
 			parametro = XmStringCreate (strPara, XmSTRING_DEFAULT_CHARSET);
-			set_something (labSourceVar2, XmNlabelString, (void*) parametro);
+			set_something_val (labSourceVar2, XmNlabelString, (XtArgVal) parametro);
 			strcpy (strPara,"Parameter:\0");
 			parametro = XmStringCreate (strPara, XmSTRING_DEFAULT_CHARSET);
-			set_something (labParameter, XmNlabelString, (void*) parametro);
+			set_something_val (labParameter, XmNlabelString, (XtArgVal) parametro);
 			strcpy (strPara,"A:\0");
 			parametro = XmStringCreate (strPara, XmSTRING_DEFAULT_CHARSET);
-			set_something (labParamA, XmNlabelString, (void*) parametro);
+			set_something_val (labParamA, XmNlabelString, (XtArgVal) parametro);
 			strcpy (strPara,"B:\0");
 			parametro = XmStringCreate (strPara, XmSTRING_DEFAULT_CHARSET);
-			set_something (labParamB, XmNlabelString, (void*) parametro);
+			set_something_val (labParamB, XmNlabelString, (XtArgVal) parametro);
 			}
 		if (TypeCalc == SOMMA_ALGEBRICA)
 			{
-			set_something (textFieldParA, XmNsensitive, (void*) False);
-			set_something (textFieldParB, XmNsensitive, (void*) False);
+			set_something_val (textFieldParA, XmNsensitive, (XtArgVal) False);
+			set_something_val (textFieldParB, XmNsensitive, (XtArgVal) False);
 			strcpy (strPara,"x + y\0");
 			parametro = XmStringCreate (strPara, XmSTRING_DEFAULT_CHARSET);
-			set_something (labOpType, XmNlabelString, (void*) parametro);
+			set_something_val (labOpType, XmNlabelString, (XtArgVal) parametro);
 			indVar = Numero[0] - 1;
 			parametro = XmStringCreate (simboli[indVar], XmSTRING_DEFAULT_CHARSET);
-			set_something (labSourceVar1, XmNlabelString, (void*) parametro);
+			set_something_val (labSourceVar1, XmNlabelString, (XtArgVal) parametro);
 			indVar = Numero[1] - 1;
 			parametro = XmStringCreate (simboli[indVar], XmSTRING_DEFAULT_CHARSET);
-			set_something (labSourceVar2, XmNlabelString, (void*) parametro);
+			set_something_val (labSourceVar2, XmNlabelString, (XtArgVal) parametro);
 			strcpy (strPara,"          \0");
 			parametro = XmStringCreate (strPara, XmSTRING_DEFAULT_CHARSET);
-			set_something (labParameter, XmNlabelString, (void*) parametro);
-			set_something (labParamA, XmNlabelString, (void*) parametro);
-			set_something (labParamB, XmNlabelString, (void*) parametro);	
+			set_something_val (labParameter, XmNlabelString, (XtArgVal) parametro);
+			set_something_val (labParamA, XmNlabelString, (XtArgVal) parametro);
+			set_something_val (labParamB, XmNlabelString, (XtArgVal) parametro);	
 			}
 		return(rtrn);
 	}

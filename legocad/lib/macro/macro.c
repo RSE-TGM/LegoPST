@@ -403,7 +403,7 @@ XmAnyCallbackStruct *call_data;
               cstring = CREATE_CSTRING("Snap on");
               snap_val = PIXEL_STEP;
            }
-           set_something(w, XmNlabelString, (void*) cstring);
+           set_something_val(w, XmNlabelString, (XtArgVal) cstring);
            XmStringFree(cstring);
            snap_status = !snap_status;
            break;
@@ -414,7 +414,7 @@ XmAnyCallbackStruct *call_data;
            else
               cstring = CREATE_CSTRING("Yes");
            disegna_freccia = !disegna_freccia;
-           set_something(toggle_arrow, XmNlabelString, (void*) cstring);
+           set_something_val(toggle_arrow, XmNlabelString, (XtArgVal) cstring);
            XmStringFree(cstring);
            break;
    }
@@ -940,7 +940,7 @@ void add_process_block(Widget w,int ind_macro,XmAnyCallbackStruct *call_data)
 
    XmTextSetString( text_nome_blocco , "" );
    XmTextSetString( text_descr_blocco, "" );
-   set_something( text_nome_blocco, XmNeditable, (void*) True);
+   set_something_val( text_nome_blocco, XmNeditable, (XtArgVal) True);
    carica_lista_moduli(TP_BLOCK);
    XtManageChild(dbx_nuovo_blocco);
    XmListSelectPos(lista_moduli,1,True);
@@ -953,7 +953,7 @@ void add_regolation_block(Widget w,int ind_macro,XmAnyCallbackStruct *call_data)
       dialog_nuovo_blocco();
 
    printf("test stamp add_regolation block\n");
-   set_something( text_nome_blocco, XmNeditable, (void*) False);
+   set_something_val( text_nome_blocco, XmNeditable, (XtArgVal) False);
    XmTextSetString( text_nome_blocco , "" );
    XmTextSetString( text_descr_blocco, "" );
    carica_lista_moduli(TP_BLOCK_REG);
@@ -992,7 +992,7 @@ XmAnyCallbackStruct *call_data;
    }
 
 /* Setta il flag di modifica */
-   set_something(macroblocks[ind_macro].wwinblock, XmNuserData, (void*) True);
+   set_something_val(macroblocks[ind_macro].wwinblock, XmNuserData, (XtArgVal) True);
 
    if (blocks[indici[0]].tipo == TP_BLOCK ||
        blocks[indici[0]].tipo == TP_BLOCK_REG)
@@ -1959,23 +1959,15 @@ num_macro_selez */
 void cambia_edit_mcr_menu()
 {
 #ifdef DATI
-   set_something(pop_edit_macro[K_OPEN_MACRO], XmNsensitive,
-                 (void*) (num_macro_selez > 0 ) ? True : False );
-   set_something(menu_edit_macro[K_OPEN_MACRO], XmNsensitive,
-                 (void*) (num_macro_selez > 0 ) ? True : False );
+   set_something_val(pop_edit_macro[K_OPEN_MACRO], XmNsensitive, (XtArgVal) (num_macro_selez > 0 ) ? True : False );
+   set_something_val(menu_edit_macro[K_OPEN_MACRO], XmNsensitive, (XtArgVal) (num_macro_selez > 0 ) ? True : False );
 #else
-   set_something(menu_edit_macro[K_MODIFY_MACRO], XmNsensitive,
-                 (void*) (num_macro_selez == 1) ? True : False );
-   set_something(menu_edit_macro[K_OPEN_MACRO], XmNsensitive,
-                 (void*) (num_macro_selez > 0 ) ? True : False );
-   set_something(menu_edit_macro[K_DELETE_MACRO], XmNsensitive,
-                 (void*) (num_macro_selez > 0 ) ? True : False );
-   set_something(pop_edit_macro[K_MODIFY_MACRO], XmNsensitive,
-                 (void*) (num_macro_selez == 1) ? True : False );
-   set_something(pop_edit_macro[K_OPEN_MACRO], XmNsensitive,
-                 (void*) (num_macro_selez > 0 ) ? True : False );
-   set_something(pop_edit_macro[K_DELETE_MACRO], XmNsensitive,
-                 (void*) (num_macro_selez > 0 ) ? True : False );
+   set_something_val(menu_edit_macro[K_MODIFY_MACRO], XmNsensitive, (XtArgVal) (num_macro_selez == 1) ? True : False );
+   set_something_val(menu_edit_macro[K_OPEN_MACRO], XmNsensitive, (XtArgVal) (num_macro_selez > 0 ) ? True : False );
+   set_something_val(menu_edit_macro[K_DELETE_MACRO], XmNsensitive, (XtArgVal) (num_macro_selez > 0 ) ? True : False );
+   set_something_val(pop_edit_macro[K_MODIFY_MACRO], XmNsensitive, (XtArgVal) (num_macro_selez == 1) ? True : False );
+   set_something_val(pop_edit_macro[K_OPEN_MACRO], XmNsensitive, (XtArgVal) (num_macro_selez > 0 ) ? True : False );
+   set_something_val(pop_edit_macro[K_DELETE_MACRO], XmNsensitive, (XtArgVal) (num_macro_selez > 0 ) ? True : False );
 #endif
 }
 
@@ -2082,7 +2074,7 @@ String string;
    XmString compound_str;
 
    compound_str = CREATE_CSTRING(string);
-   set_something(w, XmNlabelString, (void*) compound_str);
+   set_something_val(w, XmNlabelString, (XtArgVal) compound_str);
    XmStringFree(compound_str);
 }
 
@@ -2109,7 +2101,7 @@ String  t;
            switch( *policy )
            {
                case 'r':
-                         set_something(w, XtNtranslations, (void*) tr);
+                         set_something_val(w, XtNtranslations, (XtArgVal) tr);
                          break;
                case 'a':
                          XtAugmentTranslations(w, tr);

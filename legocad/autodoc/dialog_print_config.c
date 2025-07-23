@@ -617,10 +617,10 @@ static Widget	_Ux_create_dialog_print_config()
 		XmTextSetString(UxGetWidget(text_prefix_var), page_prefix_var);
 		
 		if (tipo_stampante == PRINTER_ASCII)
-		   set_something(UxGetWidget(opt_printer), XmNmenuHistory,
+		   set_something_val(UxGetWidget(opt_printer), XmNmenuHistory,
 		                 UxGetWidget((char*)opt_printer_ascii));
 		else
-		   set_something(UxGetWidget(opt_printer), XmNmenuHistory,
+		   set_something_val(UxGetWidget(opt_printer), XmNmenuHistory,
 		                 (char*)UxGetWidget(opt_printer_altro));
 		
 		UxPopupInterface(rtrn, no_grab);

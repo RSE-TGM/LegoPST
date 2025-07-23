@@ -460,9 +460,9 @@ void setContextTitle(PAGEDIT_CONTEXT *ped)
 void disabilitaMoveMenu()
 {
 /** bottoni che non esistono piu'
-   set_something(menu2_top_b1,XmNsensitive,(void*) False);
-   set_something(MovePage,XmNsensitive,(void*) False);
-   set_something(MoveIcLib,XmNsensitive,(void*) False);
+   set_something_val(menu2_top_b1,XmNsensitive, (XtArgVal) False);
+   set_something_val(MovePage,XmNsensitive, (XtArgVal) False);
+   set_something_val(MoveIcLib,XmNsensitive, (XtArgVal) False);
 **/
 }
 
@@ -471,9 +471,9 @@ void abilitaMoveMenu()
 /**** bottoni che non esistono piu'
    if(npagopen == 0)
    {
-      set_something(menu2_top_b1,XmNsensitive,(void*) True);
-      set_something(MovePage,XmNsensitive,(void*) True);
-      set_something(MoveIcLib,XmNsensitive,(void*) True);
+      set_something_val(menu2_top_b1,XmNsensitive, (XtArgVal) True);
+      set_something_val(MovePage,XmNsensitive, (XtArgVal) True);
+      set_something_val(MoveIcLib,XmNsensitive, (XtArgVal) True);
    }
 ******/
 }
@@ -482,7 +482,7 @@ void TopMenuSetInsensitive()
 {
    set_something_val(menu1_top_b5,XmNsensitive,(XtArgVal) False);
    set_something_val(menu1_top_b6,XmNsensitive,(XtArgVal) False);
-/*   set_something(menu2_top_b1,XmNsensitive,(void*) False);  non esiste piu'*/
+/*   set_something_val(menu2_top_b1,XmNsensitive, (XtArgVal) False);  non esiste piu'*/
    set_something_val(menu2_top_b2,XmNsensitive,(XtArgVal) False);
    set_something_val(menu2_top_b3,XmNsensitive,(XtArgVal) False);
 }
@@ -491,7 +491,7 @@ void TopMenuSetSensitive()
 {
    set_something_val(menu1_top_b5,XmNsensitive,(XtArgVal) True);
    set_something_val(menu1_top_b6,XmNsensitive,(XtArgVal) True);
-/*   set_something(menu2_top_b1,XmNsensitive,(void*) True); non esiste piu' */ 
+/*   set_something_val(menu2_top_b1,XmNsensitive, (XtArgVal) True); non esiste piu' */ 
    set_something_val(menu2_top_b2,XmNsensitive,(XtArgVal) True);
    set_something_val(menu2_top_b3,XmNsensitive,(XtArgVal) True);
 }

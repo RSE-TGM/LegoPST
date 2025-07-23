@@ -557,8 +557,8 @@ int sele,camp;
 		{
 		strcpy (stringa,"Must be selected at least one item\0");
 		Messaggio = XmStringCreate (stringa,XmSTRING_DEFAULT_CHARSET);
-		set_something (Message, XmNdialogType, (void*) XmDIALOG_INFORMATION);
-		set_something (Message, XmNmessageString, (void*) Messaggio);
+		set_something_val (Message, XmNdialogType, (XtArgVal) XmDIALOG_INFORMATION);
+		set_something_val (Message, XmNmessageString, (XtArgVal) Messaggio);
 		UxPopupInterface (Message,no_grab);
 		XmStringFree (Messaggio);
 		return (ERRORE);
@@ -570,9 +570,8 @@ int sele,camp;
 			strcpy (stringa,"Delta must be the same\0");
                 	Messaggio = XmStringCreate (stringa,
 					XmSTRING_DEFAULT_CHARSET);
-                	set_something (Message, XmNdialogType, 
-					(void*) XmDIALOG_INFORMATION);
-                	set_something (Message, XmNmessageString, (void*) Messaggio);
+                	set_something_val (Message, XmNdialogType, (XtArgVal) XmDIALOG_INFORMATION);
+                	set_something_val (Message, XmNmessageString, (XtArgVal) Messaggio);
                 	UxPopupInterface (Message,no_grab);
 			XmStringFree (Messaggio);
 			return (ERRORE);
@@ -703,7 +702,7 @@ Widget Oggetto;
 	char stringa[5];
 
 	strcpy (stringa,"\0");
-	set_something (Oggetto, XmNvalue, (void*) stringa);
+	set_something_val (Oggetto, XmNvalue, (XtArgVal) stringa);
 	return (GIUSTO);
 }
 
@@ -723,7 +722,7 @@ Aggiorna_start_time ()
 	sprintf (st_iniziale,"%.2f",t_iniziale);
 	strcat (st_iniziale,"\0");
 	label_start_time = XmStringCreate(st_iniziale,XmSTRING_DEFAULT_CHARSET);
-	set_something (start_time, XmNlabelString, (void*) label_start_time);
+	set_something_val (start_time, XmNlabelString, (XtArgVal) label_start_time);
 	return (GIUSTO);
 }
 
@@ -743,7 +742,7 @@ Aggiorna_stop_time ()
 	sprintf (st_finale,"%.2f",t_finale);
 	strcat (st_finale,"\0");
 	label_stop_time = XmStringCreate (st_finale,XmSTRING_DEFAULT_CHARSET);
-	set_something (stop_time, XmNlabelString, (void*) label_stop_time);
+	set_something_val (stop_time, XmNlabelString, (XtArgVal) label_stop_time);
 	return (GIUSTO);
 }
 
@@ -764,7 +763,7 @@ Aggiorna_numero_camp ()
 	strcat (snumero,"\0");
 	label_numero_campioni = XmStringCreate (snumero,
 				XmSTRING_DEFAULT_CHARSET);
-	set_something (num_campioni, XmNlabelString, (void*) label_numero_campioni);
+	set_something_val (num_campioni, XmNlabelString, (XtArgVal) label_numero_campioni);
 	return (GIUSTO);
 }
 
@@ -791,7 +790,7 @@ Aggiorna_delta_camp ()
 	strcat (sdelta,"\0");
 	label_delta_campioni = XmStringCreate (sdelta,XmSTRING_DEFAULT_CHARSET);
 	}
-	set_something (delta_campioni, XmNlabelString, (void*) label_delta_campioni);
+	set_something_val (delta_campioni, XmNlabelString, (XtArgVal) label_delta_campioni);
 	return (GIUSTO);
 }
 
@@ -810,7 +809,7 @@ Aggiorna_MAXInt ()
 	
 	sprintf (sMAXInt,"%.2f",DeltaMassimo);
 	label_MAXInt = XmStringCreate (sMAXInt,XmSTRING_DEFAULT_CHARSET);
-	set_something (MAX_Int, XmNlabelString, (void*) label_MAXInt);
+	set_something_val (MAX_Int, XmNlabelString, (XtArgVal) label_MAXInt);
 	return (GIUSTO);
 }
 
@@ -829,7 +828,7 @@ Aggiorna_MINInt ()
 	
 	sprintf (sMINInt,"%.2f",DeltaMinimo);
 	label_MINInt = XmStringCreate (sMINInt,XmSTRING_DEFAULT_CHARSET);
-	set_something (MIN_Int, XmNlabelString, (void*) label_MINInt);
+	set_something_val (MIN_Int, XmNlabelString, (XtArgVal) label_MINInt);
 	return (GIUSTO);
 }
 
@@ -849,7 +848,7 @@ Aggiorna_num_var ()
 	sprintf (snum_var,"%d",header1.nvar);
 	strcat (snum_var,"\0");
 	label_num_var = XmStringCreate (snum_var, XmSTRING_DEFAULT_CHARSET);
-	set_something (num_var, XmNlabelString, (void*) label_num_var);
+	set_something_val (num_var, XmNlabelString, (XtArgVal) label_num_var);
 	return (GIUSTO);
 }
 
@@ -914,33 +913,33 @@ if (non_f22)
 	{
 	strcpy (stringa,"File is not an f22 file!\0");
 	Messaggio = XmStringCreate (stringa, XmSTRING_DEFAULT_CHARSET);
-	set_something (Message, XmNdialogType, (void*) XmDIALOG_ERROR);
-	set_something (Message, XmNmessageString, (void*) Messaggio);
+	set_something_val (Message, XmNdialogType, (XtArgVal) XmDIALOG_ERROR);
+	set_something_val (Message, XmNmessageString, (XtArgVal) Messaggio);
 	UxPopupInterface (Message,no_grab);
 	return (ERRORE);
 	XmStringFree (Messaggio);
 	}
 else
 	{
-	set_something (textField_find, XmNsensitive, (void*) True);
-	set_something (SaveItem, XmNsensitive, (void*) True);
-	set_something (Save_asItem, XmNsensitive, (void*) True);
-	set_something (AsciiItem, XmNsensitive, (void*) True);
-	set_something (Var_Pane, XmNsensitive, (void*) True);
-	set_something (Time_Pane, XmNsensitive, (void*) True);
-	set_something (Find_Pane, XmNsensitive, (void*) True);
-	set_something (Calc_Pane, XmNsensitive, (void*) True);
-	set_something (Push_Select, XmNsensitive, (void*) True);
-	set_something (Push_Deselect, XmNsensitive, (void*) True);
+	set_something_val (textField_find, XmNsensitive, (XtArgVal) True);
+	set_something_val (SaveItem, XmNsensitive, (XtArgVal) True);
+	set_something_val (Save_asItem, XmNsensitive, (XtArgVal) True);
+	set_something_val (AsciiItem, XmNsensitive, (XtArgVal) True);
+	set_something_val (Var_Pane, XmNsensitive, (XtArgVal) True);
+	set_something_val (Time_Pane, XmNsensitive, (XtArgVal) True);
+	set_something_val (Find_Pane, XmNsensitive, (XtArgVal) True);
+	set_something_val (Calc_Pane, XmNsensitive, (XtArgVal) True);
+	set_something_val (Push_Select, XmNsensitive, (XtArgVal) True);
+	set_something_val (Push_Deselect, XmNsensitive, (XtArgVal) True);
 	if (Find_sel == MULTIPLO)
 		{
-		set_something (Multiple_Find_Item, XmNset, (void*) True);
-		set_something (Single_Find_Item, XmNset, (void*) False);
+		set_something_val (Multiple_Find_Item, XmNset, (XtArgVal) True);
+		set_something_val (Single_Find_Item, XmNset, (XtArgVal) False);
 		}
 	else
 		{
-		set_something (Single_Find_Item, XmNset, (void*) True);
-		set_something (Multiple_Find_Item, XmNset, (void*) False);
+		set_something_val (Single_Find_Item, XmNset, (XtArgVal) True);
+		set_something_val (Multiple_Find_Item, XmNset, (XtArgVal) False);
 		}
 
 /*	Passaggio della lista delle variabili
@@ -985,7 +984,7 @@ else
 	nella label "path_f22"             */
 
 	get_something (fileSelectionBox1, XmNtextString, (void*) &label_path_f22);
-	set_something (path_f22, XmNlabelString, (void*) label_path_f22);
+	set_something_val (path_f22, XmNlabelString, (XtArgVal) label_path_f22);
         return(GIUSTO);
 	}
 }
@@ -1162,7 +1161,7 @@ char cdo[200];
 
 printf ("Sto lavorando -- ATTENDERE __\n");
 Uccidi_grafics ();
-set_something (UndoItem, XmNsensitive, (void*) True);
+set_something_val (UndoItem, XmNsensitive, (XtArgVal) True);
 strcpy (Path_appo,"cp ");
 strcat (Path_appo,f22source);
 strcat (Path_appo," ");
@@ -1317,8 +1316,8 @@ F22_extract ()
 		{
 		strcpy (stringa,"Input time not valid !\0");
 		Messaggio = XmStringCreate (stringa,XmSTRING_DEFAULT_CHARSET);
-		set_something (Message, XmNdialogType, (void*) XmDIALOG_ERROR);
-		set_something (Message, XmNmessageString, (void*) Messaggio);
+		set_something_val (Message, XmNdialogType, (XtArgVal) XmDIALOG_ERROR);
+		set_something_val (Message, XmNmessageString, (XtArgVal) Messaggio);
 		UxPopupInterface (Message,no_grab);
 		XmStringFree (Messaggio);
 		return (ERRORE);
@@ -1334,8 +1333,8 @@ F22_extract ()
 			strcpy (stringa,"Value time not valid!\0");
 			Messaggio = XmStringCreate (stringa,
 					XmSTRING_DEFAULT_CHARSET);
-			set_something (Message, XmNdialogType, (void*) XmDIALOG_ERROR);
-			set_something (Message, XmNmessageString, (void*) Messaggio);
+			set_something_val (Message, XmNdialogType, (XtArgVal) XmDIALOG_ERROR);
+			set_something_val (Message, XmNmessageString, (XtArgVal) Messaggio);
 			UxPopupInterface (Message,no_grab);
 			XmStringFree (Messaggio);
 			return (ERRORE);
@@ -1416,8 +1415,8 @@ F22_shift ()
 		{
 		strcpy (stringa,"Input time not valid !\0");
 		Messaggio = XmStringCreate (stringa,XmSTRING_DEFAULT_CHARSET);
-		set_something (Message, XmNdialogType, (void*) XmDIALOG_ERROR);
-		set_something (Message, XmNmessageString, (void*) Messaggio);
+		set_something_val (Message, XmNdialogType, (XtArgVal) XmDIALOG_ERROR);
+		set_something_val (Message, XmNmessageString, (XtArgVal) Messaggio);
 		UxPopupInterface (Message,no_grab);
 		XmStringFree (Messaggio);
 		return (ERRORE);
@@ -2013,8 +2012,8 @@ F22_PasteVar ()
 	{
 		strcpy (stringa,"Max variables number superated!\0");
 		Messaggio = XmStringCreate (stringa,XmSTRING_DEFAULT_CHARSET);
-		set_something (Message, XmNdialogType, (void*) XmDIALOG_ERROR);
-		set_something (Message, XmNmessageString, (void*) Messaggio);
+		set_something_val (Message, XmNdialogType, (XtArgVal) XmDIALOG_ERROR);
+		set_something_val (Message, XmNmessageString, (XtArgVal) Messaggio);
 		UxPopupInterface (Message,no_grab);
 		XmStringFree (Messaggio);
 		return (ERRORE);
@@ -2034,8 +2033,8 @@ F22_PasteVar ()
 			strcpy (stringa,"Unable to rename variables!\0");
 			Messaggio = XmStringCreate (stringa,
 					XmSTRING_DEFAULT_CHARSET);
-			set_something (Message, XmNdialogType, (void*) XmDIALOG_ERROR);
-			set_something (Message, XmNmessageString, (void*) Messaggio);
+			set_something_val (Message, XmNdialogType, (XtArgVal) XmDIALOG_ERROR);
+			set_something_val (Message, XmNmessageString, (XtArgVal) Messaggio);
 			UxPopupInterface (Message,no_grab);
 			XmStringFree (Messaggio);
 			return (ERRORE);
@@ -2245,8 +2244,8 @@ EseguiCambioVar (char *NuovoNome,char *NuovaDescr,int indice)
  		{
 		strcpy (Mess,"New variable name already exist!\0");
 		Messaggio = XmStringCreate (Mess,XmSTRING_DEFAULT_CHARSET);
-		set_something (Message, XmNdialogType, (void*) XmDIALOG_INFORMATION);
-		set_something (Message, XmNmessageString, (void*) Messaggio);
+		set_something_val (Message, XmNdialogType, (XtArgVal) XmDIALOG_INFORMATION);
+		set_something_val (Message, XmNmessageString, (XtArgVal) Messaggio);
 		UxPopupInterface (Message,no_grab);
 		return (ERRORE);
 		XmStringFree (Messaggio);
@@ -2310,8 +2309,8 @@ EseguiElabLineare (int posiz_sel,char *Var,char *Descr,float PA,float PB)
 	{
 		strcpy (Mess,"Max variables number superated!\0");
 		Messaggio = XmStringCreate (Mess,XmSTRING_DEFAULT_CHARSET);
-		set_something (Message, XmNdialogType, (void*) XmDIALOG_ERROR);
-		set_something (Message, XmNmessageString, (void*) Messaggio);
+		set_something_val (Message, XmNdialogType, (XtArgVal) XmDIALOG_ERROR);
+		set_something_val (Message, XmNmessageString, (XtArgVal) Messaggio);
 		UxPopupInterface (Message,no_grab);
 		return (ERRORE);
 	}
@@ -2326,8 +2325,8 @@ if (uguali == 0)
 	{
 	strcpy (Mess,"New variable name already exist!\0");
 	Messaggio = XmStringCreate (Mess,XmSTRING_DEFAULT_CHARSET);
-	set_something (Message, XmNdialogType, (void*) XmDIALOG_INFORMATION);
-	set_something (Message, XmNmessageString, (void*) Messaggio);
+	set_something_val (Message, XmNdialogType, (XtArgVal) XmDIALOG_INFORMATION);
+	set_something_val (Message, XmNmessageString, (XtArgVal) Messaggio);
 	UxPopupInterface (Message,no_grab);
 	return (ERRORE);
  	}
@@ -2418,8 +2417,8 @@ EseguiSommaAlg (int posiz1,int posiz2,char *Var,char *Descr)
 	{
 		strcpy (Mess,"Max variables number superated!\0");
 		Messaggio = XmStringCreate (Mess,XmSTRING_DEFAULT_CHARSET);
-		set_something (Message, XmNdialogType, (void*) XmDIALOG_ERROR);
-		set_something (Message, XmNmessageString, (void*) Messaggio);
+		set_something_val (Message, XmNdialogType, (XtArgVal) XmDIALOG_ERROR);
+		set_something_val (Message, XmNmessageString, (XtArgVal) Messaggio);
 		UxPopupInterface (Message,no_grab);
 		return (ERRORE);
 	}
@@ -2434,8 +2433,8 @@ if (uguali == 0)
 	{
 	strcpy (Mess,"New variable name already exist!\0");
 	Messaggio = XmStringCreate (Mess,XmSTRING_DEFAULT_CHARSET);
-	set_something (Message, XmNdialogType, (void*) XmDIALOG_INFORMATION);
-	set_something (Message, XmNmessageString, (void*) Messaggio);
+	set_something_val (Message, XmNdialogType, (XtArgVal) XmDIALOG_INFORMATION);
+	set_something_val (Message, XmNmessageString, (XtArgVal) Messaggio);
 	UxPopupInterface (Message,no_grab);
 	return (ERRORE);
  	}

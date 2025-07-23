@@ -158,7 +158,7 @@ static Widget	_Ux_create_msgToUser( _Uxlevel, _Uxmsg )
 
 		xmsg=XmStringCreateSimple(msg);
 		
-		set_something(rtrn,XmNmessageString,(void*) xmsg);
+		set_something_val(rtrn,XmNmessageString, (XtArgVal) xmsg);
 		
 		XtDestroyWidget(XmMessageBoxGetChild(rtrn,XmDIALOG_CANCEL_BUTTON));
 		XtDestroyWidget(XmMessageBoxGetChild(rtrn,XmDIALOG_HELP_BUTTON));

@@ -104,7 +104,7 @@ static void	activateCB_arrowButtonGadget1( UxWidget, UxClientData, UxCallbackArg
 		New_Sampl--;
 		sprintf (New_Sampl_stringa,"%d",New_Sampl);
 	}
-	set_something (text_New_Sampl, XmNvalue, (void*) New_Sampl_stringa);
+	set_something_val (text_New_Sampl, XmNvalue, (XtArgVal) New_Sampl_stringa);
 	}
 	UxSamplingContext = UxSaveCtx;
 }
@@ -126,7 +126,7 @@ static void	activateCB_arrowButtonGadget2( UxWidget, UxClientData, UxCallbackArg
 		New_Sampl ++;
 		sprintf (New_Sampl_stringa,"%d",New_Sampl);
 	}
-	set_something (text_New_Sampl, XmNvalue, (void*) New_Sampl_stringa);
+	set_something_val (text_New_Sampl, XmNvalue, (XtArgVal) New_Sampl_stringa);
 	}
 	UxSamplingContext = UxSaveCtx;
 }
@@ -150,8 +150,8 @@ static void	activateCB_pushButton7( UxWidget, UxClientData, UxCallbackArg )
 		{
 		strcpy (stringa, "Input value is not valid\0");
 		Messaggio = XmStringCreate (stringa, XmSTRING_DEFAULT_CHARSET);
-		set_something (Message, XmNdialogType, (void*) XmDIALOG_ERROR);
-		set_something (Message, XmNmessageString, (void*) Messaggio);
+		set_something_val (Message, XmNdialogType, (XtArgVal) XmDIALOG_ERROR);
+		set_something_val (Message, XmNmessageString, (XtArgVal) Messaggio);
 		UxPopupInterface (Message, no_grab);
 		XmStringFree (Messaggio);
 		}

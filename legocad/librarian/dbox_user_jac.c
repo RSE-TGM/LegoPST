@@ -732,7 +732,7 @@ static Widget	_Ux_create_dbox_userjac()
 		dbox_userjac_managed = True;
 		
 		/* Dimensionamento dell'altezza della form dei text */
-		set_something (UxGetWidget(jac_dipend_form),XmNheight,(void*) height);
+		set_something_val (UxGetWidget(jac_dipend_form),XmNheight, (XtArgVal) height);
 		
 		if ( str_dichJC != NULL )
 		   XmTextSetString(UxGetWidget(jac_decl_scrolledText),str_dichJC);

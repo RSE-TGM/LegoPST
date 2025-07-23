@@ -546,8 +546,8 @@ XmAnyCallbackStruct *call_data;
    XtSetValues (macro_list, args, nargs);
 
    /* Cancella i contenuti dei Text dei macroblocchi & loro descrizione */
-   set_something (macro_text,XmNvalue,(void*) "");
-   set_something (macro_descr_text,XmNvalue,(void*) "");
+   set_something_val (macro_text,XmNvalue, (XtArgVal) "");
+   set_something_val (macro_descr_text,XmNvalue, (XtArgVal) "");
 
    /* Legge da capo il contenuto del file f01.dat e lo schiaffa */
    /* nella lista dei blocchi */
@@ -757,7 +757,7 @@ aggiorna_lista_blocchi()
    XtSetValues (block_list, args, nargs);
 
    cstring = CREATE_CSTRING(nome_modello);
-   set_something (label_nome_modello,XmNlabelString,(void*) cstring);
+   set_something_val (label_nome_modello,XmNlabelString, (XtArgVal) cstring);
    XmStringFree(cstring);
 }
 
@@ -790,7 +790,7 @@ Widget widget_sup;
    if (find_form == NULL)
        find_form = find_kit(form_widget,args,nargs,&find_block);
 
-   set_something (find_block.ID_testo,XmNbackground,(void*) 1);
+   set_something_val (find_block.ID_testo,XmNbackground, (XtArgVal) 1);
    return(find_form);
 }
 

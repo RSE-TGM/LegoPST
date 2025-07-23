@@ -43,6 +43,7 @@ static char SccsID[] = "@(#)client_scada_func.c	1.20\t5/23/95";
 #include <client_scada.h>
 #include <client_s.h>
 #include <sim_param.h>
+#include <sim_types.h>
 
 /************************************
 Funzioni per gestione lock miniASD
@@ -140,8 +141,37 @@ extern int cerca_shm(TAB_SHARED *, int );
 TAB_SHARED tabella[MAX_OPERAZIONI];  /* tabella che tiene conto degli id 
                                         delle shm */
 char *crea_shrmem(int,int,int *);
+int invio_richiesta_nuova_pagina(int fp,pthread_mutex_t *fp_mutex,
+                char *nome_pagina,int zona,int video);
+int CsRcvMsgDel(int coda);
+int cerca_zona(int id_shm);
+int invio_richiesta_canc_pagina(int fp,pthread_mutex_t *fp_mutex,
+                int zona,int video);
+int CsRcvMsgChangePoint(int coda,MSG_CHANGE_POINT_MMI *msg);
+int invio_riconoscimento_allarmi_miniASD(int fp,pthread_mutex_t *fp_mutex,
+                int video,char* pagina,int db,unsigned char *gerarchia,
+                DATI_ALLARMI_SHM *data_all,int modo,
+                int filtro,int tipo_all,int indice_all);
+int invio_richiesta_allarmi_miniASD(int fp,pthread_mutex_t *fp_mutex,int video,
+                char* pagina,int db, unsigned char *gerarchia,int modo,
+                int filtro,int tipo_allarme);
 
-void main_client_scada_command(pthread_addr_t arg)
+int destroy_shm_allarmi_miniASD(int id_allarm,int id_manual);
+int invio_richiesta_allarmi_zone(int fp,pthread_mutex_t *fp_mutex,int video,
+                char* pagina,int db, int *zone_imp,int modo);
+extern int CsRcvMsgAllCommand(int coda,MSG_ALL_COMMAND_MMI *msg);
+int invio_comando_allarmi(int fp,pthread_mutex_t *fp_mutex,int video,
+                char* pagina,int db, int comando);
+int read_messaggio_scada(int fp,pthread_mutex_t *fp_mutex, char* buf);
+
+
+
+
+
+
+                
+//void *main_client_scada_command(pthread_addr_t arg)
+void *main_client_scada_command(void *arg)
 {
 float a;
 int id_msg_client;
@@ -194,7 +224,7 @@ if(prima_volta)
    }
 
 
-if(atoi(getenv("SHR_USR_KEYS"))==NULL)
+if(getenv("SHR_USR_KEYS")==NULL)
         {
         printf("client_mmiS: ATTENZIONE SHR_USR_KEYS non settata !!!\n");
         exit(0);
@@ -429,7 +459,7 @@ Distinguo due casi possibili:
                          fprintf(stderr,"ERROR: Impossible to send msg \
                                  for ack miniASD\n");
                          }
-                    sgancia_shrmem(punt_data_all);
+                    sgancia_shrmem((char*)punt_data_all);
                     }
                 }
 /*
@@ -476,7 +506,7 @@ esegui un nuovo riconoscimento
                  {
                  prog_allar_miniASD=0;
                  unset_lock_miniASD();
-                 sgancia_shrmem(punt_data_all);
+                 sgancia_shrmem((char*)punt_data_all);
                  }
               }
            }
@@ -539,7 +569,7 @@ printf("client_scada: In lock_enabled() &&(CsRcvMsgMiniASDDes else di if\n");
 		zone[1].stato=1;
 		zone[1].t_agg=1;
 		zone[1].size=0;
-		zone[1].ind=1;
+		zone[1].ind = (char *)-1; // Assegna un valore puntatore non-NULL ma riconoscibile come fittizio
 		zone[1].num_punti=0;
 		allarmi_da=1;
    		memcpy(&dati_all,punt_shm_allarmi,sizeof(DATI_ALLARMI_SHM));
@@ -634,10 +664,12 @@ printf("client_scada: In lock_enabled() &&(CsRcvMsgMiniASDDes else di if\n");
 	sblocco_canale = 1;
         p_sospendi(100);
         }
+return NULL; 
 }
 
-
-void main_client_scada_data(pthread_addr_t arg)
+// GUAG2025 porting da dcethread a pthread  
+//void *main_client_scada_data(pthread_addr_t arg)
+void *main_client_scada_data(void *arg)
 {
 S_VTIME time;
 S_HEAHOST hea;
@@ -645,8 +677,8 @@ S_VCLRV m_vclrv;
 S_VDEAL m_vdeal;
 S_VPAGV m_vpagv;
 int ret;
-int my_number;
-char buf[MAX_DIM_MESSAGGIO_SCADA];
+//int my_number;
+char buf[MAX_DIM_MESSAGGIO_SCADA+1000];
 short giorno,mese,anno,ore,minuti,secondi;
 float tempo_sim;
 short nodo;
@@ -657,7 +689,7 @@ int i;
 DATI_ALLARMI_SHM dati_all;
 int kk;
 short buf_len;
-my_number= (int)arg;
+int my_number = (int)(intptr_t)arg; // Modo più sicuro per castare
 
 while(1)
         {
@@ -836,8 +868,14 @@ printf("S_VDASI: zona=%d video=%d pagina=%s num_byte=%d\n",
                 }
 	pthread_mutex_unlock(&canale_mutex);
         }
-printf("Terminato thread leggi\n");
-pthread_exit(my_number);
+    printf("Terminato thread leggi\n");
+    pthread_exit((void *)(intptr_t)my_number); // Modo più sicuro per ritornare un valore
+
+// printf("Terminato thread leggi\n");
+// pthread_exit(my_number);
+
+return NULL;
+
 }
                        
 
@@ -943,17 +981,34 @@ zone[zona-1].num_punti = j;
 // printf("la zona %d contiene %d punti\n",zona,zone[zona-1].num_punti);
 }
 
-void p_sospendi(int time)
+//GUAG2025 migrazione a pthreads
+// NUOVA VERSIONE STANDARD POSIX (DA USARE)
+void p_sospendi(int millisecondi)
 {
-struct timespec interval;
-float ftime;
+    struct timespec interval;
 
-ftime = (float)time * 1000000;
+    if (millisecondi <= 0) {
+        return;
+    }
 
-interval.tv_sec = ftime/1000000000;
-interval.tv_nsec = ftime - interval.tv_sec*1000000000;
-pthread_delay_np(&interval);
+    interval.tv_sec = millisecondi / 1000;
+    interval.tv_nsec = (millisecondi % 1000) * 1000000L;
+    
+    // nanosleep è la funzione standard POSIX per questo scopo.
+    nanosleep(&interval, NULL);
 }
+
+// void p_sospendi(int time)
+// {
+// struct timespec interval;
+// float ftime;
+
+// ftime = (float)time * 1000000;
+
+// interval.tv_sec = ftime/1000000000;
+// interval.tv_nsec = ftime - interval.tv_sec*1000000000;
+// pthread_delay_np(&interval);
+// }
 
 int readn_i(fd,fd_mutex,ptr,nbytes)
 int fd;
@@ -1467,12 +1522,14 @@ printf("sigla_1=%s sigla_2=%s sigla_3=%s sigla_4=%s\n",
 			{
 			modo_trend=1;
         		pthread_mutex_unlock(canale_mutex);
-                	if(f22_open(out,titolo,
-                            &buffer_nome[0],&buffer_descr[0],num_sigle)<0)
-				{
-				printf("Errore ritorno f22_open\n");
-				return(-1);
-				}
+                	// if(f22_open(out,titolo,
+                        //     &buffer_nome[0],&buffer_descr[0],num_sigle)<0)
+			// 	{
+			// 	printf("Errore ritorno f22_open\n");
+			// 	return(-1);
+			// 	}
+                        f22_open(out,
+                            &buffer_nome[0],&buffer_descr[0],num_sigle);                     
 			}
                 if(estrai_campioni(&buf[l_cra_vdsgr],num_sigle,
                         (int)m_vdsgr.n_camp,t_iniz,(int)(m_vdsgr.flag))<0)
@@ -1482,11 +1539,12 @@ printf("sigla_1=%s sigla_2=%s sigla_3=%s sigla_4=%s\n",
 				}
                 if((m_vdsgr.flag == HT_ENDTRASM)||(m_vdsgr.flag == 3))
                         {
-                        if(f22_close()<0)
-				{
-				printf("Errore ritorno f22_close\n");
-				return(-1);
-				}
+                        // if(f22_close()<0)
+			// 	{
+			// 	printf("Errore ritorno f22_close\n");
+			// 	return(-1);
+			// 	}
+                        f22_close();
 printf("trend: blocco canale mutex\n");
         		pthread_mutex_lock(canale_mutex);
 			modo_trend=0;
@@ -1506,7 +1564,7 @@ int i,j;
 float dati[max_sigqua];
 short tipo;
 static BUFFER_TREND *buffer_trend;
-static tot_campioni;
+static int tot_campioni;
 
 typedef struct flag_digitale_st{
                 unsigned short sl : 1;   /* stato logico corrente */
@@ -1590,11 +1648,13 @@ FLAG_DIGITALE flag_digitale;
 		printf("Totale campioni ricevuti = %d\n",tot_campioni);
 		for(i=0;i<tot_campioni;i++)
 		 {
-		if(f22_write(buffer_trend[i].tempo,buffer_trend[i].dati,num)<0)
-			{
-			printf("Errore ritorno f22_write\n");
-			return(-1);
-			}
+
+		// if(f22_write(buffer_trend[i].tempo,buffer_trend[i].dati,num)<0)
+		// 	{
+		// 	printf("Errore ritorno f22_write\n");
+		// 	return(-1);
+		// 	}
+                f22_write(buffer_trend[i].tempo,buffer_trend[i].dati,num);
 		if(i==tot_campioni-1)
                 printf("Ultimo campione[%d] t = %f - %f %f %f %f\n",i,buffer_trend[i].tempo,
                         buffer_trend[i].dati[0],
@@ -1763,7 +1823,8 @@ by Fabio 12/7/96
 N.B.
 Dal lato SCADA le stringhe sono trattate tutte senza \0
 */
-		dati_all.descr[i+inizio][ALL_DESC-1]=NULL;
+//		dati_all.descr[i+inizio][ALL_DESC-1]=NULL;
+                dati_all.descr[i+inizio][ALL_DESC-1] = '\0';
 
 printf("allarmi[%d]=>   |%d/%d| |%s|\n",i+inizio,
 			dati_all.col_ast[i+inizio],dati_all.col_str[i+inizio],
@@ -1998,7 +2059,8 @@ by Fabio 12/7/96
 N.B.
 Dal lato SCADA le stringhe sono trattate tutte senza \0
 */
-		dati_all.descr[i+inizio][ALL_DESC-1]=NULL;
+//		dati_all.descr[i+inizio][ALL_DESC-1]=NULL;
+		dati_all.descr[i+inizio][ALL_DESC-1]= '\0';
 
 printf("allarmi[%d]=>   |%d/%d| |%s|\n",i+inizio,
 			dati_all.col_ast[i+inizio],dati_all.col_str[i+inizio],
@@ -2098,7 +2160,7 @@ printf("client_scada: dati_validi = %d\n",dati_all.dati_validi);
 }
 
 
-destroy_shm_allarmi_miniASD(int id_allarm,int id_manual)
+int destroy_shm_allarmi_miniASD(int id_allarm,int id_manual)
 {
 int shmvid;
 char *data_all;
@@ -2133,7 +2195,7 @@ if(!(data_all=(char *)crea_shrmem(id_manual,sizeof(DATI_ALLARMI_SHM),
 sgancia_shrmem(data_all);
 
 distruggi_shrmem(shmvid);
-
+return(0);
 }
 
 /*

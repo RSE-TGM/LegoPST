@@ -610,7 +610,7 @@ static Widget	_Uxbuild_Scada()
 */
 	LoadBitmap(ButtonLog,&pix,LogBitmap_bits,LogBitmap_width,
 		LogBitmap_height);
-        set_something(ButtonLog,XmNlabelPixmap,(void*) pix);
+        set_something_val(ButtonLog,XmNlabelPixmap, (XtArgVal) pix);
 
 	XtAddCallback( ButtonLog, XmNactivateCallback,
 			activateCB_ButtonLog,
@@ -623,7 +623,7 @@ static Widget	_Uxbuild_Scada()
 */
 	LoadBitmap(ButtonMandb,&pix,MandbBitmap_bits,MandbBitmap_width,
 		MandbBitmap_height);
-        set_something(ButtonMandb,XmNlabelPixmap,(void*) pix);
+        set_something_val(ButtonMandb,XmNlabelPixmap, (XtArgVal) pix);
 
 	XtAddCallback( ButtonMandb, XmNactivateCallback,
 			activateCB_ButtonMandb,
@@ -636,7 +636,7 @@ static Widget	_Uxbuild_Scada()
 */
 	LoadBitmap(ButtonDebug,&pix,DebugBitmap_bits,DebugBitmap_width,
 		DebugBitmap_height);
-        set_something(ButtonDebug,XmNlabelPixmap,(void*) pix);
+        set_something_val(ButtonDebug,XmNlabelPixmap, (XtArgVal) pix);
 
 	XtAddCallback( ButtonDebug, XmNactivateCallback,
 			activateCB_ButtonDebug,
@@ -648,7 +648,7 @@ static Widget	_Uxbuild_Scada()
 
 	LoadBitmap(Scada,&pix,ScadaIconBitmap_bits,ScadaIconBitmap_width,
 		ScadaIconBitmap_height);
-        set_something(Scada,XmNiconPixmap,(void*) pix);
+        set_something_val(Scada,XmNiconPixmap, (XtArgVal) pix);
 
 	return ( Scada );
 }

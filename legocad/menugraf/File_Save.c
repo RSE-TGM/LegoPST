@@ -115,8 +115,8 @@ static void	activateCB_push_save( UxWidget, UxClientData, UxCallbackArg )
 		{
 		strcpy (stringa,"File name is not valid !\0");
 		Messaggio = XmStringCreate (stringa, XmSTRING_DEFAULT_CHARSET);
-		set_something (Message, XmNdialogType, (void*) XmDIALOG_ERROR);
-		set_something (Message, XmNmessageString, (void*) Messaggio);
+		set_something_val (Message, XmNdialogType, (XtArgVal) XmDIALOG_ERROR);
+		set_something_val (Message, XmNmessageString, (XtArgVal) Messaggio);
 		UxPopupInterface (Message, no_grab);
 		XmStringFree (Messaggio);
 		}
@@ -303,8 +303,8 @@ static Widget	_Ux_create_File_Save( _UxOpzione, _UxPX, _UxPY, _UxNomeFile )
 		fileSave = XtNewString (NomeFile);
 		rtrn = _Uxbuild_File_Save();
 
-		set_something (File_Save, XmNx, (void*) PX+10);
-		set_something (File_Save, XmNy, (void*) PY+10);
+		set_something_val (File_Save, XmNx, (XtArgVal) PX+10);
+		set_something_val (File_Save, XmNy, (XtArgVal) PY+10);
 		return(rtrn);
 	}
 }

@@ -170,15 +170,15 @@ Widget	create_dialog_equation();
 dimensiona_widgets()
 {
 /* Dimensionamento tavola dei toggleButtons */
-   set_something (UxGetWidget(bboard_jac_toggles),
+   set_something_val (UxGetWidget(bboard_jac_toggles),
                   XmNwidth, (MARGIN+WIDTH_JAC_TOGGLES)*jac_cols+MARGIN);
-   set_something (UxGetWidget(bboard_jac_toggles),
+   set_something_val (UxGetWidget(bboard_jac_toggles),
                   XmNheight,(MARGIN+HEIGHT_JAC_TOGGLES)*jac_rows+MARGIN);
 
 /* Dimensionamento tavola delle labels  */
-   set_something (UxGetWidget(bboard_jac_equ),
+   set_something_val (UxGetWidget(bboard_jac_equ),
                   XmNheight,(MARGIN+HEIGHT_JAC_TOGGLES)*jac_rows+MARGIN);
-   set_something (UxGetWidget(bboard_jac_var),
+   set_something_val (UxGetWidget(bboard_jac_var),
                   XmNwidth, (MARGIN+WIDTH_JAC_TOGGLES)*jac_cols+MARGIN);
 }
 
@@ -291,13 +291,13 @@ XmDrawnButtonCallbackStruct *reason;
    if ( bg == apix[BLACK] )
    {
       num_yes_toggle--;
-      set_something (w,XmNbackground,(void*) apix[WHITE]);
+      set_something_val (w,XmNbackground, (XtArgVal) apix[WHITE]);
       jacstruct_ptr->jac_yes = False;
    }
    else
    {
       num_yes_toggle++;
-      set_something (w,XmNbackground,(void*) apix[BLACK]);
+      set_something_val (w,XmNbackground, (XtArgVal) apix[BLACK]);
       jacstruct_ptr->jac_yes = True;
    }
 }
@@ -391,7 +391,7 @@ aggiorna_jac_var_labels()
    {
       cstring_var = CREATE_CSTRING(variabili[indice].nome);
 
-      set_something (wdg[indice],XmNlabelString, (void*) cstring_var);
+      set_something_val (wdg[indice],XmNlabelString, (XtArgVal) cstring_var);
       XmStringFree (cstring_var);
    }
 }
@@ -524,9 +524,9 @@ chiudi_dialog_equation()
    if ( unlink(file_jac_temp) )
       printf ("Can't delete jacobian temporary file. Failure.\n");
 
-   set_something (UxGetWidget(pb_nmod_varsetup),XmNsensitive,(void*) True);
+   set_something_val (UxGetWidget(pb_nmod_varsetup),XmNsensitive, (XtArgVal) True);
    if (nmod_def_initialized && jacobian_type == ANALYTICAL)
-      set_something (UxGetWidget(pb_nmod_JC),XmNsensitive,(void*) True);
+      set_something_val (UxGetWidget(pb_nmod_JC),XmNsensitive, (XtArgVal) True);
 }
 
 /*******************************************************************************
@@ -901,9 +901,9 @@ static Widget	_Ux_create_dialog_equation()
 		int i,j;
 		
 		/* Disabilita alcune voci di menu */
-		set_something (UxGetWidget(pb_nmod_varsetup),XmNsensitive,(void*) False);
+		set_something_val (UxGetWidget(pb_nmod_varsetup),XmNsensitive, (XtArgVal) False);
 		if (nmod_def_initialized)
-		   set_something (UxGetWidget(pb_nmod_JC),XmNsensitive,(void*) False);
+		   set_something_val (UxGetWidget(pb_nmod_JC),XmNsensitive, (XtArgVal) False);
 		rtrn = _Uxbuild_nmod_dialog_equations();
 
 		/* Dimensionamenti Widgets */

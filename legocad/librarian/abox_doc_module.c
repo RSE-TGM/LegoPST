@@ -193,8 +193,8 @@ char modulo[];
       scrivi_messaggio ("Couldn't open documentation.");
 
 /* All'apertura della finestra e' disabilitata la ricerca indietro */
-   set_something (UxGetWidget(arrow_prec),XmNsensitive,(void*) False);
-   set_something (UxGetWidget(arrow_next),XmNsensitive,(void*) True);
+   set_something_val (UxGetWidget(arrow_prec),XmNsensitive, (XtArgVal) False);
+   set_something_val (UxGetWidget(arrow_next),XmNsensitive, (XtArgVal) True);
 }
 
 /************************************************************/
@@ -236,7 +236,7 @@ int ind_sez;
    sprintf (titolo_finestra,"MODULE %.4s DOCUMENTATION",
             doc_modulo+strlen(doc_modulo)-8);
    tomaius (titolo_finestra);
-   set_something (UxGetWidget(abox_doc_module), XmNtitle,(void*) titolo_finestra);
+   set_something_val (UxGetWidget(abox_doc_module), XmNtitle, (XtArgVal) titolo_finestra);
 
 /*******************************************************************/ 
 /* Leggo il file doc finche' non trovo la sezione da acquisire     */
@@ -317,10 +317,10 @@ byte verso;
 
          if (sezione_attiva < 7)
          {
-            set_something (UxGetWidget(arrow_prec),XmNsensitive,(void*) True);
+            set_something_val (UxGetWidget(arrow_prec),XmNsensitive, (XtArgVal) True);
             sezione_attiva++;
             if (sezione_attiva == 7)
-                set_something (UxGetWidget(arrow_next),XmNsensitive,(void*) False);
+                set_something_val (UxGetWidget(arrow_next),XmNsensitive, (XtArgVal) False);
          }
          break;
 
@@ -329,10 +329,10 @@ byte verso;
         if (sezione_attiva > 0)
         {
 
-            set_something (UxGetWidget(arrow_next),XmNsensitive,(void*) True);
+            set_something_val (UxGetWidget(arrow_next),XmNsensitive, (XtArgVal) True);
             sezione_attiva--;
             if (sezione_attiva == 0)
-                set_something (UxGetWidget(arrow_prec),XmNsensitive,(void*) False);
+                set_something_val (UxGetWidget(arrow_prec),XmNsensitive, (XtArgVal) False);
         }
         break;
    }  /* Fine switch */

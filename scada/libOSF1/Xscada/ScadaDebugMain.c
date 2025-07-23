@@ -245,7 +245,7 @@ Pixmap pix;
 
         LoadBitmap(ScadaDebugMain,&pix,DebugIconBitmap_bits,DebugIconBitmap_width,
                 DebugIconBitmap_height);
-        set_something(ScadaDebugMain,XmNiconPixmap,(void*) pix);
+        set_something_val(ScadaDebugMain,XmNiconPixmap, (XtArgVal) pix);
 
 	return ( ScadaDebugMain );
 }

@@ -279,7 +279,7 @@ Cardinal *num_params;
        if (macroblocks[i].selezionato && !macroblocks[i].cancellato)
        {
           macroblocks[i].selezionato = False;
-          set_something(macroblocks[i].wmacro, XmNbackground, (void*) apix[WHITE]);
+          set_something_val(macroblocks[i].wmacro, XmNbackground, (XtArgVal) apix[WHITE]);
 /*
  la condizione seguente e' stata aggiunta come patch da L.Castiglioni
 */
@@ -329,9 +329,9 @@ printf("\n MACROBLOCCO SELEZIONATO = %d",macroblocks[ ind_macro ].selezionato);
 
 /* Seleziona il macroblocco corrente e resetta il precedente (COLOR_BG) */
    if ( macroblocks[ ind_macro ].selezionato ) 
-      set_something(w, XmNbackground, (void*) apix[MACRO_SELEZ_BG]);
+      set_something_val(w, XmNbackground, (XtArgVal) apix[MACRO_SELEZ_BG]);
    else
-      set_something(w, XmNbackground, (void*) apix[WHITE]);
+      set_something_val(w, XmNbackground, (XtArgVal) apix[WHITE]);
 }
 
 /*------------------------------------------------------------------*/

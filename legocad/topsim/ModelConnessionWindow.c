@@ -141,10 +141,10 @@ void set_titolo(MODELLO *task)
    XmString xstring;
 
    xstring=XmStringCreateSimple(task->nome);
-   set_something(modNameLb1,XmNlabelString,(void*) xstring);
+   set_something_val(modNameLb1,XmNlabelString, (XtArgVal) xstring);
 
    xstring=XmStringCreateSimple(task->descr);
-   set_something(descrMod,XmNlabelString,(void*) xstring);
+   set_something_val(descrMod,XmNlabelString, (XtArgVal) xstring);
 }
 
 void set_lista_blocchi(MODELLO *task)

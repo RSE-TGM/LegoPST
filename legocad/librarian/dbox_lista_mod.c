@@ -1084,7 +1084,7 @@ static void	multipleSelectionCB_scrolledList_moduli( UxWidget, UxClientData, UxC
 	
 	sprintf (item_label,"%3d",selected_item);
 	cstring = CREATE_CSTRING(item_label);
-	set_something (UxGetWidget(label_select_item), XmNlabelString, (void*) cstring);
+	set_something_val (UxGetWidget(label_select_item), XmNlabelString, (XtArgVal) cstring);
 	XmStringFree(cstring);
 	}
 	UxDbox_lista_modContext = UxSaveCtx;
@@ -1107,7 +1107,7 @@ static void	singleSelectionCB_scrolledList_moduli( UxWidget, UxClientData, UxCal
 	
 	sprintf (item_label,"%3d",selected_item);
 	cstring = CREATE_CSTRING(item_label);
-	set_something (UxGetWidget(label_select_item),XmNlabelString, (void*) cstring);
+	set_something_val (UxGetWidget(label_select_item),XmNlabelString, (XtArgVal) cstring);
 	XmStringFree(cstring);
 	}
 	UxDbox_lista_modContext = UxSaveCtx;
@@ -1149,7 +1149,7 @@ static void	activateCB_deselect_all_pb( UxWidget, UxClientData, UxCallbackArg )
 	XmListDeselectAllItems (UxGetWidget(scrolledList_moduli));
 	
 	/* Azzera il contatore degli items selezionati */
-	set_something (UxGetWidget(label_select_item),XmNlabelString,
+	set_something_val (UxGetWidget(label_select_item),XmNlabelString,
 	               CREATE_CSTRING("0"));
 	}
 	UxDbox_lista_modContext = UxSaveCtx;
@@ -1615,7 +1615,7 @@ static Widget	_Ux_create_lista_moduli( _Uxfp, _Uxtipo_libreria, _Uxflag_list, _U
 		          break;
 		  }
 		
-		  set_something(UxGetWidget(scrolledList_moduli),XmNselectionPolicy,
+		  set_something_val(UxGetWidget(scrolledList_moduli),XmNselectionPolicy,
 		                                                 tipo_selezione);
 		  set_label(UxGetWidget(label_lista_mod),titolo_finestra);
 		
@@ -1649,7 +1649,7 @@ static Widget	_Ux_create_lista_moduli( _Uxfp, _Uxtipo_libreria, _Uxflag_list, _U
 		  {
 		  /* Label contatore inizializzata "0" */
 		     cstring = CREATE_CSTRING("  0  ");
-		     set_something (UxGetWidget(label_select_item), XmNlabelString, (void*) cstring);
+		     set_something_val (UxGetWidget(label_select_item), XmNlabelString, (XtArgVal) cstring);
 		     XmStringFree(cstring);
 		  }
 		

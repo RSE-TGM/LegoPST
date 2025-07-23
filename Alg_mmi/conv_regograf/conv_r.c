@@ -906,8 +906,14 @@ for(i=0;i<num;i++)
 		  if(strcmp(sigla,varsch[j].nome)==0)
 			{
 			sprintf(valore,"%f",varsch[j].fval);
+
+			// GUAG2025 Salva il puntatore corrente per eventualmente cancellarlo dopo
+            char *lista_precedente = *Lista;
 			InsTagVal(PuntForm,OL_FORM_INPUT_VALUE,
 				sigla,2,Lista,valore);
+			int ret;
+            if(ret == 2 && lista_precedente != NULL) XtFree(lista_precedente);
+
 			InsTagDescr(PuntForm,OL_FORM_INPUT_VALUE,
 				sigla,2,Lista,varsch[j].descr);
 			}
@@ -921,8 +927,14 @@ for(i=0;i<num;i++)
 			(memcmp(riga,vardati[j].nome,6)==0))
 			{
 			sprintf(valore,"%f",vardati[j].fval);
+			
+			// GUAG2025 Salva il puntatore corrente per eventualmente cancellarlo dopo
+			char *lista_precedente = *Lista;
 			InsTagVal(PuntForm,OL_FORM_INPUT_DATA,
 				vardati[j].nome,6,Lista,valore);
+			int ret;
+			if(ret == 2 && lista_precedente != NULL)XtFree(lista_precedente);
+			  
 			}
 		}
 	}

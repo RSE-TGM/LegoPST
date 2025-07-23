@@ -1375,7 +1375,11 @@ char app2[FILENAME_MAX]={'\0'};
                if(h<nv14)
                   {
 /*                printf("h=%d nv14=%d\n",h,nv14); */
+                  char *stringone_input;
+                  stringone_input = stringone;  //GUAG2025 copio il puntatore per liberare memoria dopo
                   ret = InsTagVal(form,OL_FORM_INPUT_VALUE, tag, 2, &stringone, valore);
+                  // infatti stringone dopo la chiamata a InsTagVal potrebbe essere duplicato, quindi lo libero dopo
+                  if(ret == 2 && stringone_input != NULL) XtFree(stringone_input);
                   if(ret<0)
                      {
                      strcpy(messaggio,
@@ -1597,10 +1601,12 @@ char messaggio[100];
 	nuovo_value=XtNewString(value);
 
 /*      Inserisco il valore della variabile da propagare */
+        char *nuovo_value_input;
+        nuovo_value_input = nuovo_value; //GUAG2025 copio il puntatore per liberare memoria dopo
         ret = InsTagVal(form,OL_FORM_INPUT_VALUE,nome_var,2,&nuovo_value,valore);
-	if(valore!=NULL)
-		XtFree(valore);
-        if (ret<0)
+        if(valore!=NULL) XtFree(valore);     
+        if(ret == 2 && nuovo_value_input != NULL) XtFree(nuovo_value_input);
+	     if (ret<0)
            {
            /*
            fprintf(stderr,

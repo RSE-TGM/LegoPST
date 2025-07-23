@@ -80,14 +80,14 @@ void Iadd_new_block_graf(int tipo)
       tipo_modulo = TP_BLOCK_REG;
       if (dbx_nuovo_blocco == NULL)
          dialog_nuovo_blocco();
-      set_something(text_nome_blocco,XmNeditable,(void*) False);
+      set_something_val(text_nome_blocco,XmNeditable, (XtArgVal) False);
    }
    else if (tipo == PROCESSO)
    {
       tipo_modulo = TP_BLOCK;
       if (dbx_nuovo_blocco == NULL)
          dialog_nuovo_blocco();
-      set_something(text_nome_blocco,XmNeditable,(void*) True);
+      set_something_val(text_nome_blocco,XmNeditable, (XtArgVal) True);
    }
 
 

@@ -111,12 +111,14 @@ printf("Creata connessione fp = %d\n",fp);
 /*
         inizializza fp_mutex
 */
-if(pthread_mutex_init(&fp_mutex,pthread_mutexattr_default)!=0)
+//if(pthread_mutex_init(&fp_mutex,pthread_mutexattr_default)!=0)
+if(pthread_mutex_init(&fp_mutex,NULL)!=0)
         exit(printf("Errore creazione fp_mutex\n"));
 /*
         inizializza canale_mutex
 */
-if(pthread_mutex_init(&canale_mutex,pthread_mutexattr_default)!=0)
+//if(pthread_mutex_init(&canale_mutex,pthread_mutexattr_default)!=0)
+if(pthread_mutex_init(&canale_mutex,NULL)!=0)
         exit(printf("Errore creazione canale_mutex\n"));
 
 /*
@@ -149,26 +151,44 @@ printf("DEBUG CLIENT_SCADA: aperto semaforo mmi id =%d\n",sem_mmi);
 
 libera_tutte_le_zone();
 
-worker_num = 0;
-status= pthread_create (&threads[worker_num],
-                        pthread_attr_default,
-                        main_client_scada_command,
-                        (pthread_addr_t) worker_num);
-check(status,"pthread_create main_client_scada_command bad status\n");
+// worker_num = 0;
+// status= pthread_create (&threads[worker_num],
+//                         pthread_attr_default,
+//                         main_client_scada_command,
+//                         (void *)(intptr_t) worker_num); // Cast corretto
+// //                        (pthread_addr_t) worker_num);
+// check(status,"pthread_create main_client_scada_command bad status\n");
 
-worker_num = 1;
-status= pthread_create (&threads[worker_num],
-                        pthread_attr_default,
-                        main_client_scada_data,
-                        (pthread_addr_t) worker_num);
-check(status,"pthread_create main_client_scada_data bad status\n");
+// worker_num = 1;
+// status= pthread_create (&threads[worker_num],
+//                         pthread_attr_default,
+//                         main_client_scada_data,
+//                         (void *)(intptr_t) worker_num); // Cast corretto
+// //                        (pthread_addr_t) worker_num);
+// check(status,"pthread_create main_client_scada_data bad status\n");
+
+    // Crea i thread con attributi di default (NULL)
+    worker_num = 0;
+    status= pthread_create(&threads[worker_num],
+                            NULL,
+                            (void *(*)(void *))main_client_scada_command,
+                            (void *)(intptr_t)worker_num);
+    check(status,"pthread_create main_client_scada_command bad status\n");
+
+    worker_num = 1;
+    status= pthread_create(&threads[worker_num],
+                            NULL,
+                            (void *(*)(void *))main_client_scada_data,
+                            (void *)(intptr_t)worker_num);
+    check(status,"pthread_create main_client_scada_data bad status\n");
+
 
 /*
 	attende il termine dei threads
 */
 worker_num=0;
 printf("DEBUG CLIENT_SCADA: prima di pthread_join \n");
-status= pthread_join( threads[worker_num],&exit_value);
+status= pthread_join( threads[worker_num],(void**)&exit_value);
 printf("DEBUG CLIENT_SCADA: dopo  pthread_join \n");
 check(status,"pthread join bad status\n");
 if (exit_value == worker_num)

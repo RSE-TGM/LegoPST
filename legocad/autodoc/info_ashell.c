@@ -507,7 +507,7 @@ char *stringa;
    XmString cstring;
 
    cstring = CREATE_CSTRING(stringa);
-   set_something(wdg, XmNlabelString, (void*) cstring);
+   set_something_val(wdg, XmNlabelString, (XtArgVal) cstring);
    XmStringFree(cstring);
 }
 
@@ -585,9 +585,9 @@ XmAnyCallbackStruct *call_data;
 
    str = XmTextGetString(w);
    if (strlen(str))
-      set_something(wb->data.pb_nota, XmNsensitive, (void*) True);
+      set_something_val(wb->data.pb_nota, XmNsensitive, (XtArgVal) True);
    else
-      set_something(wb->data.pb_nota, XmNsensitive, (void*) False);
+      set_something_val(wb->data.pb_nota, XmNsensitive, (XtArgVal) False);
    XtFree(str);
 
    UxInfo_ashellContext = UxSaveCtx;
@@ -894,9 +894,8 @@ byte verso;
                 break;
 
            case VARIABILI_N_F14:
-		set_something(widget_blocco[ind_ricerca].vars.wnome, XmNbackground, 
-                              (void*) color_bg_label);
-		set_something(widget_blocco[i].vars.wnome, XmNbackground, (void*) color_select_label);
+		set_something_val(widget_blocco[ind_ricerca].vars.wnome, XmNbackground, (XtArgVal) color_bg_label);
+		set_something_val(widget_blocco[i].vars.wnome, XmNbackground, (XtArgVal) color_select_label);
                 break;
       }
 
@@ -1855,7 +1854,7 @@ static Widget	_Ux_create_info_ashell( _Uxnome_blocco, _Uxdescr_blocco, _Uxflag_b
 					   callback_ins_nota,
 					   UxGetContext(rtrn));
 		
-		             set_something(wb->data.nota,XmNuserData, (void*) num_info);
+		             set_something_val(wb->data.nota,XmNuserData, (XtArgVal) num_info);
 		             wb->data.pb_nota = crea_pb_note(wrowcol,y,num_info,
 							     contesto, !Empty(bdata->note));
 		             num_info++;

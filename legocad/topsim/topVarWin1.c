@@ -663,7 +663,7 @@ show_connections( int variabile, Widget var_wid)
         }
 
         swap += he;
-        set_something(lb,XmNy,(void*) swap);
+        set_something_val(lb,XmNy, (XtArgVal) swap);
 
         count++;
       }
@@ -862,7 +862,7 @@ set_var_pixmap(Widget w,char *nome)
 
    UxPutLabelPixmap( wids[1], nome );
 
-   set_something(wids[1],XmNx,(void*) 2);
+   set_something_val(wids[1],XmNx, (XtArgVal) 2);
 }
 
 
@@ -1182,7 +1182,7 @@ int change_active_block(MODELLO *ttask,int in_blocco,Widget thiswin)
    clear_list(uscList1);
    add_variables(ttask->blocchi[in_blocco]);
 
-   set_something(ingList1,XmNbackground,(void*) bck);
+   set_something_val(ingList1,XmNbackground, (XtArgVal) bck);
 
    reset_var_win_list_context(salva_context);
  
@@ -1572,7 +1572,7 @@ printf("make_var_entry ind_var = %d ",ind_var);
   UxPutForeground(pm,fore);
   wid = UxCreateWidget( pm );
 
-  set_something(pm,XmNx,(void*) 20);
+  set_something_val(pm,XmNx, (XtArgVal) 20);
 
 #ifndef DESIGN_TIME
   UxPutContext(wid, (char *) UxTopVarWin1Context );
@@ -1609,7 +1609,7 @@ printf("make_var_entry ind_var = %d ",ind_var);
   UxPutForeground(pmconn,fore);
   wid = UxCreateWidget( pmconn );
 
-  set_something(pmconn,XmNx,(void*) 2);
+  set_something_val(pmconn,XmNx, (XtArgVal) 2);
 
 #ifndef DESIGN_TIME
   UxPutContext(wid, (char *) UxTopVarWin1Context );
@@ -1651,7 +1651,7 @@ printf("make_var_entry ind_var = %d ",ind_var);
   UxPutLabelString( lb, str );
   UxPutHighlightThickness( lb, 3 );
 
-  set_something(lb,XmNx,(void*) 40);
+  set_something_val(lb,XmNx, (XtArgVal) 40);
 
 
   /*

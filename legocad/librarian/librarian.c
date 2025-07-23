@@ -287,7 +287,7 @@ main(argc,argv)
            fclose(fp);
         }
 
-        set_something (UxTopLevel,XmNtitle,(void*) "LEGO MODULES EDITOR");
+        set_something_val (UxTopLevel,XmNtitle, (XtArgVal) "LEGO MODULES EDITOR");
 
         /* Disinnesco dei menu finche' non si sceglie un modulo */
         menu_modulo_non_attivo();

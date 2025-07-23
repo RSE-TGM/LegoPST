@@ -12,7 +12,9 @@
 #define warning(stringa)       fprintf(stderr,"Attention !!!\nWarning in processclient_scada[%d]: %s\n",getpid(),stringa)
 #define check(status,string) \
         if(status == -1) perror(string)
-#define sleep(time) p_sospendi(time*1000)
+
+// GUAG2025 porting da dcethread a pthread
+//#define sleep(time) p_sospendi(time*1000)
 
 #define UNLOCK	        0
 #define LOCKALARMREQ	1
@@ -111,8 +113,10 @@ typedef struct s_send_allarmi_zone_ {
                        } S_SEND_ALLARMI_ZONE ;
 
 
-void main_client_scada_command();
-void main_client_scada_data();
+//void main_client_scada_command();
+//void main_client_scada_data();
+void *main_client_scada_command(void *arg);
+void *main_client_scada_data(void *arg);
 int cerca_zona_libera();
 int libera_zona();
 int libera_tutte_le_zone();
@@ -125,3 +129,7 @@ int ins_dati_shm_all();
 float conv_t_sim(short, short, short, short);
 void ins_dati_allarmi();
 void ins_parziale_dati_allarmi();
+
+extern void f22_open(char *,char *,char *,int );
+extern void f22_write(float,float*,int);
+extern void f22_close();;

@@ -285,7 +285,7 @@ Boolean boh;
    Dimension width;
 
     get_something( UxGetWidget(form_labels_eq), XmNwidth, (void*) &width );
-    set_something( UxGetWidget(form_eq_scroll), XmNwidth, (void*) width-20 );
+    set_something_val( UxGetWidget(form_eq_scroll), XmNwidth, (XtArgVal) width-20 );
 }
 
 
@@ -622,7 +622,7 @@ static Widget	_Ux_create_dbox_usereq()
 		                  cambio_dimensione, NULL);
 		
 		/* Dimensionamento dell'altezza della form dei text */
-		set_something (UxGetWidget(form_eq_scroll),XmNheight,
+		set_something_val (UxGetWidget(form_eq_scroll),XmNheight,
 		               ALTEZZA_TEXT*(num_var_stato+num_var_algebriche)+
 		               SPAZIO_FRA_SEZIONI*3);
 		

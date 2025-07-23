@@ -416,7 +416,7 @@ int variabile;
   UxPutLabelString( lb, str );
   UxPutHighlightThickness( lb, 3 );
 
-  set_something(lb,XmNx,(void*) 20);
+  set_something_val(lb,XmNx, (XtArgVal) 20);
   /*
    * Setta il funzionamento dei widget "var_lb".
    */
@@ -1049,7 +1049,7 @@ Widget var_wid;
         }
 
         swap += he;
-        set_something(lb,XmNy,(void*) swap);
+        set_something_val(lb,XmNy, (XtArgVal) swap);
       
         count++;
       }
@@ -1934,7 +1934,7 @@ void add_filt_opt_butt(swidget w)
     
     if(ind_filt_default)
     {
-       set_something(UxGetWidget(filterSel),XmNmenuHistory,(void*) UxGetWidget(OptFilterButt[ind_filt_default-1]));  
+       set_something_val(UxGetWidget(filterSel),XmNmenuHistory, (XtArgVal) UxGetWidget(OptFilterButt[ind_filt_default-1]));  
        filtro_attivo = True;
        filtro_attuale = filtri[ind_filt_default-1];
     }

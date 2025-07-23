@@ -268,7 +268,7 @@ static Widget	_Ux_create_Overwrite( _Uxfl, _UxSorg, _UxDestin )
 
 		strcpy (stringa,"File exist; overwrite it?\0");
 		Messaggio = XmStringCreate (stringa, XmSTRING_DEFAULT_CHARSET);
-		set_something (label_overwrite, XmNlabelString, (void*) Messaggio);
+		set_something_val (label_overwrite, XmNlabelString, (XtArgVal) Messaggio);
 		return(rtrn);
 	}
 }

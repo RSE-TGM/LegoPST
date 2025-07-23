@@ -424,28 +424,28 @@ int rsetta_edit_menu( char *pathq )
     switch( stato )
     {
        case FALSE:
-          set_something(SCCSedit,XmNsensitive,(void*) True);
-          set_something(SCCSsave,XmNsensitive,(void*) False);
-          set_something(SCCSunedit,XmNsensitive,(void*) False);
-          set_something(SCCSinfo,XmNsensitive,(void*) True);
+          set_something_val(SCCSedit,XmNsensitive, (XtArgVal) True);
+          set_something_val(SCCSsave,XmNsensitive, (XtArgVal) False);
+          set_something_val(SCCSunedit,XmNsensitive, (XtArgVal) False);
+          set_something_val(SCCSinfo,XmNsensitive, (XtArgVal) True);
        break;
        case R_OK:
-          set_something(SCCSedit,XmNsensitive,(void*) True);
-          set_something(SCCSsave,XmNsensitive,(void*) False);
-          set_something(SCCSunedit,XmNsensitive,(void*) False);
-          set_something(SCCSinfo,XmNsensitive,(void*) True);
+          set_something_val(SCCSedit,XmNsensitive, (XtArgVal) True);
+          set_something_val(SCCSsave,XmNsensitive, (XtArgVal) False);
+          set_something_val(SCCSunedit,XmNsensitive, (XtArgVal) False);
+          set_something_val(SCCSinfo,XmNsensitive, (XtArgVal) True);
        break;
        case W_OK:
-          set_something(SCCSedit,XmNsensitive,(void*) False);
-          set_something(SCCSsave,XmNsensitive,(void*) True);
-          set_something(SCCSunedit,XmNsensitive,(void*) True);
-          set_something(SCCSinfo,XmNsensitive,(void*) True);
+          set_something_val(SCCSedit,XmNsensitive, (XtArgVal) False);
+          set_something_val(SCCSsave,XmNsensitive, (XtArgVal) True);
+          set_something_val(SCCSunedit,XmNsensitive, (XtArgVal) True);
+          set_something_val(SCCSinfo,XmNsensitive, (XtArgVal) True);
        break; 
        case (W_OK+R_OK):
-          set_something(SCCSedit,XmNsensitive,(void*) False);
-          set_something(SCCSsave,XmNsensitive,(void*) True);
-          set_something(SCCSunedit,XmNsensitive,(void*) True);
-          set_something(SCCSinfo,XmNsensitive,(void*) True);
+          set_something_val(SCCSedit,XmNsensitive, (XtArgVal) False);
+          set_something_val(SCCSsave,XmNsensitive, (XtArgVal) True);
+          set_something_val(SCCSunedit,XmNsensitive, (XtArgVal) True);
+          set_something_val(SCCSinfo,XmNsensitive, (XtArgVal) True);
        break; 
     } 
 
@@ -461,22 +461,22 @@ int setta_popup_menu( char *pathf )
     if( esiste_sccsdir(pathf) == True )
     { 
       
-       set_something( SCCScreate,XmNsensitive,(void*) False );
-       set_something( SCCSedit,XmNsensitive,(void*) True );
-       set_something( SCCSsave,XmNsensitive,(void*) True );
-       set_something( SCCSunedit,XmNsensitive,(void*) True );
-       set_something( SCCSinfo,XmNsensitive,(void*) True );
+       set_something_val( SCCScreate,XmNsensitive, (XtArgVal) False );
+       set_something_val( SCCSedit,XmNsensitive, (XtArgVal) True );
+       set_something_val( SCCSsave,XmNsensitive, (XtArgVal) True );
+       set_something_val( SCCSunedit,XmNsensitive, (XtArgVal) True );
+       set_something_val( SCCSinfo,XmNsensitive, (XtArgVal) True );
 
        rsetta_edit_menu(pathf);
   
     }
     else
     {
-       set_something( SCCScreate,XmNsensitive,(void*) True );
-       set_something( SCCSedit,XmNsensitive,(void*) False );
-       set_something( SCCSsave,XmNsensitive,(void*) False );
-       set_something( SCCSunedit,XmNsensitive,(void*) False );
-       set_something( SCCSinfo,XmNsensitive,(void*) False );
+       set_something_val( SCCScreate,XmNsensitive, (XtArgVal) True );
+       set_something_val( SCCSedit,XmNsensitive, (XtArgVal) False );
+       set_something_val( SCCSsave,XmNsensitive, (XtArgVal) False );
+       set_something_val( SCCSunedit,XmNsensitive, (XtArgVal) False );
+       set_something_val( SCCSinfo,XmNsensitive, (XtArgVal) False );
     }
 }
 

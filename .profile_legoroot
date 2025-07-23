@@ -103,7 +103,15 @@ export M009=`expr 8 \* $N003`
 export M010=`expr $N004 \+ $N003`
 export MP01=`expr $NP00 \+ 1`
 export MP02=`expr $NP00 \* 200`
-
+#
+# 
+##### GUAG2025, versione compilata, ho disabilitato SCADA
+export VERSIONE="-DBANCO_MANOVRA -DBACKTRACK -DF22_APPEND -DSNAP_PIAC -DPIACENZA -DREPLAY -DMFFR -DSAVEPERT -DMOTIF"
+#export VERSIONE="-DBANCO_MANOVRA -DSCADA -DBACKTRACK -DF22_APPEND -DSNAP_PIAC -DPIACENZA -DREPLAY -DMFFR -DSAVEPERT -DMOTIF"
+#
+#
+#
+#
 # VECCHI PARAMETERS :
 # export N000=160
 # export N001=`expr $N000 \* 10`

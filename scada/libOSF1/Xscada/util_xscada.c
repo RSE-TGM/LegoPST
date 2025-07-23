@@ -760,10 +760,10 @@ XtGetValues(w, al, 1);
 }
 
 /*
- set_something
+ set_something_val
     setta un singolo attributo di un Widget
  */
-void set_something(w, resource, (void*) value)
+void set_something_val(w, resource, (XtArgVal) value)
     Widget w;
     char *resource, *value;
 {

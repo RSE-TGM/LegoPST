@@ -425,7 +425,7 @@ static Widget	_Ux_create_SimulatorSelection( _Uxoperaz )
 		}
 		
 		xstring = XmStringCreateSimple(inidir);
-		set_something(SimulatorSelection,XmNdirectory,(void*) xstring);
+		set_something_val(SimulatorSelection,XmNdirectory, (XtArgVal) xstring);
 		
 		
 		return(rtrn);

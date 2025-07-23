@@ -292,7 +292,7 @@ static Widget	_Ux_create_SimulationTitle()
 #endif
 		XmTextFieldSetString (textTitolo, Valore);
 		Stringa = XmStringCreate (Valore, XmSTRING_DEFAULT_CHARSET);
-		set_something (label14, XmNlabelString, (void*) Stringa);
+		set_something_val (label14, XmNlabelString, (XtArgVal) Stringa);
 		XtFree (Valore);
 		XmStringFree (Stringa); 
 		return(rtrn);
