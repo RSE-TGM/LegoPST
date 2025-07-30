@@ -1761,7 +1761,7 @@ while(p)
         };
 if(i!=5)
         {
-        printf("Errore nella gerarchia\n");
+        printf("format_hierachy_new 1: Errore nella gerarchia\n");
         return(GERARCHIA_KO);
         }
 /*
@@ -1769,7 +1769,7 @@ Controllo lunghezza stringa
 */
 if(strlen(position)>40)
         {
-        printf("Errore nella gerarchia\n");
+        printf("format_hierachy_new 2: Errore nella gerarchia\n");
         return(GERARCHIA_KO);
         }
 /*
