@@ -1,0 +1,135 @@
+Welcome! 
+
+The following package is the patched version of the free DCE 
+implementation for Linux to be found on sourceforge. This package
+is expected to work on many recents Linux distribution on 
+32/64 little endian architecture ( should work on big endian too,
+but it didn't tested so far ).
+
+It is used in particular at the Deutsche Flugsicherung 
+(German Air Navigation Service).
+
+
+
+===================
+Supported platforms 
+===================
+
+IA32 Linux 
+  The package has been compiled with gcc2.95, gcc 3.2.2, gcc 3.3.2
+  using glibc 2.2.5, 2.3.x.  
+  using LinuxThreads 0.8/0.9/0.10 and NPTL 0.29/0.34/0.59/0.61
+  It has been tested on Mandrake v9.1 and Suse v7.3. 
+  It has been tested on Fedora Core 1, 
+  It has been tested on SuSE v9.0,
+  It has been tested on SuSE v9.1,
+  It has been tested on Fedora Core 2 and 3 
+
+Alpha Linux
+  The package has been compiled with gcc 3.2.3. It has been 
+  tested on an Alpha running Debian Linux 3.0 
+
+AMD64 Linux
+  The package has been compiled with gcc 3.3.2 using the newest glibc 2.3.x.  
+  It has been tested on Fedora Core 3 
+
+One should be able to compile this package with gcc 2.95 or above 
+on a wide range of Linux platforms. If it fails on your favorite 
+Linux platform, contact the maintainers. 
+
+
+========================
+Compiling / Installation
+========================
+
+1- Install first the dcethreads package. For this, proceed as follows:
+
+	1.1 go to the dcethreads directory:
+	    cd dcethreads
+	    
+	1.2 run the configure script:
+	    ./configure
+
+	1.3 compile the package:
+	    make
+	
+	1.4 as ROOT, install the package:
+	    su
+	    umask 022 # zero-two-two
+	    make install
+
+	1.5 unlog as ROOT, and go back to this directory:
+	    cd ..
+	    
+
+2- Install next the freedce package. For this, proceed as follows:
+
+        2.1 go to the freedce directory:
+	    cd freedce
+	    
+	2.2 run the configure script:
+	    ./configure
+	    
+        2.3 compile the package:
+	    make
+	    
+	2.4 as ROOT, install the package:
+	    su
+	    umask 022 # zero-two-two
+	    make install
+
+
+=======
+History 
+=======
+
+10.12.2004: Port to general LP 64 
+            Tested on little endian - big endian should work too (?) 
+
+06.12.2004: Make dcethreads portable for current and future glibc 
+
+09.09.2004: Make packaging independant from installed Automake/Autoconf
+
+01.04.2004: Port to SuSE 9.0 
+
+11.03.2004: Port to Fedora Core 1 with gcc 3.3.2 compiler
+
+21.05.2003: Release dfs v1.0
+	    dcethreads version 2.0.3
+	    freedce    version 1.1.0.8
+
+15.05.2003: Merge port to IA32 and Alpha
+
+09.05.2003: Port to Alpha Linux Debian v3.0 and gcc 3.x
+
+05.05.2003: Port to IA32  Linux Mandrake v9.1 and gcc 3.x
+
+30.04.2003: Initial import from sourceforge. 
+	    Used dcethreads version 2.0.2rc1
+	    Used freedce version 1.1.0.7-rc2
+
+
+===========
+LEGAL STUFF
+===========
+
+See copyrights therein.
+
+In particular, the following points must be underlined: 
+
+This software is provided under this License on an "AS IS" BASIS and WITHOUT 
+WARRANTY, either express or implied, including, without limitation, the 
+warranties of NON-INFRINGEMENT, MERCHANTABILITY or FITNESS FOR A PARTICULAR 
+PURPOSE. THE ENTIRE RISK AS TO THE QUALITY OF THE ORIGINAL WORK IS WITH YOU. 
+
+In Germany, this is to be understood accordingly to the
+"Bürgerlichen Rechts §§ 521ff. (Haftung des Schenkers)" for the changes,
+and only the changes, introduced in the official sourceforge distribution
+listed above.  
+
+
+===========
+Maintainers
+===========
+
+Loic Domaigne <loicWorks@gmx.net>

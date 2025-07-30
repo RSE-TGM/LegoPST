@@ -280,7 +280,7 @@ ora(&o,&min,&s);
 snprintf(res_data,sizeof(res_data),"*%s",XlNcompilationDate);
 snprintf(str_data,sizeof(str_data),"%d/%d/%d %d:%d:%d",g,m,a,o,min,s);
 if(RisDb!=NULL)
-	XrmPutStringResource(RisDb,res_data,str_data);
+	XrmPutStringResource(&RisDb,res_data,str_data);
 
 /************
 Se pagina di regolazione inserisci anche iniziali
@@ -321,7 +321,7 @@ else
       Scrivi risorsa nel db della pagina
       */
       sprintf(res_data,"*%s",XlNregTaskSigla);
-      XrmPutStringResource(RisDb,res_data,tag_task);
+      XrmPutStringResource(&RisDb,res_data,tag_task);
       
       }
    }
