@@ -243,13 +243,33 @@ printf("appo=%s\n",appo);
 
    XmTextFieldSetString(RefreshFrequenzy,appo);
 
-   printf("pag->refreshFreq=%d\n",pag->refreshFreq);
-   printf("pag->gerarchia=%s\n",pag->gerarchia);
+   printf("riempi_campi: pag->refreshFreq=%d\n",pag->refreshFreq);
+   printf("riempi_campi: pag->gerarchia=%s\n",pag->gerarchia);
+// GUAG2025 gerarchia bug
+//    if(operazione == MODIFY_PAGE)
+//    	hierarchy_format_new(appo,pag->gerarchia);
+//    else
+// 	strcpy(appo,"[-1][-1][-1][-1][-1][-1]");
+  if(operazione == MODIFY_PAGE)
+  {
+     if(strlen(pag->gerarchia)>0)
+     {
+        // Controlla se è già in formato UI (con parentesi quadre)
+        if(strchr(pag->gerarchia, '[') != NULL)
+        {
+           // È già in formato UI, copialo direttamente
+           strcpy(appo, pag->gerarchia);
+        }
+        else
+        {
+           // È in formato interno (con virgole), convertilo
+           hierarchy_format_new(appo, pag->gerarchia);
+        }
+     }
+     else
+        strcpy(appo,"[-1][-1][-1][-1][-1][-1]");
+  }
 
-   if(operazione == MODIFY_PAGE)
-   	hierarchy_format_new(appo,pag->gerarchia);
-   else
-	strcpy(appo,"[-1][-1][-1][-1][-1][-1]");
    if(!strcmp(GERARCHIA_KO,appo))
    {
       sprintf(msg,"Hierarchy resource not correct! Page:%s\tHierarchy:%s\n",pag->nomepag,pag->gerarchia);
@@ -262,7 +282,7 @@ printf("appo=%s\n",appo);
    else {
       XmTextFieldSetString(Hierarchy,appo);
    }
-   printf("DOPO: pag->gerarchia=%s\n",pag->gerarchia);
+   printf("riempi_campi: DOPO: pag->gerarchia=%s\n",pag->gerarchia);
 
    XmTextFieldSetString(PagBackground,pag->geom.background);
 

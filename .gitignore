@@ -54,3 +54,7 @@ dkms.conf
 
 version.h
 version.h.tmp
+
+#Claude debug
+CLAUDE.md
+legocad_r_MDC0

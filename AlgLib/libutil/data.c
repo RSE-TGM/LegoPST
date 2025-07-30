@@ -39,7 +39,9 @@ int    *anno;
 {
 struct tm  *strutt_tempo;
 int     tempo_time;
-
+// GUAG2025 init della data
+    *giorno=*mese=1;
+    *anno=1970;
     time ((time_t *)&tempo_time);
 
     strutt_tempo = localtime ((time_t *)&tempo_time);

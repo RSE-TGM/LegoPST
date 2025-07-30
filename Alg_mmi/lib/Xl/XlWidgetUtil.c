@@ -1671,11 +1671,11 @@ XFreeCursor(XtDisplay(wid),cursor);
  *
  * hierarchy_format_new
  *
- * elabora l' ingresso da risorsa (3,-1,-1,-1,-1,-1\0)e fornisce
- * una stringa formattata nel seguente modo vedi (SCADA Marcello):
- * terminatore finale \0 ([3][-1]...[-1])
- * Ritorna una stringa col formato voluto se tutto OK
- * altrimenti ritorna NULL
+ * Elabora l' ingresso da risorsa con gerarchia scritta in formato interno, ad es.:
+ * (3,-1,-1,-1,-1,-1\0) 
+ * e fornisce una stringa formattata in formato UI, nel seguente modo, vedi (SCADA Marcello):
+ * ([3][-1]...[-1]\0)
+ * Ritorna una stringa col formato voluto se tutto OK altrimenti ritorna \0 (NULL)
  *-----------------------------------------------------*/
 
 char *hierarchy_format_new(char *result ,char * position)
@@ -1701,12 +1701,12 @@ while ((string1=strchr(string, ',')) != NULL) {
 }
 
 if(i==0) {
-        printf("Error in hierarchy resource!\nCharacter ',' not found!\n");
+        printf("hierarchy_format_new: Error in hierarchy resource!\nCharacter ',' not found!\n");
         return(GERARCHIA_KO);
 }
 else {
         if(i!=(NUMLIVELLI-1)) {
-                printf("Error in hierarchy resource!\nNumber of levels different than six!\n");
+                printf("hierarchy_format_new: Error in hierarchy resource!\nNumber of levels different than six!\n");
                 return(GERARCHIA_KO);
         }
         else {
@@ -1721,9 +1721,10 @@ return(result);
  *
  * format_hierarchy_new
  *
- * elabora l' ingresso da interfaccia ([0] [-1]..[-1])e fornisce
- * una stringa formattata nel seguente modo:
- * terminatore finale \0 (0,0,0,-1,-1,-1\0)
+ * Elabora l' ingresso della gerarchia scritta in formato UI: 
+ * ([0] [-1]..[-1]) 
+ * e fornisce una stringa formattata nel seguente modo interno con terminatore finale \0 :
+ * (0,0,0,-1,-1,-1\0)
  * Ritorna una stringa col formato voluto se tutto OK
  * altrimenti ritorna NULL
  *-----------------------------------------------------*/
