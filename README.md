@@ -4,9 +4,18 @@
 ![Version](https://img.shields.io/badge/version-2025-blue)
 ![Platform](https://img.shields.io/badge/platform-WSL%20Fedora%2041-orange)
 ![Language](https://img.shields.io/badge/language-C%2FC%2B%2B%2FFortran-green)
-![GUI](https://img.shields.io/badge/GUI-X11%2FMotif-red)
+![GUI](https://img.shields.io/badge/GUI-X11%2FMotif%2FTclTkTix-red)
 
-**LegoPST** (Lego Power System Technology) is a modular simulation and control environment for thermal, hydraulic, and electrical processes in energy production and transport. Designed for training power plant operators and industrial control systems.
+
+**LegoPST (Lego Power System Technology): A Comprehensive Modeling and Simulation Environment for Process and Control of Complex Energy Systems and Power Plants.**
+
+LegoPST provides a robust, modular framework for modeling the complex interactions of thermal, hydraulic, and electrical processes inherent to energy generation and distribution networks. Its core strength lies in developing real-time simulators and high-fidelity models that serve three critical applications:
+
+1.  **Operator Training Simulators:** Creating immersive training simulator where power plant operators can master both nominal and emergency scenarios in a risk-free setting. The simulator can run strictly in real-time but also faster or slower the real-time.
+2.  **Control System Design & Validation:** Designing control strategy, prototyping, testing, and verifying industrial control logic, also in real time,  within a realistic virtual environment before live deployment.
+3.  **Digital Twin Development:** Building the "simulation core" of a digital twin for a complete power plant or its key subsystems. These  models can run in real-time and can be connected to live plant data for performance monitoring, predictive maintenance, and operational optimization.
+
+
 
 ## ✨ Key Features
 
@@ -26,7 +35,7 @@ LegoPST/
 ├── AlgLib/           # Core algorithm libraries
 ├── Alg_mmi/          # Man-Machine Interface
 ├── Alg_rt/           # Runtime System
-├── legocad/          # CAD Tools
+├── Alg_legopc/       # Models Building Tools
 ├── lego_big/         # Component libraries
 ├── kprocedure/       # Administrative scripts
 ├── util97/           # Legacy utilities
@@ -44,8 +53,43 @@ LegoPST/
 
 ## 🚀 Quick Start
 
-### Prerequisites
 
+### Download package and set up environment
+
+
+```bash
+# Clone the repository, git is the prerequisite
+git clone remotepath/to/LegoPST2010A_WSL_DARHE6_64.git
+cd LegoPST2010A_WSL_DARHE6_64
+
+# Setup environment
+source .profile_legoroot
+```
+### Option 1: Docker Container Execution
+#### Prerequisites
+```bash
+# Fedora 41 dependencies for docker running:
+sudo dnf update
+sudo dnf install docker
+```a
+```bash
+# Run LegoPST in a preconfigured Docker container
+lgdock
+
+# The lgdock command automatically starts:
+# - Fedora 41 container with all dependencies
+# - Dynamic user configuration with same host UID/GID
+# - Host home directory mounting
+# - X11 support for graphical applications
+# - Fully configured LegoPST environment
+```
+### Option 2: running into a fully configured linux Fedora 41 distribution
+#### Prerequisites
+
+Fedora 41 running into a :
+- bare-metal
+- virtual machine on-premis or in cloud
+- Windows WSL 2
 ```bash
 # Fedora 41 dependencies
 sudo dnf update
@@ -54,10 +98,28 @@ sudo dnf install libxmu-dev freeglut3-dev libxext-dev libxi-dev
 sudo dnf install libbsd-dev libsqlite3-dev libgdbm-compat-dev
 sudo dnf install gcc gfortran make
 ```
-
-### Compilation by source
+#### Environment Configuration and Installation
 
 ```bash
+# Edit .profile_legoroot with correct path
+export LEGOROOT=/home/user/LegoPST2010A_WSL_DARHE6_64
+
+# Add to .bashrc
+echo "source $LEGOROOT/.profile_legoroot" >> ~/.bashrc
+
+# Restart shell session
+```
+The system automatically detects:
+- **LEGOROOT**: Project root path
+- **Platform**: 32/64-bit Linux detection
+- **Compiler flags**: gcc/gfortran configuration
+- **Database paths**: SQLite and threading
+
+
+### Compilation by source
+LegoPST is provided as a pre-compiled package, ready for immediate use upon download. For users who wish to customize the software or build from the latest source code, the project can also be fully recompiled. To do so, clone the repository and follow the following build instructions.
+```bash
+
 # Clone the repository
 git clone remotepath/to/LegoPST2010A_WSL_DARHE6_64.git
 cd LegoPST2010A_WSL_DARHE6_64
@@ -65,62 +127,64 @@ cd LegoPST2010A_WSL_DARHE6_64
 # Setup environment
 source .profile_legoroot
 
+# Clean build
+make -f Makefile.mk clean
 # Full build
 make -f Makefile.mk
 
-# Clean build
-make -f Makefile.mk clean
+# then go to 
+# Option 2 - running in a fully configured Fedora 41
 ```
 
-### Environment Configuration and Installation
 
-```bash
-# Edit .profile_legoroot with correct path
-export LEGOROOT=/home/user/LegoPST2010A_WSL_DARHE6_64
-
-# Add to .bashrc
-echo "source ~/.profile_legoroot" >> ~/.bashrc
-
-# Restart shell session
-```
-
-The system automatically detects:
-- **LEGOROOT**: Project root path
-- **Platform**: 32/64-bit Linux detection
-- **Compiler flags**: gcc/gfortran configuration
-- **Database paths**: SQLite and threading
 
 ## 🎮 Usage
 
-### Starting the Configurator
+### Simulator directory structure
+
+```
+cd /home/user/
+
+legocad/
+├── libut/         # process modules libraries
+├── libut_reg/     # control scheme libraries
+|   └── libreg/    # control elementary modules libraries
+├── pmod1/         # Process model task
+├── reg1/          # Control model task
+└── .../           # Other process or control tasks
+
+sked/
+├── simul1/        # Simulator configuration
+└── .../           # Other simulators
+```
+### Creating New Models
+#### Launch the Process Model Configurator
 
 ```bash
-etc
-etc
+cd /home/user/legocad/pmod1
+lgpc
 ```
+#### Process modeling Main Files
+- **\*.tom**: Model Topology   
+- **f01.dat**: Model internal topology
+- **f14.dat**: Model data
+- **\*.a**: Object libraries
+#### Launch the Control System Model Configurator
 
-### Creating New Models
-
-1. lgpc - Launch the process cad configurator
-2. etc  
-3. etc
-4. etc
-
-
-
-## 🔧 Configuration
-
-### Main Files
-
-- **Context.ctx**: etc
+```bash
+cd /home/user/legocad/reg1
+config
+```
+#### Control system modeling Main Files
+- **Context.ctx**: Control schemes task configuration
 - **\*.pag**: Page resources
 - **\*.bkg**: Graphical backgrounds  
-- **\*.lib**: Object libraries
-- **\*.reg**: Regulation pages
-
-### Environment Variables
-
-etc
+- **\*.a**: Object libraries
+- **\*.reg**: Regulation page
+## 🔧 Simulator Configuration
+#### Simulator Main Files
+- **S01**: Simulator topology
+- **etc**: 
 
 ## 🏭 Use Cases
 
@@ -137,7 +201,7 @@ etc
 - **Teleperm**: DCS-type interfaces
 - **Library**: Reusable component collections
 
-## 🛠️ Development
+## 🛠️ LegoPST Development
 
 ### Build System
 
@@ -146,7 +210,7 @@ etc
 - **Version Management**: Git integration
 - **Cross-compilation**: Multi-arch support
 
-### etc
+### Other features
 
 - **pThreads**: Compatibility layer
 - **Shared Memory**: Efficient IPC
@@ -160,9 +224,6 @@ etc
 - **Binary files**: Object serialization
 - **Context files**: Textual configurations
 
-## 🔍 Debug & Monitoring
-
-etc
 
 ## 📜 License
 
