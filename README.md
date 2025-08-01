@@ -132,9 +132,7 @@ sudo dnf install libbsd-dev libsqlite3-dev libgdbm-compat-dev
 sudo dnf install gcc gfortran make
 
 # Critical Prerequisite: libgdbm.so.2
-#The LegoPST control configurator tool, config, has a critical dependency on the dbmftc2 utility. This utility, in turn, requires a specific and obsolete version of the GDBM library: libgdbm.so.2.
-#Important: Although this library version is outdated, it is essential for the configurator to function correctly. 
-#To install this required dependency, please execute the following script:
+#The LegoPST control configurator tool, config, has a critical dependency on the dbmftc2 utility. This utility, in turn, requires a specific and obsolete version of the GDBM library: libgdbm.so.2. To install this required dependency, execute the following script:
 sudo sh $LEGOROOT/gdbm-install/install.sh
 ```
 #### Environment Configuration and Installation
