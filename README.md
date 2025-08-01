@@ -4,14 +4,14 @@
 ![Version](https://img.shields.io/badge/version-2025-blue)
 ![Platform](https://img.shields.io/badge/platform-WSL%20Fedora%2041-orange)
 ![Language](https://img.shields.io/badge/language-C%2FC%2B%2B%2FFortran-green)
-![GUI](https://img.shields.io/badge/GUI-X11%2FMotif%2FTclTkTix-red)
+![GUI](https://img.shields.io/badge/GUI-X11%2FMotif%2FTcl,Tk,Tix-red)
 
 
 **LegoPST (Lego Power System Technology): A Comprehensive Modeling and Simulation Environment for Process and Control of Complex Energy Systems and Power Plants.**
 
-LegoPST provides a robust, modular framework for modeling the complex interactions of thermal, hydraulic, and electrical processes inherent to energy generation and distribution networks. Its core strength lies in developing real-time simulators and high-fidelity models that serve three critical applications:
+LegoPST provides a robust, modular framework for modeling the complex interactions of thermal, hydraulic, and electrical processes inherent to conventional, nuclear or renewable energy sources generation and distribution networks. Its core strength lies in developing real-time dynamic simulators and high-fidelity models that serve three critical applications:
 
-1.  **Operator Training Simulators:** Creating immersive training simulator where power plant operators can master both nominal and emergency scenarios in a risk-free setting. The simulator can run strictly in real-time but also faster or slower the real-time.
+1.  **Operator Training Simulators:** Creating immersive training simulator where power plant operators can master both nominal and emergency scenarios in a risk-free setting. The simulator can run transients strictly in real-time but also faster or slower the real-time.
 2.  **Control System Design & Validation:** Designing control strategy, prototyping, testing, and verifying industrial control logic, also in real time,  within a realistic virtual environment before live deployment.
 3.  **Digital Twin Development:** Building the "simulation core" of a digital twin for a complete power plant or its key subsystems. These  models can run in real-time and can be connected to live plant data for performance monitoring, predictive maintenance, and operational optimization.
 
@@ -19,7 +19,7 @@ LegoPST provides a robust, modular framework for modeling the complex interactio
 
 ## ✨ Key Features
 
-- **Multi-Physics Simulation**: Supports thermal, hydraulic, and electrical processes
+- **Multi-Physics Static and Dynamic Simulation**: Supports thermal, hydraulic, nuclear, RES and electrical processes
 - **Modular Environment**: Reusable component architecture
 - **Graphical Interfaces**: MMI (Man-Machine Interface) editor with X11/Motif support
 - **Configuration System**: Hierarchical management of pages and components
@@ -39,7 +39,8 @@ LegoPST/
 ├── lego_big/         # Component libraries
 ├── kprocedure/       # Administrative scripts
 ├── util97/           # Legacy utilities
-└── util2007/         # Modern utilities
+├── util2007/         # Other legacy utilities
+└── util2025/         # Modern utilities
 ```
 
 ## 🚀 Quick Start
@@ -59,8 +60,25 @@ source .profile_legoroot
 #### Prerequisites
 ```bash
 # Fedora 41 dependencies for docker running:
+# Docker install (https://docs.docker.com/engine/install/fedora/)
+#
+# i.e. For docker install with WSL:
 sudo dnf update
-sudo dnf install docker
+sudo dnf -y install dnf-plugins-core
+sudo dnf-3 config-manager --add-repo https://download.docker.com/linux/fedora/docker-ce.repo
+sudo dnf install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+# Activate systemd into Fedora WSL:
+# Edit /etc/wsl.conf and add the following two text lines:
+#
+# file /etc/wsl.conf
+    [boot]
+    systemd=true
+
+#
+sudo systemctl enable --now docker
+#
+# Verify docker installation:
+sudo docker run hello-world
 ```
 
 ```bash
@@ -83,11 +101,41 @@ Fedora 41 running into a :
 - Windows WSL 2
 ```bash
 # Fedora 41 dependencies
+sudo dnf update -y && \
+sudo dnf install -y \
+        git \
+        gcc gfortran make \
+        fastfetch \
+        xterm xclock xhost xauth \
+        hostname \
+        glibc-langpack-en \
+        libX11-devel \
+        motif-devel \
+        sqlite-devel \
+        libbsd-devel \
+        tcl tk tix \
+        ncurses-devel \
+        leafpad \
+        gdbm-devel \
+        ksh \
+        which \
+        sudo \
+        ps \
+        passwd \
+        cpio \
+        shadow-utils && \
+sudo dnf clean all
 sudo dnf update
 sudo dnf install libmrm4 tcl tk tix libmotif-dev
 sudo dnf install libxmu-dev freeglut3-dev libxext-dev libxi-dev
 sudo dnf install libbsd-dev libsqlite3-dev libgdbm-compat-dev
 sudo dnf install gcc gfortran make
+
+# Critical Prerequisite: libgdbm.so.2
+#The LegoPST control configurator tool, config, has a critical dependency on the dbmftc2 utility. This utility, in turn, requires a specific and obsolete version of the GDBM library: libgdbm.so.2.
+#Important: Although this library version is outdated, it is essential for the configurator to function correctly. 
+#To install this required dependency, please execute the following script:
+sudo sh $LEGOROOT/gdbm-install/install.sh
 ```
 #### Environment Configuration and Installation
 

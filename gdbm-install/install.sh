@@ -4,7 +4,7 @@
 # 2) Estrazione della libreria: 
 rpm2cpio gdbm-1.8.0-33.fc12.x86_64.rpm | cpio -idmv
 # 3) Installazione ...
-sudo cp ./usr/lib64/libgdbm.so.2.0.0 /usr/lib64/
+sudo cp $LEGOROOT/gdbm-install/usr/lib64/libgdbm.so.2.0.0  /usr/lib64/
 sudo ln -s /usr/lib64/libgdbm.so.2.0.0 /usr/lib64/libgdbm.so.2
 sudo ldconfig
 
