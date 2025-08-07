@@ -82,6 +82,12 @@ char *maiuscolo (char *);
 char id_task[3];
 char tag_reg[5];
 
+/* GUAG2025: Array statici per le liste invece di allocazione dinamica */
+/* Dimensionati come NICON+200 per avere una base logica con margine di sicurezza */
+static char static_listai_buffer[NICON+200][100];
+static char static_listau_buffer[NICON+200][100]; 
+static char static_listac_buffer[NICON+200][80];
+
 int main(argc, argv)
 int argc;
 char *argv[];
@@ -189,6 +195,10 @@ int read_topologia(char *);
 
         for (i=0, iord=0; i<icn_nm; i++)
            {
+           if(i >= NICON) {
+               fprintf(stderr,"ERROR: i=%d supera NICON=%d!\n", i, NICON);
+               exit(-1);
+           }
            level[i] = -1;
            strcop(cmpon, 0, 4, pr_nome[i]);
            if ( (strcmp(cmpon, "DTRI")==0) || (strcmp(cmpon, "DTRL")==0) ||
@@ -200,8 +210,15 @@ int read_topologia(char *);
            }
 
         hlevel = 0;
+        int max_iterations = 1000; /* GUAG2025: Protezione contro loop infiniti */
+        int iteration_count = 0;
         while (iord!=icn_nm)
            {
+           iteration_count++;
+           if(iteration_count > max_iterations) {
+               fprintf(stderr,"ERROR: Loop infinito rilevato (iterazioni=%d), uscita forzata\n", iteration_count);
+               break;
+           }
            for (i=0, iordp=iord; i<icn_nm; i++)
               {
               if (level[i]==-1)
@@ -224,10 +241,12 @@ int read_topologia(char *);
                  }
               }
            if(iord==iordp)
+              {
               if (hlevel==0 && iord>0)
                  ;
               else
-                 break;           
+                 break;
+              }           
            hlevel++;
            }
         if (iord!=icn_nm)
@@ -308,7 +327,7 @@ int read_topologia(char *);
                         if (pr_v_fl[i][j] != 0)                     
                            {
                            ico++;
-                           listac[ico] = malloc(80);
+                           listac[ico] = static_listac_buffer[ico];
                            sprintf(listac[ico], "%s%s  --CO-- %s", 
                                    pr_viorg[i][j],id_task, pr_vds[i][j]);
 
@@ -319,7 +338,7 @@ int read_topologia(char *);
                          else
                             {
                             ing++;
-                            listai[ing] = malloc(100);
+                            listai[ing] = static_listai_buffer[ing];
                             sprintf(listai[ing], "%s%s  --IN-- %s", 
                                     pr_var[i][j],id_task, pr_vds[i][j]);
                             }
@@ -327,7 +346,7 @@ int read_topologia(char *);
                      else
                         {
                         usc++;
-                        listau[usc] = malloc(100);
+                        listau[usc] = static_listau_buffer[usc];
                         sprintf(listau[usc], "%s%s  --UA-- %s", 
                                 pr_var[i][j],id_task, pr_vds[i][j]);
                         }
@@ -451,6 +470,15 @@ char stringa[100];
        ret = fread(&rec,sizeof(TOP_ICON),1,ff);
        if(ret!=1)
          break;
+       
+       /* GUAG2025: Controllo limiti array per evitare buffer overflow */
+       if(i >= NICON)
+         {
+         fprintf(stderr,"ERRORE: Troppi icone nel file %s (max %d)\n", nome_file, NICON);
+         fclose(ff);
+         return(-1);
+         }
+       
        icn_nm++;
        pr_nuvto[i] = rec.pr_nuvto;
        pr_nuvin[i] = rec.pr_nuvin;
@@ -459,6 +487,14 @@ char stringa[100];
        strcpy(icn_sigl[i],rec.icn_sigl);
        strcpy(pr_nome[i],rec.pr_nome);
        strcpy(pr_desc[i],rec.pr_desc);
+       /* GUAG2025: Controllo limiti variabili per icona */
+       if(pr_nuvto[i] > NVAR_IN_ICON)
+         {
+         fprintf(stderr,"ERRORE: Troppi variabili nell'icona %d del file %s (max %d)\n", i, nome_file, NVAR_IN_ICON);
+         fclose(ff);
+         return(-1);
+         }
+       
        for(k=0;k<pr_nuvto[i];k++)
           {
           pr_v_fl[i][k] = rec.pr_v_fl[k];
@@ -483,6 +519,15 @@ char stringa[100];
           }
        fl_macro[i] = rec.fl_macro;
        pr_ndat[i]  = rec.pr_ndat;
+       
+       /* GUAG2025: Controllo limiti dati per icona */
+       if(pr_ndat[i] > NVAR_IN_ICON)
+         {
+         fprintf(stderr,"ERRORE: Troppi dati nell'icona %d del file %s (max %d)\n", i, nome_file, NVAR_IN_ICON);
+         fclose(ff);
+         return(-1);
+         }
+         
        for(k=0;k<pr_ndat[i];k++)
           {
           strcpy(var_assoc[i][k],rec.var_assoc[k]);
