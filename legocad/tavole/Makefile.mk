@@ -71,18 +71,14 @@ USRINCLUDE   = tables.h def_tav.h
 
 all: $(LEGOCAD_BIN)/tables
 
+.c.o:
+	$(CC) -c $(CFLAGS) $< -o $@
 
-#versione per i sistemi operativi AIX ULTRIX OSF1
-#$(LEGOCAD_BIN)/tables: $(OGGETTI) $(LIBUTIL)
-#	gfortran -o $(LEGOCAD_BIN)/tables \
-#       $(OGGETTI) \
-#	$(LIBUTIL) -lm $(LIBOTS) $(F_LIB)  -lX11 $(LIBSVIL) /usr/lib/libg2c.so.0
-#	$(LIBSVIL) $(LIBUTIL) -lm $(LIBOTS) $(F_LIB)  -lX11
+.f.o:
+	$(FC) -c $(FFLAGS) $< -o $@
+
 
 $(LEGOCAD_BIN)/tables: $(OGGETTI) $(LIBUTIL)
-	$(FC) -o ./tables \
-       $(OGGETTI) \
-	$(LIBUTIL) -lm $(LIBOTS) $(F_LIB)  -lX11 $(LIBSVIL)
-#	$(LIBUTIL) -lm $(LIBOTS) $(F_LIB)  -lX11 $(LIBSVIL) /usr/lib/libg2c.so.0
-#	$(LIBSVIL) $(LIBUTIL) -lm $(LIBOTS) $(F_LIB)  -lX11
+	$(FC) $(OGGETTI) \
+	$(LIBUTIL) -lm $(LIBOTS) $(F_LIB)  -lX11 $(LIBSVIL) -o $(LEGOCAD_BIN)/tables
 

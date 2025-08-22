@@ -76,6 +76,25 @@ legocad/utility/*.o
 legocad/lib/macro/macro_dati_obj/*.o
 legocad/lib/macro/macro_topol_obj/*.o
 
+scada/UtilPrint/*.o
+scada/libut/*.o
+scada/scada/*.o
+scada/scada/acqui/*.o
+scada/scada/alldbs/*.o
+scada/scada/arc/*.o
+scada/scada/simacq/*.o
+scada/scada/stampe/*.o
+scada/starter/*.o
+scada/scada/attiper/calc/*.o
+scada/scada/gesrep/*.o
+scada/scada/isa/*.o
+scada/scada/mandbrt/*.o
+scada/scada/stampe/tabul/*.o
+scada/scada/stampe/virt/*.o
+
+
+
+
 util97/utilities/*.o
 
 *.ko

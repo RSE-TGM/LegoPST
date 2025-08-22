@@ -1022,9 +1022,10 @@ static void	mapCB_Edi14_utils( UxWidget, UxClientData, UxCallbackArg )
 	   UxPutSensitive(Edi14_run,"true");
 	   UxPutSensitive(Edi14_save,"true");
 	   UxPutSensitive(Edi14_viewout,"true");
-	}   
-	
 	fclose(fp);
+    }   
+	
+	
 	
 	
 	}
@@ -1119,9 +1120,9 @@ static void	mapCB_Snaf14_utils( UxWidget, UxClientData, UxCallbackArg )
 	{
 	   UxPutSensitive(Snaf14_view,"true");
 	   UxPutSensitive(Snaf14_print,"true");
-	}
-	fclose(fp);
 	
+	fclose(fp);
+	}
 	
 	}
 	UxApplicationShell1Context = UxSaveCtx;

@@ -2,7 +2,7 @@
 
 
 ![Version](https://img.shields.io/badge/version-2025-blue)
-![Platform](https://img.shields.io/badge/platform-WSL%20Fedora%2041-orange)
+![Platform](https://img.shields.io/badge/platform-Fedora%2041%2FWSL/Docker-orange)
 ![Language](https://img.shields.io/badge/language-C%2FC%2B%2B%2FFortran-green)
 ![GUI](https://img.shields.io/badge/GUI-X11%2FMotif%2FTcl,Tk,Tix-red)
 
@@ -59,10 +59,11 @@ source .profile_legoroot
 ### Option 1: Docker Container Execution
 #### Prerequisites
 ```bash
+#                     Docker INSTALL
 # Fedora 41 dependencies for docker running:
 # Docker install (https://docs.docker.com/engine/install/fedora/)
 #
-# i.e. For docker install with WSL:
+# i.e. For docker install within WSL:
 sudo dnf update
 sudo dnf -y install dnf-plugins-core
 sudo dnf-3 config-manager --add-repo https://download.docker.com/linux/fedora/docker-ce.repo
@@ -73,7 +74,6 @@ sudo dnf install docker-ce docker-ce-cli containerd.io docker-buildx-plugin dock
 # file /etc/wsl.conf
     [boot]
     systemd=true
-
 #
 sudo systemctl enable --now docker
 #
@@ -82,7 +82,7 @@ sudo docker run hello-world
 ```
 
 ```bash
-# Run LegoPST in a preconfigured Docker container
+# In a machine with Docker installed you can Run LegoPST in the preconfigured Docker container:
 lgdock
 
 # The lgdock command automatically starts:
