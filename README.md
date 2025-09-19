@@ -49,12 +49,17 @@ LegoPST/
 
 
 ```bash
+# From the user HOME dirictory
+cd $HOME 
 # Clone the repository, git is the prerequisite
 git clone remotepath/to/LegoPST2010A_WSL_DARHE6_64.git
-cd LegoPST2010A_WSL_DARHE6_64
+cd LegoPST2010A_WSL_DARHE6_64  
+source .profile_legoroot # Environment setup
+# The environment variable LEGOROOT will be defined as LEGOROOT=$HOME/LegoPST2010A_WSL_DARHE6_64
 
-# Setup environment
-source .profile_legoroot
+# For a stable LEGOROOT installation, it is recommend to add LEGOROOT set up to .bashrc with this command:
+echo "source $LEGOROOT/.profile_legoroot " >> $HOME/.bashrc
+
 ```
 ### Option 1: Docker Container Execution
 #### Prerequisites
