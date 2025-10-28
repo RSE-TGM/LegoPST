@@ -8,8 +8,9 @@
 HOST_USERNAME=$(whoami)
 HOST_USER_ID=$(id -u)
 HOST_GROUP_ID=$(id -g)
-HOST_USER_HOME="$HOME"
+HOST_USER_HOME="$HOME" 
 
+#eventuale creazione di /defaults
 HOST_DEFAULTS_DIR="$HOME/defaults"
 echo "=== Controllo della directory: $HOST_DEFAULTS_DIR ==="
 if [[ -d "$HOST_DEFAULTS_DIR" ]]; then

@@ -1,36 +1,29 @@
 name: Sync Scripts to Gist
 
 on:
+  workflow_dispatch:  # Permette esecuzione manuale
   push:
     branches:
-      - main
-    # Il workflow si attiva se uno QUALSIASI di questi file cambia
+      - master
     paths:
-      - 'lgdock.sh'
-      - 'lgdock_socat.sh'
+      - 'docker/lgdock.sh'
+      - 'docker/lgdock_socat.sh'
 
 jobs:
   sync:
     runs-on: ubuntu-latest
     steps:
-      # 1. Fa il checkout del codice
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2. Sincronizza il primo file: lgdock.sh
       - name: Sync lgdock.sh to Gist
-        uses: exuanbo/actions-sync-gist@v2
-        with:
-          gist_id: 'd7c030f939f69b07784a309889b8510'  # <--- SOSTITUISCI CON IL TUO GIST ID
-          file_name: 'lgdock.sh'        # Nome del file nel Gist
-          source_file: 'lgdock.sh'      # Percorso del file nel repository
-          token: ${{ secrets.GIST_SECRET }}
+        env:
+          GH_TOKEN: ${{ secrets.GIST_SECRET }}
+        run: |
+          gh gist edit d7c030f939f69b07784a309889b8510a docker/lgdock.sh
 
-      # 3. Sincronizza il secondo file: lgdock_socat.sh
       - name: Sync lgdock_socat.sh to Gist
-        uses: exuanbo/actions-sync-gist@v2
-        with:
-          gist_id: '83c887ef78610842508b9f972130d3e1'  # <--- SOSTITUISCI CON IL TUO GIST ID
-          file_name: 'lgdock_socat.sh'  # Nome del file nel Gist
-          source_file: 'lgdock_socat.sh'# Percorso del file nel repository
-          token: ${{ secrets.GIST_SECRET }}
+        env:
+          GH_TOKEN: ${{ secrets.GIST_SECRET }}
+        run: |
+          gh gist edit 83c887ef78610842508b9f972130d3e1 docker/lgdock_socat.sh
