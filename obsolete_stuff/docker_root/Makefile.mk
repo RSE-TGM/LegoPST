@@ -2,7 +2,7 @@
 # Modifica questo se il tuo script BuildImage costruisce un'immagine con un nome specifico.
 # Se BuildImage non produce un target tangibile che Make può tracciare,
 # useremo un file "timestamp" per forzare la riesecuzione.
-IMAGE_NAME := aguagliardi/legopst:latestls
+IMAGE_NAME := aguagliardi/legopst:latest
 DOCKERFILE := Dockerfile_LegoPST
 BUILD_SCRIPT := ./BuildImage
 

@@ -1,0 +1,232 @@
+name: Sync Scripts to Gist
+
+on:
+  # Trigger su push al branch principale
+  push:
+    branches:
+      - main
+      - master  # Aggiungi entrambi per compatibilità
+    paths:
+      - 'docker/lgdock.sh'
+      - 'docker/lgdock_socat.sh'
+      - '.github/workflows/sync-gist.yml'  # Si attiva anche se modifichi questo file
+  
+  # Permette esecuzione manuale dalla tab Actions
+  workflow_dispatch:
+    inputs:
+      debug:
+        description: 'Abilita modalità debug'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    
+    steps:
+      # 1. Checkout del repository
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Ottieni tutta la storia per info commit
+
+      # 2. Debug info (se abilitato)
+      - name: Debug Information
+        if: github.event.inputs.debug == 'true' || contains(github.event.head_commit.message, '[debug]')
+        run: |
+          echo "=== Git Information ==="
+          echo "Branch: ${{ github.ref }}"
+          echo "Commit: ${{ github.sha }}"
+          echo "Author: ${{ github.actor }}"
+          echo ""
+          echo "=== Files Changed ==="
+          git diff-tree --no-commit-id --name-only -r HEAD
+          echo ""
+          echo "=== Docker Directory ==="
+          ls -la docker/ || echo "Directory not found"
+          echo ""
+          echo "=== File Contents Preview ==="
+          if [ -f "docker/lgdock.sh" ]; then
+            echo "lgdock.sh (first 10 lines):"
+            head -10 docker/lgdock.sh
+          fi
+          if [ -f "docker/lgdock_socat.sh" ]; then
+            echo "lgdock_socat.sh (first 10 lines):"
+            head -10 docker/lgdock_socat.sh
+          fi
+
+      # 3. Verifica che i file esistano
+      - name: Verify Files Exist
+        run: |
+          if [ ! -f "docker/lgdock.sh" ]; then
+            echo "::error::File docker/lgdock.sh not found!"
+            exit 1
+          fi
+          if [ ! -f "docker/lgdock_socat.sh" ]; then
+            echo "::error::File docker/lgdock_socat.sh not found!"
+            exit 1
+          fi
+          echo "✅ Both files exist"
+
+      # 4. Verifica che il secret esista
+      - name: Check Secret
+        env:
+          GIST_TOKEN: ${{ secrets.GIST_SECRET }}
+        run: |
+          if [ -z "$GIST_TOKEN" ]; then
+            echo "::error::GIST_SECRET not configured! Please add it in Settings → Secrets"
+            exit 1
+          fi
+          echo "✅ GIST_SECRET is configured"
+
+      # 5. Sync lgdock.sh to Gist usando GitHub CLI
+      - name: Sync lgdock.sh to Gist
+        env:
+          GH_TOKEN: ${{ secrets.GIST_SECRET }}
+        run: |
+          echo "📤 Syncing lgdock.sh to Gist..."
+          
+          # Metodo 1: GitHub CLI (preinstallato in GitHub Actions)
+          gh gist edit d7c030f939f69b07784a309889b8510a docker/lgdock.sh
+          
+          if [ $? -eq 0 ]; then
+            echo "✅ lgdock.sh successfully synced!"
+            echo "📎 URL: https://gist.github.com/${{ github.repository_owner }}/d7c030f939f69b07784a309889b8510a"
+          else
+            echo "::error::Failed to sync lgdock.sh"
+            exit 1
+          fi
+
+      # 6. Sync lgdock_socat.sh to Gist
+      - name: Sync lgdock_socat.sh to Gist
+        env:
+          GH_TOKEN: ${{ secrets.GIST_SECRET }}
+        run: |
+          echo "📤 Syncing lgdock_socat.sh to Gist..."
+          
+          gh gist edit 83c887ef78610842508b9f972130d3e1 docker/lgdock_socat.sh
+          
+          if [ $? -eq 0 ]; then
+            echo "✅ lgdock_socat.sh successfully synced!"
+            echo "📎 URL: https://gist.github.com/${{ github.repository_owner }}/83c887ef78610842508b9f972130d3e1"
+          else
+            echo "::error::Failed to sync lgdock_socat.sh"
+            exit 1
+          fi
+
+      # 7. Metodo alternativo con curl (backup)
+      - name: Alternative Sync Method (if CLI fails)
+        if: failure()  # Esegue solo se i passi precedenti falliscono
+        env:
+          GITHUB_TOKEN: ${{ secrets.GIST_SECRET }}
+        run: |
+          echo "⚠️ Trying alternative sync method with curl..."
+          
+          # Funzione per aggiornare Gist
+          update_gist() {
+            local gist_id=$1
+            local file_name=$2
+            local file_path=$3
+            
+            # Leggi contenuto file e escapa per JSON
+            local content=$(cat "$file_path" | jq -Rs .)
+            
+            # Crea payload JSON
+            local json_payload=$(cat <<EOF
+          {
+            "files": {
+              "$file_name": {
+                "content": $content
+              }
+            }
+          }
+          EOF
+            )
+            
+            # Aggiorna Gist via API
+            curl -X PATCH \
+              -H "Accept: application/vnd.github+json" \
+              -H "Authorization: Bearer $GITHUB_TOKEN" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              "https://api.github.com/gists/$gist_id" \
+              -d "$json_payload"
+          }
+          
+          # Sync lgdock.sh
+          echo "Syncing lgdock.sh with curl..."
+          update_gist "d7c030f939f69b07784a309889b8510a" "lgdock.sh" "docker/lgdock.sh"
+          
+          # Sync lgdock_socat.sh
+          echo "Syncing lgdock_socat.sh with curl..."
+          update_gist "83c887ef78610842508b9f972130d3e1" "lgdock_socat.sh" "docker/lgdock_socat.sh"
+
+      # 8. Crea/Aggiorna README nel Gist (opzionale)
+      - name: Update Gist README
+        if: success()
+        continue-on-error: true  # Non fallire il workflow se questo step fallisce
+        env:
+          GH_TOKEN: ${{ secrets.GIST_SECRET }}
+        run: |
+          # Crea un README temporaneo con info aggiornate
+          cat > /tmp/gist_readme.md << 'EOF'
+          # LGDock Scripts
+          
+          Last updated: ${{ github.event.head_commit.timestamp }}
+          Commit: ${{ github.sha }}
+          Author: ${{ github.actor }}
+          
+          ## Quick Install
+          
+          ```bash
+          # lgdock
+          curl -sSL https://gist.github.com/${{ github.repository_owner }}/d7c030f939f69b07784a309889b8510a/raw | bash
+          
+          # lgdock_socat
+          curl -sSL https://gist.github.com/${{ github.repository_owner }}/83c887ef78610842508b9f972130d3e1/raw | bash
+          ```
+          
+          Source: [${{ github.repository }}](https://github.com/${{ github.repository }})
+          EOF
+          
+          # Opzionale: aggiorna un Gist README se esiste
+          # gh gist edit YOUR_README_GIST_ID /tmp/gist_readme.md
+
+      # 9. Summary
+      - name: Summary
+        if: success()
+        run: |
+          echo "## 🎉 Sync Completed Successfully!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📋 Scripts Updated:" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ **lgdock.sh**: [View Gist](https://gist.github.com/${{ github.repository_owner }}/d7c030f939f69b07784a309889b8510a)" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ **lgdock_socat.sh**: [View Gist](https://gist.github.com/${{ github.repository_owner }}/83c887ef78610842508b9f972130d3e1)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🚀 Quick Install Commands:" >> $GITHUB_STEP_SUMMARY
+          echo '```bash' >> $GITHUB_STEP_SUMMARY
+          echo "# Install lgdock" >> $GITHUB_STEP_SUMMARY
+          echo "curl -sSL https://gist.github.com/${{ github.repository_owner }}/d7c030f939f69b07784a309889b8510a/raw | sudo tee /usr/local/bin/lgdock && sudo chmod +x /usr/local/bin/lgdock" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📝 Commit Info:" >> $GITHUB_STEP_SUMMARY
+          echo "- **Message**: ${{ github.event.head_commit.message }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Author**: ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **SHA**: \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+
+      # 10. Notifica fallimento
+      - name: Notify on Failure
+        if: failure()
+        run: |
+          echo "## ❌ Sync Failed!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Common Issues:" >> $GITHUB_STEP_SUMMARY
+          echo "1. **GIST_SECRET not configured**: Go to Settings → Secrets → Actions" >> $GITHUB_STEP_SUMMARY
+          echo "2. **Invalid token permissions**: Token needs 'gist' scope" >> $GITHUB_STEP_SUMMARY
+          echo "3. **Files not found**: Check that files exist in docker/ directory" >> $GITHUB_STEP_SUMMARY
+          echo "4. **Network issues**: GitHub API might be temporarily unavailable" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Debug:" >> $GITHUB_STEP_SUMMARY
+          echo "Run workflow manually with debug enabled to see more details" >> $GITHUB_STEP_SUMMARY

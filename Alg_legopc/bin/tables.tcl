@@ -67,11 +67,11 @@ pack .m.inputval1 -side left -anchor nw -pady 1m -padx .5c
 pack .m.inputval2 -side left -anchor nw -pady 1m -padx .5c
 pack .m.inputval4 -side left -anchor w -pady 1m -padx 2c
 pack .m.inputval3 -side right -anchor se -pady 1m
-set inplabel {Calculation of temperature [°C]}
+set inplabel {Calculation of temperature [ï¿½C]}
 set enlab1 {Pressure [Bar]}
-set enlab2 {Entropy [kJ/kg/°C]}
+set enlab2 {Entropy [kJ/kg/ï¿½C]}
 set enlab3 { }
-set outlab1 {Temperature [°C]}
+set outlab1 {Temperature [ï¿½C]}
 set outlab2 { }
 set par1 0; set par2 0; set par3 0
 set res1 0; set res2 0
@@ -128,123 +128,123 @@ proc setta {tabfun} {
   set numuspre $numus
 #  pulientry
   switch $tabfun \
- 1 {set inplabel {Calculation of temperature [°C]}; set numen 2; set numus 1; \
-    set enlab1 {Pressure [Bar]}; set enlab2 {Entropy [kJ/kg/°C]}; set enlab3 { }; \
-    set outlab1 {Temperature [°C]}; set outlab2 { }} \
- 2 {set inplabel {Calculation of temperature [°C]}; set numen 2; set numus 1; \
+ 1 {set inplabel {Calculation of temperature [ï¿½C]}; set numen 2; set numus 1; \
+    set enlab1 {Pressure [Bar]}; set enlab2 {Entropy [kJ/kg/ï¿½C]}; set enlab3 { }; \
+    set outlab1 {Temperature [ï¿½C]}; set outlab2 { }} \
+ 2 {set inplabel {Calculation of temperature [ï¿½C]}; set numen 2; set numus 1; \
     set enlab1 {Pressure [Bar]}; set enlab2 {Enthalpy [kJ/kg]}; set enlab3 { }; \
-    set outlab1 {Temperature [°C]}; set outlab2 { }} \
- 3 {set inplabel {Calculation of saturation temperature [°C]}; set numen 1; set numus 1; \
+    set outlab1 {Temperature [ï¿½C]}; set outlab2 { }} \
+ 3 {set inplabel {Calculation of saturation temperature [ï¿½C]}; set numen 1; set numus 1; \
     set enlab1 {Pressure [Bar]}; set enlab2 { }; set enlab3 { }; \
-    set outlab1 {Temperature [°C]}; set outlab2 { }} \
- 4 {set inplabel {Calculation of entropy [kJ/kg/°C]}; set numen 2; set numus 1; \
+    set outlab1 {Temperature [ï¿½C]}; set outlab2 { }} \
+ 4 {set inplabel {Calculation of entropy [kJ/kg/ï¿½C]}; set numen 2; set numus 1; \
     set enlab1 {Pressure [Bar]}; set enlab2 {Enthalpy [kJ kg-1]}; set enlab3 { }; \
-    set outlab1 {Entropy [kJ/kg/°C]}; set outlab2 { }} \
- 5 {set inplabel {Calculation of entropy [kJ/kg/°C]}; set numen 3; set numus 1; \
-    set enlab1 {Pressure [Bar]}; set enlab2 {Temperature [°C]}; set enlab3 {Steam ratio [p.u.]}; \
-    set outlab1 {Entropy [kJ/kg/°C]}; set outlab2 { }} \
- 6 {set inplabel {Calculation of entropy of water and satured steam [kJ/kg/°C]}; set numen 1; set numus 2; \
+    set outlab1 {Entropy [kJ/kg/ï¿½C]}; set outlab2 { }} \
+ 5 {set inplabel {Calculation of entropy [kJ/kg/ï¿½C]}; set numen 3; set numus 1; \
+    set enlab1 {Pressure [Bar]}; set enlab2 {Temperature [ï¿½C]}; set enlab3 {Steam ratio [p.u.]}; \
+    set outlab1 {Entropy [kJ/kg/ï¿½C]}; set outlab2 { }} \
+ 6 {set inplabel {Calculation of entropy of water and satured steam [kJ/kg/ï¿½C]}; set numen 1; set numus 2; \
     set enlab1 {Pressure [Bar]}; set enlab2 { }; set enlab3 { }; \
-    set outlab1 {Entropy of satured water [kJ/kg/°C]}; set outlab2 {Entropy of satured steam [kJ/kg/°C]}} \
+    set outlab1 {Entropy of satured water [kJ/kg/ï¿½C]}; set outlab2 {Entropy of satured steam [kJ/kg/ï¿½C]}} \
  7 {set inplabel {Calculation of enthalpy [kJ/kg]}; set numen 2; set numus 1; \
-    set enlab1 {Pressure [Bar]}; set enlab2 {Entropy [kJ/kg/°C]}; set enlab3 { }; \
+    set enlab1 {Pressure [Bar]}; set enlab2 {Entropy [kJ/kg/ï¿½C]}; set enlab3 { }; \
     set outlab1 {Enthalpy [kJ/kg]}; set outlab2 { }} \
  8 {set inplabel {Calculation of enthalpy [kJ kg-1]}; set numen 3; set numus 1; \
-    set enlab1 {Pressure [Bar]}; set enlab2 {Temperature [°C]}; set enlab3 {Steam ratio [p.u.]}; \
+    set enlab1 {Pressure [Bar]}; set enlab2 {Temperature [ï¿½C]}; set enlab3 {Steam ratio [p.u.]}; \
     set outlab1 {Enthalpy [kJ/kg]}; set outlab2 { }} \
  9 {set inplabel {Calculation of enthalpy of water and satured steam [kJ/kg]}; set numen 1; set numus 2; \
     set enlab1 {Pressure [Bar]}; set enlab2 { }; set enlab3 { }; \
     set outlab1 {Entalpy of satured water [kJ/kg]}; set outlab2 {Entalpy of satured steam [kJ/kg]}} \
 10 {set inplabel {Calculation of density RO [kg/m3]}; set numen 2; set numus 1; \
-    set enlab1 {Pressure [Bar]}; set enlab2 {Entropy [kJ/kg/°C]}; set enlab3 { }; \
+    set enlab1 {Pressure [Bar]}; set enlab2 {Entropy [kJ/kg/ï¿½C]}; set enlab3 { }; \
     set outlab1 {Density RO [kg/m3]}; set outlab2 { }} \
 11 {set inplabel {Calculation of density RO [kg/m3]}; set numen 2; set numus 1; \
     set enlab1 {Pressure [Bar]}; set enlab2 {Enthalpy [kJ/kg]}; set enlab3 { }; \
     set outlab1 {Density RO [kg/m3]}; set outlab2 { }} \
 12 {set inplabel {Calculation of density RO [kg/m3]}; set numen 3; set numus 1; \
-    set enlab1 {Pressure [Bar]}; set enlab2 {Temperature [°C]}; set enlab3 {Steam ratio [p.u.]}; \
+    set enlab1 {Pressure [Bar]}; set enlab2 {Temperature [ï¿½C]}; set enlab3 {Steam ratio [p.u.]}; \
     set outlab1 {Density RO [kg/m3]}; set outlab2 { }} \
 13 {set inplabel {Calculation of density of water and satured steam [kg/m3]}; set numen 1; set numus 2; \
     set enlab1 {Pressure [Bar]}; set enlab2 { }; set enlab3 { }; \
     set outlab1 {Density of satured water [kg/m3]}; set outlab2 {Density of satured steam [kg/m3]}} \
-14 {set inplabel {Calculation of [dRO/dS]p [kg²K/m³J]}; set numen 2; set numus 1; \
-    set enlab1 {Pressure [Bar]}; set enlab2 {entropy [kJ/kg/°C]}; set enlab3 { };
-    set outlab1 {[dRO/dS]p [kg²K/m³J]}; set outlab2 { }} \
-15 {set inplabel {Calculation of [dRO/ds]p [kg²K/m³J]}; set numen 2; set numus 1; \
+14 {set inplabel {Calculation of [dRO/dS]p [kgï¿½K/mï¿½J]}; set numen 2; set numus 1; \
+    set enlab1 {Pressure [Bar]}; set enlab2 {entropy [kJ/kg/ï¿½C]}; set enlab3 { };
+    set outlab1 {[dRO/dS]p [kgï¿½K/mï¿½J]}; set outlab2 { }} \
+15 {set inplabel {Calculation of [dRO/ds]p [kgï¿½K/mï¿½J]}; set numen 2; set numus 1; \
     set enlab1 {Pressure [Bar]}; set enlab2 {enthalpy [kJ/kg]}; set enlab3 { };
-    set outlab1 {[dRO/dS]p [kg²K/m³J]}; set outlab2 { }} \
-16 {set inplabel {Calculation of [dRO/dP]s [s²/m²]}; set numen 2; set numus 1; \
-    set enlab1 {Pressure [Bar]}; set enlab2 {entropy [kJ/kg/°C]}; set enlab3 { };
-    set outlab1 {[dRO/dP]s [s²/m²]}; set outlab2 { }} \
-17 {set inplabel {Calculation of [dRO/dP]s [s²/m²]}; set numen 2; set numus 1; \
+    set outlab1 {[dRO/dS]p [kgï¿½K/mï¿½J]}; set outlab2 { }} \
+16 {set inplabel {Calculation of [dRO/dP]s [sï¿½/mï¿½]}; set numen 2; set numus 1; \
+    set enlab1 {Pressure [Bar]}; set enlab2 {entropy [kJ/kg/ï¿½C]}; set enlab3 { };
+    set outlab1 {[dRO/dP]s [sï¿½/mï¿½]}; set outlab2 { }} \
+17 {set inplabel {Calculation of [dRO/dP]s [sï¿½/mï¿½]}; set numen 2; set numus 1; \
     set enlab1 {Pressure [Bar]}; set enlab2 {enthalpy [kJ/kg]}; set enlab3 { };
-    set outlab1 {[dRO/dP]s [s²/m²]}; set outlab2 { }} \
+    set outlab1 {[dRO/dP]s [sï¿½/mï¿½]}; set outlab2 { }} \
 18 {set inplabel {Calculation of steam ratio [p.u.]}; set numen 2; set numus 1; \
-    set enlab1 {Pressure [Bar]}; set enlab2 {Entropy [kJ/kg/°C]}; set enlab3 { };
+    set enlab1 {Pressure [Bar]}; set enlab2 {Entropy [kJ/kg/ï¿½C]}; set enlab3 { };
     set outlab1 {Steam ratio [p.u.]}; set outlab2 { }} \
 19 {set inplabel {Calculation of steam ratio [p.u.]}; set numen 2; set numus 1; \
     set enlab1 {Pressure [Bar]}; set enlab2 {Enthalpy [kJ/kg]}; set enlab3 { };
     set outlab1 {Steam ratio [p.u.]}; set outlab2 { }} \
-20 {set inplabel {Calculation of specific heat CP [J/kg/°C]}; set numen 2; set numus 2; \
-    set enlab1 {Pressure [Bar]}; set enlab2 {Entropy [kJ/kg/°C]}; set enlab3 { };
-    set outlab1 {Specific heat Cp [J/kg/°C]}; set outlab2 {Fluid state flag:
-  0 -> subccooled liquid
+20 {set inplabel {Calculation of specific heat CP [J/kg/ï¿½C]}; set numen 2; set numus 2; \
+    set enlab1 {Pressure [Bar]}; set enlab2 {Entropy [kJ/kg/ï¿½C]}; set enlab3 { };
+    set outlab1 {Specific heat Cp [J/kg/ï¿½C]}; set outlab2 {Fluid state flag:
+  0 -> sub-cooled liquid
   1 -> saturated liquid (Y < 0.57)
   2 -> saturated steam (Y > 0.57)
   3 -> superheated steam}} \
-21 {set inplabel {Calculation of specific heat Cp [J/kg/°C]}; set numen 2; set numus 2; \
+21 {set inplabel {Calculation of specific heat Cp [J/kg/ï¿½C]}; set numen 2; set numus 2; \
     set enlab1 {Pressure [Bar]}; set enlab2 {Enthalpy [kJ/kg]}; set enlab3 { };
-    set outlab1 {Specific heat Cp [J/kg/°C]}; set outlab2 {Fluid state flag:
-  0 -> subccooled liquid
+    set outlab1 {Specific heat Cp [J/kg/ï¿½C]}; set outlab2 {Fluid state flag:
+  0 -> sub-cooled liquid
   1 -> saturated liquid (Y < 0.57)
   2 -> saturated steam (Y > 0.57)
   3 -> superheated steam}} \
-22 {set inplabel {Calculation of specific heat Cp [J/kg/°C]}; set numen 3; set numus 2; \
-     set enlab1 {Pressure [Bar]}; set enlab2 {Temperature [°C]}; set enlab3 {Steam ratio [p.u.]}; \
-     set outlab1 {Specific heat CP [J/kg/°C]}; set outlab2 {Fluid state flag:
-  0 -> subccooled liquid
+22 {set inplabel {Calculation of specific heat Cp [J/kg/ï¿½C]}; set numen 3; set numus 2; \
+     set enlab1 {Pressure [Bar]}; set enlab2 {Temperature [ï¿½C]}; set enlab3 {Steam ratio [p.u.]}; \
+     set outlab1 {Specific heat CP [J/kg/ï¿½C]}; set outlab2 {Fluid state flag:
+  0 -> sub-cooled liquid
   1 -> saturated liquid (Y < 0.57)
   2 -> saturated steam (Y > 0.57)
   3 -> superheated steam }} \
 23 {set inplabel {Calculation of Dynamic Viscosity MU [kg/s m]}; set numen 2; set numus 2; \
-    set enlab1 {Pressure [Bar]}; set enlab2 {Entropy [kJ/kg/°C]}; set enlab3 { };
+    set enlab1 {Pressure [Bar]}; set enlab2 {Entropy [kJ/kg/ï¿½C]}; set enlab3 { };
     set outlab1 {Dynamic Viscosity MU [kg/s m]}; set outlab2 {Fluid state flag:
-  0 -> subccooled liquid
+  0 -> sub-cooled liquid
   1 -> saturated liquid (Y < 0.57)
   2 -> saturated steam (Y > 0.57)
   3 -> superheated steam}} \
 24 {set inplabel {Calculation of Dynamic Viscosity MU [kg/s m]}; set numen 2; set numus 2; \
     set enlab1 {Pressure [Bar]}; set enlab2 {Enthalpy [kJ/kg]}; set enlab3 { };
     set outlab1 {Dynamic Viscosity MU [kg/s m]}; set outlab2 {Fluid state flag:
-  0 -> subccooled liquid
+  0 -> sub-cooled liquid
   1 -> saturated liquid (Y < 0.57)
   2 -> saturated steam (Y > 0.57)
   3 -> superheated steam }} \
 25 {set inplabel {Calculation of Dynamic Viscosity MU [kg/s m]}; set numen 3; set numus 2; \
-     set enlab1 {Pressure [Bar]}; set enlab2 {Temperature [°C]}; set enlab3 {Steam ratio [p.u.]}; \
+     set enlab1 {Pressure [Bar]}; set enlab2 {Temperature [ï¿½C]}; set enlab3 {Steam ratio [p.u.]}; \
      set outlab1 {Dynamic Viscosity MU [kg/s m]}; set outlab2 {Fluid state flag:
-  0 -> subccooled liquid
+  0 -> sub-cooled liquid
   1 -> saturated liquid (Y < 0.57)
   2 -> saturated steam (Y > 0.57)
   3 -> superheated steam }} \
 26 {set inplabel {Calculation of Thermal Conductivity K [W/m/K]}; set numen 2; set numus 2; \
-    set enlab1 {Pressure [Bar]}; set enlab2 {Entropy [kJ/kg/°C]}; set enlab3 { };
+    set enlab1 {Pressure [Bar]}; set enlab2 {Entropy [kJ/kg/ï¿½C]}; set enlab3 { };
     set outlab1 {Thermal Conductivity K [W/m/K]}; set outlab2 {Fluid state flag:
-  0 -> subccooled liquid
+  0 -> sub-cooled liquid
   1 -> saturated liquid (Y < 0.57)
   2 -> saturated steam (Y > 0.57)
   3 -> superheated steam }} \
 27 {set inplabel {Calculation of Thermal Conductivity K [W/m/K]}; set numen 2; set numus 2; \
     set enlab1 {Pressure [Bar]}; set enlab2 {Enthalpy [kJ/kg]}; set enlab3 { };
     set outlab1 {Thermal Conductivity K [W/m/K]}; set outlab2 {Fluid state flag:
-  0 -> subccooled liquid
+  0 -> sub-cooled liquid
   1 -> saturated liquid (Y < 0.57)
   2 -> saturated steam (Y > 0.57)
   3 -> superheated steam }} \
 28 {set inplabel {Calculation of Thermal Conductivity K [W/m/K]}; set numen 3; set numus 2; \
-     set enlab1 {Pressure [Bar]}; set enlab2 {Temperature [°C]}; set enlab3 {Steam ratio [p.u.]}; \
+     set enlab1 {Pressure [Bar]}; set enlab2 {Temperature [ï¿½C]}; set enlab3 {Steam ratio [p.u.]}; \
      set outlab1 {Thermal Conductivity K [W/m/K]}; set outlab2 {Fluid state flag:
-  0 -> subccooled liquid
+  0 -> sub-cooled liquid
   1 -> saturated liquid (Y < 0.57)
   2 -> saturated steam (Y > 0.57)
   3 -> superheated steam } \

@@ -43,12 +43,12 @@ LegoPST/
 └── util2025/         # Modern utilities
 ```
 
-## 🚀 Quick Start
-The quickest way to run LegoPST is to launch it in a [Docker container](#option-1-docker-container-execution), without installing the package and without having a machine running the Fedora 41 Linux distribution. In this case the host machine can be a generic Linux distribution running on a X86-64, Intel or AMD platform.
-Alternatively, if you want a stable installation on your Fedora 41 machine, you can [download and install directly in your Fedora](#option-2-running-into-a-fully-configured-linux-fedora-41-distribution).
+## 🚀 Install and Run
+The quickest way to run LegoPST is to [launch it in a Docker container](#option-1-quick-start---docker-container-execution), without installing the package and without having a machine running the Fedora 41 Linux distribution. In this case the host machine can be a generic Linux distribution running on a X86-64, Intel or AMD platform.
+Alternatively, if you want a stable installation on your Fedora 41 machine, you can [download and install directly into your Fedora](#option-2-running-into-a-fully-configured-linux-fedora-41-distribution).
 
 
-### Option 1: Docker Container Execution
+### Option 1: Quick Start - Docker Container Execution
 #### Prerequisites
 ```bash
 #                     Docker INSTALL
@@ -152,10 +152,7 @@ echo "source $LEGOROOT/.profile_legoroot " >> $HOME/.bashrc
 
 ```
 
-```bash
-# Note: In a machine with Docker installed you can Run LegoPST in the preconfigured Docker container:
-lgdock
-```
+
 
 
 #### Environment Configuration and Installation
@@ -175,6 +172,11 @@ The system automatically detects:
 - **Compiler flags**: gcc/gfortran configuration
 - **Database paths**: SQLite and threading
 
+```bash
+# Note: Anyway, in a machine with Docker installed you can Run LegoPST in the preconfigured Docker container with this command:
+lgdock
+
+```
 
 ### Compilation by source
 LegoPST is provided as a pre-compiled package, ready for immediate use upon download. For users who wish to customize the software or build from the latest source code, the project can also be fully recompiled. To do so, clone the repository and follow the following build instructions.

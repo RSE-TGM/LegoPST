@@ -1,0 +1,8 @@
+#!/bin/bash
+#scaricare gli script:
+curl -sSL https://gist.githubusercontent.com/aguag/d7c030f939f69b07784a309889b8510a/raw/lgdock.sh -o $HOME/.local/bin/lgdock
+curl -sSL https://gist.githubusercontent.com/aguag/83c887ef78610842508b9f972130d3e1/raw/lgdock_socat.sh -o $HOME/.local/bin/lgdock_socat
+chmod +x $HOME/.local/bin/lgdock*
+echo "Installati:"
+ls $HOME/.local/bin/lgdock*
+

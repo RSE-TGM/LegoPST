@@ -40,9 +40,10 @@ handle_single_link() {
     local source_dir="$1"
     local target_link="$2"
     local force_mode="${3:-false}"
-    
+    echo "DEBUG----> Gestione del link per: ${source_dir} -> ${target_link} con flag force=${force_mode}"
     if [ -e "$target_link" ]; then
         if [ -d "$target_link" ] && [ ! -L "$target_link" ]; then
+        echo "DEBUG----> Target è una directory esistente"
             local unique_id
             if command -v uuidgen &> /dev/null; then
                 unique_id=$(uuidgen)
@@ -67,6 +68,7 @@ handle_single_link() {
                 fi
             fi
         elif [ -L "$target_link" ]; then
+        echo "DEBUG----> Target è un link simbolico esistente"
             if [ "$force_mode" = true ]; then
                 echo -e "${YELLOW}Modalità -f: rimuovo automaticamente il link esistente '${target_link}'${NC}"
                 rm -f "$target_link"
@@ -84,7 +86,7 @@ handle_single_link() {
         fi
     fi
     
-    echo -e "Creazione del link simbolico: ${GREEN}${target_link}${NC} -> ${GREEN}${source_dir}${NC}"
+    echo -e "Creazione del link simbolico: ${GREEN}${target_link}${NC} -> ${GREEN}${source_dir}${NC} - 1"
     ln -s "$source_dir" "$target_link"
     if [ $? -eq 0 ]; then
         echo -e "${GREEN}Link '${target_link}' creato/aggiornato con successo!${NC}"
@@ -170,7 +172,7 @@ set_link_strict() {
     fi
 
     # 3. Se tutti i controlli sono passati, crea il link.
-    echo -e "Creazione del link simbolico: ${GREEN}${target_link}${NC} -> ${GREEN}${source_dir}${NC}"
+    echo -e "Creazione del link simbolico: ${GREEN}${target_link}${NC} -> ${GREEN}${source_dir}${NC} - 2"
     ln -s "$source_dir" "$target_link"
 
     if [ -L "$target_link" ]; then

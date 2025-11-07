@@ -19,7 +19,7 @@ all: version.h # Assicuriamoci che version.h sia controllato/generato prima di c
 	cd ./Alg_legopc; $(MAKE) -f Makefile.mk
 	cd ./util2007; $(MAKE) -f Makefile.mk
 	cd ./docker; $(MAKE) -f Makefile.mk
-	cd ./docker_root; $(MAKE) -f Makefile.mk
+#	cd ./docker_root; $(MAKE) -f Makefile.mk
 
 # --- Gestione di version.h ---
 
