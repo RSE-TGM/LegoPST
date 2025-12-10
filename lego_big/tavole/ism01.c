@@ -50,7 +50,7 @@ void ism01_(int *iret)
     int shmflg;                    /* flag per attach alla shm      */
     char *ind;                     /* indirizzo generico per shm    */
     key_t shr_tav_key;             /* key area memoria shared       */
-    int shmget();
+    int shmget(key_t,  size_t,  int);
    /* *********** Creazione memoria condivisa ********************* */
 
     *iret = 0;

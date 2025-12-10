@@ -18,15 +18,12 @@ C******************************************************************************
      1   '21','22','23','24','25','26','27','28','29','30','31','32'/
 	DATA IC /41,44,48,47,48,2*49,51,52,53,54,57,59,62,66,3*69,71,
      1           73,8*70,2*69,2*68/
-#if defined HELIOS
-	IRES = POS_GETENV('TAVOLE',TAVOLED)
-#endif
-#if defined AIX || ULTRIX || VMS || OSF1
+C #if defined AIX || ULTRIX || VMS || OSF1 || LINUX
         CALL GETENV('TAVOLE',TAVOLED)
-#endif
-#if defined SCO_UNIX
-        IRES = IGETEN('TAVOLE',TAVOLED)
-#endif
+C #endif
+C #if defined SCO_UNIX
+C         IRES = IGETEN('TAVOLE',TAVOLED)
+C #endif
 C
         LEN = 1
  1010   CONTINUE
@@ -39,27 +36,28 @@ C
         ENDIF
  1020   FILOUT = TAVOLED(1:LEN)//'/TAVOLE.DAT'
         write(*,*)filout
-#if defined AIX
+C #if defined AIX
+C 	OPEN(2,FILE=FILOUT,STATUS='UNKNOWN',ACCESS='DIRECT',
+C     1       FORM='UNFORMATTED',RECL=LUNG4)
+C #endif
+C #if defined ULTRIX || VMS || HELIOS || SCO_UNIX || OSF1 || LINUX
 	OPEN(2,FILE=FILOUT,STATUS='UNKNOWN',ACCESS='DIRECT',
      1       FORM='UNFORMATTED',RECL=LUNG4)
-#endif
-#if defined ULTRIX || VMS || HELIOS || SCO_UNIX || OSF1
-	OPEN(2,FILE=FILOUT,STATUS='UNKNOWN',ACCESS='DIRECT',
-     1       FORM='UNFORMATTED',RECL=LUNG)
-#endif
+C #endif
 	DO 20 J=1,NREG
 	LREG=IC(J)*6*11 
         WRITE(6,*) 'REGIONE ',J,'  LUNGHEZZA ',LREG
         DO 10 I=1,LUNG
- 10     VET(I)=0.0
+        VET(I)=0.0
+ 10     CONTINUE
 	FILINP(3:4)=CNUM(J)
         write(*,*)filinp
-#if defined ULTRIX || OSF1
-	OPEN(3,FILE=FILINP,READONLY,STATUS='OLD',FORM='FORMATTED')
-#endif
-#if defined AIX || VMS || HELIOS || SCO_UNIX || LINUX
+C #if defined ULTRIX || OSF1
+C 	OPEN(3,FILE=FILINP,READONLY,STATUS='OLD',FORM='FORMATTED')
+C #endif
+C #if defined AIX || VMS || HELIOS || SCO_UNIX || LINUX
         OPEN(3,FILE=FILINP,STATUS='OLD',FORM='FORMATTED')
-#endif
+C #endif
 	IF(J.EQ.1) THEN
 	READ(3,101) (VET(K),K=1,LREG)
  101	FORMAT(6E15.8)

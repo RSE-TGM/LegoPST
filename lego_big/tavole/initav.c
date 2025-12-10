@@ -23,13 +23,13 @@ void ism01_(int*);
 */
 int main()
 {
-int *iret;
-ism01_(iret);
-if(*iret == 98)
-	printf("\nATTENZIONE: la shared memory non e' stata caricata!!!");
+int iret;           // variabile normale
+ism01_(&iret);      // passa l'indirizzo della variabile
+if(iret == 98)      // usa il valore direttamente
+    printf("\nATTENZIONE: la shared memory non e' stata caricata!!!");
+else if(iret == 97)
+    printf("\n TAVOLE DEL VAPORE GIA` PRESENTI\n\n");
 else
-if(*iret == 97)
-	printf("\n TAVOLE DEL VAPORE GIA` PRESENTI\n\n");
-else
-	printf("\n TAVOLE DEL VAPORE CARICATE CORRETTAMENTE\n\n");
+    printf("\n TAVOLE DEL VAPORE CARICATE CORRETTAMENTE\n\n");
+return 0;
 }

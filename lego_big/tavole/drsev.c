@@ -42,7 +42,7 @@ static char *_csrc = "@(#) %filespec: drsev.c-10 %  (%full_filespec: drsev.c-10:
     } inte_ ;
 
 
-    int diagn_();
+    int diagn_(int*,float*,float*);
     void  table_();
     void newt_(int*,float*);
 

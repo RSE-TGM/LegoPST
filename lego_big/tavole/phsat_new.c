@@ -40,11 +40,7 @@ static char *_csrc = "@(#) %filespec: %  (%full_filespec: %)";
 
    float *hnow = *((float*) params);
 #else
- void phsat_new_(hnow,phs)
-
-   float *hnow;
-   float *phs;
-
+ void phsat_new_(float *hnow,float *phs)
    {
 #endif
     int afa=0;
@@ -53,7 +49,7 @@ static char *_csrc = "@(#) %filespec: %  (%full_filespec: %)";
     float aa,bb,cc,csi,hw0,hw1,hw2;
     float sgn,qdr,rdc;
     double rdcdb;
-    FILE *fp,*fopen();
+    FILE *fp;
 
    /* Ricerca regione
       test su HWS: ultima isobara = prima isobara regione superiore */

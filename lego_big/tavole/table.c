@@ -41,7 +41,7 @@ static char *_csrc = "@(#) %filespec: table.c-10 %  (%full_filespec: table.c-10:
     } inte_ ;
 
   int diagn_io_();
-int diagn_();
+int diagn_(int*,float*,float*);
 
    /* ************  DEFINIZIONE DELLA SUBROUTINE  ****************** */
 

@@ -29,7 +29,7 @@ static char *_csrc = "@(#) %filespec: calsr.c-10 %  (%full_filespec: calsr.c-10:
 
 void newt_(int*,float*);
 int diagn_io_();
-int diagn_();
+int diagn_(int*,float*,float*);
 
 /* ************* DEFINIZIONE VARIABILI GLOBALI ********************* */
 

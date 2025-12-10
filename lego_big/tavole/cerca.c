@@ -23,7 +23,7 @@ static char *_csrc = "@(#) %filespec: cerca.c-10 %  (%full_filespec: cerca.c-10:
 void newt_(int* ,float *);
 void cerca_(float* ,float* ,int* );
 int diagn_io_();
-int diagn_();
+int diagn_(int*,float*,float*);
 
 /* ************* DEFINIZIONE VARIABILI GLOBALI ********************* */
 

@@ -17,7 +17,7 @@ C_LIB=
 OTHER_LIB=-lm
 MOTIF_VER=11
 #PREPROCESSOR_OPTIONS=-C -DOSF1
-PREPROCESSOR_OPTIONS= -C
+PREPROCESSOR_OPTIONS= -C -DOSF1
 UIL_INCLUDE=-I/usr/include/uil
 UIL_COMPILER=/usr/X11R6/bin/uil
 X_FLAGS=-c  -DSNAPSHOT
@@ -29,8 +29,9 @@ CPPFLAGS=-P -C -DLINUX -traditional
 CFLAGS=$(C_FLAGS) -g
 .c.o:
 	$(CC) -c $(CFLAGS) $< -o $@
-#------------------------ Fortran compiler (g77)
-#F_FLAGS=-fno-second-underscore -g -fno-automatic -finit-local-zero
+#------------------------ Fortran compiler (gfortran)
+FC=gfortran
+F_FLAGS=-fno-second-underscore -g -fno-automatic
 
 #
 #	Makefile Header:               Makefile.mk
@@ -51,19 +52,21 @@ TAVOLE=../bin
 #
 #
 ##all:  $(TAVOLE)/TAVOLE.DAT $(LEGO_BIN)/initav $(LEGO_LIB)/vapo.a $(LEGO_BIN)/provatav $(LEGO_BIN)/killtav $(LEGO_BIN)/killshrmem
-all:  $(TAVOLE)/TAVOLE.DAT $(LEGO_BIN)/initav $(LEGO_LIB)/vapo.a $(LEGO_BIN)/killtav $(LEGO_BIN)/killshrmem  $(LEGO_BIN)/provatav
+all:  $(TAVOLE)/TAVOLE.DAT $(LEGO_BIN)/initav $(LEGO_LIB)/vapo.a $(LEGO_BIN)/killtav $(LEGO_BIN)/killshrmem $(LEGO_BIN)/creatav $(LEGO_BIN)/provatav
 #
 # Initav inizializza l'area shared contenente i dati.
 #
 INITAV_C  = initav.c ism01.c read_tav.c
 INITAV_C_OBJ   = initav.o ism01.o read_tav.o
 #
-#$(TAVOLE)/TAVOLE.DAT: $(LEGO_BIN)/creatav
-#	export TAVOLE; TAVOLE=../bin ; $(LEGO_BIN)/creatav
-#	chmod ugo+r $(TAVOLE)/TAVOLE.DAT
+# Regola per generare TAVOLE.DAT
+$(TAVOLE)/TAVOLE.DAT: $(LEGO_BIN)/creatav
+	export TAVOLE; TAVOLE=../bin ; $(LEGO_BIN)/creatav
+	chmod ugo+r $(TAVOLE)/TAVOLE.DAT
 
-$(LEGO_BIN)/creatav: creatav.o
-	$(FC) $(FFLAGS) creatav.o -o $(LEGO_BIN)/creatav
+# Regola per compilare creatav (corretto: dipende dal sorgente, non da se stesso)
+$(LEGO_BIN)/creatav: creatav.f
+	$(FC) $(FFLAGS) creatav.f -o $(LEGO_BIN)/creatav
 
 $(LEGO_BIN)/initav : $(INITAV_C_OBJ)  
 	$(CC) $(INITAV_C_OBJ) -o $(LEGO_BIN)/initav
@@ -96,5 +99,8 @@ $(LEGO_BIN)/killshrmem: killshrmem.c
 .pf.o:
 	/lib/cpp  $(CPPFLAGS)  -D$(OS)   $< >> $*.f
 	-$(FC) -c $(FFLAGS) $*.f
-	rm -f $*.f
- 
+#	rm -f $*.f
+
+# Regola per pulire
+clean:
+	rm -f *.o $(LEGO_BIN)/creatav $(LEGO_BIN)/initav $(LEGO_BIN)/killtav $(LEGO_BIN)/killshrmem $(LEGO_BIN)/provatav $(LEGO_LIB)/vapo.a $(TAVOLE)/TAVOLE.DAT

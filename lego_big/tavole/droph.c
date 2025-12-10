@@ -21,7 +21,7 @@ static char *_csrc = "@(#) %filespec: droph.c-10 %  (%full_filespec: droph.c-10:
 # include "tavpar.h"           /* strutture common delle tavole     */
 
 void  table_();
-void  diagn_();
+void  diagn_(int*,float*,float*);
 
 /* ************* DEFINIZIONE VARIABILI GLOBALI ******************** */
 
@@ -43,11 +43,7 @@ void  diagn_();
 
    /* ************  DEFINIZIONE DELLA SUBROUTINE  ***************** */
 
- void droph_(p,ncal,res1,res2,res3)
-
-   int *ncal;
-   float *p,*res1,*res2,*res3;
-
+ void droph_(float *p,float *ncal,float *res1,float *res2,float *res3)
    {
     int i,in;
     int n;

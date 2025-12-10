@@ -18,8 +18,9 @@ static char *_csrc = "@(#) %filespec: %  (%full_filespec: %)";
  */
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 #include "tav_vap.h"
-char *getenv();
+char *getenv(const char *name);
 int dim_rec[NUM_REGIONI]={41,44,48,47,48,49,49,51,52,53,54,57,59,62,66,
 			  69,69,69,71,73,70,70,70,70,70,70,70,70,69,69,68,
                           68};
