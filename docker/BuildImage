@@ -2,7 +2,7 @@
 
 IMAGE_NAME="aguagliardi/legopst:2.0"
 PROCEED_AUTOMATICALLY=false
-DOCKERFILE_PATH="LegoPST2010A_WSL_DARHE6_64/docker/Dockerfile_LegoPST"
+DOCKERFILE_PATH="LegoPST/docker/Dockerfile_LegoPST"
 CONTEXT_PATH="."
 
 echo "Building immagine Docker: $IMAGE_NAME"

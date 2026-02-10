@@ -155,3 +155,6 @@ GEMINI.md
 #Claude debug
 CLAUDE.md
 legocad_r_MDC0
+
+# File generato da Makefile.mk (coordinate repository)
+docker/repo_info.conf

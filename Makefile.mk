@@ -2,7 +2,7 @@
 # ... (i tuoi commenti iniziali rimangono invariati) ...
 
 # Aggiunto .PHONY per i target che non rappresentano file reali.
-.PHONY: all clean force_version_h
+.PHONY: all clean force_version_h docker docker-push
 
 # Il target 'all' è il primo, quindi è il default.
 all: version.h # Assicuriamoci che version.h sia controllato/generato prima di compilare
@@ -61,6 +61,13 @@ clean:
 	find . -type f -name "*.o" -exec rm -f {} \;
 	find . -type f -name "*.a" -exec rm -f {} \;
 	@echo "--- Clean finished ---"
+
+# --- Target Docker ---
+docker:
+	cd ./docker && ./BuildImage_multiplat -y
+
+docker-push:
+	cd ./docker && ./BuildImage_multiplat -y --push
 
 $(info Makefile.mk: Startup - F_FLAGS is currently set to = $(F_FLAGS))
 $(info -------->  Makefile.mk processing complete!)

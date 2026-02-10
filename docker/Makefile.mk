@@ -18,9 +18,30 @@ BUILD_DEPENDENCIES := $(DOCKERFILE) lgdock lgdock_socat lgdock_multi
 
 # Opzione 1: Target fittizio che esegue sempre BuildImage se le dipendenze cambiano
 # Questo è il modo più semplice se BuildImage non crea un file specifico tracciabile da Make.
-.PHONY: all build clean check_docker
+.PHONY: all build clean check_docker repo_info
 
-all: build $(LEGORT_BIN)/lgdock $(LEGORT_BIN)/lgdock_socat $(LEGORT_BIN)/lgdock_multi
+all: build repo_info $(LEGORT_BIN)/lgdock $(LEGORT_BIN)/lgdock_socat $(LEGORT_BIN)/lgdock_multi
+
+# Genera repo_info.conf con le coordinate del repository git
+repo_info: repo_info.conf
+
+repo_info.conf:
+	@echo "Generazione repo_info.conf..."
+	@REMOTE_URL=$$(git remote get-url origin 2>/dev/null || echo ""); \
+	if [ -n "$$REMOTE_URL" ]; then \
+		REPO_HOST=$$(echo "$$REMOTE_URL" | sed -E 's#https?://([^/]+)/.*#\1#; s#git@([^:]+):.*#\1#'); \
+		REPO_SLUG=$$(echo "$$REMOTE_URL" | sed -E 's#(https?://[^/]+/|git@[^:]+:)##; s/\.git$$//'); \
+		REPO_BRANCH=$$(git symbolic-ref --short HEAD 2>/dev/null || echo "master"); \
+	else \
+		REPO_HOST="github.com"; \
+		REPO_SLUG="RSE-TGM/LegoPST"; \
+		REPO_BRANCH="master"; \
+	fi; \
+	echo "# Generato automaticamente da Makefile.mk - non modificare" > $@; \
+	echo "REPO_HOST=$$REPO_HOST" >> $@; \
+	echo "REPO_SLUG=$$REPO_SLUG" >> $@; \
+	echo "REPO_BRANCH=$$REPO_BRANCH" >> $@; \
+	echo "repo_info.conf generato: $$REPO_HOST / $$REPO_SLUG (branch: $$REPO_BRANCH)"
 
 check_docker:
 	@if ! command -v docker >/dev/null 2>&1; then \
@@ -79,6 +100,8 @@ clean:
 	rm -f $(LEGORT_BIN)/lgdock_socat
 	@echo "Rimuovo lgdock_multi"
 	rm -f $(LEGORT_BIN)/lgdock_multi
+	@echo "Rimuovo repo_info.conf"
+	rm -f repo_info.conf
 	@echo "Pulizia completata."
 
 # Nota: L'uso di '@' all'inizio di un comando sopprime la stampa del comando stesso.

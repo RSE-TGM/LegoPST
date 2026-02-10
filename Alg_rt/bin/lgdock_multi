@@ -14,7 +14,7 @@
 # Gestione Parametri
 # =============================================================================
 VERSION="1.1"
-IMAGE_NAME := aguagliardi/legopst_multi:2.0
+IMAGE_NAME = aguagliardi/legopst_multi:2.0
 
 show_help() {
     cat << EOF

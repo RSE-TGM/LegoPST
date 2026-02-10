@@ -43,7 +43,7 @@ echo $1
 # echo "---> parametro $1"
 # fi
 
-#LEGOROOT=/home/antonio/svn_wa/branches/LegoPST2010A_WSL_DARHE6_64
+#LEGOROOT=/home/antonio/svn_wa/branches/LegoPST
 ##################################################################
 #LEGOROOT=/usr/users/guag/ccm_wa/ALTERLEGO/Alg_global-2005C_RHE3_guag/Alg_global
 #LEGOROOT=/usr/users/lomgr/ccm_wa/ALTERLEGO/Alg_global-2007A_RHE4_lomgr/Alg_global
@@ -166,7 +166,7 @@ export MMI_ULEVEL=1
 #export PS1='$STATION@$PWD > '
 #alias base='basename $PWD'
 #export PS1='$STATION@$USER ...`base` > '
-export PS1='$STATION@$USER .../`basename $PWD` > '
+export PS1='LegoPST@.../`basename $PWD` > '
 export PATH=$PATH:$HOME/bin
 alias bin='cd ~/bin'
 alias lego='cd ~/legocad'

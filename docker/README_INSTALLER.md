@@ -13,14 +13,14 @@ Questo installer consente di eseguire LegoPST senza installare nulla localmente 
 ### Metodo 1: Download e esecuzione diretta
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/TUOREPO/install_legopst_dock.sh | bash
+curl -fsSL https://raw.githubusercontent.com/RSE-TGM/LegoPST/master/docker/install_legopst_dock.sh | bash
 ```
 
 ### Metodo 2: Download manuale
 
 ```bash
 # Scarica lo script
-curl -fsSL https://raw.githubusercontent.com/TUOREPO/install_legopst_dock.sh -o install_legopst_dock.sh
+curl -fsSL https://raw.githubusercontent.com/RSE-TGM/LegoPST/master/docker/install_legopst_dock.sh -o install_legopst_dock.sh
 
 # Rendi eseguibile
 chmod +x install_legopst_dock.sh
@@ -32,7 +32,7 @@ chmod +x install_legopst_dock.sh
 ### Metodo 3: Clone del repository
 
 ```bash
-git clone https://github.com/TUOREPO/LegoPST2010A.git
+git clone https://github.com/RSE-TGM/LegoPST.git
 cd LegoPST2010A/docker
 ./install_legopst_dock.sh
 ```
@@ -146,7 +146,7 @@ Per aggiornare all'ultima versione:
 
 ```bash
 # Riesegui l'installer
-curl -fsSL https://raw.githubusercontent.com/TUOREPO/install_legopst_dock.sh | bash
+curl -fsSL https://raw.githubusercontent.com/RSE-TGM/LegoPST/master/docker/install_legopst_dock.sh | bash
 
 # Oppure aggiorna l'immagine Docker
 docker pull aguagliardi/legopst_multi:2.0
@@ -155,7 +155,7 @@ docker pull aguagliardi/legopst_multi:2.0
 ## Supporto
 
 Per problemi o domande:
-- Issue tracker: https://github.com/TUOREPO/issues
+- Issue tracker: https://github.com/RSE-TGM/LegoPST/issues
 - Email: your.email@example.com
 
 ## Note Tecniche

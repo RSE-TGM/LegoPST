@@ -9,7 +9,44 @@
 set -e
 
 VERSION="1.0"
-LGDOCK_URL="https://gist.githubusercontent.com/aguag/d7c030f939f69b07784a309889b8510a/raw/lgdock.sh"
+
+# Rileva host e owner/repo dal file repo_info.conf (generato da Makefile.mk)
+# oppure dal git remote come fallback
+DEFAULT_HOST="github.com"
+DEFAULT_REPO="RSE-TGM/LegoPST"
+DEFAULT_BRANCH="master"
+SCRIPT_DIR_INST="$(cd "$(dirname "$0")" 2>/dev/null && pwd)"
+REPO_INFO_FILE="$SCRIPT_DIR_INST/repo_info.conf"
+REPO_HOST=""
+REPO_SLUG=""
+REPO_BRANCH=""
+
+if [ -f "$REPO_INFO_FILE" ]; then
+    # Leggi le coordinate dal file generato dal Makefile
+    . "$REPO_INFO_FILE"
+    echo "Repository rilevato da repo_info.conf: $REPO_HOST / $REPO_SLUG (branch: $REPO_BRANCH)"
+else
+    # Fallback: rileva dal git remote
+    if command -v git >/dev/null 2>&1 && git -C "$SCRIPT_DIR_INST" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+        REMOTE_URL=$(git -C "$SCRIPT_DIR_INST" remote get-url origin 2>/dev/null || true)
+        if [ -n "$REMOTE_URL" ]; then
+            REPO_HOST=$(echo "$REMOTE_URL" | sed -E 's#https?://([^/]+)/.*#\1#; s#git@([^:]+):.*#\1#')
+            REPO_SLUG=$(echo "$REMOTE_URL" | sed -E 's#(https?://[^/]+/|git@[^:]+:)##; s/\.git$//')
+            REPO_BRANCH=$(git -C "$SCRIPT_DIR_INST" symbolic-ref --short HEAD 2>/dev/null || true)
+        fi
+    fi
+fi
+
+REPO_HOST="${REPO_HOST:-$DEFAULT_HOST}"
+REPO_SLUG="${REPO_SLUG:-$DEFAULT_REPO}"
+REPO_BRANCH="${REPO_BRANCH:-$DEFAULT_BRANCH}"
+
+# Costruisci URL raw in base al tipo di hosting
+if [ "$REPO_HOST" = "github.com" ]; then
+    LGDOCK_URL="https://raw.githubusercontent.com/${REPO_SLUG}/${REPO_BRANCH}/docker/lgdock.sh"
+else
+    LGDOCK_URL="https://${REPO_HOST}/${REPO_SLUG}/-/raw/${REPO_BRANCH}/docker/lgdock.sh"
+fi
 INSTALL_DIR="$HOME/.local/bin"
 LGDOCK_SCRIPT="$INSTALL_DIR/lgdock"
 LGRUN_SCRIPT="$INSTALL_DIR/lgrun"

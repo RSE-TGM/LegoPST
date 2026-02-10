@@ -37,7 +37,7 @@ ENV LANG=en_US.UTF-8 \
 
 # Crea le directory e copia i file
 RUN mkdir -p /home/legoroot_fedora41
-COPY /LegoPST2010A_WSL_DARHE6_64 /home/legoroot_fedora41
+COPY /LegoPST /home/legoroot_fedora41
 WORKDIR /home/legoroot_fedora41/gdbm-install
 RUN make -f Makefile.mk
 

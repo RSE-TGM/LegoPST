@@ -1,22 +1,17 @@
 #!/bin/bash
 #
-# Versione multipiattorma
-# PREREQUISITO: installare prima buildx così:
-# docker buildx create --name mybuilder --use
+# Build e opzionalmente push dell'immagine Docker LegoPST
 #
 IMAGE_NAME="aguagliardi/legopst_multi:2.0"
 PROCEED_AUTOMATICALLY=false
-DOCKERFILE_PATH="LegoPST2010A_WSL_DARHE6_64/docker/Dockerfile_LegoPST"
+DO_PUSH=false
+DOCKERFILE_PATH="LegoPST/docker/Dockerfile_LegoPST"
 CONTEXT_PATH="."
-
-echo "Building immagine Docker: $IMAGE_NAME"
-echo "NOTA: Ora l'immagine supporta creazione utenti dinamici"
 
 # Controlla se Docker è installato
 if ! command -v docker >/dev/null 2>&1; then
     echo "---------------------------------------------------------------------"
     echo "ATTENZIONE: Docker non sembra essere installato o non è nel PATH."
-    echo "            L'immagine Docker non verrà costruita."
     echo "            Per favore, installa Docker per procedere con la build."
     echo "---------------------------------------------------------------------"
     exit 0
@@ -25,37 +20,54 @@ fi
 # Analizza i parametri della riga di comando
 while [[ "$#" -gt 0 ]]; do
     case $1 in
-        -y|--yes) PROCEED_AUTOMATICALLY=true; shift ;;
-        *) echo "Parametro sconosciuto passato a BuildImage: $1"; exit 1 ;;
+        -y|--yes)  PROCEED_AUTOMATICALLY=true; shift ;;
+        --push)    DO_PUSH=true; shift ;;
+        *) echo "Parametro sconosciuto: $1"
+           echo "Uso: $(basename "$0") [-y|--yes] [--push]"
+           echo "  -y, --yes   Procedi senza conferma"
+           echo "  --push      Dopo il build, push al registry Docker Hub"
+           exit 1 ;;
     esac
 done
 
 build_logic() {
     echo " "
     echo "---------------------------------------------------------------------"
-    echo " Docker installato"
     echo " Building dell'immagine Docker $IMAGE_NAME"
-    echo " Modalità: Utenti dinamici (non serve più specificare UID/GID)"
+    echo " Modalità: solo build locale"
+    [[ "$DO_PUSH" == true ]] && echo " Push al registry: SI"
     echo "---------------------------------------------------------------------"
 
-    # Build dell'immagine senza build arguments (non servono più)
+    # Build dell'immagine in locale
     (cd ../.. && \
-#     docker buildx build --platform linux/amd64,linux/arm64 \
-     docker buildx build --platform linux/amd64 \
-        -t "$IMAGE_NAME" --push \
+     docker build \
+        -t "$IMAGE_NAME" \
         --file "$DOCKERFILE_PATH" \
         "$CONTEXT_PATH" \
     )
 
     local build_status=$?
-    if [ $build_status -eq 0 ]; then
-        echo "--------------> Fine building dell'immagine $IMAGE_NAME <---------------"
-        echo "L'immagine supporta ora la creazione dinamica di utenti"
-        echo "Gli utenti verranno creati automaticamente al lancio del container"
-    else
+    if [ $build_status -ne 0 ]; then
         echo "Errore nel building dell'immagine (exit code: $build_status)"
+        return $build_status
     fi
-    return $build_status
+
+    echo "--------------> Fine building dell'immagine $IMAGE_NAME <---------------"
+
+    # Push solo se richiesto esplicitamente
+    if [[ "$DO_PUSH" == true ]]; then
+        echo "Pushing $IMAGE_NAME al registry..."
+        docker push "$IMAGE_NAME"
+        local push_status=$?
+        if [ $push_status -ne 0 ]; then
+            echo "Errore nel push dell'immagine (exit code: $push_status)"
+            echo "L'immagine è comunque disponibile in locale"
+        else
+            echo "--------------> Push completato: $IMAGE_NAME <---------------"
+        fi
+        return $push_status
+    fi
+    return 0
 }
 
 if [ "$PROCEED_AUTOMATICALLY" = true ]; then
@@ -66,7 +78,7 @@ else
     while true; do
         echo " "
         echo "Verrà costruita l'immagine Docker: $IMAGE_NAME"
-        echo "Modalità: Creazione utenti dinamici"
+        [[ "$DO_PUSH" == true ]] && echo "Dopo il build verrà eseguito il push al registry"
         read -p "Procedo? (y/n) " yn
 
         case $yn in
@@ -81,5 +93,3 @@ else
         esac
     done
 fi
-
-

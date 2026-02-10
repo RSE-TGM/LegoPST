@@ -49,44 +49,125 @@ Alternatively, if you want a stable installation on your Fedora 41 machine, you 
 
 
 ### Option 1: Quick Start - Docker Container Execution
+
+**The easiest way to run LegoPST** - No installation required! Just Docker and a single command.
+
 #### Prerequisites
+
+Only **Docker** is required. Install it on your system:
+
 ```bash
-#                     Docker INSTALL
-# Fedora 41 dependencies for docker running:
-# Docker install (https://docs.docker.com/engine/install/fedora/)
-#
-# i.e. For docker install within WSL:
+# Ubuntu/Debian/WSL
+sudo apt-get update
+sudo apt-get install docker.io
+
+# Fedora/RHEL
+sudo dnf install docker
+
+# Start Docker service
+sudo systemctl enable --now docker
+
+# Add your user to docker group (to avoid sudo)
+sudo usermod -aG docker $USER
+newgrp docker
+
+# Verify installation
+docker --version
+docker run hello-world
+```
+
+<details>
+<summary>Detailed Docker installation for Fedora 41 / WSL (click to expand)</summary>
+
+```bash
+# Fedora 41 / WSL Docker installation
 sudo dnf update
 sudo dnf -y install dnf-plugins-core
-sudo dnf-3 config-manager --add-repo https://download.docker.com/linux/fedora/docker-ce.repo
+sudo dnf config-manager --add-repo https://download.docker.com/linux/fedora/docker-ce.repo
 sudo dnf install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-# Activate systemd into Fedora WSL:
-# Edit /etc/wsl.conf and add the following two text lines:
-#
-# file /etc/wsl.conf
-    [boot]
-    systemd=true
-#
+
+# For WSL: Activate systemd
+# Edit /etc/wsl.conf and add:
+#   [boot]
+#   systemd=true
+# Then restart WSL: wsl --shutdown
+
 sudo systemctl enable --now docker
-#
-# Verify docker installation:
+
+# Verify
 sudo docker run hello-world
 ```
+</details>
 
-Once installed Docker, legoPST can be launched by running the following command:
+#### Installation
+
+Install LegoPST with a single command - this creates the `lgrun` command:
+
 ```bash
- bash -c "$(curl -fsSL https://gist.githubusercontent.com/aguag/d7c030f939f69b07784a309889b8510a/raw/lgdock.sh)"
-
-# The lgdock command automatically starts:
-# - Fedora 41 container with all dependencies
-# - Dynamic user configuration with same host UID/GID
-# - Host home directory mounting
-# - X11 support for graphical applications
-# - Fully configured LegoPST environment
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/RSE-TGM/LegoPST/master/docker/install_legopst_dock.sh)"
 ```
-If you have problem with the X11 display, you can try to tunnelize X11 with the socat utility that shall be installed into your host machine. The command will be:
+
+This installer:
+- ✅ Downloads the LegoPST Docker launcher
+- ✅ Creates the `lgrun` command in `~/.local/bin/`
+- ✅ Configures your PATH automatically
+- ✅ No need to install LegoPST locally!
+
+After installation, **restart your terminal** or run:
 ```bash
- bash -c "$(curl -fsSL https://gist.githubusercontent.com/aguag/83c887ef78610842508b9f972130d3e1/raw/lgdock_socat.sh)"
+source ~/.bashrc
+```
+
+#### Usage
+
+Launch LegoPST with the `lgrun` command:
+
+```bash
+# Standard launch (local X11 display)
+lgrun
+
+# Launch with demo model included
+lgrun --demo
+
+# If you are having trouble with the X11 display, try launching via socat (for SSH/remote connections).
+lgrun --socat
+
+# Combine options
+lgrun --demo --socat
+
+# Check for updates and pull new Docker image if available
+lgrun --pull
+
+# Show all options
+lgrun --help
+```
+
+The container automatically:
+- 🚀 Starts Fedora 41 with all LegoPST dependencies
+- 👤 Creates a user matching your host UID/GID
+- 📂 Mounts your home directory as `/host_home`
+- 🖥️ Configures X11 for graphical applications
+- ⚙️ Sets up a fully configured LegoPST environment
+
+#### Data Persistence
+
+All your work is saved on the host machine:
+- **Models**: `~/legopst_userstd/legocad/`
+- **Simulators**: `~/legopst_userstd/sked/`
+- **Config**: `~/defaults/`
+
+Data persists even after closing the container.
+
+#### Alternative: One-time Execution (no installation)
+
+If you prefer not to install `lgrun`, you can execute directly:
+
+```bash
+# Standard X11
+bash -c "$(curl -fsSL https://gist.githubusercontent.com/aguag/d7c030f939f69b07784a309889b8510a/raw/lgdock.sh)"
+
+# With socat for X11 tunneling
+bash -c "$(curl -fsSL https://gist.githubusercontent.com/aguag/83c887ef78610842508b9f972130d3e1/raw/lgdock_socat.sh)"
 ```
 
 
@@ -138,10 +219,10 @@ sudo dnf install gcc gfortran make
 # From the user HOME folder
 cd $HOME 
 # Clone the repository, git is the prerequisite
-git clone remotepath/to/LegoPST2010A_WSL_DARHE6_64.git
-cd LegoPST2010A_WSL_DARHE6_64  
+git clone remotepath/to/LegoPST.git
+cd LegoPST
 source .profile_legoroot # Environment setup
-# The environment variable LEGOROOT will be defined as LEGOROOT=$HOME/LegoPST2010A_WSL_DARHE6_64
+# The environment variable LEGOROOT will be defined as LEGOROOT=$HOME/LegoPST
 
 # For a stable LEGOROOT installation, it is recommend to add LEGOROOT set up to .bashrc with this command:
 echo "source $LEGOROOT/.profile_legoroot " >> $HOME/.bashrc
@@ -156,7 +237,7 @@ echo "source $LEGOROOT/.profile_legoroot " >> $HOME/.bashrc
 ```bash
 # Edit .profile_legoroot with correct path
 If "/home/user" was the $HOME path:
-export LEGOROOT=/home/user/LegoPST2010A_WSL_DARHE6_64
+export LEGOROOT=/home/user/LegoPST
 
 # Add to .bashrc
 echo "source $LEGOROOT/.profile_legoroot" >> ~/.bashrc
@@ -177,8 +258,10 @@ The system automatically detects:
 - **Database paths**: SQLite and threading
 
 ```bash
-# Note: Anyway, in a machine with Docker installed you can Run LegoPST in the preconfigured Docker container with this command:
-lgdock
+# Note: If you have Docker installed, you can run LegoPST in a preconfigured container:
+lgrun                    # After installing via install_legopst_dock.sh
+# or
+lgrun --demo            # Run with demo model
 
 ```
 
@@ -187,8 +270,8 @@ LegoPST is provided as a pre-compiled package, ready for immediate use upon down
 ```bash
 
 # Clone the repository
-git clone remotepath/to/LegoPST2010A_WSL_DARHE6_64.git
-cd LegoPST2010A_WSL_DARHE6_64
+git clone remotepath/to/LegoPST.git
+cd LegoPST
 
 # Setup environment
 source .profile_legoroot
@@ -198,7 +281,13 @@ make -f Makefile.mk clean
 # Full build
 make -f Makefile.mk
 
-# then go to 
+# Build Docker image (local only)
+make -f Makefile.mk docker
+
+# Build Docker image and push to registry
+make -f Makefile.mk docker-push
+
+# then go to
 # Option 2 - Running in a fully configured Fedora 41
 ```
 

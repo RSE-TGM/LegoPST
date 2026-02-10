@@ -1,5 +1,0 @@
-#! /bin/bash
-source /home/legoroot_fedora41/.profile_legoroot 
-cd /root 
-alias
-## exec /bin/bash"

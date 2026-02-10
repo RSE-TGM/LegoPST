@@ -19,20 +19,22 @@ IMAGE_NAME="aguagliardi/legopst_multi:2.0"
 
 
 show_help() {
+    local CMD_NAME=$(basename "$0")
     cat << EOF
-Uso: $0 [OPZIONI]
+Uso: $CMD_NAME [OPZIONI]
 
 Opzioni:
   -h, --help          Mostra questo help
   -v, --version       Mostra versione
   -d, --demo          Installa una demo di legopst e lancia il container con essa
   -s, --socat         Usa socat per X11 forwarding (utile per SSH con MobaXterm)
+  -p, --pull          Esegue docker pull dell'immagine prima di avviare il container
 
 Esempi:
-  $0                  # Lancia container LegoPST (modalità standard)
-  $0 --demo           # Installa modello demo (legocad e sked) e lancia container
-  $0 --socat          # Lancia container con socat per X11 (per SSH/MobaXterm)
-  $0 -d -s            # Demo + socat
+  $CMD_NAME                  # Lancia container LegoPST (modalità standard)
+  $CMD_NAME --demo           # Installa modello demo (legocad e sked) e lancia container
+  $CMD_NAME --socat          # Lancia container con socat per X11 (per SSH/MobaXterm)
+  $CMD_NAME -d -s            # Demo + socat
 
 Modalità X11:
   - Standard (default): X11 forwarding diretto, adatto per uso locale
@@ -86,6 +88,7 @@ fi
 # =============================================================================
 RUN_DEMO=false
 USE_SOCAT=false
+DO_PULL=false
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -103,6 +106,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         -s|--socat)
             USE_SOCAT=true
+            shift
+            ;;
+        -p|--pull)
+            DO_PULL=true
             shift
             ;;
         *)
@@ -133,6 +140,16 @@ echo "Utente: $HOST_USERNAME (UID: $HOST_USER_ID, GID: $HOST_GROUP_ID)"
 echo "Home directory: $HOST_USER_HOME"
 echo "DISPLAY: $DISPLAY"
 echo ""
+
+# =============================================================================
+# Docker Pull (se richiesto)
+# =============================================================================
+if [[ "$DO_PULL" == true ]]; then
+    echo "--- Aggiornamento immagine Docker ---"
+    echo "Esecuzione: $DOCKER_CMD pull $IMAGE_NAME"
+    $DOCKER_CMD pull $IMAGE_NAME
+    echo ""
+fi
 
 # =============================================================================
 # Creazione directory defaults se non esiste
@@ -345,6 +362,9 @@ PROFILE_LEGOROOT_PATH="/home/legoroot_fedora41/.profile_legoroot"
         echo "export XAUTHORITY=\"\$HOME/.Xauthority\""
     fi
     echo "echo \"DISPLAY impostato a: \$DISPLAY\""
+    echo ""
+    echo "# Prompt personalizzato LegoPST"
+    echo "export PS1='LegoPST@\w \$ '"
     echo ""
     echo "# Sorgente del profilo custom LegoPST"
     echo "if [ -f \"$PROFILE_LEGOROOT_PATH\" ]; then"
