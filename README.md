@@ -160,18 +160,6 @@ All your work is saved on the host machine:
 
 Data persists even after closing the container.
 
-#### Alternative: One-time Execution (no installation)
-
-If you prefer not to install `lgrun`, you can execute directly:
-
-```bash
-# Standard X11
-bash -c "$(curl -fsSL https://raw.githubusercontent.com/RSE-TGM/LegoPST/master/docker/lgdock.sh)"
-
-# With socat for X11 tunneling
-bash -c "$(curl -fsSL https://raw.githubusercontent.com/RSE-TGM/LegoPST/master/docker/lgdock_socat.sh)"
-```
-
 
 ### Option 2: Running into a fully configured linux Fedora 41 distribution
 #### Prerequisites
