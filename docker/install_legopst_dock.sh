@@ -130,6 +130,29 @@ else
     exit 1
 fi
 
+# Iniezione versione dal file VERSION
+LOCAL_VERSION_FILE="$SCRIPT_DIR_INST/../VERSION"
+PROJECT_VER=""
+if [ -f "$LOCAL_VERSION_FILE" ]; then
+    # File VERSION locale (esecuzione da repo)
+    PROJECT_VER=$(tr -d '[:space:]' < "$LOCAL_VERSION_FILE")
+else
+    # Scarica VERSION dal repo remoto
+    if [ "$REPO_HOST" = "github.com" ]; then
+        VER_URL="https://raw.githubusercontent.com/${REPO_SLUG}/${REPO_BRANCH}/VERSION"
+    else
+        VER_URL="https://${REPO_HOST}/${REPO_SLUG}/-/raw/${REPO_BRANCH}/VERSION"
+    fi
+    PROJECT_VER=$(curl -fsSL "$VER_URL" 2>/dev/null | tr -d '[:space:]' || true)
+fi
+
+if [ -n "$PROJECT_VER" ]; then
+    sed -i "s/^VERSION=\".*\"/VERSION=\"${PROJECT_VER}\"/" "$LGDOCK_SCRIPT"
+    echo "✓ Versione impostata a: $PROJECT_VER"
+else
+    echo "⚠ File VERSION non trovato, versione placeholder mantenuta"
+fi
+
 # =============================================================================
 # Creazione comando lgrun
 # =============================================================================

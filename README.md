@@ -1,7 +1,7 @@
 # LegoPST - Lego Power System Technology
 
 
-![Version](https://img.shields.io/badge/version-2025-blue)
+![Version](https://img.shields.io/badge/version-2.0-blue)
 ![Platform](https://img.shields.io/badge/platform-Fedora%2041%2FWSL/Docker-orange)
 ![Language](https://img.shields.io/badge/language-C%2FC%2B%2B%2FFortran-green)
 ![GUI](https://img.shields.io/badge/GUI-X11%2FMotif%2FTcl,Tk,Tix-red)
@@ -38,9 +38,11 @@ LegoPST/
 ├── Alg_legopc/       # Models Building Tools
 ├── lego_big/         # Component libraries
 ├── kprocedure/       # Administrative scripts
+├── docker/           # Docker build and install scripts
 ├── util97/           # Legacy utilities
 ├── util2007/         # Other legacy utilities
-└── util2025/         # Modern utilities
+├── util2025/         # Modern utilities
+└── VERSION           # Project version (used by build and installer)
 ```
 
 ## 🚀 Install and Run
@@ -164,10 +166,10 @@ If you prefer not to install `lgrun`, you can execute directly:
 
 ```bash
 # Standard X11
-bash -c "$(curl -fsSL https://gist.githubusercontent.com/aguag/d7c030f939f69b07784a309889b8510a/raw/lgdock.sh)"
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/RSE-TGM/LegoPST/master/docker/lgdock.sh)"
 
 # With socat for X11 tunneling
-bash -c "$(curl -fsSL https://gist.githubusercontent.com/aguag/83c887ef78610842508b9f972130d3e1/raw/lgdock_socat.sh)"
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/RSE-TGM/LegoPST/master/docker/lgdock_socat.sh)"
 ```
 
 
@@ -219,7 +221,7 @@ sudo dnf install gcc gfortran make
 # From the user HOME folder
 cd $HOME 
 # Clone the repository, git is the prerequisite
-git clone remotepath/to/LegoPST.git
+git clone https://github.com/RSE-TGM/LegoPST.git
 cd LegoPST
 source .profile_legoroot # Environment setup
 # The environment variable LEGOROOT will be defined as LEGOROOT=$HOME/LegoPST
@@ -257,20 +259,12 @@ The system automatically detects:
 - **Compiler flags**: gcc/gfortran configuration
 - **Database paths**: SQLite and threading
 
-```bash
-# Note: If you have Docker installed, you can run LegoPST in a preconfigured container:
-lgrun                    # After installing via install_legopst_dock.sh
-# or
-lgrun --demo            # Run with demo model
-
-```
-
 ### Compilation by source
 LegoPST is provided as a pre-compiled package, ready for immediate use upon download. For users who wish to customize the software or build from the latest source code, the project can also be fully recompiled. To do so, clone the repository and follow the following build instructions.
 ```bash
 
 # Clone the repository
-git clone remotepath/to/LegoPST.git
+git clone https://github.com/RSE-TGM/LegoPST.git
 cd LegoPST
 
 # Setup environment
@@ -359,8 +353,8 @@ config
 ### Build System
 
 - **Recursive Makefiles**: Modular build
-- **Static Libraries**: Optimized linking  
-- **Version Management**: Git integration
+- **Static Libraries**: Optimized linking
+- **Version Management**: The project version is defined in the `VERSION` file at the repository root. The build system (`Makefile.mk`) reads this file and injects the version into all scripts (`lgdock`, `lgrun`). The file `version.h` is auto-generated at build time with git commit hash and build number for C/Fortran code.
 - **Cross-compilation**: Multi-arch support
 
 ### Other features

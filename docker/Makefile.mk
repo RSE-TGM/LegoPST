@@ -7,6 +7,10 @@ DOCKERFILE := Dockerfile_LegoPST
 BUILD_SCRIPT := ./BuildImage
 BUILD_SCRIPT_MULTI := ./BuildImage_multiplat
 
+# Versione letta dal file VERSION (versionato in git)
+VERSION_FILE := ../VERSION
+PROJECT_VERSION := $(shell cat $(VERSION_FILE) 2>/dev/null | tr -d '[:space:]')
+
 # Dipendenze per la regola di build dell'immagine
 #BUILD_DEPENDENCIES := $(DOCKERFILE) lgdock lgdock startDock
 BUILD_DEPENDENCIES := $(DOCKERFILE) lgdock lgdock_socat lgdock_multi
@@ -75,16 +79,16 @@ build: check_docker $(BUILD_DEPENDENCIES)
 # 	@echo "Esecuzione di $(BUILD_SCRIPT) completata."
 # 	@touch $(LAST_BUILD_STAMP) # Aggiorna il timestamp se la build ha successo
 
-$(LEGORT_BIN)/lgdock: lgdock.sh
-	cp $? $@
+$(LEGORT_BIN)/lgdock: lgdock.sh $(VERSION_FILE)
+	sed 's/^VERSION=".*"/VERSION="$(PROJECT_VERSION)"/' $< > $@
 	chmod 755 $@
 
-$(LEGORT_BIN)/lgdock_multi: lgdock_multi.sh
-	cp $? $@
+$(LEGORT_BIN)/lgdock_multi: lgdock_multi.sh $(VERSION_FILE)
+	sed 's/^VERSION=".*"/VERSION="$(PROJECT_VERSION)"/' $< > $@
 	chmod 755 $@
 
-$(LEGORT_BIN)/lgdock_socat: lgdock_socat.sh
-	cp $? $@
+$(LEGORT_BIN)/lgdock_socat: lgdock_socat.sh $(VERSION_FILE)
+	sed 's/^VERSION=".*"/VERSION="$(PROJECT_VERSION)"/' $< > $@
 	chmod 755 $@
 
 # Regola di pulizia (opzionale, ma buona pratica)
