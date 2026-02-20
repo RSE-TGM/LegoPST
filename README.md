@@ -61,10 +61,11 @@ Only **Docker** is required. Install it on your system:
 ```bash
 # Ubuntu/Debian/WSL
 sudo apt-get update
-sudo apt-get install docker.io
+sudo apt-get install docker-ce docker-ce-cli containerd.io
 
 # Fedora/RHEL
-sudo dnf install docker
+sudo dnf update
+sudo dnf install docker-ce docker-ce-cli containerd.io
 
 # Start Docker service
 sudo systemctl enable --now docker
@@ -101,7 +102,7 @@ sudo docker run hello-world
 ```
 </details>
 
-#### Installation
+#### LegoPST container installation
 
 Install LegoPST with a single command - this creates the `lgrun` command:
 
@@ -203,7 +204,7 @@ sudo dnf install gcc gfortran make
 
 ```
 
-### Download package and set up environment
+#### Download LegoPST package and set up user environment
 
 ```bash
 # From the user HOME folder
@@ -219,10 +220,7 @@ echo "source $LEGOROOT/.profile_legoroot " >> $HOME/.bashrc
 
 ```
 
-
-
-
-#### Environment Configuration and Installation
+#### Environment Configuration and Critical libgdbm.so post-installation 
 
 ```bash
 # Edit .profile_legoroot with correct path
@@ -247,8 +245,9 @@ The system automatically detects:
 - **Compiler flags**: gcc/gfortran configuration
 - **Database paths**: SQLite and threading
 
-### Compilation by source
-LegoPST is provided as a pre-compiled package, ready for immediate use upon download. For users who wish to customize the software or build from the latest source code, the project can also be fully recompiled. To do so, clone the repository and follow the following build instructions.
+## Compilation by source
+LegoPST is provided as a pre-compiled package, ready for immediate use upon download. For users who wish to customize the software or build from the latest source code, the project can also be fully recompiled. 
+To do so, set up into a [fully configured linux Fedora 41 distribution](#option-2-running-into-a-fully-configured-linux-fedora-41-distribution), clone the repository and follow the following build instructions.
 ```bash
 
 # Clone the repository
