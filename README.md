@@ -247,7 +247,7 @@ The system automatically detects:
 
 ## Compilation by source
 LegoPST is provided as a pre-compiled package, ready for immediate use upon download. For users who wish to customize the software or build from the latest source code, the project can also be fully recompiled. 
-To do so, set up into a [fully configured linux Fedora 41 distribution](#option-2-running-into-a-fully-configured-linux-fedora-41-distribution), clone the repository and follow the following build instructions.
+To do so, set up into a [fully configured linux Fedora 41 distribution](#option-2-running-into-a-fully-configured-linux-fedora-41-distribution), clone the repository and follow these build instructions.
 ```bash
 
 # Clone the repository
