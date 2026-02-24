@@ -127,9 +127,9 @@ C Guag - correzione per i moduli di tipo REGOL.: hanno la descrizione che inizia
       READ(1,'(A)') LINE
       WRITE(3,'(A)') LINE
 	       
-      WRITE(3,'(A7,I2)') 'NSTAT =',NSC
-      WRITE(3,'(A7,I2)') 'NUSCI =',NUC
-      WRITE(3,'(A7,I2)') 'NINGR =',NIC
+      WRITE(3,'(A7,I3)') 'NSTAT =',NSC
+      WRITE(3,'(A7,I3)') 'NUSCI =',NUC
+      WRITE(3,'(A7,I3)') 'NINGR =',NIC
       WRITE(3,'(A1)') ' '
       WRITE(3,'(A7,I2)') 'NCONF =',NCONF
       WRITE(3,'(A1)') ' '
@@ -150,7 +150,7 @@ C Guag - correzione per i moduli di tipo REGOL.: hanno la descrizione che inizia
       WRITE(16,*) NOMEEXT
       call FLUSH
       CLOSE(UNIT=16)
-200   FORMAT('NUMERO STATI CONFIG. ',I2,'DIVERSO DA CONFIG. 1')
-300   FORMAT('NUMERO USCIT CONFIG. ',I2,'DIVERSO DA CONFIG. 1')
-400   FORMAT('NUMERO INGRE CONFIG. ',I2,'DIVERSO DA CONFIG. 1')
+200   FORMAT('NUMERO STATI CONFIG. ',I3,'DIVERSO DA CONFIG. 1')
+300   FORMAT('NUMERO USCIT CONFIG. ',I3,'DIVERSO DA CONFIG. 1')
+400   FORMAT('NUMERO INGRE CONFIG. ',I3,'DIVERSO DA CONFIG. 1')
       END
