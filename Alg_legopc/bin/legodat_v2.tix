@@ -215,17 +215,17 @@ package require Tix
       set campo(4) "Weight"
       set campo(5) "K/U"
 	entry $tit.nome -textvariable campo(0) -width 8 -relief raised \
-		-font titleFont -state disabled -background gray80
+		-font titleFont -state readonly -background gray80
 	entry $tit.tipo -textvariable campo(1) -width 2 -relief raised \
-		-font titleFont -state disabled -background gray80
+		-font titleFont -state readonly -background gray80
 	entry $tit.valu -textvariable campo(2) -width 10 -relief raised \
-		-font titleFont -state disabled -background gray80
+		-font titleFont -state readonly -background gray80
       entry $tit.weight -textvariable campo(4) -width 6 -relief raised \
-		-font titleFont -state disabled -background gray80
+		-font titleFont -state readonly -background gray80
       entry $tit.known -textvariable campo(5) -width 4 -relief raised \
-		-font titleFont -state disabled -background gray80
+		-font titleFont -state readonly -background gray80
 	entry $tit.desc -textvariable campo(3) -width 55 -relief raised \
-		-font titleFont -state disabled -background gray80
+		-font titleFont -state readonly -background gray80
 	pack $tit.nome $tit.tipo $tit.valu $tit.weight $tit.known $tit.desc -side left -anchor w
 
 	for {set i 0} {$i < $numVars} {incr i} {
@@ -235,9 +235,9 @@ package require Tix
             set nome $nomeVars($i)
             set tipovar $tipVarMod($nome)
 		entry $rig.nome -textvariable nomeVars($i) -width 8 -relief groove \
-			-font entryFont -state disabled -background gray80
+			-font entryFont -state readonly -background gray80
 		entry $rig.tipo -textvariable tipoVars($i) -width 2 -relief groove \
-			-font entryFont -state disabled -background gray80
+			-font entryFont -state readonly -background gray80
 #variabili di uscta e ingresso da editare...
 		entry $rig.valu -textvariable valuVars($i) -width 10 -relief groove \
 			-font entryFont -background white
@@ -267,7 +267,7 @@ package require Tix
 				-font entryFont -background white
 		} else {
 			entry $rig.desc -textvariable descVars($i) -width 55 -relief groove \
-				-font entryFont -state disabled -background gray80
+				-font entryFont -state readonly -background gray80
 		}
 		pack $rig.nome $rig.tipo $rig.valu $rig.weight $rig.known $rig.desc -side left
 	}
@@ -395,7 +395,7 @@ package require Tix
 		if {$tipo == "dat1" || $tipo == "dat2" || $tipo == "dat3"} {
 #puts "winDataZoneTix: tipo dat1 dat2 dat3 - i=$i \n vecData_sym1=vecData=$vecData($i,sym1)   vecData_val1=$vecData($i,val1)"
 			entry $rig.sym1 -textvariable vecData($i,sym1) -width 8 -relief groove \
-				-font entryFont -state disabled -background gray80
+				-font entryFont -state readonly -background gray80
 			entry $rig.val1 -textvariable vecData($i,val1) -width 10 -relief groove \
 				-font entryFont -background white
 			pack $rig.sym1 $rig.val1 -side left
@@ -404,7 +404,7 @@ package require Tix
 #puts "winDataZoneTix: tipo dat2 dat3 - i=$i \n vecData_sym2=$vecData($i,sym2)    vecData_val2=$vecData($i,val2)"
 			label $rig.bef2 -text "  " -font entryFont -anchor w
 			entry $rig.sym2 -textvariable vecData($i,sym2) -width 8 -relief groove \
-				-font entryFont -state disabled -background gray80
+				-font entryFont -state readonly -background gray80
 			entry $rig.val2 -textvariable vecData($i,val2) -width 10 -relief groove \
 				-font entryFont -background white
 			pack $rig.bef2 $rig.sym2 $rig.val2 -side left
@@ -413,7 +413,7 @@ package require Tix
 #puts "winDataZoneTix: tipo dat3 - i=$i \n vecData_sym3=$vecData($i,sym3)   vecData_val3=$vecData($i,val3)"
 			label $rig.bef3 -text "  " -font entryFont -anchor w
 			entry $rig.sym3 -textvariable vecData($i,sym3) -width 8 -relief groove \
-				-font entryFont -state disabled -background gray80
+				-font entryFont -state readonly -background gray80
 			entry $rig.val3 -textvariable vecData($i,val3) -width 10 -relief groove \
 				-font entryFont -background white
 			pack  $rig.bef3 $rig.sym3 $rig.val3 -side left
