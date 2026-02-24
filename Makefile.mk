@@ -2,7 +2,7 @@
 # ... (i tuoi commenti iniziali rimangono invariati) ...
 
 # Aggiunto .PHONY per i target che non rappresentano file reali.
-.PHONY: all clean force_version_h docker docker-push
+.PHONY: all clean force_version_h docker docker-push help
 
 # Il target 'all' è il primo, quindi è il default.
 all: version.h # Assicuriamoci che version.h sia controllato/generato prima di compilare
@@ -68,6 +68,37 @@ docker:
 
 docker-push:
 	cd ./docker && ./BuildImage_multiplat -y --push
+
+# --- Help ---
+help:
+	@echo ""
+	@echo "LegoPST - Targets disponibili:"
+	@echo ""
+	@echo "  all              Compila tutti i sottomoduli in sequenza (default)"
+	@echo "                     kprocedure -> kutil -> Alg_mmi/AlgLib -> Alg_mmi"
+	@echo "                     -> Alg_rt -> legocad/lego_big -> legocad"
+	@echo "                     -> util97 -> Alg_legopc -> util2007 -> docker"
+	@echo ""
+	@echo "  clean            Rimuove tutti i file oggetto (*.o), le librerie (*.a)"
+	@echo "                   e il file version.h generato"
+	@echo ""
+	@echo "  version.h        Genera (o aggiorna) version.h con:"
+	@echo "                     GIT_VERSION_STRING  - stringa di versione da 'git describe'"
+	@echo "                     BUILD_NUMBER        - numero di commit da HEAD"
+	@echo "                     BUILD_DATE_STRING   - data di build (YYYYMMDD)"
+	@echo ""
+	@echo "  force_version_h  Forza il ricalcolo di version.h alla prossima build"
+	@echo ""
+	@echo "  docker           Costruisce l'immagine Docker multipiattaforma"
+	@echo "                   (esegue docker/BuildImage_multiplat -y)"
+	@echo ""
+	@echo "  docker-push      Costruisce e pubblica l'immagine Docker"
+	@echo "                   (esegue docker/BuildImage_multiplat -y --push)"
+	@echo ""
+	@echo "  help             Mostra questo messaggio"
+	@echo ""
+	@echo "Utilizzo: make -f Makefile.mk [target]"
+	@echo ""
 
 $(info Makefile.mk: Startup - F_FLAGS is currently set to = $(F_FLAGS))
 $(info -------->  Makefile.mk processing complete!)

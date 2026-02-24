@@ -1558,7 +1558,7 @@ void subst3(moddesc *mod, fpdesc *fpd, int vpos, int newval)
 void addDISN(int modid, char *mvname, int numocc)
 
 {
-  char handin_name[MVNAMENCH + 1];
+  char handin_name[MVNAMENCH + 2];  /* +2: snprintf "U_%1d_M%03d" = 8 chars + null, 1 byte spare per GCC */
   int mv, mvv, mst;
 
   mst = modlist[modid]->status;
@@ -1578,7 +1578,7 @@ void addDISN(int modid, char *mvname, int numocc)
     if ((modlist[modnum]->mvlist[SYSTEM_CONF][mv] = (mvdesc *)malloc(sizeof(mvdesc))) == NULL)
       essit("malloc failed in mvdesc-DISN allocation\n");
 
-    snprintf(handin_name, sizeof(handin_name), "U_%d_M%03d", (mv + 1) % 10, (disnnum) % 1000);
+    snprintf(handin_name, sizeof(handin_name), "U_%1d_M%03d", (mv + 1) % 10, (disnnum) % 1000);
 
     strcpy(modlist[modnum]->mvlist[SYSTEM_CONF][mv]->fullmvname, handin_name);
     strcpy(modlist[modnum]->mvlist[SYSTEM_CONF][mv]->mvtype, "UA");
@@ -1704,9 +1704,10 @@ int main(int argc, char **argv)
   FILE *fppag, *fptop, *fpI5, *fpf01;
   char linebuf[MAXLINELENGTH], linehead[MAXLINELENGTH], oldline[MAXLINELENGTH];
   //  char answer[MAXLINELENGTH]
-  char *lbuf, i5fname[MAXLINELENGTH], partmodname[MODNAMENCH + 1];
+  char *lbuf, i5fname[MAXLINELENGTH * 2], partmodname[MODNAMENCH + 1];
   char *tpstr, fpcandname[FPPAGNAMENCH + 1], fpnam[FPNAMENCH + 1], tagpag[TAGPAGNCH + 1];
   char tmvname[MVNAMENCH + 1], tmvtype[MVTYPENCH + 1];
+  char i5path_bounded[MAXLINELENGTH]; /* copia di I5PATH con dimensione nota per analisi GCC */
   char mvname1[MVNAMENCH + 1], mvname2[MVNAMENCH + 1];
   int modcur, typel, itlen, itmlen, itplen, ownermod, k;
   fpdesc *fpcurptr, *fpd, *fpdI, *fpdO;
@@ -2008,6 +2009,8 @@ int main(int argc, char **argv)
 
   //  I5PATH = getenv("FILESI5_PATH");
   I5PATH = getenv("LG_FILESI5");
+  strncpy(i5path_bounded, I5PATH ? I5PATH : "", sizeof(i5path_bounded) - 1);
+  i5path_bounded[sizeof(i5path_bounded) - 1] = '\0';
 
   for (m = 0; m < modnum; m++)
   {
@@ -2016,12 +2019,12 @@ int main(int argc, char **argv)
     for (imm = 0; imm < strlen(tempstr); imm++)
       tempstr[imm] = (char)tolower(tempstr[imm]);
 
-    sprintf(i5fname, "%s/%s.i5", I5PATH, tempstr);
+    snprintf(i5fname, sizeof(i5fname), "%s/%.*s.i5", i5path_bounded, MODNAMENCH, tempstr);
 
     /*printf("opening file %s\n", i5fname);*/
     if ((fpI5 = fopen(i5fname, "r")) == NULL)
     {
-      sprintf(tempstr, "cannot open %s file\n", i5fname);
+      snprintf(tempstr, sizeof(tempstr), "cannot open %s file\n", i5fname);
       essit(tempstr);
     }
 
@@ -2064,9 +2067,9 @@ int main(int argc, char **argv)
 
     if (nfp != modlist[m]->fpnum) /* controlla la consistenza con il .pag */
     {
-      sprintf(tempstr,
-              "number of physical ports doesn't correspond in .pag/.top (%d) and %s (%d):\nproceeding with %d\n",
-              modlist[m]->fpnum, i5fname, nfp, nfp);
+      snprintf(tempstr, sizeof(tempstr),
+               "number of physical ports doesn't correspond in .pag/.top (%d) and %s (%d):\nproceeding with %d\n",
+               modlist[m]->fpnum, i5fname, nfp, nfp);
       modlist[m]->fpnum = nfp;
       warn(tempstr);
     }
@@ -3166,7 +3169,7 @@ int aggiornadescrf01()
   #define MAXLENBUFFER 101
   char buffer[MAXLENBUFFER];
   
-  int nlin = 0, i, linconfr;
+  int i, linconfr;
 
   printf("aggiornadescr Inizio programma\n");
   //   if(MoveFileEx("f01.dat", "f01old.dat", MOVEFILE_WRITE_THROUGH) == 0) printf("aggiornadescr FALLITA copia \n");
@@ -3251,16 +3254,16 @@ fclose(fpf01old);
     return (3);
   }
 
-  fgets(buffer, 100, fpf01pag);
+  fgets(buffer, sizeof(buffer), fpf01pag);
 
   fputs(buffer, fpf01new);
 
   strcpy(buffer, " ");
   while (strncmp(buffer, "****", 4) != 0)
   {
-    fgets(buffer, 100, fpf01pag);
+    fgets(buffer, sizeof(buffer), fpf01pag);
 
-    for (i = 0; i < nlin; i++)
+    for (i = 0; i < (int)f01old_size; i++)
     {
       if (strncmp(buffer, f01old[i], 30) == 0)
       {
@@ -3274,14 +3277,14 @@ fclose(fpf01old);
   while (!feof(fpf01pag))
   {
     strcpy(buffer, "");
-    fgets(buffer, 100, fpf01pag);
+    fgets(buffer, sizeof(buffer), fpf01pag);
 
     if (buffer[17] != '#')
     {
       linconfr = 16;
       if (buffer[10] == 'B' && buffer[11] == 'L' && buffer[12] == '.')
         linconfr = 36;
-      for (i = 0; i < nlin; i++)
+      for (i = 0; i < (int)f01old_size; i++)
       {
         if (strncmp(buffer, f01old[i], linconfr) == 0)
         {
