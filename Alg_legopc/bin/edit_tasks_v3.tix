@@ -196,7 +196,7 @@ proc save_task_cb { } {
 	global tasklist	
 	global fileChange
 #tk_messageBox -message "save_task_cb: fileChange: $fileChange" 
-	# non salvo se il file non è marcato come modificato
+	# non salvo se il file non ï¿½ marcato come modificato
 
 
 
@@ -416,7 +416,7 @@ proc new_simul { wparent } {
 #
 # callback su doppio click della lista delle task
 # che richiama edit simul per l'item su cui 
-# si è cliccato
+# si ï¿½ cliccato
 #####################################################
 proc lancia_edit_simul { } {
 	global wlist tasklist
@@ -451,7 +451,7 @@ proc lancia_edit_simul { } {
 #
 # callback su doppio click della lista delle task
 # che richiama edit simul per l'item su cui 
-# si è cliccato
+# si ï¿½ cliccato
 #####################################################
 proc lancia_load_task { c4 c c2 } {
 	global wlist tasklist 
@@ -729,7 +729,7 @@ proc build_win { mainW c4 c c2 } {
 ##	wm title $mainW  "Edit Task $workPath" 
 ##	wm maxsize $mainW  1260 1400
 
-	#definizione main menù
+	#definizione main menï¿½
 ##	menu $mainW.menutask -tearoff 0
 ##	set mf $mainW.menutask.file
 ##	set me $mainW.menutask.edit
@@ -852,7 +852,26 @@ sel_vars_for_simul2 $wframe
 
         $wlist configure -command {  lancia_load_task  $c4  $c $c2}
 
-
+# Zoom con Ctrl+ScrollWheel (indipendente da $c e $c2)
+bind $c4 <Enter> {focus %W}
+bind $c4 <Control-Button-4> {
+    set _zlevels {0.25 0.5 0.75 1.0 1.5 2.0}
+    set _cur [expr {[info exists ::zoomLevelOf(%W)] ? $::zoomLevelOf(%W) : 1.0}]
+    set _idx [lsearch $_zlevels $_cur]
+    incr _idx
+    if {$_idx >= 0 && $_idx < [llength $_zlevels]} {
+        doZoom %W [lindex $_zlevels $_idx]
+    }
+}
+bind $c4 <Control-Button-5> {
+    set _zlevels {0.25 0.5 0.75 1.0 1.5 2.0}
+    set _cur [expr {[info exists ::zoomLevelOf(%W)] ? $::zoomLevelOf(%W) : 1.0}]
+    set _idx [lsearch $_zlevels $_cur]
+    incr _idx -1
+    if {$_idx >= 0 && $_idx < [llength $_zlevels]} {
+        doZoom %W [lindex $_zlevels $_idx]
+    }
+}
 
 return $c4
 }

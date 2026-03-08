@@ -2109,6 +2109,97 @@ set xfont_color "$::xfont $::retcolor"
 }
 
 
+# ============================================================
+# Zoom canvas: scaling runtime delle immagini con image copy
+# Livelli fissi: 25%, 50%, 75%, 100%, 150%, 200%
+# Zoom indipendente per canvas ($c topologia, $c2 dati).
+# ============================================================
+array set ::zoomRatios {
+    025 {1 4}
+    050 {1 2}
+    075 {3 4}
+    100 {1 1}
+    150 {3 2}
+    200 {2 1}
+}
+# Zoom level per canvas: ::zoomLevelOf($widgetPath) = fattore corrente
+array set ::zoomLevelOf {}
+
+proc scaleImage {basename key} {
+    if {$key == "100"} { return $basename }
+    set dest "z${key}_${basename}"
+    # image names restituisce la lista delle immagini esistenti
+    if {[lsearch -exact [image names] $dest] < 0} {
+        set ratio $::zoomRatios($key)
+        set zf [lindex $ratio 0]
+        set sf [lindex $ratio 1]
+        image create photo $dest
+        $dest copy $basename -zoom $zf $zf -subsample $sf $sf
+    }
+    return $dest
+}
+
+proc doZoom {c newLevel} {
+    set newKey [format "%03d" [expr {round($newLevel * 100)}]]
+    if {![info exists ::zoomRatios($newKey)]} return
+    set curLevel [expr {[info exists ::zoomLevelOf($c)] ? $::zoomLevelOf($c) : 1.0}]
+    if {$newLevel == $curLevel} return
+    set delta [expr {$newLevel / $curLevel}]
+    # Scala coordinate di tutti gli item (linee, testo, ancoraggi immagini)
+    $c scale all 0 0 $delta $delta
+    # Aggiorna immagini moduli e porte con versioni scalate in memoria.
+    foreach item [$c find withtag module] {
+        if {[$c type $item] != "image"} continue
+        set curImg [$c itemcget $item -image]
+        regsub {^z[0-9]+_} $curImg {} base
+        $c itemconfigure $item -image [scaleImage $base $newKey]
+    }
+    foreach item [$c find withtag port] {
+        if {[$c type $item] != "image"} continue
+        set curImg [$c itemcget $item -image]
+        regsub {^z[0-9]+_} $curImg {} base
+        $c itemconfigure $item -image [scaleImage $base $newKey]
+    }
+    # Scala i font di tutti gli item text (remark, etichette, valori animati).
+    # ::origFontOf($c,$item) conserva il font a 100% per calcolare sempre dalla base
+    foreach item [$c find all] {
+        if {[$c type $item] != "text"} continue
+        set fontspec [$c itemcget $item -font]
+        if {$fontspec == ""} continue
+        if {![info exists ::origFontOf($c,$item)]} {
+            set ::origFontOf($c,$item) $fontspec
+        }
+        if {[catch {set fa [font actual $::origFontOf($c,$item)]}]} continue
+        set origSize [lindex $fa 3]
+        if {$origSize == 0} continue
+        set newSize [expr {round(abs($origSize) * $newLevel)}]
+        if {$newSize < 1} { set newSize 1 }
+        if {$origSize < 0} { set newSize [expr {-$newSize}] }
+        set family [lindex $fa 1]
+        set weight [lindex $fa 5]
+        set slant  [lindex $fa 7]
+        $c itemconfigure $item -font [list $family $newSize $weight $slant]
+    }
+    set ::zoomLevelOf($c) $newLevel
+    $c configure -scrollregion [list 0 0 \
+        [expr {$::wsXsiz * $newLevel}] \
+        [expr {$::wsYsiz * $newLevel}]]
+}
+
+proc resetZoom {c} {
+    doZoom $c 1.0
+}
+
+proc activeCanvas {} {
+    # Interroga il NoteBook per la pagina attiva
+    if {[catch {set page [.indice.nb raised]}]} { return $::canv1 }
+    switch $page {
+        data_ass  { return $::canv2 }
+        task_conf { return $::canv3 }
+        default   { return $::canv1 }
+    }
+}
+
 proc createcanva { f } {
 
 global env demo
@@ -2430,6 +2521,27 @@ bind $c <B1-ButtonRelease> {
                 	}        	
 
                  }
+
+# Su Linux Button-4/5 sono scroll-up/down: zoom con Ctrl+ScrollWheel
+bind $c <Enter> {focus %W}
+bind $c <Control-Button-4> {
+    set _zlevels {0.25 0.5 0.75 1.0 1.5 2.0}
+    set _cur [expr {[info exists ::zoomLevelOf(%W)] ? $::zoomLevelOf(%W) : 1.0}]
+    set _idx [lsearch $_zlevels $_cur]
+    incr _idx
+    if {$_idx >= 0 && $_idx < [llength $_zlevels]} {
+        doZoom %W [lindex $_zlevels $_idx]
+    }
+}
+bind $c <Control-Button-5> {
+    set _zlevels {0.25 0.5 0.75 1.0 1.5 2.0}
+    set _cur [expr {[info exists ::zoomLevelOf(%W)] ? $::zoomLevelOf(%W) : 1.0}]
+    set _idx [lsearch $_zlevels $_cur]
+    incr _idx -1
+    if {$_idx >= 0 && $_idx < [llength $_zlevels]} {
+        doZoom %W [lindex $_zlevels $_idx]
+    }
+}
 
 return $c
 
@@ -2896,6 +3008,27 @@ if { $::LINUXNOMATLAB != 1 } {
 bind $c2 <Alt-ButtonRelease-3> "destroyMathVar $c2"
 
 #fine GUAG2012
+
+# Zoom con Ctrl+ScrollWheel anche sul canvas dati (indipendente da $c topologia)
+bind $c2 <Enter> {focus %W}
+bind $c2 <Control-Button-4> {
+    set _zlevels {0.25 0.5 0.75 1.0 1.5 2.0}
+    set _cur [expr {[info exists ::zoomLevelOf(%W)] ? $::zoomLevelOf(%W) : 1.0}]
+    set _idx [lsearch $_zlevels $_cur]
+    incr _idx
+    if {$_idx >= 0 && $_idx < [llength $_zlevels]} {
+        doZoom %W [lindex $_zlevels $_idx]
+    }
+}
+bind $c2 <Control-Button-5> {
+    set _zlevels {0.25 0.5 0.75 1.0 1.5 2.0}
+    set _cur [expr {[info exists ::zoomLevelOf(%W)] ? $::zoomLevelOf(%W) : 1.0}]
+    set _idx [lsearch $_zlevels $_cur]
+    incr _idx -1
+    if {$_idx >= 0 && $_idx < [llength $_zlevels]} {
+        doZoom %W [lindex $_zlevels $_idx]
+    }
+}
 
 return $c2
 
@@ -3470,8 +3603,11 @@ proc raisetopol { c } {
 		$model_img configure -showbackground 1
 		$data_img configure -showbackground 0
 		$task_img configure -showbackground 0
+    # topRead ha ridisegnato il canvas a coordinate 100%: sincronizza lo stato zoom
+    set ::zoomLevelOf($c) 1.0
+    foreach _zk [array names ::origFontOf "${c},*"] { unset ::origFontOf($_zk) }
 }
-		   
+
 proc raisedata { c c2 } {
 		global nn nn2 showon curFileName 
 		global model_img data_img task_img modalita
@@ -3517,6 +3653,9 @@ proc raisedata { c c2 } {
 		$model_img configure -showbackground 0
 		$data_img configure -showbackground 1
 		$task_img configure -showbackground 0
+    # topRead+loadF01 hanno ridisegnato $c2 a coordinate 100%: sincronizza lo stato zoom
+    set ::zoomLevelOf($c2) 1.0
+    foreach _zk [array names ::origFontOf "${c2},*"] { unset ::origFontOf($_zk) }
                 return 0
 }
 
@@ -3552,9 +3691,12 @@ proc raisetaskconf { c c2 c4 } {
 	$model_img configure -showbackground 0
 	$data_img configure -showbackground 0
 	$task_img configure -showbackground 1
-        if { $DIRMODEL != "" } { load_task $DIRMODEL $c4 }	
+        if { $DIRMODEL != "" } { load_task $DIRMODEL $c4 }
 #       if { $curSimulPathName != "" } { load_task $curSimulPathName $c4 }
 #	lancia_load_task  $c4  $c $c2
+    # load_task ha ridisegnato $c4 a coordinate 100%: sincronizza lo stato zoom
+    set ::zoomLevelOf($c4) 1.0
+    foreach _zk [array names ::origFontOf "${c4},*"] { unset ::origFontOf($_zk) }
 }
 
 
@@ -3883,13 +4025,24 @@ if { $::LINUXPLAT != 0 } {
 
 
 set ::stileanim 1
-set ::stileanim_prec $::stileanim    
+set ::stileanim_prec $::stileanim
     if { $::LINUXPLAT } {
     $m add checkbutton -label "StileAnim" -variable ::stileanim
     } else {
     $m add radio -label "Show infoitemname" -variable showon -value 4 -command "ShowNamesfilt $c $c2 5"
     }
-    
+
+    $m add separator
+    set mzoom .menu.view.zoom
+    menu $mzoom -tearoff 0 -activebackground darkblue -activeforeground white
+    $m add cascade -label "Zoom" -menu $mzoom
+    $mzoom add command -label "200%"  -command {doZoom [activeCanvas] 2.0}
+    $mzoom add command -label "150%"  -command {doZoom [activeCanvas] 1.5}
+    $mzoom add command -label "100%"  -command {doZoom [activeCanvas] 1.0}
+    $mzoom add command -label " 75%"  -command {doZoom [activeCanvas] 0.75}
+    $mzoom add command -label " 50%"  -command {doZoom [activeCanvas] 0.5}
+    $mzoom add command -label " 25%"  -command {doZoom [activeCanvas] 0.25}
+
     set m .menu.util
     menu $m -tearoff 0 -activebackground darkblue -activeforeground white
     .menu add cascade -label "Tools" -menu $m -underline 0 -activebackground darkblue -activeforeground white
