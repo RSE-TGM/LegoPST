@@ -1350,6 +1350,10 @@ set pal [$pal0.canv subwidget window]
 		set curTool $modnoext
 	}
 
+	set scrH [winfo screenheight .]
+	set maxH [expr {int($scrH * 0.75)}]
+	wm geometry $pal0 "500x$maxH"
+
 	cd $olddir
 }
 
