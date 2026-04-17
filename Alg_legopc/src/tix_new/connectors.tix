@@ -1,0 +1,244 @@
+source $env(LG_TIX)/checkopen.tcl
+
+#prova
+
+proc show_ch {selected_ch} {
+global comvartm
+
+set comvartm(5) $selected_ch
+
+}
+
+proc write_to_file {} {
+
+
+
+	global env comvartm nomevar myvar
+
+	set file_connect [checkopen $env(LG_LIBGRAPH)/connect.dat r] 
+        set ftmp [checkopen $env(TMPDIR)/tmp.dat w] 
+	gets $file_connect line1
+	puts $ftmp $line1
+	gets $file_connect line2
+        puts $ftmp $line2
+        while { !($line1 == "****" && $line2 == "****") } {
+              puts $ftmp $line2
+              set line1 $line2 
+              gets $file_connect line2
+        }
+
+	puts $ftmp "$myvar $comvartm(1)\nLineColor $comvartm(3)\nLineWidth $comvartm(4)\nLineBitmap $comvartm(5)"
+	for {set i 1} {$i <= $comvartm(6)} {incr i} {
+		if { $i<=9 } {
+			puts $ftmp "0[expr $i-1]$nomevar($i)"
+		} else {
+			puts $ftmp "[expr $i-1]$nomevar($i)"
+		}
+	}
+	puts $ftmp "****"
+	puts $ftmp "****"
+        close $file_connect
+	close $ftmp
+        file copy -force $env(TMPDIR)/tmp.dat $env(LG_LIBGRAPH)/connect.dat
+        file delete -force $env(TMPDIR)/tmp.dat
+	
+	file copy -force $env(LG_PREINST)/conn_e.ppm $env(LG_PIXMAPS)/${myvar}_e.ppm
+	file copy -force $env(LG_PREINST)/conn_s.ppm $env(LG_PIXMAPS)/${myvar}_s.ppm
+	file copy -force $env(LG_PREINST)/conn_w.ppm $env(LG_PIXMAPS)/${myvar}_w.ppm
+	file copy -force $env(LG_PREINST)/conn_n.ppm $env(LG_PIXMAPS)/${myvar}_n.ppm
+
+	file copy -force $env(LG_PREINST)/conne.gif $env(LG_PIXMAPS)/${myvar}e.gif
+	file copy -force $env(LG_PREINST)/conns.gif $env(LG_PIXMAPS)/${myvar}s.gif
+	file copy -force $env(LG_PREINST)/connw.gif $env(LG_PIXMAPS)/${myvar}w.gif
+	file copy -force $env(LG_PREINST)/connn.gif $env(LG_PIXMAPS)/${myvar}n.gif
+# tolti gli xbm
+#	file copy -force $env(LG_PREINST)/conn_e.xbm $env(LG_PIXMAPS)/${myvar}_e.xbm
+#	file copy -force $env(LG_PREINST)/conn_s.xbm $env(LG_PIXMAPS)/${myvar}_s.xbm
+#	file copy -force $env(LG_PREINST)/conn_w.xbm $env(LG_PIXMAPS)/${myvar}_w.xbm
+#	file copy -force $env(LG_PREINST)/conn_n.xbm $env(LG_PIXMAPS)/${myvar}_n.xbm
+}
+
+proc verifica_name {long_name variabili1 variabili2} {
+	global env myvar comvartm
+	set flag 1
+	set i 1
+	set var($i) {}
+	set file_connect [checkopen $env(LG_LIBGRAPH)/connect.dat r]
+	while {![eof $file_connect]} {
+		gets $file_connect line
+		if { $flag } {
+			set var($i) $line
+			set flag 0
+			incr i	
+		}
+	
+		if { $line == "****"} { set flag 1}
+	}
+	close $file_connect
+#controlla che ci siano non meno di 4 caratteri altrimenti appende tante x quante ne sono necessarie
+	set elem [expr $i -1]
+	set lun [string length $myvar]
+	if { $lun <4 } { 
+			for {set i $lun} {$i <= 4} {incr i} {
+				set myvar ${myvar}x
+			} 
+	}
+
+#conrolla che i nomi scritti non esistano gi�
+	for { set i 1} {$i <=$elem} {incr i} {
+		set short_name [lindex $var($i) 0]
+		set extended_name [lindex $var($i) 1]
+		if { ![string compare $short_name $myvar] } {tk_messageBox -message "Short_name alredy exists";return}
+		if { ![string compare $extended_name $long_name] } {tk_messageBox -message "Extended_name alredy exists";return}
+	}
+#controlla che siano interi
+	set temp {}
+	set flag 1
+	foreach k $variabili1 {
+		if { $flag } {
+			if { $k == "." } {
+				set flag 0
+			} else {
+				set temp ${temp}$k
+			}
+		}
+	}
+	set variabili1 $temp
+	set temp {}
+	set flag 1
+	foreach k $variabili2 {
+		if { $flag } {
+			if { $k == "." } {
+				set flag 0
+			} else {
+				set temp ${temp}$k
+			}
+		}
+	}
+	set variabili2 $temp
+	regexp {[0-9]+} $variabili1 mx
+	regexp {[0-9]+} $variabili2 my
+
+	if { $mx == {} || $my == {} } {
+		return
+	} else {
+		set comvartm(4) $mx
+		set comvartm(6) $my
+	}
+	var
+}
+
+proc var {} {
+
+	global comvartm nomevar env FLAG name myvar
+
+	toplevel .numvar
+	wm title .numvar "variabili connettori"
+	frame .numvar.dat
+	frame .numvar.dat.datL
+	frame .numvar.dat.datR
+
+	for {set i 1} {$i <= $comvartm(6)} {incr i} {
+		if { $i<=9 } {
+			label .numvar.dat.datL.tm$i -text "variabile 0[expr $i-1] " -font "Courier 12"
+		} else {
+			label .numvar.dat.datL.tm$i -text "variabile [expr $i-1] " -font "Courier 12"
+		}
+		entry .numvar.dat.datR.tm$i -textvariable nomevar($i) -width 30
+	}
+
+	for {set i 1} {$i <= $comvartm(6)} {incr i} {
+		pack .numvar.dat.datL.tm$i -side top -anchor w -pady 2m
+		pack .numvar.dat.datL -side left
+	}
+
+	for {set i 1} {$i <= $comvartm(6) } {incr i} {
+		pack .numvar.dat.datR.tm$i -side top -anchor w -pady 2m
+		pack .numvar.dat.datR -side left
+	}
+	pack .numvar.dat
+	frame .numvar.butt
+	button .numvar.butt.canc -text Cancel -command "destroy .numvar"
+	button .numvar.butt.ok -text Insert -command {write_to_file;destroy .pert;destroy .numvar }
+	pack .numvar.butt.ok .numvar.butt.canc -side left -expand 1
+	frame .numvar.sep2 -relief ridge -bd 1 -height 2 
+	pack .numvar.sep2 -fill x -pady 5m
+	pack .numvar.butt -fill x -pady 4m
+}
+
+proc forceWidth4 {name el op} {
+   global $name ${name}_width
+   set old ${name}_width
+   if {[string length [set $name]] > 4} {
+      set $name [set $old]
+      bell; return
+   }
+   set $old [set $name]
+}
+
+toplevel .pert
+wm withdraw .
+wm title .pert "New Connectors"
+set type 2
+
+global comvartm
+global myvar
+
+frame .pert.dat
+frame .pert.dat.datL
+frame .pert.dat.datR
+
+set comvartm(2) "xx"
+
+entry .pert.dat.datR.tm1 -textvariable comvartm(1) -width 7
+entry .pert.dat.datR.tm2 -textvariable myvar -width 7
+
+button .pert.dat.datR.tm3 -text Choose -command {
+	set comvartm(3) [tk_chooseColor -parent .pert -title "chooseclolors"] }
+entry .pert.dat.datR.tm4 -textvariable comvartm(4) -width 7
+
+label .pert.dat.datL.lbl1 -text "Name " -font "Courier 12"
+label .pert.dat.datL.lbl2 -text "Short Name " -font "Courier 12"
+label .pert.dat.datL.lbl3 -text "Line color " -font "Courier 12"
+label .pert.dat.datL.lbl4 -text "Linewidth " -font "Courier 12"
+
+label .pert.dat.datL.lbl5 -text "dashed line " -font "Courier 12"
+label .pert.dat.datL.lbl6 -text "Variables Number " -font "Courier 12"
+
+for {set i 1} {$i<=6} {incr i} {
+	pack .pert.dat.datL.lbl$i -side top -anchor w -pady 2.5m
+	pack .pert.dat.datL -side left
+}
+
+tixComboBox .pert.dat.datR.tm5 -browsecmd show_ch -variable comvartm(5) -editable false -bg white -options {font "Courier 9"}
+	.pert.dat.datR.tm5 subwidget entry configure -width 5 
+	.pert.dat.datR.tm5 subwidget listbox configure -height 2
+	.pert.dat.datR.tm5 subwidget listbox configure -width 5
+	.pert.dat.datR.tm5 subwidget listbox configure -bg white
+
+set curr_file(1) Yes
+set curr_file(2) None
+
+for {set i 1} {$i<=2} {incr i} {
+	.pert.dat.datR.tm5 insert end $curr_file($i)
+}
+
+entry .pert.dat.datR.tm6 -textvariable comvartm(6) -width 7
+
+for {set i 1} {$i <= 6 } {incr i} {
+	pack .pert.dat.datR.tm$i -side top -anchor w -pady 2m
+	pack .pert.dat.datR -side left
+}
+
+trace variable myvar w forceWidth4
+set myvar {}
+
+pack .pert.dat
+frame .pert.butt
+button .pert.butt.canc -text Cancel -command "destroy .pert"
+button .pert.butt.ok -text Insert -command {verifica_name $comvartm(1) $comvartm(4) $comvartm(6)}
+pack .pert.butt.ok .pert.butt.canc -side left -expand 1
+frame .pert.sep2 -relief ridge -bd 1 -height 2 
+
+pack .pert.sep2 -fill x -pady 5m
+pack .pert.butt -fill x -pady 4m

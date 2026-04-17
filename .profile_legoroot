@@ -253,9 +253,9 @@ export DEBUG=YES
 ####. $HOME/legopc_pak/bin/install/env_legopc.sh
 #. $HOME/ccm_env_legopc.sh
 #alias lgpc='/usr/bin/tixwish8.1.8.3.1 $LG_TIX/legopc.tix'
-alias lgpcloc='/usr/users/guag/work/tcltktix/bin/tixwish8.1.8.3 $LG_TIX/legopc.tix'
-alias lgpclocult='/usr/users/guag/work/tcltktixultimo/bin/wish8.4 $LG_TIX/legopc.tix'
-alias llgpc='export LG_TIX=/usr/users/testguag/bin_lgtixloc ; wish $LG_TIX/legopc.tix'
+# alias lgpcloc='/usr/users/guag/work/tcltktix/bin/tixwish8.1.8.3 $LG_TIX/legopc.tix'
+# alias lgpclocult='/usr/users/guag/work/tcltktixultimo/bin/wish8.4 $LG_TIX/legopc.tix'
+# alias llgpc='export LG_TIX=/usr/users/testguag/bin_lgtixloc ; wish $LG_TIX/legopc.tix'
 # # In .profile_legoroot
 # if [ -n "$DISPLAY" ] && [ -S "/tmp/.X11-unix/X${DISPLAY#:*.}" ]; then
 #     echo "Display $DISPLAY trovato, eseguo xhost..."

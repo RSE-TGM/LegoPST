@@ -1,0 +1,43 @@
+
+set old_files_help "qq_old.tch"
+set new_files_help "qq_new.tch"
+set base_old "apro_0"
+set base_new "apro_99"
+
+
+
+proc sost_in_file { filetarget filesorg base_new base_old } {
+
+set linetarg ""
+
+	if [file exists $filesorg] {
+		set FSORG [open $filesorg  r]	
+		set FTARG [open $filetarget w+ ]
+        set base_new_low [string tolower $base_new]
+        set base_old_low [string tolower $base_old]
+
+        set base_new_upper [string toupper $base_new]
+        set base_old_upper [string toupper $base_old]
+
+	while { ![eof $FSORG] }  {
+			gets $FSORG line
+			set ret [ regsub $base_old_low $line $base_new_low linetarg ]
+                        if { $ret == 0 } { regsub $base_old_upper $line $base_new_upper linetarg }
+#tk_messageBox -message 	" line: $line \nlinetarg: $linetarg\n $ret" 
+                        if ![eof $FSORG] { puts $FTARG $linetarg	}	
+	}
+		close $FSORG
+		close $FTARG
+
+	}
+return
+
+}
+
+
+
+sost_in_file $new_files_help $old_files_help  $base_new $base_old
+
+exit
+
+####		for {set i 1} {$i<3} {incr i} {

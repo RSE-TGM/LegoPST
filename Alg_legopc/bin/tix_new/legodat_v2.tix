@@ -1,0 +1,488 @@
+
+#stripped-down initialization
+set curTool none
+set progNumb 0
+set progName "name"
+set palId 0
+set jshift .5
+set portw 12
+set porth 12
+set numBlo 0
+
+
+
+
+
+
+proc showOptions {c x y} {
+	set myTags [$c gettags current]
+        set moduleName [string range [lindex $myTags 2 ] 0 3]
+      if {[file rootname [lindex $myTags [lsearch $myTags *.ori]]] == ""} {
+	 set modName [string range [lindex $myTags 3] 0 3]
+      } else {
+       set modName [string range [lindex $myTags 5] 0 3]
+	}
+	catch	{$c delete modOpt}
+
+	set x1 $x
+	set y1 [expr $y - 30]
+#	set mylist [list "Block $modName" "Variables" "Data Zone" "Help" "Quit"]
+        set mylist [list "Block $modName" "Variables" "Data Zone" "Help"]
+	for {set idTid 0} {$idTid < 4} {incr idTid} {
+		set el [lindex $mylist $idTid]
+		set tid($idTid) [$c create text $x1 $y1 -text $el -anchor n -tags modOpt]
+		set lc [$c bbox $tid($idTid)]
+		set y1 [lindex $lc 3]
+	}
+	$c itemconfigure $tid(0) -fill coral3
+#	$c bind $tid(0) <B1-ButtonRelease> "showBlockHead $modName; $c delete modOpt"
+#	$c bind $tid(1) <B1-ButtonRelease> "showVariables $modName; $c delete modOpt"
+#	$c bind $tid(2) <B1-ButtonRelease> "showDataZone $modName; $c delete modOpt"
+	$c bind $tid(0) <B1-ButtonRelease> "showBlockHead $modName; $c delete modOpt "
+	$c bind $tid(1) <B1-ButtonRelease> "showVariables $modName; $c delete modOpt"
+	$c bind $tid(2) <B1-ButtonRelease> "showDataZone $modName; $c delete modOpt"
+        $c bind $tid(3) <B1-ButtonRelease> "open_hlp $moduleName; $c delete modOpt"
+#	$c bind $tid(4) <B1-ButtonRelease> "$c delete modOpt"
+
+	$c bind $tid(0) <Enter> "$c itemconfigure $tid(0) -fill blue; \
+	                         $c itemconfigure $tid(1) -fill black; \
+	                         $c itemconfigure $tid(2) -fill black; \
+	                         $c itemconfigure $tid(3) -fill black "
+#	                         $c itemconfigure $tid(4) -fill black "
+	$c bind $tid(1) <Enter> "$c itemconfigure $tid(1) -fill blue; \
+	                         $c itemconfigure $tid(0) -fill coral3; \
+	                         $c itemconfigure $tid(2) -fill black; \
+	                         $c itemconfigure $tid(3) -fill black "
+#	                         $c itemconfigure $tid(4) -fill black "
+	$c bind $tid(2) <Enter> "$c itemconfigure $tid(2) -fill blue; \
+	                         $c itemconfigure $tid(0) -fill coral3; \
+	                         $c itemconfigure $tid(1) -fill black; \
+	                         $c itemconfigure $tid(3) -fill black "
+#	                         $c itemconfigure $tid(4) -fill black "
+	$c bind $tid(3) <Enter> "$c itemconfigure $tid(3) -fill blue; \
+	                         $c itemconfigure $tid(0) -fill coral3; \
+	                         $c itemconfigure $tid(1) -fill black; \
+	                         $c itemconfigure $tid(2) -fill black "
+#	                         $c itemconfigure $tid(4) -fill black "
+#	$c bind $tid(4) <Enter> "$c itemconfigure $tid(4) -fill blue; \
+#	                         $c itemconfigure $tid(0) -fill coral3; \
+#	                         $c itemconfigure $tid(1) -fill black; \
+#	                         $c itemconfigure $tid(2) -fill black; \
+#	                         $c itemconfigure $tid(3) -fill black "
+	set lc [$c bbox modOpt]
+	set x1 [expr [lindex $lc 0] - 5]
+	set y1 [expr [lindex $lc 1] - 1]
+	set x2 [expr [lindex $lc 2] + 5]
+	set y2 [lindex $lc 3]
+	$c create rectangle $x1 $y1 $x2 $y2 -fill white -tags modOpt
+	$c raise $tid(0)
+	$c raise $tid(1)
+	$c raise $tid(2)
+	$c raise $tid(3)
+#        $c raise $tid(4)
+}
+
+
+proc showBlockHead {mod} {
+	global curFileName numBlo listBlo blockHead
+	global blocModu blocBloc blocDesc blocNvar blocNome
+
+	if {$numBlo <= 0} {
+		set messaggio "F01 file not loaded... make it first, please!"
+		tk_messageBox -message $messaggio -type ok
+		return
+	}
+
+	set k -1
+	for {set i 0} {$i < $numBlo} {incr i} {
+		if {$mod == $listBlo($i)} {set k $i}
+	}
+
+	if {$k == -1} {
+		set messaggio [format "Block name (%s) not found in F01 list..." $mod]
+		tk_messageBox -message $messaggio -type ok
+		return
+	}
+
+	set blockHead(desc) $blocDesc($mod)
+	winBlockHead $mod
+}
+
+
+proc winBlockHead {mod} {
+	global curFileName numBlo listBlo blockHead
+	global blocModu blocBloc blocDesc blocNvar blocNome
+
+	set w1 .varwin
+	catch {destroy $w1}
+	toplevel $w1
+	wm title $w1 "Block $mod description"
+###?	grab set $w1
+
+	set but $w1.buttons
+	frame $but
+	pack $but -side bottom -fill x -pady 2m
+#	button $but.exit -text "Apply" -command "saveBlockHead $mod $w1"
+	button $but.exit -text "Apply" 
+	button $but.quit -text "Quit " -command "destroy $w1"
+	pack $but.exit $but.quit -side left -expand 1
+
+	frame $w1.middle
+	pack $w1.middle -side top -expand yes -padx 10 -pady 10 -fill y
+
+	set tit $w1.middle.titolo
+	frame $tit
+	pack $tit -side top -expand yes -pady 3 -fill x
+
+	label $tit.lab1 -text $blocNome($mod) -font titleBig
+	label $tit.lab2 -text "-" -font entryBig
+	label $tit.lab3 -text "Block" -font entryBig
+	label $tit.lab4 -text $blocBloc($mod) -font titleBig
+	label $tit.lab5 -text "-" -font entryBig
+	label $tit.lab6 -text "Module" -font entryBig
+	label $tit.lab7 -text $blocModu($mod) -font titleBig
+	pack $tit.lab1 $tit.lab2 $tit.lab3 $tit.lab4 $tit.lab5 $tit.lab6 $tit.lab7 -side left -expand yes
+
+	entry $w1.middle.descri -textvar blockHead(desc) -width 55 -font entryFont
+	pack $w1.middle.descri -side bottom -expand yes -pady 3 -fill x
+
+
+        $w1.middle.descri configure  -validate key -validatecommand "cambia_colore $w1.middle.descri yellow"
+
+        $but.exit configure -command "saveBlockHead $mod $w1; $w1.middle.descri configure -background white"
+
+
+}
+
+
+proc saveBlockHead {mod win} {
+	global blocDesc blockHead modified1
+
+	set blocDesc($mod) [string range [string trim $blockHead(desc)] 0 54]
+	set modified1 1
+###?	destroy $win
+}
+
+
+proc showVariables {mod} {
+	global curFileName
+	if {[loadVariables $mod]} return
+
+	winVariablesTix $mod
+}
+
+
+proc winVariablesTix {mod} {
+
+package require Tix 
+
+	global curFileName campo known knownpr weightvars
+	global numVars nomeVars tipoVars descVars valuVars tipVarMod
+
+	set w1 .varwin
+	catch {destroy $w1}
+	toplevel $w1
+	wm title $w1 "Block $mod variables"
+	wm geometry $w1 720x440
+#	wm maxsize $w1 620 440
+###?	grab set $w1
+
+	set but $w1.buttons
+	frame $but
+	pack $but -side bottom -pady 10
+#	button $but.exit -text "Apply" -command "saveVariables $mod $w1"
+# il comando lo definisco pi in basso...
+	button $but.exit -text "Apply" 
+	button $but.quit -text "Quit " -command "destroy $w1"
+	pack $but.exit $but.quit -side left -expand yes -ipadx 35 -padx 50
+
+	set w2 $w1.sfondo
+	tixScrolledWindow $w2 -scrollbar "auto -x"
+	pack $w2
+	set w3 [$w2 subwidget window]
+
+	frame $w3.middle
+	pack $w3.middle -side top -padx 10 -pady 10
+
+	set tit $w3.middle.titolo
+	frame $tit
+	pack $tit -side top
+
+	set campo(0) "Var.Name"
+	set campo(1) "  "
+	set campo(2) "Value"
+	set campo(3) "Description"
+      set campo(4) "Weight"
+      set campo(5) "K/U"
+	entry $tit.nome -textvariable campo(0) -width 8 -relief raised \
+		-font titleFont -state disabled -background gray80
+	entry $tit.tipo -textvariable campo(1) -width 2 -relief raised \
+		-font titleFont -state disabled -background gray80
+	entry $tit.valu -textvariable campo(2) -width 10 -relief raised \
+		-font titleFont -state disabled -background gray80
+      entry $tit.weight -textvariable campo(4) -width 6 -relief raised \
+		-font titleFont -state disabled -background gray80
+      entry $tit.known -textvariable campo(5) -width 4 -relief raised \
+		-font titleFont -state disabled -background gray80
+	entry $tit.desc -textvariable campo(3) -width 55 -relief raised \
+		-font titleFont -state disabled -background gray80
+	pack $tit.nome $tit.tipo $tit.valu $tit.weight $tit.known $tit.desc -side left -anchor w
+
+	for {set i 0} {$i < $numVars} {incr i} {
+		set rig $w3.middle.riga$i
+		frame $rig
+		pack $rig -side top
+            set nome $nomeVars($i)
+            set tipovar $tipVarMod($nome)
+		entry $rig.nome -textvariable nomeVars($i) -width 8 -relief groove \
+			-font entryFont -state disabled -background gray80
+		entry $rig.tipo -textvariable tipoVars($i) -width 2 -relief groove \
+			-font entryFont -state disabled -background gray80
+#variabili di uscta e ingresso da editare...
+		entry $rig.valu -textvariable valuVars($i) -width 10 -relief groove \
+			-font entryFont -background white
+#noti e weight...
+		entry $rig.weight -textvariable weightvars($i) -width 6 -relief groove \
+			-font entryFont -background white
+            checkbutton $rig.known -variable known($i) -command {
+             for {set j 0} {$j < $numVars} {incr j} {
+              if {$known($j) == 1} {
+               set weightvars($j) "NOTO"
+               set knownpr($j) 1
+              } elseif {$known($j) == 0 && $knownpr($j) == 1} {
+               set weightvars($j) ""
+               set knownpr($j) 0
+              }
+             }
+             }
+            if {$weightvars($i) == "NOTO"} {
+             set known($i) 1
+             set knownpr($i) 1
+            } else {
+             set known($i) 0
+             set knownpr($i) 0
+            }            
+		if {[string range $descVars($i) 0 0] != "#"} {
+			entry $rig.desc -textvariable descVars($i) -width 55 -relief groove \
+				-font entryFont -background white
+		} else {
+			entry $rig.desc -textvariable descVars($i) -width 55 -relief groove \
+				-font entryFont -state disabled -background gray80
+		}
+		pack $rig.nome $rig.tipo $rig.valu $rig.weight $rig.known $rig.desc -side left
+	}
+
+        for {set i 0} {$i < $numVars} {incr i} {
+        set rig $w3.middle.riga$i
+        $rig.valu configure  -validate key -validatecommand "cambia_colore $rig.valu yellow"
+        $rig.weight configure  -validate key -validatecommand "cambia_colore $rig.weight yellow"
+        $rig.desc configure  -validate key -validatecommand "cambia_colore $rig.desc yellow"
+#        $rig.valu configure -background yellow  -validate key -validatecommand "$rig.valu configure -background red"
+        }
+        $but.exit configure -command "saveVariables $mod $w1; cambia_colore_mult white $w3 0"
+
+
+
+}
+
+proc cambia_colore {tag colore} {	
+	$tag configure -background $colore 	
+	return 1
+}
+
+
+proc cambia_colore_mult {colore w3 modo} {
+	
+#modo 0 variabili
+#modo 1 dati
+#modo 2 dscrizione blocco	
+
+	global numVars nomeVars tipoVars descVars valuVars
+	global numData vecData
+#	global curFileName
+#tk_messageBox -message "cambia_colore_mult: -$numVars -$colore -$w3 -$valu -$weight -$desc"
+ if {$modo == 0} { 
+        for {set i 0} {$i < $numVars} {incr i} {
+        set rig $w3.middle.riga$i
+	$rig.valu configure -background $colore 	
+	$rig.weight configure -background $colore 	
+	if {[string range $descVars($i) 0 0] != "#"} {$rig.desc configure -background $colore }		
+        }
+ } elseif {$modo == 1} { 
+ 
+ 	for {set i 0} {$i < $numData} {incr i} {
+		set rig $w3.middle.riga$i
+		set tipo $vecData($i,tipo)
+
+		if {$tipo == "dat1" || $tipo == "dat2" || $tipo == "dat3"} {
+			$rig.val1 configure -background $colore 
+		}
+		if {$tipo == "dat2" || $tipo == "dat3"} {
+			$rig.val2 configure -background $colore 
+		}
+		if {$tipo == "dat3"} {
+			$rig.val3 configure -background $colore 
+		}
+	}
+  
+ } else {
+
+ }
+
+update
+return 1
+}
+
+proc showDataZone {mod} {
+	global curFileName
+	if {[loadDataZone $mod]} return
+
+	winDataZoneTix $mod
+}
+
+
+proc winDataZoneTix {mod} {
+	
+package require Tix 
+
+	global curFileName
+	global numData vecData
+#tk_messageBox -message "winDataZoneTix: numData=$numData"
+	set w1 .varwin
+	catch {destroy $w1}
+	toplevel $w1
+	wm title $w1 "Block $mod data zone"
+	wm geometry $w1 520x240
+#	wm maxsize $w1 620 440
+###?	grab set $w1
+
+	set but $w1.buttons
+	frame $but
+	pack $but -side bottom -pady 10
+#	button $but.exit -text "Apply" -command "saveDataZone $mod $w1"
+	button $but.exit -text "Apply" 
+	button $but.quit -text "Quit " -command "destroy $w1"
+	pack $but.exit $but.quit -side left -expand yes -ipadx 35 -padx 50
+
+	set w2 $w1.sfondo
+	tixScrolledWindow $w2 -scrollbar "auto -x"
+	pack $w2
+	set w3 [$w2 subwidget window]
+
+	frame $w3.middle
+	pack $w3.middle -side top -expand yes -padx 10 -pady 10 -fill y
+
+	set tit $w3.middle.titolo
+	frame $tit
+	pack $tit -side top
+
+	label $tit.lab1 -text "Data zone for block " -font entryBig
+	label $tit.lab2 -text $mod -font titleBig
+	pack $tit.lab1 $tit.lab2 -side left -pady 3
+
+	for {set i 0} {$i < $numData} {incr i} {
+
+		set rig $w3.middle.riga$i
+		frame $rig
+		pack $rig -side top -anchor w
+		set tipo $vecData($i,tipo)
+		if {$tipo == "comm"} {
+#puts "winDataZoneTix: tipo comm - i=$i \n vecData=$vecData($i,text)"
+			set testo $vecData($i,text)
+			label $rig.text -text $testo -relief groove -font titleFont -anchor w
+			pack $rig.text -side left -pady 3
+		}
+		if {$tipo == "dat1" || $tipo == "dat2" || $tipo == "dat3"} {
+#puts "winDataZoneTix: tipo dat1 dat2 dat3 - i=$i \n vecData_sym1=vecData=$vecData($i,sym1)   vecData_val1=$vecData($i,val1)"
+			entry $rig.sym1 -textvariable vecData($i,sym1) -width 8 -relief groove \
+				-font entryFont -state disabled -background gray80
+			entry $rig.val1 -textvariable vecData($i,val1) -width 10 -relief groove \
+				-font entryFont -background white
+			pack $rig.sym1 $rig.val1 -side left
+		}
+		if {$tipo == "dat2" || $tipo == "dat3"} {
+#puts "winDataZoneTix: tipo dat2 dat3 - i=$i \n vecData_sym2=$vecData($i,sym2)    vecData_val2=$vecData($i,val2)"
+			label $rig.bef2 -text "  " -font entryFont -anchor w
+			entry $rig.sym2 -textvariable vecData($i,sym2) -width 8 -relief groove \
+				-font entryFont -state disabled -background gray80
+			entry $rig.val2 -textvariable vecData($i,val2) -width 10 -relief groove \
+				-font entryFont -background white
+			pack $rig.bef2 $rig.sym2 $rig.val2 -side left
+		}
+		if {$tipo == "dat3"} {
+#puts "winDataZoneTix: tipo dat3 - i=$i \n vecData_sym3=$vecData($i,sym3)   vecData_val3=$vecData($i,val3)"
+			label $rig.bef3 -text "  " -font entryFont -anchor w
+			entry $rig.sym3 -textvariable vecData($i,sym3) -width 8 -relief groove \
+				-font entryFont -state disabled -background gray80
+			entry $rig.val3 -textvariable vecData($i,val3) -width 10 -relief groove \
+				-font entryFont -background white
+			pack  $rig.bef3 $rig.sym3 $rig.val3 -side left
+		}
+	}
+
+#seconda passata per configurare il cambio colore ...
+	for {set i 0} {$i < $numData} {incr i} {
+		set rig $w3.middle.riga$i
+		set tipo $vecData($i,tipo)
+
+		if {$tipo == "dat1" || $tipo == "dat2" || $tipo == "dat3"} {
+			$rig.val1 configure -validate key -validatecommand "cambia_colore $rig.val1 yellow"
+		}
+		if {$tipo == "dat2" || $tipo == "dat3"} {
+			$rig.val2 configure -validate key -validatecommand "cambia_colore $rig.val2 yellow"
+		}
+		if {$tipo == "dat3"} {
+			$rig.val3 configure -validate key -validatecommand "cambia_colore $rig.val3 yellow"
+		}
+	}
+
+
+$but.exit configure -command "saveDataZone $mod $w1; cambia_colore_mult white $w3 1"
+
+
+
+
+
+
+
+
+}
+
+
+
+
+
+# accessory files
+#source $env(LG_TIX)/read_con.tcl
+source $env(LG_TIX)/read_f01.tcl
+source $env(LG_TIX)/read_f14.tcl
+#source $env(LG_TIX)/itemjoin.tcl
+#source $env(LG_TIX)/viewmgr.tcl
+#source $env(LG_TIX)/fileio.tcl
+#source $env(LG_TIX)/openHelp.tcl
+
+#auto load attempt (if model name provided)
+#if {$argc == 1} {
+#	topRead $c $argv
+#	if {$curFileName != "untitled"} {
+#		loadF01 $c no
+#	} else {
+#		set messaggio "Model $argv not found! No model loaded..."
+#		tk_messageBox -message $messaggio -type ok
+#	}
+#} elseif {$argc != 0} {
+#	set messaggio "Wrong number or arguments (is $argc: should be 0 or 1):\n"
+#	append messaggio "(only the name of the active model may be provided)."
+#	tk_messageBox -message $messaggio -type ok
+#}
+
+#proc lanciaTables {} {
+#	global env
+#	set comm1 [info nameofexecutable]
+#	set comm2 "$env(LG_TABLES)/tables.tcl"
+#	exec $comm1 -f $comm2 &
+#}
+#
+
+
+ 

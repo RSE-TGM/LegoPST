@@ -1,0 +1,114 @@
+proc pipeRead {pipe} {  
+    global done enval nlines
+    # eof on pipe signals end of data  
+    if [eof $pipe] {  
+      catch {close $pipe}
+      set done 1
+      return
+    }  
+    # Read data from the pipe  
+     set getRet [gets $pipe line]
+     if {$getRet < 0} {  
+      # Incomplete line  
+     } else {  
+      # Process data coming from pipe  
+	   if {$nlines < 10} {
+       		.top.text subwidget listbox insert end $line
+		incr nlines
+	   } else {
+		.top.text subwidget listbox delete 0
+       		.top.text subwidget listbox insert end $line
+	   }
+     } 
+     # Empty text entry for getting answer
+     set enval ""
+}
+
+proc pipeRead_linux {pipe} {
+    global  enval nlines
+    # eof on pipe signals end of data
+    if [eof $pipe] {
+      if {[catch {close $pipe} result]} {
+      	  tk_messageBox -message "Error closing pipe:\n$result"
+      } else {
+          set ::done 1
+	  #puts "fine PIPE"
+      }
+    } else {
+    	# Read data from the pipe
+	#puts "Leggo la pipe."
+     	set getRet [gets $pipe line]
+	#puts "getRet: $getRet\nline:$line."
+     	if {$getRet < 0} {
+      	    # Incomplete line
+	    if {[catch {close $pipe} result]} {
+      	    	tk_messageBox -message "Error closing pipe:\n$result"
+      	    } else {
+          	set ::done 1
+	  	#puts "fine PIPE"
+      	    }
+     	} else {
+            # Process data coming from pipe
+	    if {$nlines < 10} {
+       		.top.text subwidget listbox insert end $line
+		incr nlines
+	    } else {
+		.top.text subwidget listbox delete 0
+       		.top.text subwidget listbox insert end $line
+	    }
+     	}
+	# Empty text entry for getting answer
+     	set enval ""
+     }
+# fine pipeRead_linux     
+}
+
+
+
+#==============================================================================
+# Main
+##############
+package require Tix 
+
+global nlines pipe cancelled
+set cancelled 0
+toplevel .top
+wm title .top "Module instantiation"
+tixScrolledListBox .top.text -width 500 -scrollbar none 
+frame .top.frame
+entry .top.frame.entry -relief sunken -width 46 -font entryFont -textvariable enval
+button .top.frame.button -text Send -command {puts $pipe $enval}
+pack .top.frame.entry .top.frame.button -side left -padx 18
+button .top.cancel -text Cancel -command {catch {close $pipe}; set done 1;set cancelled 1;destroy .top}
+pack .top.text .top.frame .top.cancel -pady 5
+
+# Execute a command with a pipe  
+set nlines 0
+if  { $::tcl_platform(os) != "Linux" } {  
+    if [catch {open "|vorwahl2" r+} pipe] {  
+        tk_messageBox -message "Error opening pipe: $pipe"  
+    }  else {  
+       # Configure reader for pipe  
+       fileevent $pipe readable [list pipeRead $pipe] 
+       fconfigure $pipe -buffering line
+       
+       # Wait for completion of output from pipe
+       vwait done
+       destroy .top
+    }
+} else {
+     if {[catch {open "|vorwahl2" w+} pipe]} {
+         tk_messageBox -message "Error opening pipe: $pipe"
+     }  else {
+        # Configure reader for pipe
+        fconfigure $pipe -buffering line
+        fileevent $pipe readable [list pipeRead_linux $pipe]
+     
+        # Wait for completion of output from pipe
+        vwait ::done
+        #puts "distruggo la .top tra 2 sec"
+        #after 2000
+        destroy .top
+        #puts ".top distruTTA?"
+     }
+}

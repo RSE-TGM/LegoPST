@@ -1,0 +1,28 @@
+#!/bin/ksh
+#
+#  Script:                      makevorwahl
+#  Subsystem:
+#  %version:              2 %
+#  Description:
+#  %created_by:         lomgr %
+#  %date_created:        Mon Jul 23 14:22:13 2007 %
+
+
+FFLAGS= $(F_FLAGS)
+
+#######################################
+# Sezione   vorwahl1
+#######################################
+#
+all: $(TMPDIR)/vorwahl1 $(TMPDIR)/i3i4.for $(TMPDIR)/vorwahl2
+
+$(TMPDIR)/vorwahl1:
+	$(FC) $(FFLAGS) $(LG_PREINST)/vorwahl1_x.for -o $(TMPDIR)/vorwahl1
+
+
+$(TMPDIR)/i3i4.for: $(TMPDIR)/vorwahl1
+	$(TMPDIR)/vorwahl1
+
+$(TMPDIR)/vorwahl2: $(TMPDIR)/i3i4.for
+	$(FC) $(FFLAGS) $(LG_PREINST)/vorwahl2_x.for $(TMPDIR)/i3i4.for -o $(TMPDIR)/vorwahl2
+

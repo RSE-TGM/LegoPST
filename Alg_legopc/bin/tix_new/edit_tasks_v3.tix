@@ -1,0 +1,993 @@
+
+
+package require Tix
+
+source $env(LG_TIX)/checkopen.tcl
+
+#####################################################
+#
+# EDIT_TASKS	vers1.0		Dec 2000	
+#
+# programma per l'editing del file tasks.dat
+#
+#####################################################
+
+
+#####################################################
+#
+# build_add_task_win_new
+#
+#  file selection box che permette la selezione 
+# di un file .tom che permette la definizione della task 
+# (mediante il nome della dierctory selezionata)
+# da aggiungere nella lista
+#
+#####################################################
+proc build_add_task_win_new { wparent  } {
+	global sel_task_dir env fileChange
+	global workPath   tasklist 
+
+	set ftype { {"Task file" {*.tom}}}
+
+	set fret [tk_getOpenFile -title "Add  task" \
+			-initialdir $env(LG_MODELS) \
+			-filetypes $ftype  \
+			-parent $wparent ]
+
+	if { $fret == ""  } {
+		return
+	}
+
+	# file o directory non esistente
+	if { ![file exist $fret] } {
+		tk_messageBox -message "File not found $fret"
+		return
+	}	
+	
+	set dirname [file dirname $fret] 
+
+	# deve essere una directory
+	if { ![file isdirectory $dirname ] } {
+		tk_messageBox -message "File is not a valid directory $dirname"
+		return
+	} else {
+		set sel_task_dir $dirname
+	}
+
+#
+# controllo futuribile per confrontare il nome del file .tom scelto
+# e quello della directory di residenza del file .tom stesso
+#
+#	# il nome della directory deve coincidere con quello del file .tom
+#	set tomname [string tolower [file tail $fret]]
+#	set lastdirname [string tolower [file tail  $dirname]]
+#	set lastdirname $lastdirname .tom
+#
+#tk_messageBox -message "$tomname  $lastdirname"
+#			
+#	if {  [string compare $tomname  $lastdirname] } {
+#tk_messageBox -message "$tomname  $lastdirname mismatch"
+#	}
+#
+
+	# add item in task list widget
+	if { [lsearch -exact $tasklist $sel_task_dir] != -1 } { 
+		tk_messageBox -message "$sel_task_dir already inserted"
+		return
+	}
+
+	set tasklist [linsert $tasklist end $sel_task_dir]
+	# refresh listbox
+	show_data
+
+        set fileChange "YES"
+#tk_messageBox -message "build_add_task_win_new: $workPath"
+}
+
+
+# DA ELIMINARE
+#proc qq { } {
+#
+#	# il nome della directory deve coincidere con quello del file .tom
+#	set tomname [string tolower [file tail $fret]]
+#	set lastdirname [string tolower [file tail [file tail $fret]]]
+#	set lastdirname $lastdirname.tom
+#
+#	if {[ string compare $tomname  $lastdirname] } {
+#		tk_messageBox  - message "$tomname name mistach with directory name $lastdirname"
+#	}
+#}
+
+
+#####################################################
+# manu callback aggiunge un modello nella lista dei modelli
+# contenuti nel file tasks.dat
+#####################################################
+proc add_task_cb { wparent } {
+	global tasklist wlist
+	global sel_task_dir
+	global op
+	global fileChange
+
+	set op "ADD"
+	set sel_task_dir ""
+
+	build_add_task_win_new $wparent
+ 
+	set fileChange "YES"
+#tk_messageBox -message "add_task_cb: 2 fileChange: $fileChange" 
+}
+
+
+#####################################################
+#
+#####################################################
+proc delete_task_cb { } {
+	global tasklist wlist
+	global sel_task_dir
+	global fileChange
+
+    	set idx [$wlist subwidget listbox curselection]
+
+	# delete item in task list widget
+	set tasklist [lreplace $tasklist $idx $idx]
+	# refresh listbox
+	show_data
+
+	set fileChange "YES"
+}
+
+
+
+#####################################################
+#
+# visualizza la lista delle task nella scrolled window
+# uso il metodo cancella tutto e rivisualizza tutto
+#
+#####################################################
+proc show_data { } {
+	global tasklist wlist
+
+	# reset della listbox	
+	$wlist  subwidget listbox delete 0 end 
+
+
+	# visualizzo ogni item nella lista nella listbox
+	foreach task $tasklist {
+		$wlist  subwidget listbox insert end $task	
+	}
+
+	
+}
+
+#####################################################
+#
+# routine di lettura del file tasks.dat
+# e costruzione della lista globale delle task tasklist
+#
+#####################################################
+proc read_tasks { } {
+	global workPath  defFileName
+	global tasklist	
+
+	# apro il file tasks.dat
+	set fname [file join $workPath $defFileName] 
+	set fp [checkopen $fname r+]
+	
+	# leggo tutti i record in esso conetnuti
+	while { ![eof $fp] } {
+		gets $fp appo
+		if { [string length $appo] } {
+			lappend tasklist $appo
+		}
+	}
+	close $fp
+}
+
+#####################################################
+#
+# callback di salvataggio del file task.dat
+#
+#  viene evrificato il cambiamento del file tramite la variabile globale  fileChange 
+# 
+#####################################################
+proc save_task_cb { } {
+	global workPath  defFileName curFileName
+	global tasklist	
+	global fileChange
+#tk_messageBox -message "save_task_cb: fileChange: $fileChange" 
+	# non salvo se il file non � marcato come modificato
+
+
+
+	if { $fileChange == "NO" } {
+		return
+	}
+
+	# apro il file tasks.dat
+	set fname [file join $workPath $defFileName] 
+	set fp [checkopen $fname w]
+
+	#crivo tutti i record in esso conetnuti
+	for { set i 0 } { $i < [llength $tasklist] } { incr i } {
+		set  taskdir [lindex $tasklist $i] 
+		puts $fp $taskdir
+	}
+
+	close $fp
+
+	set fileChange "NO"
+}
+
+
+
+#####################################################
+#
+# open_simul
+#
+# callback d
+# apertura di un  file tasks.dat esistente
+#
+#####################################################
+proc open_simul { wparent fret } {
+	# definizione variabili globali utilizzate dal programma
+	global env
+	global workPath  defFileName
+	global tasklist
+	global wlist
+	global sel_task_dir
+	global op
+	global mainW
+	global menu_edit_wid
+
+	# inizializzazione variabili globali
+	set workPath  ""
+	set defFileName "tasks.dat"
+	set tasklist [list]
+
+	# definisce la path iniziale di resedenza del file tasks.dat (N.B.call by reference)
+	def_starting_path workPath 
+
+	# se la directory iniziale non esiste richiede all'utente se la vuole creare
+	# caso che si verifica solo se la variabile di environment
+	#  punta ad una directory non esistente	
+	if { ![file exists $workPath ] } {
+		set retval [tk_messageBox -type okcancel -message "Directory $workPath  not found\nPress Ok for create or Cancel to exit"]
+		case $retval  {
+			cancel { exit  }
+			ok {  
+				if { [catch { file mkdir $workPath  } e]  != 0  } { 
+					tk_messageBox -type ok -message "Error creating directory $workPath . Exit"
+					exit
+				} else {
+					tk_messageBox -type ok -message "directory $workPath  created"
+				}
+			}
+		}
+	}
+
+	set ftype { {"simulator file" {*.dat}}}
+
+	if {$fret == "XX"} { set fret [tk_getOpenFile -title "Open tasks.dat" \
+			-initialdir $workPath \
+			-initialfile $defFileName \
+			-filetypes $ftype  \
+			-parent $wparent]
+        }
+
+	# file o directory non esistente
+	if { ![file exist $fret] } {
+		return
+	}	
+
+	set workPath [file dirname $fret]
+#tk_messageBox -message "open_simul: $wparent"
+cd $workPath
+#	wm title $mainW  "Edit Task $workPath"
+
+	# inizia elaborazione del file tasks.dat
+
+	# legge l file tasks.dat
+	read_tasks
+
+	# show tasks records
+	show_data
+
+	# riabilita entries menu edit
+#	abilita_menu_edit
+#tk_messageBox -message "open_simul: $wparent"
+focus -force $wparent
+}
+
+#####################################################
+#
+# abilitazione entry del menu edit
+#
+#####################################################
+proc abilita_menu_edit { } {
+	global menu_edit_wid
+	$menu_edit_wid entryconfigure 0 -state normal
+	$menu_edit_wid entryconfigure 1 -state normal
+	$menu_edit_wid entryconfigure 2 -state normal
+}
+#####################################################
+#
+# disabilitazione entry del menu edit
+#
+#####################################################
+proc disabilita_menu_edit { } {
+	global menu_edit_wid
+	$menu_edit_wid entryconfigure 0 -state disabled
+	$menu_edit_wid entryconfigure 1 -state disabled
+	$menu_edit_wid entryconfigure 2 -state disabled
+}
+
+
+
+#####################################################
+#
+# new_simul
+#
+# apertura di un nuovo file tasks.dat
+#
+#####################################################
+proc new_simul { wparent } {
+	# definizione variabili globali utilizzate dal programma
+	global env
+	global workPath  defFileName
+	global tasklist
+	global wlist
+	global sel_task_dir
+	global op
+	global mainW
+	global fileChange 
+
+
+	# inizializzazione variabili globali
+	set workPath  ""
+	set defFileName "tasks.dat"
+	set tasklist [list]
+	
+
+	# definisce la path iniziale di resedenza del file tasks.dat (N.B.call by reference)
+	def_starting_path workPath 
+
+	# se la directory iniziale non esiste richiede all'utente se la vuole creare
+	# caso che si verifica solo se la variabile di environment
+	#  punta ad una directory non esistente	
+	if { ![file exists $workPath ] } {
+		set retval [tk_messageBox -type okcancel -message "Directory $workPath  not found\nPress Ok for create or Cancel to exit"]
+		case $retval  {
+			cancel { exit  }
+			ok {  
+				if { [catch { file mkdir $workPath  } e]  != 0  } { 
+					tk_messageBox -type ok -message "Error creating directory $workPath . Exit"
+					exit
+				} else {
+					tk_messageBox -type ok -message "directory $workPath  created"
+				}
+			}
+		}
+	}
+
+	set ftype { {"simulator file" {*.dat}}}
+
+	set fret [tk_getSaveFile -title "New tasks.dat" \
+			-initialdir $workPath \
+			-initialfile $defFileName \
+			-filetypes $ftype \
+			-parent $wparent ]
+
+	# per scrupolo controllo comunque il nome del file che l'utente ha salvato
+	set fname  [string tolower [file tail $fret]]
+	if { [string length $fname] < 5 } {
+		return
+	}
+
+	if { [string compare $fname "tasks.dat"] } {
+		tk_messageBox -message "Invalid file name."
+		return
+	}
+	
+
+	set fp [checkopen $fret w]
+	puts $fp {.\ }
+	close $fp
+
+	set workPath [file dirname $fret]
+
+#	wm title $mainW  "Edit Task $workPath"
+
+	# inizia elaborazione del file tasks.dat
+
+	# legge l file tasks.dat
+	read_tasks
+
+	# show tasks records
+	show_data
+
+	# riabilita entries menu edit
+#	abilita_menu_edit
+
+	set fileChange "YES"
+}
+
+#####################################################
+#
+# callback su doppio click della lista delle task
+# che richiama edit simul per l'item su cui 
+# si � cliccato
+#####################################################
+proc lancia_edit_simul { } {
+	global wlist tasklist
+	global workPath
+
+	if { [winfo exists ".esMainW"] } {
+		tk_messageBox -message "Edit Simul already open. Close it first."
+		return
+	}
+
+    	set idx [$wlist subwidget listbox curselection]
+
+   if { $idx >= 0 } {
+	set str [lindex $tasklist $idx]
+
+	if { ![string compare [string range $str 0 1] ".\\"] } {
+		set fname $workPath
+	} else {
+		set fname $str
+	}
+
+	
+	if { [string length $fname] } {
+		edit_simul $fname
+	}
+    }
+
+
+}
+
+#####################################################
+#
+# callback su doppio click della lista delle task
+# che richiama edit simul per l'item su cui 
+# si � cliccato
+#####################################################
+proc lancia_load_task { c4 c c2 } {
+	global wlist tasklist 
+	global curFileName curSimulPathName
+	global workPath
+#tk_messageBox -message "lancia_load_task: eccomi"
+
+	if { [winfo exists ".esMainW"] } {
+		tk_messageBox -message "Edit Simul already open. Close it first."
+		return
+	}
+
+    	set idx [$wlist subwidget listbox curselection]
+#tk_messageBox -message "lancia_load_task: idx=$idx"
+   if { $idx >= 0 } {
+   		if {$curFileName == "-"} {set curFileName "" }
+	set str [lindex $tasklist $idx]
+
+	if { ![string compare [string range $str 0 1] ".\\"] } {
+		set fname $workPath
+	} else {
+		set fname $str
+	}
+#set modelname [file tail $fname]
+#cd $modelname
+#tk_messageBox -message "lancia_load_task: $fname"
+	
+	if { [string length $fname] } {
+		set modelname [file tail $fname]
+		set oodir [pwd]
+		cd $fname
+		set curdir [ pwd ]
+		set curFileName [file join $curdir $modelname]
+#tk_messageBox -message "lancia_load_task: $curFileName"
+		cd $oodir
+#		set curFileName [file join $fname $modelname]
+		set curSimulPathName "$curdir"
+                apri_modello $c $c2 1
+#                ShowNamesfilt $c $c2 $showon
+#                open_simul $f4 $DIRMODEL/tasks.dat
+#                 load_task $DIRMODEL $c4 
+#tk_messageBox -message "lancia_load_task: $fname $curSimulPathName "		
+		load_task $fname $c4
+	}
+    }
+
+
+}
+
+
+
+proc sel_vars_for_simul2 { mainW } {
+    	global env envir 
+    	global rvar evar1 evar2 evar3 evar4
+   	global inpVarList monVarList
+	global wlist workpath
+
+
+   	global WidInList WidMonList 
+    	global Wpouts 
+   	global  integration_step  recording_step integration_method printouts
+	global varMainW
+
+
+
+	# create a listbox inside frame
+
+#        entry $mainW.entq -width 20 -textvariable workpath
+    	label $mainW.lblInput  -wraplength 4i -justify left -text "Simulator tasks"
+#    	pack $mainW.entq $mainW.lblInput  -side top
+    	pack $mainW.lblInput  -side top
+
+
+ 
+    	# creo la scrolled list delle task
+##    	set wlist [tixScrolledListBox $mainW.tasklist -command {  lancia_edit_simul  } -width 250 -height 70 ]
+    	set wlist [tixScrolledListBox $mainW.tasklist  -width 250 -height 70 ]
+#---menu con tk
+    set pop $mainW.p
+    menu $pop  -activebackground darkblue -activeforeground white -tearoff 0   
+#    $pop add command -label "Add task" -under 0 -command " build_add_task_win_new $mainW "
+    $pop add command -label "Load task" -under 0 -command { lancia_load_task  $c4  $c $c2 }
+    $pop add command -label "Add task" -under 0 -command " add_task_cb $mainW "
+    $pop add command -label "Remove task" -under 0 -command " delete_task_cb "
+    set dove [$wlist subwidget listbox ]
+    bind $dove <ButtonRelease-3> "tk_popup $pop %X %Y "
+
+#---menu con tix
+#    set pop $mainW.p
+#    tixPopupMenu $pop -spring true 
+#    set dove [$wlist subwidget listbox ] 
+#    $pop bind $dove
+#    set menu [$pop subwidget menu]
+#    set menubut [$pop subwidget menubutton ]
+#    
+#    $menu add command -label "Add task" -under 0 -command " build_add_task_win_new $mainW " -activebackground darkblue -activeforeground white
+#    $menu add command -label "Remove task" -under 0 -command " delete_task_cb " -activebackground darkblue -activeforeground white
+#    $menubut configure  -indicatoron true 
+#
+
+
+#    $menu add command -label Select  -under 0
+#    $menu add command -label Find    -under 0
+#    $menu add command -label System  -under 1
+#    $menu add command -label Help    -under 0
+#    $menu add cascade -label More -menu $menu.m1
+#    menu $menu.m1
+#    $menu.m1 add command -label Hello
+
+
+#	pack $wframe -side top  -fill both -expand yes
+#        pack $bframe -side top -anchor nw
+	pack $mainW -side left -anchor nw 
+#        pack $bframe.opensim  
+   	pack $mainW.tasklist -fill both -padx 4 -pady 6 -expand yes
+
+
+
+    	set w $mainW.varch
+
+	set varMainW $w
+#
+#     	toplevel $w
+#     	wm title $w "Simul Configuration"
+#     	wm iconname $w "SimulVARs"
+#     	wm minsize $w 15 1
+#
+        frame $w
+        pack  $w -anchor n -side left
+    	set top [frame $w.f -bd 1 -relief raised  ]
+    	set box [tixButtonBox $w.b -bd 1 -relief raised ]
+  
+    	# Create the buttons
+    	#
+#    	tk_messageBox -message "sel_vars_for_simul2: mainw=$mainW"
+        $box add open_sim -text "Open simulator" -command "open_simul $mainW  XX  "  -width 10
+    	$box add save_sim -text "Save Simulator"    -command "save_task_cb; ok_simul" -width 10
+    	$box add dolgser -text "Task build"     -command "esegui_dolgser" -width 10
+    	$box add new_sim -text "New Simulator"     -command "new_simul $mainW "  -width 10
+#    	$box add cancel -text Cancel -command "destroy $w" -width 6
+#    	$box add cancel -text Cancel -command "edit_simul_prompt_close" -width 6
+
+   	 # creo una PanedWindow per contenere le due liste di variabili
+    	#
+    	set pw [tixPanedWindow $w.pane -paneborderwidth 0 -separatorbg gray50]
+   	pack $pw -side top -expand yes -fill both -padx 10 -pady 10
+
+    	#definisco tre pane p1, p2 e p3 all'interno della panedWindow pw
+    	set p1 [$pw add listInput -min 70 -size 120]
+    	set p2 [$pw add listMon -min 70 -size 120]
+    	set p3 [$pw add dataSim -min 200 -size 210]
+
+   	# label sopra la lista variabili di input
+   	label $p1.lblInput  -wraplength 4i -justify left -text "Input vars"
+    	pack $p1.lblInput  -side top
+
+    	# creo la scrolled list delle variabili di input
+   	tixScrolledListBox $p1.listInput -command {del_var_sel $WidInList }
+   	$p1.listInput subwidget listbox config -font [tix option get fixed_font]
+
+   	# label sopra la lista delle variabili Monitoerd
+    	label $p2.lblInput  -wraplength 4i -justify left -text "Monitored vars"
+    	pack $p2.lblInput  -side top
+ 
+    	# creo la scrolled list delle variabili Monitored
+    	tixScrolledListBox $p2.listMon -command {del_var_sel $WidMonList  }
+    	$p2.listMon subwidget listbox config -font [tix option get fixed_font]
+
+    	# label sopra la finestra dei Simul Data
+    	label $p3.lblInput  -wraplength 4i -justify left -text "Simul data"
+    	pack $p3.lblInput  -side top 
+
+    	#creo un frame per contenere le entry per i dati di simulazione
+    	frame $p3.fr1 -border 1 -relief raised 
+    	tixLabelEntry $p3.fr1.dis -label "Integration Step: " \
+		-options {
+	   	 entry.width 10
+	   	 label.width 20
+	   	 label.anchor e
+	   	 entry.textVariable integration_step
+		}
+ 
+
+    	tixLabelEntry $p3.fr1.drs -label "Recording Step: " \
+		-options {
+	   	 entry.width 10
+	   	 label.width 20
+	    	label.anchor e
+	    	entry.textVariable recording_step
+		}
+
+   	 tixComboBox $p3.fr1.dim -label "Integration method: " -dropdown true \
+	 	-editable false -variable integration_method \
+		-options {
+	   	 listbox.height 2
+	    	label.width 20
+	   	 label.anchor e
+		}
+
+    	# printouts label
+    	tixLabelFrame $p3.fr1.pouts -label Printouts: -labelside acrosstop -options { label.padX 5  } 
+    	set f [$p3.fr1.pouts subwidget frame]
+#tk_messageBox -message "sel_vars_for_simul2: eccomi 1" -type ok -icon error	
+###   	pack $f -side left -expand yes -fill both -padx 50  
+#tk_messageBox -message "sel_vars_for_simul2: eccomi 2" -type ok -icon error 
+    	# Create the printouts CheckList (Multiple Selection)
+   	 #
+    	set c1 [tixCheckList $f.c -scrollbar auto -width 200]
+   	pack $c1 -expand yes -fill both -padx 4 -pady 4 
+
+    	set Wpouts $c1
+
+    	# Fill up  checklists 
+    	#
+    	set pouts(1) "inputs"
+    	set pouts(2) "jacobian matrix"
+    	set pouts(3) "iteration number"
+    	set pouts(4) "topological matrices"
+    	set pouts(5) "residual"
+  
+    	set h1 [$c1 subwidget hlist]
+
+    	foreach ent {1 2 3 4 5} {
+		$h1 add $ent -itemtype imagetext -text $pouts($ent)
+		$c1 setstatus $ent off
+    	}
+
+
+    	# visualizzo gli widget
+   	pack $p3.fr1
+    	pack $p3.fr1.dis -anchor w
+   	pack $p3.fr1.drs -anchor w
+   	pack $p3.fr1.dim -anchor w
+    	pack $p3.fr1.pouts
+
+   	 # Insert the choices into the combo boxes
+    	$p3.fr1.dim insert end "MA28"
+    	$p3.fr1.dim insert end "QUASI-NEWTON"
+
+    	# visualizzo gli widget
+    	pack $p1.listInput -expand yes -fill both -padx 4 -pady 6
+    	pack $p2.listMon -expand yes -fill both -padx 4 -pady 6
+ 
+   	pack $box -side bottom -fill both
+    	pack $top -side top -fill both -expand yes
+    	pack $pw -side top -expand yes -fill both -padx 10 -pady 10
+
+   	 # gestisco anche il pane menu 
+#    	$w configure -menu $w.menu
+
+    	set WidInList $p1.listInput
+    	set WidMonList $p2.listMon
+}
+
+
+
+#####################################################
+#
+# build_win
+#
+# procedura per la creazione della finestra di interfaccia
+#####################################################
+proc build_win { mainW c4 c c2 } {
+	global workPath
+	global wlist
+	global menu_edit_wid
+	global env
+	
+	
+
+#        pack $mainW
+##	toplevel $mainW -width 900
+
+	# setting main window
+##	wm title $mainW  "Edit Task $workPath" 
+##	wm maxsize $mainW  1260 1400
+
+	#definizione main men�
+##	menu $mainW.menutask -tearoff 0
+##	set mf $mainW.menutask.file
+##	set me $mainW.menutask.edit
+##	set hlp $mainW.menutask.help
+
+##	set menu_edit_wid $me
+
+##	menu $mf -tearoff 0 -activebackground darkblue -activeforeground white
+##	menu $me -tearoff 0 -activebackground darkblue -activeforeground white
+##	menu $hlp -tearoff 0 -activebackground darkblue -activeforeground white
+
+##	$mainW.menutask add cascade -label "File" -menu $mf -underline 0
+##	$mf add command -label "Open simulator" -command "open_simul $mainW"
+##	$mf add command -label "New simulator" -command "new_simul $mainW"
+##	$mf add command -label "Save"  -command "save_task_cb"
+##	$mf add command -label "Close All" -command "edit_task_prompt_close "
+
+##	$me add command -label "Add Task" -command "add_task_cb $mainW" 
+##	$me add command -label "Delete Task"  -command "delete_task_cb" 
+##	$me add command -label "Edit Simul" -command "lancia_edit_simul " 
+##	$mainW.menutask add cascade -label "Edit" -menu $me -underline 0 
+
+	# disabilito le entry del menu edit
+	# fino a che l'operatore non apre o crea un simulatore
+##	disabilita_menu_edit 
+
+##	$hlp add command -label "Help" -command "open_hlp index"
+##	$mainW.menutask add cascade -label "?" -menu $hlp -underline 0
+
+##	$mainW configure -menu $mainW.menutask 
+
+	# create a main frame
+	set wframe $mainW.fr1
+#	frame $wframe  -width 900
+	frame $wframe
+#	# create a button frame
+#	set bframe $mainW.bfr
+#	frame $bframe
+#        button $bframe.opensim -text "Open simulator" -command { open_simul "." "XX" }
+#        	                                               
+                                                                 
+
+
+#	# create a listbox inside frame
+#    	label $wframe.lblInput  -wraplength 4i -justify left -text "Simulator tasks"
+#    	pack $wframe.lblInput  -side top
+# 
+#    	# creo la scrolled list delle task
+#    	set wlist [tixScrolledListBox $wframe.tasklist -command {  lancia_edit_simul  } -width 250 -height 70 ]
+#
+##	pack $wframe -side top  -fill both -expand yes
+##        pack $bframe -side top -anchor nw
+#	pack $wframe -side left -anchor nw 
+##        pack $bframe.opensim  
+#   	pack $wframe.tasklist -fill both -padx 4 -pady 6 -expand yes
+#
+#-------------------nuovo build
+#    set pop $wframe.p
+#    tixPopupMenu $pop -title "Popup Test"
+#    $pop bind $wframe
+#
+#    set menu [$pop subwidget menu]
+#    $menu add command -label Desktop -under 0
+#    $menu add command -label Select  -under 0
+
+#tk_messageBox -message "build_win: eccomi 1" -type ok -icon error
+sel_vars_for_simul2 $wframe
+
+	set c4 $mainW.frame.c4
+
+	set wsBackg gray90
+	set wsWidth 312
+#	set wsWidth 512
+	set wsHeight 384
+	set wsScrWidth 800
+	set wsScrHeight 600
+	set wsXsiz $wsScrWidth
+	set wsYsiz $wsScrHeight
+	set wsXmin $wsWidth
+	set wsYmin $wsHeight
+
+
+
+	frame $mainW.frame
+	pack $mainW.frame -side top -fill both -expand yes
+	canvas $c4 -bg $wsBackg -scrollregion [list 0 0 $wsScrWidth $wsScrHeight] \
+		-width $wsWidth -height $wsHeight -xscrollcommand "$mainW.frame.hscroll set" \
+		-yscrollcommand "$mainW.frame.vscroll set"
+	scrollbar $mainW.frame.vscroll -command "$c4 yview"
+	scrollbar $mainW.frame.hscroll -orient horiz -command "$c4 xview"
+
+
+	grid $c4 -in $mainW.frame -row 0 -column 0 -rowspan 1 -columnspan 1 -sticky news
+	grid $mainW.frame.vscroll -row 0 -column 1 -rowspan 1 -columnspan 1 -sticky news
+	grid $mainW.frame.hscroll -row 1 -column 0 -rowspan 1 -columnspan 1 -sticky news
+	grid rowconfig $mainW.frame 0 -weight 1 -minsize 0
+	grid columnconfig $mainW.frame 0 -weight 1 -minsize 0
+
+
+#images
+#set pixmapPath "$env(LG_PIXMAPS)"
+#set olddir [pwd]
+#cd $pixmapPath
+#foreach singleconn [glob -nocomplain {????_[news].ppm}] {
+#	image create photo [file rootname $singleconn] -file [file join $pixmapPath $singleconn]
+#}
+#image create photo portActive -file [file join $pixmapPath actconn.ppm]
+#cd $olddir
+
+
+
+
+#	$c4 bind module <1> "showOptions2 $c4 %x %y"
+	$c4 bind module <1> {
+                set coo [$c4 coords current] 
+         	set myTags [$c4 gettags current]
+#         tk_messageBox -message "build_win:$c4 - $coo - x:%x - y:%y mytags:$myTags "
+                showOptions2 $c4 [lindex $coo 0] [lindex $coo 1] $myTags
+         }
+
+        $wlist configure -command {  lancia_load_task  $c4  $c $c2}
+
+# Zoom con Ctrl+ScrollWheel (indipendente da $c e $c2)
+bind $c4 <Enter> {focus %W}
+bind $c4 <Control-Button-4> {
+    set _zlevels {0.25 0.5 0.75 1.0 1.5 2.0}
+    set _cur [expr {[info exists ::zoomLevelOf(%W)] ? $::zoomLevelOf(%W) : 1.0}]
+    set _idx [lsearch $_zlevels $_cur]
+    incr _idx
+    if {$_idx >= 0 && $_idx < [llength $_zlevels]} {
+        doZoom %W [lindex $_zlevels $_idx]
+    }
+}
+bind $c4 <Control-Button-5> {
+    set _zlevels {0.25 0.5 0.75 1.0 1.5 2.0}
+    set _cur [expr {[info exists ::zoomLevelOf(%W)] ? $::zoomLevelOf(%W) : 1.0}]
+    set _idx [lsearch $_zlevels $_cur]
+    incr _idx -1
+    if {$_idx >= 0 && $_idx < [llength $_zlevels]} {
+        doZoom %W [lindex $_zlevels $_idx]
+    }
+}
+
+return $c4
+}
+
+#####################################################
+# set_starting_path 
+# 
+# definisce la path iniziale di residenza del file tasks.dat
+# N.B.gli argomenti della procedura sono "reference"
+#
+#####################################################
+proc def_starting_path { p } {
+	upvar $p rvar
+	global env
+
+	# definisco la directory di lavoro di default
+
+
+	# utilizzo la variabile di environment LG_BASE 
+	# o in alternativa la working directory 
+	# per definire il path iniziale  di residenza del file tasks.dat
+	if { [catch { set rvar $env(LG_BASE) } e]  != 0  } { 
+		set initDir [pwd]
+	} else {
+		set initDir "$env(LG_SIMULATORS)"
+	}
+	
+	set rvar $initDir 
+}
+
+#####################################################
+#
+# MAIN
+# 
+#####################################################
+proc edit_tasks { f DIRMODEL c c2 } {
+#tk_messageBox -message "edit_tasks: eccomi 0"	
+	# definizione variabili globali utilizzate dal programma
+	global env mainW 
+	global workPath  defFileName
+	global tasklist
+	global wlist
+	global sel_task_dir
+	global op
+	global fileChange	
+
+	# inizializzazione variabili globali
+	set workPath  ""
+	set defFileName "tasks.dat"
+	set tasklist [list]
+	set wlist ""
+	set fileChange "NO"
+	
+	# costruisco la finestra di interfaccia
+#	set mainW $f.topW
+set cantask 0
+
+#tk_messageBox -message "edit_tasks: eccomi 1" -type ok -icon error
+
+	set c4 [build_win $f $cantask  $c $c2 ]
+
+#tk_messageBox -message "edit_tasks: eccomi 2" -type ok -icon error
+
+	# apro un file tasks.dat
+	# open_tasks
+
+# FATTO - 22-01-01
+# 19/11/01 caricare da $lg_tix 
+	set srcdir  $env(LG_TIX)
+
+
+	# load source di edit_simul
+	source [file join $srcdir edit_simulx_v3.tix]
+#	source [file join $srcdir openHelp.tcl]
+
+#	wm protocol $mainW WM_DELETE_WINDOW "edit_task_prompt_close "
+#tk_messageBox -message "eccomi 2  workPath=$workPath DIRMODEL=$DIRMODEL "
+open_simul $f $DIRMODEL/tasks.dat
+#	edit_simul $DIRMODEL
+
+return $c4
+}
+
+proc edit_task_prompt_close { } {
+	global mainW
+	global fileChange
+
+	if { $fileChange == "YES" } {
+		set resp [tk_messageBox -type yesnocancel \
+				-title "WARNING ON EXIT" \
+				-message "You haven't saved your changes\nDo you want to save?"]
+		case $resp {
+			yes {
+				#tk_messageBox -message "MUST SAVE"
+				save_task_cb 
+			}
+			cancel {
+				return
+			}
+		}
+	}
+	#tk_messageBox -message "Intercettata chiusura"
+	destroy $mainW .  
+	exit
+}
+
+#####################################################
+#
+# STARTER 
+#
+#####################################################
+
+# nascondo la finestra parent di tutte le finestre
+#wm withdraw .
+
+#edit_tasks
+
+
+##################### End Of  File ##################

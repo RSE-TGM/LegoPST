@@ -1,0 +1,336 @@
+
+source $env(LG_TIX)/checkopen.tcl
+
+
+wm title . "Auxiliary Fortran"
+
+global pathmodel env
+
+set pathmodel [file join $env(LG_MODELS) $argv]
+
+frame .qc
+pack .qc -side top
+
+frame .qc.frm1
+pack .qc.frm1 -side left
+label .qc.frm1.lab1 -text "   Modules list with foraus       "
+pack .qc.frm1.lab1 -side top -pady 3m
+frame .qc.frm1.list1
+listbox .qc.frm1.list1.lbox -yscroll ".qc.frm1.list1.scrl set" -setgrid 1 \
+                  -background white -height 6 -width 10 -font "Courier 11"
+scrollbar .qc.frm1.list1.scrl -command ".qc.frm1.list1.lbox yview"
+pack .qc.frm1.list1 -side top -pady 3m
+pack .qc.frm1.list1.lbox .qc.frm1.list1.scrl \
+       -anchor center -side left -fill y
+
+frame .qc.frm2
+button .qc.frm2.add -text "Add" -command {
+ global env pathmodel
+ set indexmod [.qc.frm1.list1.lbox curselection]
+ if {$indexmod != ""} {
+  set selmod [.qc.frm1.list1.lbox get $indexmod]
+  .qc.frm1.list1.lbox delete $indexmod
+  set lisfor [.qc.frm3.list2.lbox get 0 end]
+  .qc.frm3.list2.lbox delete 0 end
+  lappend lisfor $selmod
+  set lisforaus [lsort $lisfor]
+  foreach i $lisforaus {
+   .qc.frm3.list2.lbox insert end $i
+  }
+  set nomemod [string tolower $selmod]
+  set modulo [checkopen $env(LG_LIBUT)/$nomemod.for r]
+  set fortemp [checkopen $pathmodel/foraus.tmp r+]
+  set indexfor "C~FORAUS_$selmod~C"
+  while {[eof $fortemp] != 1} {
+   gets $fortemp line
+  }
+  set flag1 0
+  gets $modulo line
+  while {[eof $modulo] != 1} {
+   if {[string trim $line] == $indexfor && $flag1 == 0} {
+    set flag1 1
+    puts $fortemp $line
+    gets $modulo line
+   }
+   if {$flag1 != 0 && [string trim $line] == $indexfor} {
+    puts $fortemp $line
+    set flag1 0
+   }
+   if {$flag1 != 0} {
+    puts $fortemp $line
+   }
+   gets $modulo line
+  }
+  close $modulo
+  close $fortemp     
+ }
+}  
+ 
+button .qc.frm2.del -text "Del" -command {
+ set indexmod [.qc.frm3.list2.lbox curselection]
+ if {$indexmod != ""} {
+  set selmod [.qc.frm3.list2.lbox get $indexmod]
+  .qc.frm3.list2.lbox delete $indexmod
+  set lismod [.qc.frm1.list1.lbox get 0 end]
+  .qc.frm1.list1.lbox delete 0 end
+  lappend lismod $selmod
+  set listasin [lsort $lismod]
+  foreach i $listasin {
+   .qc.frm1.list1.lbox insert end $i
+  }
+  set nomemod [string tolower $selmod]
+  set modulo [checkopen $env(LG_LIBUT)/$nomemod.for r]
+  set fortemp [checkopen $pathmodel/foraus.tmp r]
+  set indexfor "C~FORAUS_$selmod~C"
+  set fordel [checkopen $pathmodel/fordel.tmp w]
+  set flag1 0
+  gets $fortemp line
+  while {[eof $fortemp] != 1} {
+   if {[string trim $line] == $indexfor && $flag1 == 0} {
+    set flag1 1
+   } elseif {[string trim $line] == $indexfor && $flag1 == 1} {
+    set flag1 0
+    gets $fortemp line
+   }
+   if {$flag1 == 0} {
+    puts $fordel $line
+   }
+   gets $fortemp line
+  }
+  close $fortemp
+  close $fordel
+  file delete -force $pathmodel/foraus.tmp
+  file copy -force $pathmodel/fordel.tmp $pathmodel/foraus.tmp
+  file delete -force $pathmodel/fordel.tmp
+ } 
+}
+
+button .qc.frm2.edit -text "Edit" -command {
+ global env pathmodel
+# set editor notepad
+ set editor $env(LG_LEGO)/edita.bat
+ set indexmod [.qc.frm3.list2.lbox curselection]
+ if {$indexmod == ""} {
+  tk_messageBox -message "No module selected" -type ok -icon warning
+  return
+ } else {
+  set selmod [.qc.frm3.list2.lbox get $indexmod]
+  set nomemod [string tolower $selmod]
+  set filetemp [checkopen $pathmodel/$nomemod.tmp w]
+  set fortemp [checkopen $pathmodel/foraus.tmp r]
+  set flag1 0
+  set indexfor "C~FORAUS_$selmod~C"
+  gets $fortemp line
+  while {[eof $fortemp] != 1} {
+   if {[string trim $line] == $indexfor && $flag1 == 0} {
+    set flag1 1
+    puts $filetemp $line
+    gets $fortemp line
+   }
+   if {$flag1 != 0 && [string trim $line] == $indexfor} {
+    puts $filetemp $line
+    set flag1 0
+   }
+   if {$flag1 != 0} {
+    puts $filetemp $line
+   }
+   gets $fortemp line
+  }
+  close $fortemp
+ }
+ close $filetemp
+ set dataold [file mtime $pathmodel/$nomemod.tmp]
+ exec $editor [join [split "$pathmodel/$nomemod.tmp" / ] \\ ]
+ set datanew [file mtime $pathmodel/$nomemod.tmp]
+ set filetemp [checkopen $pathmodel/$nomemod.tmp r]
+ if {$datanew > $dataold} {
+  set fortemp [checkopen $pathmodel/foraus.tmp r+]
+  set fordel [checkopen $pathmodel/fordel.tmp w]
+  set flag1 0
+  gets $fortemp line
+  while {[eof $fortemp] != 1} {
+   if {[string trim $line] == $indexfor && $flag1 == 0} {
+    set flag1 1
+   } elseif {[string trim $line] == $indexfor && $flag1 == 1} {
+    set flag1 0
+    gets $fortemp line
+   }
+   if {$flag1 == 0} {
+    puts $fordel $line
+   }
+   gets $fortemp line
+  }
+  close $fortemp
+  set flag1 0
+  gets $filetemp line
+  while {[eof $filetemp] != 1} {
+   if {[string trim $line] == $indexfor && $flag1 == 0} {
+    set flag1 1
+    puts $fordel $line
+    gets $filetemp line
+   }
+   if {$flag1 != 0 && [string trim $line] == $indexfor} {
+    puts $fordel $line
+    set flag1 0
+   }
+   if {$flag1 != 0} {
+    puts $fordel $line
+   }
+   gets $filetemp line
+  }
+  close $fordel
+  file delete -force $pathmodel/foraus.tmp
+  file copy -force $pathmodel/fordel.tmp $pathmodel/foraus.tmp
+  file delete -force $pathmodel/fordel.tmp         
+ }
+  close $filetemp
+  file delete -force $pathmodel/$nomemod.tmp
+}
+  
+
+pack .qc.frm2 -side left -anchor s -padx 3m 
+pack .qc.frm2.edit -side bottom -pady 1.5m
+pack .qc.frm2.del -side bottom -pady 1.5m
+pack .qc.frm2.add -side bottom -pady 1.5m
+
+
+frame .qc.frm3
+pack .qc.frm3 -side left
+label .qc.frm3.lab2 -text "std routine in auxiliary fortran   "
+pack .qc.frm3.lab2 -side top -pady 3m
+frame .qc.frm3.list2
+listbox .qc.frm3.list2.lbox -yscroll ".qc.frm3.list2.scrl set" -setgrid 1 \
+                  -background white -height 6 -width 10 -font "Courier 11"
+scrollbar .qc.frm3.list2.scrl -command ".qc.frm3.list2.lbox yview"
+pack .qc.frm3.list2 -side top -pady 3m
+pack .qc.frm3.list2.lbox .qc.frm3.list2.scrl \
+       -anchor center -side left -fill y
+
+frame .sep1 -relief ridge -bd 1 -height 2
+pack .sep1 -side top -pady 2m -fill x
+
+frame .buttons
+pack .buttons -side top -fill x -pady 3m
+button .buttons.save -text "Save" -width 6 -command {
+ global env pathmodel
+ file delete -force $pathmodel/foraus.for
+ file copy -force $pathmodel/foraus.tmp $pathmodel/foraus.for
+ tk_messageBox -message "File foraus.for saved" -type ok -icon info
+}
+
+button .buttons.comp -text "Compile" -width 6 -command {
+ global env pathmodel
+ .mex.text delete 0.0 end
+ cd $pathmodel
+ exec $env(LG_LIBUT)/comp.bat foraus.for &
+
+ after 2000
+
+ set mexid [checkopen comp.out r]
+
+ while {[eof $mexid] != 1} {
+
+  .mex.text insert end [gets $mexid]\n
+ }
+ close $mexid
+ file delete -force comp.out 
+}
+
+button .buttons.exit -text "Exit" -width 6 -command {
+ global env pathmodel
+ file delete -force $pathmodel/foraus.tmp
+ destroy .
+}
+
+pack .buttons.save .buttons.comp .buttons.exit -side left -padx 1c
+
+frame .sep2 -relief ridge -bd 1 -height 2
+pack .sep2 -side top -pady 2m -fill x
+
+frame .complab
+pack .complab -side top
+label .complab.label -text "Compile messages"
+pack .complab.label -side top -anchor center
+
+
+frame .mex
+pack .mex -side top -pady 1m -padx 3m
+scrollbar .mex.scroll -command ".mex.text yview"
+text .mex.text -yscroll ".mex.scroll set" -setgrid 1 -height 10 -width 58
+
+pack .mex.scroll -side right -fill y
+pack .mex.text -side left -expand 1 -fill both -pady 3m
+
+set templist [glob -nocomplain $pathmodel/*.tmp ]
+foreach x $templist {
+ file delete $x -force
+}
+ file delete $pathmodel/foraus.tmp -force
+
+ file copy -force $pathmodel/foraus.for $pathmodel/foraus.tmp
+ if  { $::tcl_platform(os) != "Linux" } {
+   set idlist [checkopen $env(LG_LIBUT)/L_moduli.dat r]
+ } else {
+   set idlist [checkopen $env(LG_LIBUT)/lista_moduli.dat r]
+ }
+ set idf01 [checkopen $pathmodel/f01.dat r]
+ set idforaus [checkopen $pathmodel/foraus.for r]
+ gets $idf01 line
+ gets $idf01 line
+ set primequa [string range $line 0 3]
+ set lismodf01 {}
+ while {$primequa != "****"} {
+  lappend lismodf01 $primequa
+  gets $idf01 line
+  set primequa [string range $line 0 3]
+ }
+ set listamoduli {}
+ gets $idlist line
+ while {[eof $idlist] != 1} {
+  lappend listamoduli $line
+  gets $idlist line
+ }
+ set lismodfor {}
+ foreach i $lismodf01 {
+  foreach j $listamoduli {
+   if {$i == [string range $j 0 3] && [string range $j 4 4] == "*"} {
+    lappend lismodfor $i
+   }
+  }
+ }
+ set lisforaus {}
+ set doppio 0
+ gets $idforaus line
+ while {[eof $idforaus] != 1} {
+  if {[string range $line 0 7] == "C~FORAUS" && $doppio == 0} {
+   lappend lisforaus [string range $line 9 12]
+   set doppio 1
+  } elseif {[string range $line 0 7] == "C~FORAUS" && $doppio != 0} {
+   set doppio 0
+  }
+  gets $idforaus line
+ }
+ foreach i $lisforaus {
+  .qc.frm3.list2.lbox insert end $i
+ }
+ set double 0
+ set listasin {}
+ foreach i $lismodfor {  
+  foreach j $lisforaus {
+   if {$i == $j} {
+    set double 1
+   }
+  }
+  if {$double == 0} {
+   lappend listasin $i
+  } else {
+   set double 0
+  }
+ }
+ foreach i $listasin {
+  .qc.frm1.list1.lbox insert end $i
+ }
+
+close $idlist
+close $idf01
+close $idforaus

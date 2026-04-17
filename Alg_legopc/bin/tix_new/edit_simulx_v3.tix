@@ -1,0 +1,1322 @@
+
+
+package require Tix
+
+source $env(LG_TIX)/checkopen.tcl
+
+#####################################################
+#
+# EDIT_SIMUL	vers1.0		Dec 2000	
+#
+# programma per l'editing del file simul.dat
+#
+# Variabili di environment che devono essere definite prima
+# della esecuzione del programma:
+#  	 LG_BASE	p.es. set LG_BASE=C:\carlo\dati
+#  	 LG_BROWSER=C:/Programmi/Internet Explorer/iexplore.exe
+#  	 LG_HELP_PATH=D:/help_lego_pc/LegoPCHelp
+#
+#	example: you can set this in your autoexec.bat
+#
+#	set LG_BASE=C:\lego\dati
+#	set LG_BROWSER=C:/Programmi/Internet Explorer/iexplore.exe
+#	set LG_HELP_PATH=D:/help_lego_pc/LegoPCHelp
+#
+#
+#
+#####################################################
+
+#####################################################
+#
+# utilities per la cancellazione di item da una lista
+#
+# l1 lista sorgente da cui eliminare gli item
+# l2 lista degli indici di item da eliminare
+#
+#####################################################
+proc ldelete { l1 l2 } {
+
+	set le [llength $l2]
+
+	if { $le } {
+		set numdel 0
+		for { set i 0 } { $i < $le } { incr i } {
+			set idxtodel [ expr [lindex $l2 $i] - $numdel]
+			set l1  [lreplace $l1  $idxtodel $idxtodel]
+			incr numdel
+		}
+	}
+	return $l1
+}
+
+#####################################################
+#
+# showOptions2 
+#
+#####################################################
+proc showOptions2 {c x y myTags} {
+
+	if { $myTags == "" } {
+		set myTags [$c gettags current]
+	}
+	
+	set appo $myTags
+
+#tk_messageBox -message "showOptions2:eccomi - $c - $appo - $myTags"
+	set modName [string range [lindex $myTags 2] 0 3]
+ 	
+	catch	{$c delete modOpt}
+
+
+	set x1 $x
+	set y1 [expr $y - 30]
+	set mylist [list "Block $modName" "Variables" "Help" "Quit"]
+	for {set idTid 0} {$idTid < 4} {incr idTid} {
+		set el [lindex $mylist $idTid]
+		set tid($idTid) [$c create text $x1 $y1 -text $el -anchor n -tags modOpt]
+		set lc [$c bbox $tid($idTid)]
+		set y1 [lindex $lc 3]
+	}
+	$c itemconfigure $tid(0) -fill coral3
+	$c bind $tid(0) <B1-ButtonRelease> ""
+	$c bind $tid(1) <B1-ButtonRelease> "showVars $c %x %y {$appo}"
+	$c bind $tid(2) <B1-ButtonRelease> "open_hlp   $modName"
+	$c bind $tid(3) <B1-ButtonRelease> "$c delete modOpt"
+
+	$c bind $tid(0) <Enter> "$c itemconfigure $tid(0) -fill blue; \
+	                         $c itemconfigure $tid(1) -fill black; \
+	                         $c itemconfigure $tid(2) -fill black; \
+	                         $c itemconfigure $tid(3) -fill black "
+	$c bind $tid(1) <Enter> "$c itemconfigure $tid(1) -fill blue; \
+	                         $c itemconfigure $tid(0) -fill coral3; \
+	                         $c itemconfigure $tid(2) -fill black; \
+	                         $c itemconfigure $tid(3) -fill black "
+	$c bind $tid(2) <Enter> "$c itemconfigure $tid(2) -fill blue; \
+	                         $c itemconfigure $tid(0) -fill coral3; \
+	                         $c itemconfigure $tid(1) -fill black; \
+	                         $c itemconfigure $tid(3) -fill black "
+	$c bind $tid(3) <Enter> "$c itemconfigure $tid(3) -fill blue; \
+	                         $c itemconfigure $tid(0) -fill coral3; \
+	                         $c itemconfigure $tid(1) -fill black; \
+	                         $c itemconfigure $tid(2) -fill black "
+
+
+
+	set lc [$c bbox modOpt]
+	set x1 [expr [lindex $lc 0] - 5]
+	set y1 [expr [lindex $lc 1] - 1]
+	set x2 [expr [lindex $lc 2] + 5]
+	set y2 [lindex $lc 3]
+	$c create rectangle $x1 $y1 $x2 $y2 -fill white -tags modOpt
+	$c raise $tid(0)
+	$c raise $tid(1)
+	$c raise $tid(2)
+	$c raise $tid(3)
+}
+
+#####################################################
+#
+# view_error 
+#
+#####################################################
+proc view_error { errn } {
+
+     	switch $errn  {
+        		F_100 {
+		tk_messageBox -type ok -icon error  -message "Simul.dat \nFormat Error\nSee input variable number"
+       		}
+        		F_101 {
+		tk_messageBox -type ok -icon error  -message "Simul.dat \nFormat Error\nSee monitored variable number"
+       		}
+        		F_102 {
+		tk_messageBox -type ok -icon error  -message "Simul.dat \nFormat Error\nBad END keyword"
+       		}
+   	 }
+}
+
+#####################################################
+#
+# reset_global_simul
+#
+#####################################################
+
+proc reset_global_simul { } {
+	### lista contenirore variabili input e monitored
+	global  inpVarList  monVarList  
+	### dati generali di simulazione
+	global  integration_step  recording_step integration_method printouts
+
+	# reset variabili globali relative alle valorizzazione di simul.dat
+
+	set inpVarList [list ]
+	set monVarList [list ]
+	set printouts [list ]
+	set integration_step  1.
+	set recording_step 0
+	set integration_method "MA28"
+
+}
+
+#####################################################
+#
+# showVars
+#
+# procedura con numero variabile di argomenti
+# solamente i primi tre canvas x e y sono obbligatori
+# nel caso che non sia passata la tag dell'oggetto desiderato
+# viene ricercato l'oggetto current
+#####################################################
+
+proc showVars {c x y args } {
+	if { [llength $args]<=0 } {
+		set myTags [$c gettags current]
+	} else {
+		set myTags [lindex $args 0]
+	}
+#tk_messageBox -message "showVars eccomi 2 -$myTags"	
+
+     	 if {[file rootname [lindex $myTags [lsearch $myTags *.ori]]] == ""} {
+	 	set modName [string range [lindex $myTags 3] 0 3]
+      	} else {
+      		 set modName [string range [lindex $myTags 5] 0 3]
+	}
+	catch	{$c delete modOpt}	
+
+	showIt $modName
+	$c delete modOpt"
+}
+
+
+
+#####################################################
+#
+# showlt
+#
+#####################################################
+proc showIt {mod} {
+	global curFileName campo
+	global numVars nomeVars tipoVars tipVarMod
+
+#####only for debug
+	global numBlo listBlo
+	global blocModu blocBloc blocDesc blocNvar blocVars
+	global numVars nomeVars tipoVars descVars valuVars weightvars
+	global tipVarMod numeVblo listVblo matrVblo
+	global varwinMainW
+
+
+	if {[loadVariables $mod]} return
+
+
+
+	for {set i 0} {$i < $numVars} {incr i} {
+		set nomeVars($i) $blocVars($mod,$i,nome)
+		set tipoVars($i) $blocVars($mod,$i,tipo)
+		set descVars($i) $blocVars($mod,$i,desc)
+		set nom $nomeVars($i)
+		set tip $tipVarMod($nom)
+		set valuVars($i) [string trim $matrVblo($nom,$tip,valu)]
+            set weightvars($i) $matrVblo($nom,$tip,code)
+	}
+
+	set w1 ".varwin"
+	set varwinMainW $w1
+
+	catch {destroy $w1}
+	toplevel $w1
+	wm title $w1 "Block $mod variables"
+	wm maxsize $w1 620 440
+
+	set but $w1.buttons
+	frame $but
+	pack $but -side bottom -pady 10
+	button $but.quit -text "Quit" -command "destroy $w1"
+	pack $but.quit -side left -expand yes -ipadx 35 -padx 50
+
+	set w2 $w1.sfondo
+	tixScrolledWindow $w2 -scrollbar "auto -x"
+	pack $w2
+	set w3 [$w2 subwidget window]
+
+	frame $w3.middle
+	pack $w3.middle -side top -padx 10 -pady 10
+
+	set tit $w3.middle.titolo
+	frame $tit
+	pack $tit -side top
+
+	set campo(0) "Var.Name"
+	set campo(1) "  "
+
+	button $tit.nome -textvariable campo(0) -width 8 -relief raised \
+		-font titleFont -state disabled -background green \
+		-disabledforeground black
+	button $tit.tipo -textvariable campo(1) -width 2 -relief raised \
+		-font titleFont -state disabled -background green
+	pack $tit.nome $tit.tipo -side left -anchor w
+
+	for {set index 0} {$index < $numVars} {incr index} {
+		set rig $w3.middle.riga$index
+		frame $rig
+		pack $rig -side top
+            	set nome $nomeVars($index)
+            	set tipovar $tipVarMod($nome)
+		button $rig.nome -textvariable nomeVars($index) -width 8 -relief groove \
+			-font entryFont -background gray80
+		bind $rig.nome <1> "setSlot $mod  $index $tipVarMod($nomeVars($index))"
+		button $rig.tipo -textvariable tipoVars($index) -width 2 -relief groove \
+			-font entryFont -state disabled -background yellow \
+			-disabledforeground black
+		pack $rig.nome $rig.tipo -side left
+	}
+}
+
+
+#####################################################
+#
+# del_var_sel
+#
+# procedura per la cancellazione dell'item selezionato della listbox
+#
+#####################################################
+proc del_var_sel {lbox } {
+      global  inpVarList  monVarList 
+      global WidInList WidMonList 
+      global fileChange
+
+
+    	set idx [$lbox  subwidget listbox curselection]
+     	if { $idx >= 0 } {
+     		 $lbox  subwidget listbox delete $idx    
+
+     		if {$lbox == $WidInList  } {
+			set ltype "IN"
+    	 	} else {
+			set ltype "UA"
+    	 	}
+    	 	del_var $idx $ltype
+    	 }
+
+set fileChange "YES"	
+
+}
+
+#####################################################
+#
+# del_var
+#
+# procedura per la cancellazione dell'item selezionato della lista globale delle variabili
+#
+#####################################################
+proc del_var { ind vtype } {
+     	global  inpVarList  monVarList 
+ 	global simul_change
+
+   	set idx  [expr $ind]
+
+     	switch $vtype {
+        		IN {
+		set inpVarList [lreplace $inpVarList   $idx $idx ]
+       		}
+        		UA {
+		set monVarList  [lreplace $monVarList $idx $idx]
+        		}
+       		 US {
+		set monVarList [lreplace $monVarList  $idx $idx]
+      		 }
+   	 }
+
+	 set simul_change "YES"
+}
+
+#####################################################
+#
+# save_simul
+#
+# save simul.dat
+#
+#####################################################
+proc save_simul { } {
+      global  inpVarList  monVarList 
+      global Wpouts 
+     	global  integration_step  recording_step integration_method  printouts
+      global curSimulPathName 
+ 	global simul_change
+
+     	set fname "simul.dat"	
+
+
+      set f [file join  $curSimulPathName  $fname]
+
+
+     	set nvinp [llength $inpVarList]
+     	set nvmon [llength $monVarList]
+
+
+    	set fp [checkopen $f w]
+
+
+     	puts $fp "* TSTEP"
+    	puts $fp $integration_step  
+    	puts $fp "* NPASREC"
+     	puts $fp $recording_step 
+    	puts $fp "* METHOD (M=MA28; N=QUASI NEWTON)"
+#   	puts $fp $integration_method 
+	if { ![string compare $integration_method "MA28"] } {
+		puts $fp "M"
+	} else {
+		puts $fp "N"
+	}
+
+	if { $nvinp <= 0 }  {
+     		puts $fp "* INPUTS  -1 "
+	} else {
+     		puts $fp "* INPUTS  $nvinp "
+	}
+
+        	 for { set i 0} {$i<$nvinp} {incr i} {
+          		puts $fp "[lindex $inpVarList  $i]"
+        	 }
+
+
+	if { $nvmon <= 0 }  {
+    		puts  $fp "* MONITORED  -1"
+	} else {
+    		puts  $fp "* MONITORED  $nvmon "
+	}
+
+
+     	for { set i 0} {$i<$nvmon} {incr i} {
+          		puts $fp "[lindex $monVarList  $i]"
+     	}
+
+
+  	puts $fp "* PRINTOUTS (1=ingressi,2=jacobiani;3=num.iterazioni;4=matr.topologica;5=residui)"
+
+     	if { [llength $printouts ]  }  {
+		 puts $fp "$printouts "
+    	 } else {
+	     	puts $fp "0"
+    	 }
+
+   	 puts $fp "* END"
+   	 puts $fp "EOF"
+
+	flush $fp
+    	close $fp	
+
+ 	set simul_change "NO"
+
+}
+
+#####################################################
+#
+# read_simul
+#
+# read file simul.dat
+#
+#####################################################
+proc read_simul { } {
+     	global  inpVarList  monVarList 
+     	global  integration_step  recording_step integration_method  printouts
+     	global curSimulPathName 
+
+
+
+     	reset_global_simul
+
+    	set nvinp 0
+     	set nvmon 0
+
+     	set fname "simul.dat"
+     	set f [file join  $curSimulPathName  $fname]
+#set dovesono [pwd]  
+#tk_messageBox -message "read_simul: $dovesono"  
+    	if { ![file exists $f ] } { return }
+    	set fp [checkopen $f r]
+
+    	gets $fp scratch
+     	gets $fp integration_step  
+     	gets $fp scratch
+    	gets $fp recording_step 
+     	gets $fp scratch
+
+#	gets $fp integration_method  
+	gets $fp scratch
+	if { ![string compare $scratch "M"] } {
+		set integration_method  "MA28"
+	} else {
+		set integration_method  "QUASI-NEWTON"
+	}
+
+     	gets $fp scratch
+     	scan $scratch "%s %s %s" a b nvinp
+  
+     	if { $nvinp<=0} {
+		set nvinp 0
+    	 }
+        
+     	for {set i 0} {$i<$nvinp} {incr i}  {
+        		gets $fp scratch
+         		lappend inpVarList   $scratch
+     	}
+
+     	gets $fp scratch
+     	scan $scratch "%s %s %s" a b nvmon
+
+	if { [string compare $b "MONITORED"] !=  0 } {
+		view_error F_100
+		exit
+	}
+
+    	if { $nvmon<=0} {
+		set nvmon 0
+    	 }
+
+    	 for {set i 0} {$i<$nvmon} {incr i}  {
+ 		gets $fp scratch
+    		lappend monVarList   $scratch
+   	}
+
+    	# read printouts
+    	gets $fp scratch 
+	scan $scratch "%s %s" a b
+
+	if { [string compare $b "PRINTOUTS"] !=  0 } {
+		view_error F_101
+		exit
+	}
+
+    	gets $fp printouts
+
+    	gets $fp scratch
+     	scan $scratch "%s %s" a b 
+
+	if { [string compare $b "END"] !=  0 } {
+		view_error F_102
+		exit
+	}
+
+    	close $fp
+
+}
+
+#####################################################
+#
+# callback bottone Ok finestra edit simul
+#
+#####################################################
+proc ok_simul { } {
+    	global Wpouts  printouts curFileName fileChange
+
+	if {$curFileName == "untitled" || $curFileName == "" || $curFileName == "-"} {
+		set messaggio "No Simulator task is selected!"
+		tk_messageBox -message $messaggio -type ok -icon error
+		return   
+	}    
+
+    
+   	 # legge la lista dei printouts tramite la getselection dei checkbox
+    	set printouts [$Wpouts getselection ]
+    	# salva simul.dat
+    	save_simul
+}
+
+#####################################################
+#
+# callback bottone DOLGSER  finestra edit simul
+#
+#####################################################
+proc esegui_dolgser { } {
+	global curFileName env
+
+	if {$curFileName == "untitled" || $curFileName == "" || $curFileName == "-"} {
+		set messaggio "No Simulator task is selected!"
+		tk_messageBox -message $messaggio -type ok -icon error
+		return   
+	}    
+	
+	set wd [pwd]
+        set errore [catch { exec "dolgser.bat" } res]
+        
+#        if { $errore } {	  
+#        	tk_messageBox -message "Task Built\n$errore\n$res"
+#        } else { tk_messageBox -message " Task Built successfully\n$errore\n$res" }
+        if { $errore } {	  
+        	tk_messageBox -message "Task Built\n$errore\n$res"                
+        } else { set i [tk_dialog .dialog1 "Task building" { Task Build Successfully Executed } \
+                 info 0 OK  {Details}]
+                 switch $i {
+                    0 {puts "You pressed OK"}
+                    1 {tk_messageBox -message "Task Built\n$errore\n$res"}
+                 }
+        }	
+
+}
+
+#####################################################
+#
+# sel_vars_for_simul 
+#
+# procedura di visualizazione della
+# finestra di configurazione del file Simul.dat
+#
+#####################################################
+proc sel_vars_for_simul {} {
+    	global env envir 
+    	global rvar evar1 evar2 evar3 evar4
+   	global inpVarList monVarList
+
+   	global WidInList WidMonList 
+    	global Wpouts 
+   	global  integration_step  recording_step integration_method printouts
+	global varMainW
+
+    	set w .varch
+
+	set varMainW $w
+
+     	toplevel $w
+     	wm title $w "Simul Configuration"
+     	wm iconname $w "SimulVARs"
+     	wm minsize $w 15 1
+
+    	set top [frame $w.f -bd 1 -relief raised]
+    	set box [tixButtonBox $w.b -bd 1 -relief raised]
+   
+    	# Create the buttons
+    	#
+    	$box add ok     -text Ok     -command "ok_simul" -width 6
+    	$box add dolgser    -text "DoLgSer"     -command "esegui_dolgser" -width 6
+    	$box add cancel -text Cancel -command "destroy $w" -width 6
+#    	$box add cancel -text Cancel -command "edit_simul_prompt_close" -width 6
+
+   	 # creo una PanedWindow per contenere le due liste di variabili
+    	#
+    	set pw [tixPanedWindow $w.pane -paneborderwidth 0 -separatorbg gray50]
+   	pack $pw -side top -expand yes -fill both -padx 10 -pady 10
+
+    	#definisco tre pane p1, p2 e p3 all'interno della panedWindow pw
+    	set p1 [$pw add listInput -min 70 -size 120]
+    	set p2 [$pw add listMon -min 70 -size 120]
+    	set p3 [$pw add dataSim -min 200 -size 210]
+
+   	# label sopra la lista variabili di input
+   	label $p1.lblInput  -wraplength 4i -justify left -text "Input vars"
+    	pack $p1.lblInput  -side top
+
+    	# creo la scrolled list delle variabili di input
+   	tixScrolledListBox $p1.listInput -command {del_var_sel $WidInList }
+   	$p1.listInput subwidget listbox config -font [tix option get fixed_font]
+
+   	# label sopra la lista delle variabili Monitoerd
+    	label $p2.lblInput  -wraplength 4i -justify left -text "Monitored vars"
+    	pack $p2.lblInput  -side top
+ 
+    	# creo la scrolled list delle variabili Monitored
+    	tixScrolledListBox $p2.listMon -command {del_var_sel $WidMonList  }
+    	$p2.listMon subwidget listbox config -font [tix option get fixed_font]
+
+    	# label sopra la finestra dei Simul Data
+    	label $p3.lblInput  -wraplength 4i -justify left -text "Simul data"
+    	pack $p3.lblInput  -side top 
+
+    	#creo un frame per contenere le entry per i dati di simulazione
+    	frame $p3.fr1 -border 1 -relief raised 
+    	tixLabelEntry $p3.fr1.dis -label "Integration Step: " \
+		-options {
+	   	 entry.width 10
+	   	 label.width 20
+	   	 label.anchor e
+	   	 entry.textVariable integration_step
+		}
+ 
+
+    	tixLabelEntry $p3.fr1.drs -label "Recording Step: " \
+		-options {
+	   	 entry.width 10
+	   	 label.width 20
+	    	label.anchor e
+	    	entry.textVariable recording_step
+		}
+
+   	 tixComboBox $p3.fr1.dim -label "Integration method: " -dropdown true \
+	 	-editable false -variable integration_method \
+		-options {
+	   	 listbox.height 2
+	    	label.width 20
+	   	 label.anchor e
+		}
+
+    	# printouts label
+    	tixLabelFrame $p3.fr1.pouts -label Printouts: -labelside acrosstop -options { label.padX 5  } 
+    	set f [$p3.fr1.pouts subwidget frame]
+	
+   	pack $f -side left -expand yes -fill both -padx 50  
+
+    	# Create the printouts CheckList (Multiple Selection)
+   	 #
+    	set cc1 [tixCheckList $f.c -scrollbar auto -width 200]
+   	pack $cc1 -expand yes -fill both -padx 4 -pady 4 
+
+    	set Wpouts $cc1
+
+    	# Fill up  checklists 
+    	#
+    	set pouts(1) "inputs"
+    	set pouts(2) "jacobian matrix"
+    	set pouts(3) "iteration number"
+    	set pouts(4) "topological matrices"
+    	set pouts(5) "residual"
+  
+    	set h1 [$cc1 subwidget hlist]
+
+    	foreach ent {1 2 3 4 5} {
+		$h1 add $ent -itemtype imagetext -text $pouts($ent)
+		$cc1 setstatus $ent off
+    	}
+
+
+    	# visualizzo gli widget
+   	pack $p3.fr1
+    	pack $p3.fr1.dis -anchor w
+   	pack $p3.fr1.drs -anchor w
+   	pack $p3.fr1.dim -anchor w
+    	pack $p3.fr1.pouts
+
+   	 # Insert the choices into the combo boxes
+    	$p3.fr1.dim insert end "MA28"
+    	$p3.fr1.dim insert end "QUASI-NEWTON"
+
+    	# visualizzo gli widget
+    	pack $p1.listInput -expand yes -fill both -padx 4 -pady 6
+    	pack $p2.listMon -expand yes -fill both -padx 4 -pady 6
+ 
+   	pack $box -side bottom -fill both
+    	pack $top -side top -fill both -expand yes
+    	pack $pw -side top -expand yes -fill both -padx 10 -pady 10
+
+   	 # gestisco anche il pane menu 
+    	$w configure -menu $w.menu
+
+    	set WidInList $p1.listInput
+    	set WidMonList $p2.listMon
+}
+
+
+
+#####################################################
+# 
+# contr_var
+#
+# procedura controolo univocit�variabili nella lista
+#
+#####################################################
+proc contr_var { ltype var} {
+   	 global  inpVarList  monVarList 
+
+	switch -exact $ltype {
+		IN {
+			set found [lsearch -exact $inpVarList $var]
+		}
+		US {
+			set found [lsearch -exact $monVarList $var]		}
+		UA {
+			set found [lsearch -exact $monVarList $var]
+		}
+	}
+ 	
+	if { $found >= 0 } {
+		# trovata
+		return 1	
+	} else {
+		#non trovata
+		return 0	
+	}
+}
+
+
+#####################################################
+#
+# setSlot
+#
+# procedura per aggiungere una variabile nella lista
+#
+#####################################################
+proc setSlot {mname idxvname vtype} {
+	global nomeVars
+    	global WidInList WidMonList 
+   	global  inpVarList  monVarList 
+	global simul_change fileChange
+
+	set vname $nomeVars($idxvname)
+
+	if { ![winfo exists $WidInList] } {
+		return
+	}
+	if { ![winfo exists $WidMonList ] } {
+		return
+	}
+
+    	# in base al tipo di variabile la inserisco nella lista degli ingressi o delle uscite
+    	# viene verificato che le variabili di input siano VERE cio�siano variabili
+    	# le cui quatro lettere coincidano con il blocco
+    	# (il vtype mi arriva gi�corretto quindi non implemento il controllo, cio�la variabile di
+    	#   input �in realta una uscita di un altro blocco connessa)
+    	# Comunque l'algoritmo per verificare una variabile di input VERA
+    	#  dovrebbe controllare che le ultime quattro lettere della variabile siano uguali al nome del blocco.
+    
+    	#
+    	#controllo di univocit�della variabile nella rispettiva lista
+    	#
+    	if {  [contr_var $vtype $vname]  }  {
+		return
+    	}
+
+     	switch -exact $vtype  {
+          		IN    { 
+			if { [llength $inpVarList] < 40 } {
+				lappend inpVarList $vname
+				$WidInList  subwidget listbox insert end $vname
+				$WidInList  subwidget listbox see end
+				set simul_change "YES"
+			}
+		} 
+          		UA   { 
+			if { [llength $monVarList ] < 40 } {
+				lappend monVarList $vname
+				$WidMonList   subwidget listbox insert end $vname
+				$WidMonList subwidget listbox see end
+				set simul_change "YES"
+			}
+		}
+          		US   {
+			if { [llength $monVarList ] < 40 } {
+			 	lappend monVarList $vname
+				$WidMonList   subwidget listbox insert end $vname
+				$WidMonList subwidget listbox see end
+				set simul_change "YES"
+			}
+		}
+     	}
+set fileChange "YES"
+
+}
+
+#####################################################
+#
+# show_simul_data 
+#
+#####################################################
+
+proc show_simul_data { } {
+    	global WidInList WidMonList Wpouts
+    	global  inpVarList  monVarList printouts
+
+	# populate variable list
+	$WidInList  subwidget listbox delete 0 end
+	for {set i 0} {$i<[llength $inpVarList]  } {incr i}  {
+		$WidInList  subwidget listbox insert end [lindex $inpVarList $i]
+    	}
+
+	$WidMonList  subwidget listbox delete 0 end
+   	for {set i 0} {$i< [llength $monVarList] } {incr i}  {
+		$WidMonList  subwidget listbox insert end [lindex $monVarList $i]
+    	}
+
+	# set printout checkbox active
+   	for {set i 1} {$i< 6 } {incr i}  {
+   			$Wpouts setstatus $i off
+   	}
+  	foreach et $printouts {
+               		if { $et } {
+			$Wpouts setstatus $et on
+		}
+  	}
+#tk_messageBox -message "show_simul_data: $printouts"
+}
+
+#####################################################
+# check_simul_data
+#
+# check and validate data in simul.dat
+# verifico:
+# 	che le variabili siano corrette rispetto al file f01.dat
+#
+#####################################################
+proc check_simul_data { } {
+   	global  inpVarList  monVarList printouts
+	global numBlo listBlo blocNvar
+	global numVars nomeVars tipoVars tipVarMod
+
+	set nv  [llength $inpVarList]
+
+	set inp_idx_todel 	[list]
+	set mon_idx_todel 	[list]
+
+	for { set k 0 } { $k < $nv} { incr k} {
+							
+		set foundVar 0
+		set nomeVarSim  [lindex $inpVarList  $k]
+
+		for {set j 0} {$j < $numBlo} {incr j} {
+
+			set nomeMod $listBlo($j)
+			loadVariables $nomeMod
+
+			for {set index 0} {$index < $numVars} {incr index} {
+
+            				set nome $nomeVars($index)
+            				set tipovar $tipVarMod($nome)
+			
+				switch $tipovar {
+					IN {
+						if { [string compare $nome $nomeVarSim  ] == 0 } {
+							set foundVar 1
+							set vartodel [expr $k+1]
+							break
+						}
+					}
+					UA {
+						continue
+						if { [string compare $nome $nomeVarSim  ] == 0 } {
+							set foundVar 1
+							break
+						}
+					}
+					US {
+						continue
+						if { [string compare $nome $nomeVarSim  ] == 0 } {
+							set foundVar 1
+							break
+						}
+					}
+				}
+			}
+		}
+
+		if { !$foundVar && [string length $nomeVarSim] } {
+			tk_messageBox -message "$nomeVarSim NOT FOUND\n Delete from input variables list"
+			set vartodel [lsearch -exact  $inpVarList $nomeVarSim]
+			set inp_idx_todel [linsert $inp_idx_todel end $vartodel]
+		}
+	}
+
+	# elimino gli item dalla lista delle variabili di input
+	set inpVarList [ldelete $inpVarList $inp_idx_todel]
+
+	set nv  [llength $monVarList]
+	set inp_idx_todel 	[list]
+	set mon_idx_todel 	[list]
+
+	for { set k 0 } { $k < $nv} { incr k} {
+							
+		set foundVar 0
+		set nomeVarSim  [lindex $monVarList  $k]
+
+		for {set j 0} {$j < $numBlo} {incr j} {
+
+			set nomeMod $listBlo($j)
+			loadVariables $nomeMod
+
+			for {set index 0} {$index < $numVars} {incr index} {
+
+            				set nome $nomeVars($index)
+            				set tipovar $tipVarMod($nome)
+			
+				switch $tipovar {
+					IN {
+						continue
+						if { [string compare $nome $nomeVarSim  ] == 0 } {
+							set foundVar 1
+							break
+						}
+					}
+					UA {
+						if { [string compare $nome $nomeVarSim  ] == 0 } {
+							set foundVar 1
+							set vartodel  [expr $k+1]
+							break
+						}
+					}
+					US {
+						if { [string compare $nome $nomeVarSim  ] == 0 } {
+							set foundVar 1
+							set vartodel  [expr $k+1]
+							break
+						}
+					}
+				}
+			}
+		}
+
+
+		if { !$foundVar && [string length $nomeVarSim] } {
+			tk_messageBox -message "$nomeVarSim NOT FOUND\n Delete from monitored variables list"
+			set vartodel [lsearch -exact  $monVarList $nomeVarSim]
+			set inp_idx_todel [linsert $inp_idx_todel end $vartodel]
+		}
+
+	}
+
+	# elimino gli item dalla lista delle variabili di input
+	set monVarList [ldelete $monVarList $inp_idx_todel]
+
+
+}
+
+#####################################################
+# buildSimulWin 
+#####################################################
+proc build_simul_win { } {
+
+	# reset variabili global di valorizzazione simul.dat
+	reset_global_simul
+
+	# costruzione window  gestione dati del simulatore
+	# e fill con i dati letti da simul.dat
+	read_simul
+
+	# check and validate simul data
+	check_simul_data
+
+	# build window
+	sel_vars_for_simul
+	# populate window with data
+	show_simul_data
+
+}
+
+#####################################################
+#
+# genera un file task.dat di default nel direttorio del simulatore
+# contente il path "./"
+#
+#####################################################
+proc crea_default_file_task { } {
+
+	global curSimulPathName 
+     	set fname "Tasks.dat"
+     	set f [file join  $curSimulPathName  $fname]
+
+	if { ![file exists $f] } { 	
+     		set fp [checkopen $f w+]
+     		puts $fp ".\\"
+  		close $fp
+	}
+}
+
+
+#####################################################
+#
+#   MAIN 
+#   attualmente lanciata edit_tasks
+#  oppure da starter nella versione stand alone
+# edit_simul $simulpath 
+#
+#####################################################
+
+proc edit_simul { simulpath } { 
+tk_messageBox -message "edit_simul: $simulpath"
+	#########################
+	## definizione variabili globali##
+	#########################
+	global env envir
+	global wsBackg wsWidth wsBackg wsWidth wsHeight 
+	global wsScrWidth wsScrHeight wsXsiz wsYsiz wsXmin wsYmin 
+	global progNumb portw curTool progName palId jshift porth
+	global numBlo
+	global curSimulPathName 
+	### widget  variabili di input e monitored
+	global WidInList WidMonList  
+	### widget contenente i printouts checkbox
+	global Wpouts
+	### lista contenirore variabili input e monitored
+	global  inpVarList  monVarList  
+	### dati generali di simulazione
+	global  integration_step  recording_step integration_method printouts
+	# debug flag
+	global debug
+	global clines
+	global curFileName
+	# finestre top level 
+	global esMainW
+	global varMainW
+	global varwinMainW
+ 	global simul_change
+
+ 	set simul_change "NO"
+
+	set esMainW ""
+	set varMainW ""
+	set varwinMainW ""
+
+	set clines(0,0) 0
+
+	############################
+	## inizializzazione variabile debug
+	############################
+	set debug 0
+
+	reset_global_simul 
+	
+	set envir Edit_Simul
+
+	set modelname [file tail $simulpath]	
+	set curFileName [file join $simulpath $modelname] 
+
+	set curSimulPathName "$simulpath"
+
+	if { ![file exist $curFileName.tom] } { 
+		tk_messageBox -message "$curFileName.tom File not found"
+		return
+	}
+
+	#
+	set wsBackg gray90
+	set wsWidth 512
+	set wsHeight 384
+	set wsScrWidth 800
+	set wsScrHeight 600
+	set wsXsiz $wsScrWidth
+	set wsYsiz $wsScrHeight
+	set wsXmin $wsWidth
+	set wsYmin $wsHeight
+	#
+	set progNumb 0
+	set portw 12
+	set curTool none
+	set progName "name"
+	set palId 0
+	set jshift .5
+	set porth 12
+	set numBlo 0
+
+
+	set mainW ".esMainW"
+	set esMainW $mainW
+
+	toplevel $mainW
+
+
+	wm title $mainW "Edit Simul - $curSimulPathName"
+
+	set c $mainW.frame.c
+
+
+	#definizione main men
+	menu $mainW.menu -tearoff 0
+	set m $mainW.menu.file
+	set hlp $mainW.menu.help
+	set view $mainW.menu.view
+	menu $m -tearoff 0 -activebackground darkblue -activeforeground white
+	menu $hlp -tearoff 0 -activebackground darkblue -activeforeground white
+	menu $view -tearoff 0 -activebackground darkblue -activeforeground white
+	$mainW.menu add cascade -label "File" -menu $m -underline 0
+        $mainW.menu add cascade -label "View" -menu $view -underline 0
+	$mainW.menu add cascade -label "?" -menu $hlp -underline 0
+
+	#$m add command -label "Simul Configuration" -command "destroy .varch;selVarsForSimul"
+	$m add command -label "Simul Configuration" -command "build_simul_win"
+#	$m add command -label "Close All" -command "destroy $mainW .varch .varwin;"
+	$m add command -label "Close All" -command "edit_simul_prompt_close "
+	$hlp add command -label "Help" -command "open_hlp index"
+	 
+	set showon 2
+	$view add radio -label "Show OFF" -variable showon -value 1 -command "ShowNames $c 1"
+	$view add radio -label "Show Names" -variable showon -value 2 -command "ShowNames $c 1; ShowNames $c 2"
+	$view add radio -label "Show Classes" -variable showon -value 3 -command "ShowNames $c 1; ShowNames $c 3"
+
+
+
+	$mainW configure -menu $mainW.menu
+
+	frame $mainW.frame
+	pack $mainW.frame -side top -fill both -expand yes
+	canvas $c -bg $wsBackg -scrollregion [list 0 0 $wsScrWidth $wsScrHeight] \
+		-width $wsWidth -height $wsHeight -xscrollcommand "$mainW.frame.hscroll set" \
+		-yscrollcommand "$mainW.frame.vscroll set"
+	scrollbar $mainW.frame.vscroll -command "$c yview"
+	scrollbar $mainW.frame.hscroll -orient horiz -command "$c xview"
+
+
+	grid $c -in $mainW.frame -row 0 -column 0 -rowspan 1 -columnspan 1 -sticky news
+	grid $mainW.frame.vscroll -row 0 -column 1 -rowspan 1 -columnspan 1 -sticky news
+	grid $mainW.frame.hscroll -row 1 -column 0 -rowspan 1 -columnspan 1 -sticky news
+	grid rowconfig $mainW.frame 0 -weight 1 -minsize 0
+	grid columnconfig $mainW.frame 0 -weight 1 -minsize 0
+
+	#images
+	set pixmapPath  $env(LG_PIXMAPS)
+	set olddir [pwd]
+	cd $pixmapPath
+	foreach singleconn [glob -nocomplain {????_[news].ppm}] {
+		image create photo [file rootname $singleconn] -file [file join $pixmapPath $singleconn]
+	}
+	image create photo portActive -file [file join $pixmapPath actconn.ppm]
+	cd $olddir
+
+	#help files
+	catch {font create helpFont -family Helvetica -size 9}
+	catch {font create entryFont -family Courier -size 9}
+	catch {font create titleFont -family Courier -size 9 -weight bold -slant italic}
+	catch {font create entryBig -family Courier -size 14}
+	catch {font create titleBig -family Courier -size 14 -weight bold}
+
+	#$c bind module <1> "showVars $c %x %y"
+	set qq ""
+	$c bind module <1> "showOptions2 $c %x %y  $qq"
+
+# FATTO - 22-01-01
+#19/11/01 il load dei src deve essere fatto dalla dir indiviuduata dalla env LG_TIX 
+#	set srcdir [pwd]
+	set srcdir $env(LG_TIX)
+
+	cd $simulpath
+
+#	source [file join $srcdir  read_con.tcl]
+#	source [file join $srcdir  read_f01.tcl]
+#	source [file join $srcdir  fileio.tcl]
+#	source [file join $srcdir itemjoin.tcl]
+#	source [file join $srcdir openHelp.tcl]
+#	source [file join $srcdir viewmgr.tcl]
+
+
+	topRead $c $curFileName
+
+	loadF01 $c no
+
+
+	if { ![file exists  $curSimulPathName] } {
+		tk_messageBox -message "DIRECTORY NOT FOUND $curSimulPathName" 
+		destroy $mainW
+		return
+	}
+
+	# controlla la esistenza del file simul.dat
+	# l'utente pu scegliere di uscire senza fare modifiche di nessun tipo
+	if { ![file exists [file join $curSimulPathName "simul.dat"]] } {
+
+#		set result [tk_messageBox -parent $mainW \
+#			-title "WARNING"  -type okcancel \
+#			-icon warning \
+#			-message "simul.dat \nFILE NOT FOUND \nVerify directory $curSimulPathName\nOk continue and create empty file\nCancel exit"]
+
+#		if { $result != "ok"} { 
+#			exit
+#		} else {
+			# save an empty file
+			save_simul
+			
+#			build_simul_win 
+#		}
+#	} else {
+#		build_simul_win
+	}
+
+	build_simul_win
+
+	#creo un file tasks.dat di default se non esiste gi�
+	crea_default_file_task 
+
+	wm title $mainW "Edit Simul - $curSimulPathName"
+
+	wm protocol $mainW WM_DELETE_WINDOW "edit_simul_prompt_close"
+
+}
+proc load_task { simulpath c4 } {
+global curSimulPathName showon
+global 	  activeModel DIRMODEL f14File  f14time
+
+	set modelname [file tail $simulpath]	
+	set curFileName [file join $simulpath $modelname] 
+
+	set curSimulPathName "$simulpath"
+#tk_messageBox -message "load_task 1: simulpath=$simulpath curFileName:$curFileName"
+
+#set dovesono [pwd]  
+#set rootqq [file tail $curFileName]
+#tk_messageBox -message "load_task 2: dovesono1:$dovesono curFileName$curFileName root:$rootqq"  
+	
+	topRead $c4 [file tail $curFileName] 
+	loadF01 $c4 no
+
+#set dovesono [pwd]  
+#tk_messageBox -message "load_task 3: dovesono2:$dovesono curFileName$curFileName "  
+#tk_messageBox -message "load_task 4: activeModel$activeModel-DIRMODEL$DIRMODEL-f14File$f14File-f14timef14time "  
+#tk_messageBox -message "load_task 4: DIRMODEL$DIRMODEL-f14File$f14File-f14time$f14time "  
+
+	# reset variabili global di valorizzazione simul.dat
+	reset_global_simul
+
+#set dovesono [pwd]  
+#tk_messageBox -message "load_task 5: dovesono3:$dovesono"  
+
+	# costruzione window  gestione dati del simulatore
+	# e fill con i dati letti da simul.dat
+	read_simul
+
+	# check and validate simul data
+	check_simul_data
+
+	# build window
+#	sel_vars_for_simul2
+	# populate window with data
+	show_simul_data
+	ShowNames $c4 $showon
+
+	
+	
+}
+
+proc edit_simul_prompt_close { } {
+	global esMainW 
+	global varMainW
+	global varwinMainW
+	global  simul_change
+
+	if { $simul_change == "YES" } {
+		set resp [tk_messageBox -type yesnocancel \
+				-title "WARNING ON EXIT" \
+				-message "You haven't save your changes\nDo you want save?"]
+		case $resp {
+			yes {
+				save_simul
+			}
+			cancel {
+				return
+			}
+		}
+	}
+	
+
+	if { [winfo exist $varwinMainW] } {
+		destroy $varwinMainW
+	}
+
+	if { [winfo exist $varMainW ] } {
+		destroy $varMainW 
+	}
+
+	if { [winfo exist $esMainW ] } {
+		destroy $esMainW 
+	}	
+
+}
+
+#####################################################
+#
+# START PER VERSIONE STAND ALONE 
+#
+# il test consente di poter effettuare il lancio dello script sia stand alone
+# che richiamato da applicativo (edit_tasks) senza che la source di questo
+# file faccia subito partire l'editor stesso
+#####################################################
+
+
+#wm withdraw .
+
+if { [info exist argc] } {
+#	tk_messageBox -message "eccomi" -type ok 
+	edit_simul ./
+}
