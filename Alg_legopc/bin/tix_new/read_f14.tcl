@@ -141,7 +141,7 @@ proc readF14new {} {
 proc readF14old {} {
 	global numBlo listBlo
 	global blocModu blocBloc blocDesc blocNvar blocVars blocNome
-	global tipVarMod numeVblo listVblo matrVblo numeNoto
+	global tipVarMod numeVblo listVblo matrVblo numeNoto matrVf14
 	global normLine ndatDati vectDati
 
 	set numeNoto(US) 0
@@ -182,6 +182,7 @@ proc readF14old {} {
 			if {$chk == 0} {
 				set matrVblo($nome,$tipo,valu) $valu
 				set matrVblo($nome,$tipo,code) $code
+				set matrVf14($nome,valu) $valu
 				if { $code == "NOTO" } { incr numeNoto($tipo) }
 				set blocco $matrVblo($nome,$tipo,bloc)
 				set indice $matrVblo($nome,$tipo,indx)

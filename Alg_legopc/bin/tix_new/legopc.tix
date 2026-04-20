@@ -3484,25 +3484,36 @@ set mod 4
 	if { $mod == 4 } {
 
           if  { $::LINUXPLAT == 1 } {
-            puts "ShowNamesfilt: eccomi 1 mod=$mod"	
-              set lgsincropid 1
+            anima chiudi qq
+            set sked_running 0
+            catch {
+                set psout [exec ps -A -o comm]
+                foreach _ln [split $psout "\n"] {
+                    if { [string trim $_ln] == "net_sked" } { set sked_running 1; break }
+                }
+            }
+            if { $sked_running == 1 } {
+                anima init qq
+                anima_aggiorna $c2 1
+            } else {
+                anima_aggiorna $c2 3
+            }
           }
 
           if  { $::LINUXPLAT == 0 } {
-# per window
-#se si vuole togliere il blocco sulla assenza di lgsincro, scommetare la successiva...
               if  { $lgsincropid == -1 } { set lgsincropid 1 }
+              if { $lgsincropid != -1 } {
+                  if { [ esiste_processo $lgsincropid ] == 1  } {
+                      anima chiudi qq
+                      anima init qq
+                      anima_aggiorna $c2 1
+                  } else {
+                      anima chiudi qq
+                      anima_aggiorna $c2 3
+                  }
+              }
           }
 
-# metto in animazione lo schema con i valori del transitorio
-    	if { $lgsincropid != -1 } {
-puts "ShowNamesfilt: eccomi  2 mod=$mod"
-          if { [ esiste_processo $lgsincropid ] == 1  } { 
-### GUAG commento per anestetizzare la funzione
-		anima init qq
-		anima_aggiorna $c2 1 
-           } 	 
-      	}
 	} else {
 		anima chiudi qq
 	    ShowNames $c $mod
