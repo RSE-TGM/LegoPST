@@ -3761,7 +3761,7 @@ proc createtask { f c c2} {
     
     set curFileName "-"
     set curSimulPathName ""
-    wm title . "$envir- $curFileName"
+    wm title . "$envir Legacy- $curFileName"
     wm protocol . WM_DELETE_WINDOW "WarnYou exit"
 
     #wm iconbitmap .  "D:/Utili/icons/temp/animali/118.ico"

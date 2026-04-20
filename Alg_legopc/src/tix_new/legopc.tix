@@ -1174,9 +1174,13 @@ proc finishJoin {c} {
 
 proc _openFile {path} {
     # Apre un file con il viewer disponibile (evita xdg-open su WSL)
-    global env
+    global env tcl_platform
     if {[info exists env(LG_PDFVIEWER)] && $env(LG_PDFVIEWER) != ""} {
         catch {exec $env(LG_PDFVIEWER) $path &}
+        return
+    }
+    if {$tcl_platform(platform) == "windows"} {
+        catch {exec cmd /c start "" [file nativename $path]}
         return
     }
     foreach viewer {evince okular zathura mupdf xpdf atril} {
@@ -1186,20 +1190,48 @@ proc _openFile {path} {
         }
     }
     tk_messageBox -icon info -type ok \
-        -message "File creato:\n$path\n\nNessun PDF/PNG viewer trovato.\nInstallare con: sudo dnf install evince"
+        -message "File creato:\n$path\n\nNessun PDF/PNG viewer trovato.\nInstallare con: sudo apt install evince"
 }
 
 proc findGhostscript {} {
-    # Su Linux cerca 'gs' nel PATH
-    if {![catch {set gs [exec which gs]} ]} {
+    global env tcl_platform
+    if {$tcl_platform(platform) == "windows"} {
+        if {[info exists env(LG_GHOSTSCRIPT)]} {
+            set exe [file join $env(LG_GHOSTSCRIPT) bin gswin64c.exe]
+            if {[file exists $exe]} { return $exe }
+        }
+        set base "C:/Program Files/gs"
+        if {[file isdirectory $base]} {
+            foreach d [glob -nocomplain -type d [file join $base gs*]] {
+                set exe [file join $d bin gswin64c.exe]
+                if {[file exists $exe]} { return $exe }
+            }
+        }
+        return ""
+    }
+    if {![catch {set gs [exec which gs]}]} {
         set gs [string trim $gs]
         if {[file exists $gs]} { return $gs }
     }
-    # Fallback: percorsi comuni
     foreach candidate {/usr/bin/gs /usr/local/bin/gs} {
         if {[file exists $candidate]} { return $candidate }
     }
     return ""
+}
+
+proc gsSetup {gs psfile} {
+    global env
+    set gsnative [file nativename $gs]
+    set psnative [file nativename $psfile]
+    set gsbindir [file nativename [file dirname $gs]]
+    set env(PATH) "$gsbindir;$env(PATH)"
+    set resdir [file join [file dirname [file dirname $gs]] Resource]
+    if {[file isdirectory $resdir]} {
+        set resdirf "[string map {\\ /} $resdir]/"
+    } else {
+        set resdirf ""
+    }
+    return [list $gsnative $psnative $resdirf]
 }
 
 # Calcola bounding box di tutti gli item (incluse immagini)
@@ -1293,42 +1325,76 @@ proc plotPS_internal {c psfile} {
 }
 
 proc plotPDF {c} {
-    global env curFileName
+    global env curFileName tcl_platform
 
     set gs [findGhostscript]
     if {$gs == ""} {
-        tk_messageBox -icon error -type ok \
-            -message "Ghostscript non trovato.\nInstallare Ghostscript: sudo apt install ghostscript"
+        if {$tcl_platform(platform) == "windows"} {
+            tk_messageBox -icon error -type ok \
+                -message "Ghostscript non trovato.\nScaricare e installare da: https://ghostscript.com/releases/gsdnld.html"
+        } else {
+            tk_messageBox -icon error -type ok \
+                -message "Ghostscript non trovato.\nInstallare con: sudo apt install ghostscript"
+        }
         return
     }
 
     set base    [file rootname $curFileName]
-    set psfile  [file join /tmp _legopc_export.ps]
     set pdffile "${base}.pdf"
 
-    if {[plotPS_internal $c $psfile] == ""} { return }
-
-    set rc [catch {exec $gs -dNOPAUSE -dBATCH -sDEVICE=pdfwrite \
-        "-sOutputFile=$pdffile" $psfile} err]
-    catch {file delete $psfile}
-
-    if {$rc != 0} {
-        tk_messageBox -icon error -type ok \
-            -message "Errore Ghostscript:\n$err"
-        return
+    if {$tcl_platform(platform) == "windows"} {
+        set psfile [file join $env(LG_INSTALL) "_tmp_export.ps"]
+        if {[plotPS_internal $c $psfile] == ""} { return }
+        set _oldpath $env(PATH)
+        set info [gsSetup $gs $psfile]
+        set gsnative  [lindex $info 0]
+        set psnative  [lindex $info 1]
+        set resdirf   [lindex $info 2]
+        set pdfnative [file nativename $pdffile]
+        if {$resdirf != ""} {
+            set rc [catch {exec $gsnative -dNOPAUSE -dBATCH -sDEVICE=pdfwrite \
+                "-sGenericResourceDir=$resdirf" \
+                "-sOutputFile=$pdfnative" $psnative} err]
+        } else {
+            set rc [catch {exec $gsnative -dNOPAUSE -dBATCH -sDEVICE=pdfwrite \
+                "-sOutputFile=$pdfnative" $psnative} err]
+        }
+        set env(PATH) $_oldpath
+        catch {file delete $psfile}
+        if {$rc != 0} {
+            tk_messageBox -icon error -type ok \
+                -message "Errore Ghostscript:\nGS: $gsnative\nPS: $psnative\nPDF: $pdfnative\n---\n$err"
+            return
+        }
+        catch {exec cmd /c start {} $pdfnative &}
+    } else {
+        set psfile [file join /tmp _legopc_export.ps]
+        if {[plotPS_internal $c $psfile] == ""} { return }
+        set rc [catch {exec $gs -dNOPAUSE -dBATCH -sDEVICE=pdfwrite \
+            "-sOutputFile=$pdffile" $psfile} err]
+        catch {file delete $psfile}
+        if {$rc != 0} {
+            tk_messageBox -icon error -type ok \
+                -message "Errore Ghostscript:\n$err"
+            return
+        }
+        _openFile $pdffile
     }
-
-    _openFile $pdffile
     tk_messageBox -icon info -type ok -message "PDF creato: $pdffile"
 }
 
 proc plotPNG {c} {
-    global env curFileName
+    global env curFileName tcl_platform
 
     set gs [findGhostscript]
     if {$gs == ""} {
-        tk_messageBox -icon error -type ok \
-            -message "Ghostscript non trovato.\nInstallare Ghostscript: sudo apt install ghostscript"
+        if {$tcl_platform(platform) == "windows"} {
+            tk_messageBox -icon error -type ok \
+                -message "Ghostscript non trovato.\nScaricare e installare da: https://ghostscript.com/releases/gsdnld.html"
+        } else {
+            tk_messageBox -icon error -type ok \
+                -message "Ghostscript non trovato.\nInstallare con: sudo apt install ghostscript"
+        }
         return
     }
 
@@ -1368,21 +1434,44 @@ proc plotPNG {c} {
     set dpi $::_png_dpi
 
     set base    [file rootname $curFileName]
-    set psfile  [file join /tmp _legopc_export.ps]
     set pngfile "${base}.png"
 
-    if {[plotPS_internal $c $psfile] == ""} { return }
-
-    set rc [catch {exec $gs -dNOPAUSE -dBATCH -sDEVICE=png16m \
-        -r$dpi "-sOutputFile=$pngfile" $psfile} err]
-    catch {file delete $psfile}
-
-    if {$rc != 0} {
-        tk_messageBox -icon error -type ok -message "Errore Ghostscript:\n$err"
-        return
+    if {$tcl_platform(platform) == "windows"} {
+        set psfile [file join $env(LG_INSTALL) "_tmp_export.ps"]
+        if {[plotPS_internal $c $psfile] == ""} { return }
+        set _oldpath $env(PATH)
+        set info [gsSetup $gs $psfile]
+        set gsnative  [lindex $info 0]
+        set psnative  [lindex $info 1]
+        set resdirf   [lindex $info 2]
+        set pngnative [file nativename $pngfile]
+        if {$resdirf != ""} {
+            set rc [catch {exec $gsnative -dNOPAUSE -dBATCH -sDEVICE=png16m \
+                -r$dpi "-sGenericResourceDir=$resdirf" \
+                "-sOutputFile=$pngnative" $psnative} err]
+        } else {
+            set rc [catch {exec $gsnative -dNOPAUSE -dBATCH -sDEVICE=png16m \
+                -r$dpi "-sOutputFile=$pngnative" $psnative} err]
+        }
+        set env(PATH) $_oldpath
+        catch {file delete $psfile}
+        if {$rc != 0} {
+            tk_messageBox -icon error -type ok -message "Errore Ghostscript:\n$err"
+            return
+        }
+        catch {exec cmd /c start {} $pngnative &}
+    } else {
+        set psfile [file join /tmp _legopc_export.ps]
+        if {[plotPS_internal $c $psfile] == ""} { return }
+        set rc [catch {exec $gs -dNOPAUSE -dBATCH -sDEVICE=png16m \
+            -r$dpi "-sOutputFile=$pngfile" $psfile} err]
+        catch {file delete $psfile}
+        if {$rc != 0} {
+            tk_messageBox -icon error -type ok -message "Errore Ghostscript:\n$err"
+            return
+        }
+        catch {exec $env(LG_ICOEDITOR) $pngfile &}
     }
-
-    catch {exec $env(LG_ICOEDITOR) $pngfile &}
     tk_messageBox -icon info -type ok -message "PNG creato (${dpi} dpi): $pngfile"
 }
 
@@ -3472,42 +3561,39 @@ global modified modified1 needbuild fileChange
 source $env(LG_TIX)/animate.tcl
 
 proc ShowNamesfilt { c c2 mod } {
-global modalita lgsincropid
-if { $mod == 5 } {
-#modo debug per fare alcune stampe
-set qq [$c2 gettags infoitemname ]
-#tk_messageBox  -message "ITEM: $item\n 0: [lindex [$c gettags $item] 0 ]\n 1: [lindex [$c gettags $item] 1 ]\n 2: [lindex [$c gettags $item] 2 ]\n 3: [lindex [$c gettags $item] 3 ]\n 4: [lindex [$c gettags $item] 4 ]\n 5: [lindex [$c gettags $item] 5 ]\n"
+  global modalita lgsincropid matrVf14
 
-tk_messageBox  -message "ShowNamesfilt: $c2: $qq\n [ lindex $qq 0]\n [ lindex $qq 1]\n [ lindex $qq 2]\n [ lindex $qq 3]\n" 
-set mod 4
-}
-	if { $mod == 4 } {
+  switch $mod {
+  5 {
+      set qq [$c2 gettags infoitemname]
+      set mod 4
+    }
 
-          if  { $::LINUXPLAT == 1 } {
-            puts "ShowNamesfilt: eccomi 1 mod=$mod"	
-              set lgsincropid 1
-          }
+  4 {
+      if { $::LINUXPLAT == 1 } {
+          puts "ShowNamesfilt: eccomi 1 mod=$mod"
+          set lgsincropid 1
+      }
+      if { $::LINUXPLAT == 0 } {
+          if { $lgsincropid == -1 } { set lgsincropid 1 }
+      }
 
-          if  { $::LINUXPLAT == 0 } {
-# per window
-#se si vuole togliere il blocco sulla assenza di lgsincro, scommetare la successiva...
-              if  { $lgsincropid == -1 } { set lgsincropid 1 }
-          }
+      if { ($lgsincropid != -1) && ([esiste_processo $lgsincropid] == 1) } {
+          anima chiudi qq
+          anima init qq
+          anima_aggiorna $c2 1
+      } else {
+          anima chiudi qq
+          anima_aggiorna $c2 3
+      }
+    }
 
-# metto in animazione lo schema con i valori del transitorio
-    	if { $lgsincropid != -1 } {
-puts "ShowNamesfilt: eccomi  2 mod=$mod"
-          if { [ esiste_processo $lgsincropid ] == 1  } { 
-### GUAG commento per anestetizzare la funzione
-		anima init qq
-		anima_aggiorna $c2 1 
-           } 	 
-      	}
-	} else {
-		anima chiudi qq
-	    ShowNames $c $mod
-	    ShowNames $c2 $mod	
-	}
+  default {
+      anima chiudi qq
+      ShowNames $c $mod
+      ShowNames $c2 $mod
+    }
+  }
 }
 
 proc DupModel { c c2 c4} {

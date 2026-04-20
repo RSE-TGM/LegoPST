@@ -1,5 +1,56 @@
 source $env(LG_TIX)/checkopen.tcl
 
+# Meccanismo async per compilazione (solo Windows: usa wscript.exe + run_hidden.vbs)
+# Su Linux la compilazione usa cad_crealibut direttamente (bloccante ma in proc separata)
+if { $::tcl_platform(os) != "Linux" } {
+
+proc _exec_nonblock {args} {
+# wscript.exe e' GUI subsystem: Tcl non crea finestre console.
+# WshShell.Run con stile 0 lancia cmd /c nascosto. vwait lascia girare l'event loop.
+    global _exec_done env
+    set _exec_done 0
+    set vbs [file nativename [file join $env(LG_LEGO) run_hidden.vbs]]
+    set parts [concat [list cmd /c] $args]
+    set cmdstr ""
+    foreach p $parts {
+        if {$cmdstr != ""} { append cmdstr " " }
+        if {[string first " " $p] >= 0} {
+            append cmdstr "\"$p\""
+        } else {
+            append cmdstr $p
+        }
+    }
+    set pipecmd [list | wscript.exe //nologo $vbs $cmdstr]
+    if {[catch {set pipe [open $pipecmd r]} err]} {
+        catch {eval exec $args}
+        return
+    }
+    fconfigure $pipe -blocking 0
+    fileevent $pipe readable [list _on_pipe_read $pipe]
+    vwait _exec_done
+}
+
+proc _on_pipe_read {pipe} {
+    global _exec_done
+    if {[eof $pipe]} {
+        catch {close $pipe}
+        set _exec_done 1
+    } else {
+        catch {read $pipe}
+    }
+}
+
+proc _start_compiling {} {
+    update idletasks
+}
+
+proc _stop_compiling {} {
+    .d.text see end
+    update idletasks
+}
+
+} ;# end if != Linux
+
 proc refrlist {} {
 
 # CARICA LA LISTA MODULI NELL'INTERFACCIA GRAFICA
@@ -331,12 +382,19 @@ if [file exists $env(LG_LIBUT)/$modfor] {
  file copy -force $env(LG_LIBUT)/fortemp.tmp $env(LG_LIBUT)/foraus_b.for
  file delete -force $env(LG_LIBUT)/fortemp.tmp
  cd $env(LG_LIBUT)
- catch {exec comp.bat foraus_b.for}
- exec linforb.bat foraus_b.obj
- file delete foraus_b.obj -force
+ file delete $env(LG_LIBUT)/comp.out -force
+ if { $::tcl_platform(os) != "Linux" } {
+     _exec_nonblock $env(LG_LEGO)/comp.bat foraus_b.for
+     if [file exists $env(LG_LIBUT)/foraus_b.obj] {
+         _exec_nonblock $env(LG_LEGO)/linforb.bat foraus_b.obj
+         file delete foraus_b.obj -force
+     }
+ } else {
+     catch {exec cad_crealibut > $env(LG_LIBUT)/comp.out}
+ }
  aggmex
  }
- 
+
  disabimenu
 
  return
@@ -387,13 +445,21 @@ cd $env(LG_LIBUT)
 
  if  { $::tcl_platform(os) != "Linux" } {
     set modobj [string tolower "$modulo\.obj"]
-    catch {exec comp.bat $modfor}
-    aggmex
+    . configure -cursor watch
+    announce $modfor
     file delete $env(LG_LIBUT)/comp.out -force
+    _exec_nonblock $env(LG_LEGO)/comp.bat $modfor
+    aggmex
+    if [file exists $env(LG_LIBUT)/$modobj] {
+        .d.text insert end "OK: $modfor\n"
+    } else {
+        .d.text insert end "ERRORE: $modfor\n"
+    }
+    file delete $env(LG_LIBUT)/comp.out -force
+    . configure -cursor arrow
   } else {
     catch {exec cad_crealibut > $env(LG_LIBUT)/comp.out }
     aggmex
-
   }
 
 
@@ -414,11 +480,15 @@ set object [string tolower "$modulo\.obj"]
 if ![file exists $object] {
    compila
 }
-exec link.bat $object
-
-aggmex
-
-file delete $object -force
+file delete $env(LG_LIBUT)/comp.out -force
+if [file exists $env(LG_LIBUT)/$object] {
+    _exec_nonblock $env(LG_LEGO)/link.bat $object
+    aggmex
+    .d.text insert end "moduli.lib: $object\n"
+    file delete $object -force
+} else {
+    .d.text insert end "ERRORE: $object non creato\n"
+}
 file delete comp.out -force
 
 cd $olddir
@@ -434,6 +504,10 @@ global env
   if  { $::tcl_platform(os) == "Linux" } { compila; return }
 
      .d.text delete 0.0 end
+     . configure -cursor watch
+     .topmenu.compile entryconfigure 2 -state disabled
+     .topmenu.compile entryconfigure 3 -state disabled
+     _start_compiling
 
      set lmod [checkopen $env(LG_LIBUT)/L_moduli.dat r]
      set laux [checkopen $env(LG_LIBUT)/l_aux.dat r]
@@ -445,12 +519,15 @@ global env
 
      if {$fordata >= $fordatalib} {
         cd $env(LG_LIBUT)
-        catch {exec comp.bat foraus_b.for}
+        file delete $env(LG_LIBUT)/comp.out -force
+        announce "foraus_b.for"
+        _exec_nonblock $env(LG_LEGO)/comp.bat foraus_b.for
         aggmex
-        exec linforb.bat foraus_b.obj
-        file delete foraus_b.obj -force
+        if [file exists $env(LG_LIBUT)/foraus_b.obj] {
+            _exec_nonblock $env(LG_LEGO)/linforb.bat foraus_b.obj
+            file delete foraus_b.obj -force
+        }
         aggmex
-
      }
 
 while {[eof $lmod] != 1} {
@@ -458,19 +535,20 @@ while {[eof $lmod] != 1} {
  set buff [string tolower [string range [gets $lmod] 0 3]]
  set nomefor "$buff\.for"
  set nomeobj "$buff\.obj"
-
+ file delete $env(LG_LIBUT)/comp.out -force
 
  if {[file exists $env(LG_LIBUT)/$nomefor] && ![file exists $env(LG_LIBUT)/$nomeobj]}  {
   set filetime [file mtime $env(LG_LIBUT)/$nomefor]
   if {$filetime >= $libdata} {
      cd $env(LG_LIBUT)
-     catch {exec comp.bat $nomefor}
+     announce $nomefor
+     _exec_nonblock $env(LG_LEGO)/comp.bat $nomefor
      aggmex
   }
  }
  if [file exists $env(LG_LIBUT)/$nomeobj] {
     cd $env(LG_LIBUT)
-    exec link.bat $nomeobj
+    _exec_nonblock $env(LG_LEGO)/link.bat $nomeobj
     aggmex
     file delete $env(LG_LIBUT)/$nomeobj -force
  }
@@ -481,26 +559,37 @@ close $lmod
 while {[eof $laux] != 1} {
 
  set buff [string tolower [gets $laux]]
+ if {$buff == ""} continue
  set nomefor "$buff\.for"
  set nomeobj "$buff\.obj"
 
-
- if [file exists $env(LG_LIBUT)/$nomefor] {
-  set filetime [file mtime $env(LG_LIBUT)/$nomefor]
-  if {$filetime >= $libdata} {
-     cd $env(LG_LIBUT)
-     catch {exec comp.bat $nomefor}
-     aggmex
-     exec link.bat $nomeobj
-     aggmex
-     file delete $env(LG_LIBUT)/$nomeobj -force
-  }
+ if {![file exists $env(LG_LIBUT)/$nomefor]} continue
+ set filetime [file mtime $env(LG_LIBUT)/$nomefor]
+ if {$filetime >= $libdata} {
+    cd $env(LG_LIBUT)
+    file delete $env(LG_LIBUT)/comp.out -force
+    announce $nomefor
+    _exec_nonblock $env(LG_LEGO)/comp.bat $nomefor
+    aggmex
+    if [file exists $env(LG_LIBUT)/$nomeobj] {
+        _exec_nonblock $env(LG_LEGO)/link.bat $nomeobj
+        aggmex
+        file delete $env(LG_LIBUT)/$nomeobj -force
+    }
  }
 }
 
 close $laux
 
 file delete $env(LG_LIBUT)/comp.out -force
+. configure -cursor arrow
+_stop_compiling
+wm title . "USERS MODULES LIBRARY"
+.topmenu.compile entryconfigure 2 -state normal
+.topmenu.compile entryconfigure 3 -state normal
+.d.text insert end "\nLibreria aggiornata.\n"
+.d.text see end
+update
 
 }
 
@@ -508,19 +597,28 @@ proc genlib {} {
 
 # GENERA EX NOVO LA LIBRERIA DEI MODULI E LA FORAUS_B
 
-global env  
+global env
 
 .d.text delete 0.0 end
+
+if { $::tcl_platform(os) == "Linux" } { compila; return }
+
+. configure -cursor watch
 
 set ans [tk_messageBox -icon question -message "Do you want to recreate modules library?" \
                        -type yesno -parent .]
 
 if {$ans == "no"} {
+   . configure -cursor arrow
    return
 } else {
    tk_messageBox -icon info -message "\nWARNING:\n\    This operation will take a few minutes." \
                  -type ok -parent .
 }
+
+.topmenu.compile entryconfigure 2 -state disabled
+.topmenu.compile entryconfigure 3 -state disabled
+_start_compiling
 
 set lmod [checkopen $env(LG_LIBUT)/L_moduli.dat r]
 set laux [checkopen $env(LG_LIBUT)/l_aux.dat r]
@@ -532,49 +630,58 @@ if [file exists $env(LG_LIBUT)/foraus_b.lib] {
 if [file exists $env(LG_LIBUT)/moduli.lib] {
    file delete $env(LG_LIBUT)/moduli.lib -force
 }
-   
- cd $env(LG_LIBUT)
- catch {exec comp.bat foraus_b.for}
- aggmex
- exec linforb.bat foraus_b.obj
- file delete foraus_b.obj -force
- aggmex
 
+ cd $env(LG_LIBUT)
+ file delete $env(LG_LIBUT)/comp.out -force
+ announce "foraus_b.for"
+ _exec_nonblock $env(LG_LEGO)/comp.bat foraus_b.for
+ aggmex
+ if [file exists $env(LG_LIBUT)/foraus_b.obj] {
+     _exec_nonblock $env(LG_LEGO)/linforb.bat foraus_b.obj
+     file delete foraus_b.obj -force
+ }
+ aggmex
 
 while {[eof $lmod] != 1} {
- 
+
  set buff [string tolower [string range [gets $lmod] 0 3]]
  set nomefor "$buff\.for"
  set nomeobj "$buff\.obj"
+ file delete $env(LG_LIBUT)/comp.out -force
 
  if {[file exists $env(LG_LIBUT)/$nomefor] && ![file exists $env(LG_LIBUT)/$nomeobj]}  {
      cd $env(LG_LIBUT)
-     catch {exec comp.bat $nomefor}
+     announce $nomefor
+     _exec_nonblock $env(LG_LEGO)/comp.bat $nomefor
      aggmex
  }
  if [file exists $env(LG_LIBUT)/$nomeobj] {
     cd $env(LG_LIBUT)
-    exec link.bat $nomeobj
+    _exec_nonblock $env(LG_LEGO)/link.bat $nomeobj
     aggmex
-  file delete $env(LG_LIBUT)/$nomeobj -force
+    file delete $env(LG_LIBUT)/$nomeobj -force
  }
 }
 
 close $lmod
 
 while {[eof $laux] != 1} {
- 
+
  set buff [string tolower [gets $laux]]
+ if {$buff == ""} continue
  set nomefor "$buff\.for"
  set nomeobj "$buff\.obj"
 
- if [file exists $env(LG_LIBUT)/$nomefor] {
-     cd $env(LG_LIBUT)
-     catch {exec comp.bat $nomefor}
+ if {![file exists $env(LG_LIBUT)/$nomefor]} continue
+ cd $env(LG_LIBUT)
+ file delete $env(LG_LIBUT)/comp.out -force
+ announce $nomefor
+ _exec_nonblock $env(LG_LEGO)/comp.bat $nomefor
+ aggmex
+ if [file exists $env(LG_LIBUT)/$nomeobj] {
+     _exec_nonblock $env(LG_LEGO)/link.bat $nomeobj
      aggmex
-     exec link.bat $nomeobj
-     aggmex
-    file delete $env(LG_LIBUT)/$nomeobj -force
+     file delete $env(LG_LIBUT)/$nomeobj -force
  }
 }
 
@@ -582,11 +689,20 @@ close $laux
 
 if [file exists $env(LG_LIBUT)/tavmare.c] {
     cd $env(LG_LIBUT)
-    catch {exec tavmare.bat}
+    file delete $env(LG_LIBUT)/comp.out -force
+    _exec_nonblock $env(LG_LEGO)/tavmare.bat
     aggmex
 }
 
 file delete $env(LG_LIBUT)/comp.out -force
+. configure -cursor arrow
+_stop_compiling
+wm title . "USERS MODULES LIBRARY"
+.topmenu.compile entryconfigure 2 -state normal
+.topmenu.compile entryconfigure 3 -state normal
+.d.text insert end "\nLibreria rigenerata.\n"
+.d.text see end
+update
 
 }
 

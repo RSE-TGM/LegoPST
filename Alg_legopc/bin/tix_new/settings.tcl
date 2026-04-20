@@ -23,22 +23,22 @@ proc lancia_settings {} {
     wm resizable $w 0 0
 
     # Valori correnti: usa la variabile d'env se definita, altrimenti default Linux
-    if {[info exists env(LG_TEXTEDITOR)] && $env(LG_TEXTEDITOR) ne ""} {
+    if {[info exists env(LG_TEXTEDITOR)] && [string length $env(LG_TEXTEDITOR)] > 0} {
         set ::settings_te $env(LG_TEXTEDITOR)
     } else {
         set ::settings_te "gedit"
     }
-    if {[info exists env(LG_BROWSER)] && $env(LG_BROWSER) ne ""} {
+    if {[info exists env(LG_BROWSER)] && [string length $env(LG_BROWSER)] > 0} {
         set ::settings_br $env(LG_BROWSER)
     } else {
         set ::settings_br "xdg-open"
     }
-    if {[info exists env(LG_ICOEDITOR)] && $env(LG_ICOEDITOR) ne ""} {
+    if {[info exists env(LG_ICOEDITOR)] && [string length $env(LG_ICOEDITOR)] > 0} {
         set ::settings_ie $env(LG_ICOEDITOR)
     } else {
         set ::settings_ie "gimp"
     }
-    if {[info exists env(LG_PDFVIEWER)] && $env(LG_PDFVIEWER) ne ""} {
+    if {[info exists env(LG_PDFVIEWER)] && [string length $env(LG_PDFVIEWER)] > 0} {
         set ::settings_pv $env(LG_PDFVIEWER)
     } else {
         set ::settings_pv "evince"
