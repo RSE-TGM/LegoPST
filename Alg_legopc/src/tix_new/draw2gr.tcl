@@ -644,6 +644,10 @@ scrollbar .frame.hscroll -orient horiz -command "$c xview"
 grid $c -in .frame -row 0 -column 0 -rowspan 1 -columnspan 1 -sticky news
 grid .frame.vscroll -row 0 -column 1 -rowspan 1 -columnspan 1 -sticky news
 grid .frame.hscroll -row 1 -column 0 -rowspan 1 -columnspan 1 -sticky news
+catch {
+	ttk::sizegrip .frame.sizegrip
+	grid .frame.sizegrip -row 1 -column 1 -sticky se
+}
 
 grid rowconfig .frame 0 -weight 1 -minsize 0
 grid columnconfig .frame 0 -weight 1 -minsize 0
@@ -915,25 +919,37 @@ proc ShowNamesfilt { c c2 mod } {
 
   4       {
             if  { $::LINUXPLAT == 1 } {
-            puts "ShowNamesfilt: eccomi 1 mod=$mod"
-            set lgsincropid 1
-            }
-
-            # metto in animazione lo schema con i valori del transitorio
-            if { [ non_esiste_processo "lgsincro" ] == 0 } {
-              # LgSincro in esecuzione: usa sincview con SharedLego1
-              anima chiudi qq
-		      anima init qq
-		      anima_aggiorna $c2 1
-            } elseif { $::lgser_clientnum >= 0 } {
-              # FMU lgser diretto: usa sincview con SharedLego{clientNum}
-              anima chiudi qq
-              anima init qq
-              anima_aggiorna $c2 1
+                anima chiudi qq
+                set sked_running 0
+                catch {
+                    set psout [exec ps -A -o comm]
+                    foreach _ln [split $psout "\n"] {
+                        if { [string trim $_ln] == "net_sked" } { set sked_running 1; break }
+                    }
+                }
+                if { $sked_running == 1 } {
+                    anima init qq
+                    anima_aggiorna $c2 1
+                } else {
+                    anima_aggiorna $c2 3
+                }
             } else {
-              # Nessuna simulazione attiva: mostra valori statici da f14
-              anima chiudi qq
-              anima_aggiorna $c2 3
+                # metto in animazione lo schema con i valori del transitorio
+                if { [ non_esiste_processo "lgsincro" ] == 0 } {
+                  # LgSincro in esecuzione: usa sincview con SharedLego1
+                  anima chiudi qq
+                  anima init qq
+                  anima_aggiorna $c2 1
+                } elseif { $::lgser_clientnum >= 0 } {
+                  # FMU lgser diretto: usa sincview con SharedLego{clientNum}
+                  anima chiudi qq
+                  anima init qq
+                  anima_aggiorna $c2 1
+                } else {
+                  # Nessuna simulazione attiva: mostra valori statici da f14
+                  anima chiudi qq
+                  anima_aggiorna $c2 3
+                }
             }
 
             }

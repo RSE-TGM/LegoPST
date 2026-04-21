@@ -1292,6 +1292,36 @@ proc plotPS_internal {c psfile} {
     return $psfile
 }
 
+proc export_show_busy {msg} {
+    set w .busywin
+    catch {destroy $w}
+    toplevel $w
+    wm title $w "Please wait"
+    wm resizable $w 0 0
+    wm transient $w .
+    wm protocol $w WM_DELETE_WINDOW {}
+    label $w.l -text $msg -padx 20 -pady 10 -font "Helvetica 10 bold"
+    pack $w.l
+    catch {
+        ttk::progressbar $w.pb -mode indeterminate -length 260
+        pack $w.pb -padx 20 -pady {0 15}
+        $w.pb start 30
+    }
+    update idletasks
+    set px [expr {[winfo rootx .] + ([winfo width .] - [winfo width $w]) / 2}]
+    set py [expr {[winfo rooty .] + ([winfo height .] - [winfo height $w]) / 2}]
+    wm geometry $w "+${px}+${py}"
+    . configure -cursor watch
+    update
+    return $w
+}
+
+proc export_hide_busy {w} {
+    catch { $w.pb stop }
+    catch { destroy $w }
+    . configure -cursor ""
+}
+
 proc plotPDF {c} {
     global env curFileName
 
@@ -1306,11 +1336,13 @@ proc plotPDF {c} {
     set psfile  [file join /tmp _legopc_export.ps]
     set pdffile "${base}.pdf"
 
-    if {[plotPS_internal $c $psfile] == ""} { return }
+    set bw [export_show_busy "Esportazione PDF in corso..."]
+    if {[plotPS_internal $c $psfile] == ""} { export_hide_busy $bw; return }
 
     set rc [catch {exec $gs -dNOPAUSE -dBATCH -sDEVICE=pdfwrite \
         "-sOutputFile=$pdffile" $psfile} err]
     catch {file delete $psfile}
+    export_hide_busy $bw
 
     if {$rc != 0} {
         tk_messageBox -icon error -type ok \
@@ -1371,11 +1403,13 @@ proc plotPNG {c} {
     set psfile  [file join /tmp _legopc_export.ps]
     set pngfile "${base}.png"
 
-    if {[plotPS_internal $c $psfile] == ""} { return }
+    set bw [export_show_busy "Esportazione PNG (${dpi} dpi) in corso..."]
+    if {[plotPS_internal $c $psfile] == ""} { export_hide_busy $bw; return }
 
     set rc [catch {exec $gs -dNOPAUSE -dBATCH -sDEVICE=png16m \
         -r$dpi "-sOutputFile=$pngfile" $psfile} err]
     catch {file delete $psfile}
+    export_hide_busy $bw
 
     if {$rc != 0} {
         tk_messageBox -icon error -type ok -message "Errore Ghostscript:\n$err"
@@ -2458,6 +2492,10 @@ scrollbar $f.hscroll -orient horiz -command "$c xview"
 grid $c -in $f -row 0 -column 0 -rowspan 1 -columnspan 1 -sticky news
 grid $f.vscroll -row 0 -column 1 -rowspan 1 -columnspan 1 -sticky news
 grid $f.hscroll -row 1 -column 0 -rowspan 1 -columnspan 1 -sticky news
+catch {
+	ttk::sizegrip $f.sizegrip
+	grid $f.sizegrip -row 1 -column 1 -sticky se
+}
 grid rowconfig $f 0 -weight 1 -minsize 0
 grid columnconfig $f 0 -weight 1 -minsize 0
 
@@ -3152,9 +3190,9 @@ set c2 $f.canDAT
   $nn2.calc_trans config -image $compo1
 
   if  { $::tcl_platform(os) != "Linux" } {
-  button $nn2.watch -text "Plot Trends" -state normal -command { watchtrends 0 "lgsincro_temp.f22"}
+  button $nn2.watch -text "HMI & Plots" -state normal -command { watchtrends 0 "lgsincro_temp.f22"}
   } else {
-  button $nn2.watch -text "Plot trends" -state normal -command { watchtrends 1 "f22circ"}
+  button $nn2.watch -text "HMI & Plots" -state normal -command { watchtrends 1 "f22circ"}
   }
 
 #  button $nn2.watch -text "Watch trends" -state normal -command {watchtrends 0 }
@@ -3220,6 +3258,10 @@ grid $c2 -in $f -row 0 -column 0 -rowspan 1 -columnspan 1 -sticky news
 
 grid $f.vscroll -row 0 -column 1 -rowspan 1 -columnspan 1 -sticky news
 grid $f.hscroll -row 1 -column 0 -rowspan 1 -columnspan 1 -sticky news
+catch {
+	ttk::sizegrip $f.sizegrip
+	grid $f.sizegrip -row 1 -column 1 -sticky se
+}
 
 grid $nn2 -row 0 -column 2 -rowspan 1 -columnspan 1 -sticky nw
 grid $nn2.label1 -row 1 -column 2 -rowspan 1 -columnspan 1 -pady 1m 

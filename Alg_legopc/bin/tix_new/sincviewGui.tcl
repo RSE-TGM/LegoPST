@@ -1,60 +1,97 @@
 set ::LINUXPLAT 0
+if { $::tcl_platform(os) == "Linux" } {
+	set ::LINUXPLAT 1
+}
 set ::indicatore_after 0
 set ::pipeon 0
 #set ::anima_sim_path "D:\legopc\user_Paris_Saclay\models\ParSac10"
 set ::anima_sim_path 0
 
 set ::line_anim2 INIZ
+set ::line_anim ""
 
 proc anima { vai variab } {
 
 
 switch $vai {
-	   init	
+	   init
         	{
-	
+
 puts stdout "anima: START Animazione"
-        		set ::pipeon 0 		
+        		set ::pipeon 0
 
 				if { $::LINUXPLAT == 0 } {set viewer "sincview.exe -pipe"
-				} else {set viewer "viewval -s"}			
-# set viewer "viewval -s"
+				} else {set viewer "viewval -s"}
         		set olddir [pwd]
-				
-				if { $::anima_sim_path != 0 } { catch {cd $::anima_sim_path} } 
+
+				if { $::anima_sim_path != 0 } { catch {cd $::anima_sim_path} }
 
 puts stdout "anima- path=$::anima_sim_path"
 
-				if {[catch {open "| $viewer" r+} ::pipeanim]} {  
-					tk_messageBox -message "Error opening pipe: $::pipeanim"  
+				# Su Linux: se net_sked non è in esecuzione, non aprire la pipe.
+				# Ritorna silenziosamente con pipeon=0: sarà il chiamante
+				# (anima leggi) a gestire la segnalazione all'utente.
+				if { $::LINUXPLAT == 1 } {
+					set sked_running 0
+					catch {
+						set psout [exec ps -A -o comm]
+						foreach _ln [split $psout "\n"] {
+							if { [string trim $_ln] == "net_sked" } { set sked_running 1; break }
+						}
+					}
+					if { $sked_running == 0 } {
+						set ::pipeanim 0
+						set ::pipeon 0
+						cd $olddir
+						return
+					}
+				}
+
+				if {[catch {open "| $viewer" r+} ::pipeanim]} {
+					tk_messageBox -message "Error opening pipe: $::pipeanim"
 					set ::pipeanim 0
 					set ::pipeon 0
 				} else {
-				set ::pipeon 1
-# Configure reader for ::pipeanim  #### D:/svn_wa/sincview.exe -pipe
-       			fconfigure $::pipeanim -buffering line
-#puts stdout "aspetto: $::pipeanim"
-#scarto la prima lettura: é un messaggio di avviso che è partita la modalita PIPE
-				catch {gets $::pipeanim ::line_anim}
-
-# se la pipe è finita (eof) allora l'apertura non ha avuto successo per mancanza della shared memory
-				if [eof $::pipeanim] { set ::pipeon 0 } 
-#puts stdout $::line_anim
-#tk_messageBox -message "else in init: $::line_anim"
+					set ::pipeon 1
+					fconfigure $::pipeanim -buffering line
+					# scarto la prima lettura (warning di avvio modalità PIPE)
+					catch {gets $::pipeanim ::line_anim}
+					# se eof la shared memory non è pronta
+					if [eof $::pipeanim] {
+						catch { close $::pipeanim }
+						set ::pipeanim 0
+						set ::pipeon 0
+					}
 				}
 				cd $olddir
-				return 
+				return
 			}
-		leggi	
+		leggi
 			{
-#puts stdout "anima: -pipeon=$::pipeon- leggo $variab pipeanim=$::pipeanim"
-    	        if { $::pipeon == 0 } { return } 
-#set ::line_anim2 "...."				
-				puts $::pipeanim $variab
-#				catch {flush $::pipeanim }
-### after 10000
-### tk_messageBox -message "DEBUG: DOPO AFTER"
-				gets $::pipeanim ::line_anim
+				# Se la pipe è spenta prova a (ri)aprirla al volo:
+				# copre il caso in cui sincview è stato lanciato prima della simulazione.
+				if { $::pipeon == 0 } {
+					anima init qq
+					if { $::pipeon == 0 } {
+						set ::line_anim ""
+						tk_messageBox -icon warning -type ok -title "Sincview" \
+							-message "Simulazione non attiva.\nAvviare la simulazione (net_sked) prima di richiedere valori dinamici."
+						return
+					}
+				}
+				# Tentativo write+read con gestione broken pipe.
+				if { [catch {
+					puts $::pipeanim $variab
+					gets $::pipeanim ::line_anim
+				} errmsg] } {
+					catch { close $::pipeanim }
+					set ::pipeanim 0
+					set ::pipeon 0
+					set ::line_anim ""
+					tk_messageBox -icon warning -type ok -title "Sincview" \
+						-message "Connessione a viewval persa.\nLa simulazione potrebbe essere terminata.\nRiprovare dopo averla riavviata."
+					return
+				}
 puts $::outfile "DEBUG: DOPO GET  - la variabile $variab: $::line_anim "
 
 # tk_messageBox -message "DEBUG: DOPO GET  - la variabile $variab: $::line_anim "
@@ -106,7 +143,12 @@ wm protocol . WM_DELETE_WINDOW chk_exit
 set variab_inv "JPSSDHLP\n"
 set variab_inv "UA_1DHLP\n"
 set variab_inv "WVALFDWI\n"
-set ::outfile [open [file join $::env(TEMP) sincview_report.out] w]
+if { $::LINUXPLAT == 0 } {
+    set ::tmpdir $::env(TEMP)
+} else {
+    set ::tmpdir [expr {[info exists ::env(TMPDIR)] ? $::env(TMPDIR) : "/tmp"}]
+}
+set ::outfile [open [file join $::tmpdir sincview_report.out] w]
 set ::textnew "Enter a NewValue --->"
 
 anima init qq

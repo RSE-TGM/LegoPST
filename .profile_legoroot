@@ -9,6 +9,10 @@
 OS=`uname`
 export OS
 set -o emacs
+
+export XCURSOR_THEME=Adwaita
+export XCURSOR_SIZE=24
+
 ################PRODUCTINST##########################
 export PATH=$PATH:$HOME/legocad/libut_bin:/usr/local/bin/
 #
