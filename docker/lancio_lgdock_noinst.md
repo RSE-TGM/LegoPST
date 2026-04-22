@@ -24,10 +24,10 @@ Inoltre lo script consente il download di una applicazione demo di LegoPST costi
 
 
 # Se si vuole essere sicuri di usare l'ultima versione dell'immagine docker LegoPST:
-docker pull aguagliardi/legopst:2.0 && bash -c "$(curl -fsSL https://gist.githubusercontent.com/aguag/d7c030f939f69b07784a309889b8510a/raw/lgdock.sh)"
+docker pull aguagliardi/legopst_multi:2.0 && bash -c "$(curl -fsSL https://gist.githubusercontent.com/aguag/d7c030f939f69b07784a309889b8510a/raw/lgdock.sh)"
 
 # Lancio con help:
-docker pull aguagliardi/legopst:2.0 && bash -c "$(curl -fsSL https://gist.githubusercontent.com/aguag/d7c030f939f69b07784a309889b8510a/raw/lgdock.sh)"  _ "-h"
+docker pull aguagliardi/legopst_multi:2.0 && bash -c "$(curl -fsSL https://gist.githubusercontent.com/aguag/d7c030f939f69b07784a309889b8510a/raw/lgdock.sh)"  _ "-h"
 
 # Download dello script:
  curl -sSL https://gist.githubusercontent.com/aguag/d7c030f939f69b07784a309889b8510a/raw/lgdock.sh -o ./lgdock

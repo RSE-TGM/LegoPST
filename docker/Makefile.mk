@@ -2,10 +2,9 @@
 # Modifica questo se il tuo script BuildImage costruisce un'immagine con un nome specifico.
 # Se BuildImage non produce un target tangibile che Make può tracciare,
 # useremo un file "timestamp" per forzare la riesecuzione.
-IMAGE_NAME := aguagliardi/legopst:latest
+IMAGE_NAME := aguagliardi/legopst_multi:2.0
 DOCKERFILE := Dockerfile_LegoPST
 BUILD_SCRIPT := ./BuildImage
-BUILD_SCRIPT_MULTI := ./BuildImage_multiplat
 
 # Versione letta dal file VERSION (versionato in git)
 VERSION_FILE := ../VERSION
@@ -62,8 +61,6 @@ build: check_docker $(BUILD_DEPENDENCIES)
 	# La logica per decidere se buildare è ora dentro BuildImage
 	$(BUILD_SCRIPT) -y # Passa l'opzione -y se necessario, es: $(BUILD_SCRIPT) -y
 	@echo "Script BuildImage completato."
-	$(BUILD_SCRIPT_MULTI) -y # Passa l'opzione -y se necessario, es: $(BUILD_SCRIPT) -y
-	@echo "Script BuildImage_multi completato."
 
 # Opzione 2: Usare un file "timestamp" per evitare ricompilazioni non necessarie
 # se BuildImage è costoso e vuoi essere più preciso.

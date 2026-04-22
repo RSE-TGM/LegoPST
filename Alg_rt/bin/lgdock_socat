@@ -17,7 +17,7 @@ fi
 # Gestione Parametri
 # =============================================================================
 VERSION=1.0
-IMAGE_NAME="aguagliardi/legopst:2.0"
+IMAGE_NAME="aguagliardi/legopst_multi:2.0"
 
 show_help() {
     echo "Uso: $0 [OPZIONI]"

@@ -64,10 +64,10 @@ clean:
 
 # --- Target Docker ---
 docker:
-	cd ./docker && ./BuildImage_multiplat -y
+	cd ./docker && ./BuildImage -y
 
 docker-push:
-	cd ./docker && ./BuildImage_multiplat -y --push
+	cd ./docker && ./BuildImage -y --push
 
 # --- Help ---
 help:
@@ -89,11 +89,11 @@ help:
 	@echo ""
 	@echo "  force_version_h  Forza il ricalcolo di version.h alla prossima build"
 	@echo ""
-	@echo "  docker           Costruisce l'immagine Docker multipiattaforma"
-	@echo "                   (esegue docker/BuildImage_multiplat -y)"
+	@echo "  docker           Costruisce l'immagine Docker aguagliardi/legopst_multi:2.0"
+	@echo "                   (esegue docker/BuildImage -y)"
 	@echo ""
-	@echo "  docker-push      Costruisce e pubblica l'immagine Docker"
-	@echo "                   (esegue docker/BuildImage_multiplat -y --push)"
+	@echo "  docker-push      Costruisce e pubblica l'immagine Docker su Docker Hub"
+	@echo "                   (esegue docker/BuildImage -y --push)"
 	@echo ""
 	@echo "  help             Mostra questo messaggio"
 	@echo ""

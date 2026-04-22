@@ -194,13 +194,13 @@ sudo dnf install -y \
         passwd \
         cpio \
         shadow-utils \
-        install xdg-open \
+        xdg-open \
         ghostscript \
         gimp \
         evince \
         unix2dos \
-        xorg-x11-fonts-misc xorg-x11-fonts-100dpi xorg-x11-fonts-75dpi \ libXcursor adwaita-cursor-theme \
-        && \
+        xorg-x11-fonts-misc xorg-x11-fonts-100dpi xorg-x11-fonts-75dpi libXcursor \ 
+        adwaita-cursor-theme && \
 sudo dnf clean all
 sudo dnf update
 sudo dnf install libmrm4 tcl tk tix libmotif-dev
