@@ -10,6 +10,10 @@ OS=`uname`
 export OS
 set -o emacs
 ################PRODUCTINST##########################
+# fix problema cursore
+export XCURSOR_THEME=Adwaita
+export XCURSOR_SIZE=24
+
 export PATH=$PATH:$HOME/legocad/libut_bin:/usr/local/bin/
 #
 #       definizione simulatore e cassaforte di riferimento

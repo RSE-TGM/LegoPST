@@ -4077,10 +4077,10 @@ proc raisetopol { c } {
 		} else {
 		.menu.view  entryconfigure 3 -state normal
                }		 
-		.menu.view  entryconfigure 4 -state normal 
-		.menu.view  entryconfigure 5 -state normal 
-		.menu.util  entryconfigure 5 -state normal 
-		.menu.util  entryconfigure 6 -state normal 
+		.menu.view  entryconfigure 4 -state normal
+		.menu.view  entryconfigure 5 -state normal
+		.menu.util  entryconfigure 5 -state disabled
+		.menu.util  entryconfigure 6 -state disabled
 		$model_img configure -showbackground 1
 		$data_img configure -showbackground 0
 		$task_img configure -showbackground 0
@@ -4127,10 +4127,10 @@ proc raisedata { c c2 } {
 		} else {
 		.menu.view  entryconfigure 3 -state normal
                }		 
-		.menu.view  entryconfigure 4 -state normal 
-		.menu.view  entryconfigure 5 -state normal 
-		.menu.util  entryconfigure 5 -state disabled 
-		.menu.util  entryconfigure 6 -state disabled 
+		.menu.view  entryconfigure 4 -state normal
+		.menu.view  entryconfigure 5 -state normal
+		.menu.util  entryconfigure 5 -state normal
+		.menu.util  entryconfigure 6 -state normal
 		$model_img configure -showbackground 0
 		$data_img configure -showbackground 1
 		$task_img configure -showbackground 0
