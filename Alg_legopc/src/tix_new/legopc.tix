@@ -4433,7 +4433,14 @@ after 200 {
     #$m add command -label "Open..." -command "topRead $c {}"
 ###    $m add command -label "Open Model..." -command { set ret11 0 ; set ret11 [ apri_modello $c $c2 0]; if { $ret11 == 2 } { return }; ShowNamesfilt $c $c2 $showon; open_simul $f4 $DIRMODEL/tasks.dat; load_task $DIRMODEL $c4 }
 
-$m add command -label "Open Model..." -command { aprimodello $c $c2 $f4 0 }
+$m add command -label "Open Model..." -command {
+    if {[catch {set _page [.indice.nb raised]}] || $_page ne "model_topol"} {
+        tk_messageBox -icon warning -type ok -title "Open Model" \
+            -message "Per aprire un nuovo modello passare prima al tab \"Model Topology\"."
+        return
+    }
+    aprimodello $c $c2 $f4 0
+}
 
 #    $m add command -label "Open Model..." -command { 
 #    	                        set ret11 0 

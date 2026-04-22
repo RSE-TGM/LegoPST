@@ -172,7 +172,7 @@ C
 C
  900  IGO=5 ! Tratta la fine del file come EOF
       KEOF=1
-      PRINT *, '*** PFILE3: Raggiunta fine file inaspettata su unita ',echo $FFLAGS NF
+      PRINT *, '*** PFILE3: Fine file inaspettata su unita ', NF
       RETURN
       END
 C
@@ -183,6 +183,10 @@ C
 C
 C      SUBROUTINE PER LA LETTURA DEI SIMBOLI DEI DATI E DEI VALORI
 C      DAL FILE CONSIDERATO VECCHIO (3)
+C
+      include 'lg_parameter.fh'
+C     KN002 = N. BLOCCHI (serve per i bounds-check su NMBL*/IPDT)
+      PARAMETER (KN002=N002)
 C
 C --- Dichiarazioni Originali e Modificate ---
       INTEGER MX1, NBL, NVAR, N, KBL, M, I, NSY
@@ -228,15 +232,13 @@ C     Formato originale: 3A4,2X,2A4,A2,A,A4,1X,A
 C     Modificato per leggere IKO separatamente e allineare con le var CHARACTER*4
       READ(3,1000,END=990) IKO,IA(N,1),IA(N,2),IX(N,1),IX(N,2),IX(N,3),
      &            IA_V(N)(1:15),ICD(N),IB_V(N)(1:88)
- 1000 FORMAT(  A4,2A4,2X,2A4,A2,1X,A15,1X,A4,1X,A) ! Adattato per IA_V, ICD, IB_V
+ 1000 FORMAT(  A4,2A4,2X,2A4,A2,A15,A4,1X,A) ! IA_V cols 25-39, ICD cols 40-43, '*' col 44, IB_V da col 45
       IF(IKO.NE.ILG)GO TO 2
 C     Riga *LG* trovata, l'ultima lettura era l'inizio dei dati o blocchi
       N=N-1
-      IF(IA(N+1,1).NE.IDT) THEN
-       PRINT*, '*** ERRORE PFILE5: Attesa riga *LG*DATI dopo variabili'
-       PRINT*, '*** Trovato invece: ', IA(N+1,1)
-       STOP 'Errore formato file sorgente in PFILE5 (1)'
-      ENDIF
+C     Se *LG* ma non DATI (es. *LG*CONDIZIONI INIZIALI VARIABILI DI
+C     INGRESSO), salta l'intestazione e continua a leggere variabili.
+      IF(IA(N+1,1).NE.IDT) GO TO 2
 C
 C      LETTURA DATI DEI BLOCCHI
 C
