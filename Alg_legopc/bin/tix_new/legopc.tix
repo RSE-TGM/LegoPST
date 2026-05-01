@@ -4614,6 +4614,10 @@ set ::stileanim_prec $::stileanim
     	global curFileName DIRMODEL
     	exec xterm &
     }
+    $m add command -label "Build FMU" -command {
+    	global DIRMODEL
+    	exec xterm -title "Build FMU" -e "$env(LEGOROOT)/Alg_rt/lg_fmu/scripts/dolgfmu.sh $DIRMODEL; echo; echo Premi invio per chiudere; read x" &
+    }
 
     set m .menu.grafics_ut
     menu $m -tearoff 0 -activebackground darkblue -activeforeground white

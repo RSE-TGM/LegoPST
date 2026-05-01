@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<fmiModelDescription
+    fmiVersion="2.0"
+    modelName="@MODEL_NAME@"
+    guid="@GUID@"
+    description="@DESCRIPTION@"
+    version="@VERSION@"
+    generationTool="@GENERATION_TOOL@"
+    generationDateAndTime="@GENERATION_DATE@"
+    variableNamingConvention="structured">
+
+    <CoSimulation
+        modelIdentifier="@MODEL_NAME@"
+        needsExecutionTool="true"
+        canHandleVariableCommunicationStepSize="false"
+        canInterpolateInputs="false"
+        maxOutputDerivativeOrder="0"
+        canRunAsynchronuously="false"
+        canBeInstantiatedOnlyOncePerProcess="true"
+        canNotUseMemoryManagementFunctions="false"
+        canGetAndSetFMUstate="false"
+        canSerializeFMUstate="false"
+        providesDirectionalDerivative="false"/>
+
+    <DefaultExperiment startTime="@DEFAULT_START@" stepSize="@DEFAULT_STEP@"/>
+
+    <ModelVariables>
+@MODEL_VARIABLES@
+    </ModelVariables>
+
+    <ModelStructure>
+        <Outputs>
+@MODEL_OUTPUTS@
+        </Outputs>
+        <InitialUnknowns>
+@MODEL_OUTPUTS@
+        </InitialUnknowns>
+    </ModelStructure>
+</fmiModelDescription>
