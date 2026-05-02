@@ -285,4 +285,6 @@ rm -f "$OUTPUT"
 echo
 echo "FATTO: $OUTPUT"
 ls -lh "$OUTPUT"
-[[ $KEEP_STAGING -eq 1 ]] && echo "staging: $STAGING (mantenuto, --keep-staging)"
+if [[ $KEEP_STAGING -eq 1 ]]; then
+    echo "staging: $STAGING (mantenuto, --keep-staging)"
+fi
