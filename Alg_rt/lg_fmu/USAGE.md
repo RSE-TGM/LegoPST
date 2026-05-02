@@ -3,12 +3,7 @@
 FMU FMI 2.0 Co-Simulation per il runtime di simulazione LegoPST su Linux.
 
 Esistono **due varianti** della stessa FMU, con stesso nome modello (`LegoCliSINC`)
-e stessa interfaccia FMI ma diversa modalità di deployment:
-
-| Variante | File | Self-contained | Richiede LegoPST installato sul target | Dimensione tipica |
-|----------|------|----------------|----------------------------------------|-------------------|
-| **base**   | `legoclix_<task>.fmu`         | no  | sì | ~80 KB |
-| **bundle** | `legoclix_<task>_bundle.fmu`  | sì  | no | ~3.8 MB |
+e stessa interfaccia FMI ma diversa modalità di deployment.
 
 Entrambe sono "bound al task": una FMU vale per la singola task LegoPST sulla
 quale è stata generata (`TASK_PATH` embedded in `resources/task_info.env`).
@@ -22,13 +17,53 @@ del bundle (`legoclix_<task>_bundle/`) deve stare accanto alla `.fmu`.
 
 ## Sezione utente
 
-### Quando usare quale variante
+### Differenze e limiti tra le varianti
 
-- **base**: la macchina su cui giri la FMU ha LegoPST installato (stesso utente, stesso `LEGOROOT`). Tipicamente: dev workstation. Più piccola e veloce da rigenerare.
-- **bundle**: la macchina target NON ha LegoPST. Tipicamente: container / collega / shipping. Include tutto il runtime serve: `dispatcher`, `net_sked`, `killsim`, `initav`, tabelle acqua/vapore, shared libs, e una copia della task stessa.
+| Aspetto | base | bundle |
+|---------|------|--------|
+| File | `legoclix_<task>.fmu` | `legoclix_<task>_bundle.fmu` |
+| Dimensione tipica | ~80 KB | ~3.8 MB |
+| Self-contained | ❌ | ✅ |
+| Richiede LegoPST installato sul target | ✅ stesso `LEGOROOT`, stesso utente | ❌ |
+| Vincolo glibc target | quella del target locale (di solito ok) | ≥ 2.38 (baseline `net_sked` del build host) |
+| Architettura | x86_64 Linux | x86_64 Linux |
+| Gira in container Linux pulito (es. `python:3.11-slim`) | ❌ | ✅ validato 2026-05-02 |
+| Modalità attach (sim già viva) | ✅ | ✅ |
+| Modalità launch (FMU lancia la sim da sola) | ✅ | ✅ |
+| Multi-istanza concorrente stesso uid | ✅ max 8 (slot 1..8) | ✅ max 8 (slot 1..8) |
+| Coesistenza con banco operatore | ✅ slot 0 = `uid*10000` riservato | ✅ slot 0 = `uid*10000` riservato |
+| Tempo di build | rapido (~1-2 s) | ~5-15 s (rsync runtime + task) |
+| Aggiornamento LegoPST sul target | basta aggiornare LegoPST | richiede rebuild della FMU |
+| Use case tipico | dev workstation, CI con LegoPST installato | shipping a colleghi, container, deployment senza LegoPST |
+| Compatibilità Simulink Windows | ❌ serve FMU Windows separata | ❌ serve FMU Windows separata |
+| Compatibilità ARM / non-x86_64 | ❌ rebuild dedicato | ❌ rebuild dedicato |
 
-In entrambi i casi la FMU è **Linux x86_64**. Per Simulink Windows serve la
-versione Windows separata (`/home/antonio/legopc_prj/src/legosim/LegoCliSINC_fmu`).
+**Quando scegliere base**: il target ha LegoPST già installato (dev box, collega con setup completo, CI con immagine LegoPST). Più piccola, build rapido, eredita automaticamente upgrade di LegoPST sul target.
+
+**Quando scegliere bundle**: il target non ha LegoPST (container minimal, collega senza setup, demo). Self-contained ma vincolato alla glibc del build host (≥ 2.38 → ok per Ubuntu 24.04 / Debian 13 / Fedora 39+; per target più vecchi serve rebuild su container con baseline glibc più bassa, vedi `Compatibilità glibc` più sotto).
+
+In entrambi i casi la FMU è **Linux x86_64**. Per Simulink Windows serve la versione Windows separata (`/home/antonio/legopc_prj/src/legosim/LegoCliSINC_fmu`).
+
+### Metodi di esecuzione (FMI master)
+
+Il file `.fmu` è uno standard FMI 2.0 e può essere caricato da qualunque master FMI conforme. Tabella dei metodi testati / supportati:
+
+| Metodo | Variante FMU | Setup richiesto | Use case | Stato |
+|--------|--------------|-----------------|----------|-------|
+| `run_fmu.sh` (wrapper bash su fmpy) | base, bundle | `source .profile_legoroot` + `/home/antonio/fmpy_venv` | smoke test rapido in CLI con CSV out | ✅ supportato |
+| `fmpy.simulate_fmu` (Python diretto) | base, bundle | `pip install fmpy` (Python ≥ 3.8) | scripting, integrazione test, debug fine-grained con `LG_FMU_DEBUG=1` | ✅ supportato |
+| Container Linux pulito (`docker run python:3.11-slim` + fmpy) | **solo bundle** | `pip install fmpy` nel container | deployment, CI esterna, demo | ✅ validato 2026-05-02 |
+| Simulink R2023a (Linux master) | base, bundle | Simulink Linux + FMI Toolbox | integrazione modelli misti | ⏸ non testato (utente usa Simulink Windows) |
+| Simulink R2023a (Windows host) | nessuna | — | — | ❌ serve FMU Windows separata, non Linux |
+| OpenModelica | base, bundle | `dnf/apt install openmodelica` | validazione cross-tool open-source | ⏸ non testato (non installato) |
+| FMI Compliance Checker (Modelica Association) | base, bundle | jar standalone | validazione `modelDescription.xml` + .so contro spec FMI 2.0 | ✅ 0 issue 2026-04-30 |
+
+**Limitazioni comuni a tutti i metodi:**
+- Get/Set per Integer / Boolean / String → `fmi2Discard` (solo Real esposto).
+- FMUstate / Serialize / DeSerialize → `fmi2Error` (`canGetAndSetFMUstate=false`).
+- DirectionalDerivative / RealOutputDerivatives / RealInputDerivatives / CancelStep → `fmi2Error`.
+- `communicationStepSize` < `dt_sked` → warning (la FMU avanza comunque di 1 `dt_sked`, il tempo "gonfia"); non `fmi2Discard` perché fmpy non lo gestisce e va in loop.
+- 9ª FMU concorrente sullo stesso uid → fallisce con `[lg_fmu] tutti gli 8 slot...` (vedi sezione multi-istanza più sotto).
 
 ### Generare una FMU (variante base)
 
@@ -145,6 +180,7 @@ Per target con glibc < 2.38 servirebbe rebuild dei binari LegoPST in un containe
 **Note di implementazione (non rilevanti per l'utente, lette dalla FMU automaticamente):**
 - fmpy estrae lo zip via Python `zipfile` che NON preserva il bit `+x` → la FMU invoca `bash restore_perms.sh` (generato da `bundle/build.sh`) prima del launch.
 - Container con utente root (uid=0): SysV SHM key=0 = `IPC_PRIVATE`, non condivisibile. La FMU ricalcola `SHR_USR_KEY = getpid()*10 + 10000` come fallback.
+- Multi-istanza (uid≠0, sim non viva): la FMU sceglie automaticamente uno degli 8 slot `uid*10000 + slot*1100` (slot 1..8) disponibili. Lo slot 0 (= `uid*10000`) è riservato alla sessione LegoPST normale dell'utente: aprendo il banco operatore mentre una FMU gira, le SHM non collidono. Limite: max 8 FMU concorrenti per uid.
 - `net_startup_headless.sh` ha shebang `bash` (non `sh`): in debian/ubuntu `/bin/sh = dash` non digerisce i costrutti bash di `.profile_legoroot` (`set -o emacs`, `[[ ]]`).
 
 ### Cleanup dopo i test
@@ -215,7 +251,7 @@ cd $LEGOROOT/Alg_rt/lg_fmu/tests && make -f Makefile.mk
 2. `read_env_value` su `resources/task_info.env`:
    - `TASK_PATH`, `LEGOROOT`, `BUNDLE_MODE`
    - **12 var LEGO** (`N000..N007`, `M001..M005`) → `setenv` (overwrite=0)
-3. `setup_legopst_env`: `SHR_USR_KEY` (= `getuid()*10000`, fallback `getpid()*10+10000` se uid=0), `SHR_USR_KEYS = SHR_USR_KEY+1000`, `OS=Linux`, `PATH`, `LD_LIBRARY_PATH` (bundle), `SHR_TAV_KEY=999` (bundle)
+3. `setup_legopst_env`: `SHR_USR_KEY` (se non in env: probe slot 1..8 di `uid*10000+slot*1100` via `shmget(ID_SHM_SIM)` finché ENOENT — slot 0 riservato alla sessione LegoPST normale; uid=0 fallback `getpid()*10+10000`), `SHR_USR_KEYS = SHR_USR_KEY+1000`, `OS=Linux`, `PATH`, `LD_LIBRARY_PATH` (bundle), `SHR_TAV_KEY=999` (bundle)
 4. `chdir(TASK_PATH)`
 5. `try_attach_db` (RtCreateDbPunti). Se OK → attach mode (`we_started_sim=0`). Se NO → `launch_sim_and_wait` (`we_started_sim=1`)
    - In bundle mode: pre-launch invoca `bash restore_perms.sh` (riapplica `chmod +x` post-fmpy.extract)
@@ -304,6 +340,100 @@ Tools standalone (richiedono sim attiva sulla task corrente):
 | Container root: polling `try_attach_db` infinito, sim non parte | `SHR_USR_KEY=0` (uid root) = `IPC_PRIVATE` | Fixato in P7-bis: fallback a `pid*10+10000`. Verifica con `LG_FMU_DEBUG=1` la riga `SHR_USR_KEY=...` post-setup |
 | Container debian/ubuntu: launcher exit 2 "dispatcher non in PATH" | `/bin/sh = dash`, source `.profile_legoroot` (bash) fallisce silenziosamente | Fixato in P7-bis: shebang `bash` in `net_startup_headless.sh`. Bash deve essere disponibile nel target (lo è in tutte le distro Linux mainstream) |
 | Glibc del target < 2.38 → `version 'GLIBC_2.38' not found` | Bundle compilato su host con glibc recente; `net_sked` link a 2.38 | Rebuild dei binari LegoPST in container con glibc baseline più bassa (es. ubuntu:20.04) |
+| `[lg_fmu] tutti gli 8 slot SHR_USR_KEY per uid=N occupati` | 8 FMU concorrenti già attive sullo stesso uid | Rilascia istanze precedenti (`killsim` da una shell con `SHR_USR_KEY=<slot>` settata) o attendi la chiusura. `ipcs -m` mostra le chiavi occupate |
+
+### Procedura di test — multi-istanza FMU (P5)
+
+Valida che la FMU in launch mode scelga uno slot `SHR_USR_KEY` libero (1..8) senza collidere con la sessione LegoPST normale (slot 0) né con altre FMU concorrenti dello stesso uid. Riferimento codice: `setup_legopst_env` in `src/lg_fmi2.c`.
+
+Per uid=1000 (utente `antonio`) gli slot attesi sono:
+- slot 0 = `10000000` → riservato al banco operatore (mai scelto dalla FMU)
+- slot 1 = `10001100`, slot 2 = `10002200`, ..., slot 8 = `10008800`
+
+#### Pre-requisito — rigenerare il bundle con la `.so` post-P5
+
+Il `.fmu` deve includere la nuova `LegoCliSINC.so`. Se il bundle è stato generato prima della patch, rigenerare:
+```bash
+source $LEGOROOT/.profile_legoroot
+$LEGOROOT/Alg_rt/lg_fmu/scripts/dolgfmu.sh -b /home/antonio/legocad/collet
+stat -c '%y %n' /home/antonio/legocad/collet/legoclix_collet_bundle.fmu \
+                $LEGOROOT/Alg_rt/lg_fmu/src/LegoCliSINC.so
+# .fmu deve essere PIU' RECENTE del .so
+```
+
+Pulizia IPC residui prima di iniziare:
+```bash
+killsim 2>/dev/null; ipcs -m
+# atteso: solo SHR_TAV_KEY=0x000003e7 (acqua/vapore)
+```
+
+#### T1 — singola istanza, verifica che NON usi slot 0
+
+```bash
+cd /home/antonio/legocad/collet
+env -i HOME=$HOME USER=$USER PATH=/usr/bin LG_FMU_DEBUG=1 \
+  /home/antonio/fmpy_venv/bin/python3 -c "
+from fmpy import simulate_fmu, extract
+extract('legoclix_collet_bundle.fmu', unzipdir='legoclix_collet_bundle')
+result = simulate_fmu('legoclix_collet_bundle', stop_time=5)
+print(f'OK {len(result)} sample')" 2>&1 | grep -E "SHR_USR_KEY|sample"
+```
+
+Atteso:
+```
+[lg_fmu DBG] post setup_legopst_env: SHR_USR_KEY=10001100 ...
+OK 6 sample
+```
+Se `SHR_USR_KEY=10000000`, il `.so` nel bundle non è quello post-P5 (vedi pre-requisito).
+
+#### T2 — due istanze concorrenti, verifica slot diversi
+
+In due terminali separati lanciare lo stesso comando di T1. Da un terzo terminale:
+```bash
+ipcs -m | awk 'NR>3 && $1 ~ /^0x/ { printf "%s = %d\n", $1, strtonum($1) }'
+```
+
+Atteso: due gruppi di SHM su slot 1 e slot 2:
+```
+0x00989acc = 10001100   ← FMU 1, ID_SHM_SIM
+0x00989ad1 = 10001105   ← FMU 1, ID_SHM_VAR
+...
+0x00989f18 = 10002200   ← FMU 2, ID_SHM_SIM
+0x00989f1d = 10002205   ← FMU 2, ID_SHM_VAR
+...
+```
+più `0x000003e7 = 999` (SHR_TAV_KEY condivisa). Nessuna collisione tra le 2 FMU.
+
+#### T3 (opzionale) — coesistenza FMU + banco operatore
+
+Aprire il banco normale su `collet` (`net_startup` o tix_new "Run"), poi lanciare una FMU come T1. Verificare che il banco occupi slot 0 (`10000000`) e la FMU slot 1 (`10001100`). Le SHMs in `ipcs -m` sono due insiemi disgiunti.
+
+#### T4 (stress, opzionale) — 9ª istanza fallisce in modo pulito
+
+```bash
+cd /home/antonio/legocad/collet
+for i in 1 2 3 4 5 6 7 8; do
+  (env -i HOME=$HOME USER=$USER PATH=/usr/bin \
+    /home/antonio/fmpy_venv/bin/python3 -c "
+from fmpy import simulate_fmu
+simulate_fmu('legoclix_collet_bundle', stop_time=20)" &)
+  sleep 1
+done
+sleep 5
+env -i HOME=$HOME USER=$USER PATH=/usr/bin LG_FMU_DEBUG=1 \
+  /home/antonio/fmpy_venv/bin/python3 -c "
+from fmpy import simulate_fmu
+simulate_fmu('legoclix_collet_bundle', stop_time=5)" 2>&1 | tail -5
+```
+
+Atteso (sulla 9ª): messaggio `[lg_fmu] tutti gli 8 slot SHR_USR_KEY per uid=1000 sono occupati: rilascia istanze precedenti (killsim) o attendi.` + fallimento `fmi2Instantiate`.
+
+#### Cleanup finale
+
+```bash
+killsim
+ipcs -m   # atteso: solo SHR_TAV_KEY=0x000003e7
+```
 
 ### File modificati (stato 2026-05-02)
 

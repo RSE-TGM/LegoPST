@@ -36,10 +36,13 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
+#include <sys/ipc.h>
+#include <sys/shm.h>
 
 #include <sqlite3.h>
 #include <sim_param.h>
 #include <sim_types.h>
+#include <sim_ipc.h>
 #include <sked.h>
 #include <dispatcher.h>
 #include <libdispatcher.h>
@@ -201,15 +204,42 @@ static void setup_legopst_env(const char *legoroot, int bundle_mode)
     if (!getenv("LEGOROOT")) setenv("LEGOROOT", legoroot, 0);
     if (!getenv("OS"))       setenv("OS", "Linux", 0);
 
-    /* SHR_USR_KEY: replica logica di Alg_env.sh (USR_KEY*10000 dove
-     * USR_KEY=getuid). In container root (uid=0) il valore sarebbe 0, ma
-     * key=0 corrisponde a IPC_PRIVATE in SysV (la SHM non e' condivisibile
-     * tra processi distinti) -> attach impossibile. Usiamo PID come fallback
-     * non-zero (usato nel container come single-instance: il PID e' stabile
-     * per la durata della FMU). */
+    /* SHR_USR_KEY: in attach mode (sim viva) e' gia' in env del caller
+     * (settata da .profile_legoroot/Alg_env.sh = uid*10000) -> non si tocca,
+     * altrimenti la FMU non si attacca alla sim utente.
+     *
+     * In launch mode (no env, es. fmpy lancia la FMU da una shell pulita)
+     * scegliamo una key che NON collida con:
+     *   - la sessione LegoPST normale dell'utente (slot 0 = uid*10000,
+     *     riservato ad Alg_env.sh);
+     *   - altre FMU concorrenti dello stesso uid.
+     * Probe degli slot 1..8 (= uid*10000 + slot*1100): per ogni slot
+     * candidato, shmget(ID_SHM_SIM) torna ENOENT se libero. Primo slot libero
+     * vince. Spazio uid*10000 = 10000 key, ogni istanza occupa ~1030 key
+     * consecutive, slot 0 riservato -> max 8 FMU concorrenti per uid.
+     *
+     * Caso uid=0 (container root): key=0 == IPC_PRIVATE in SysV, non
+     * condivisibile -> fallback PID-based di P7-bis (single-instance ok). */
     if (!getenv("SHR_USR_KEY")) {
-        int key = (int)(getuid() * 10000);
-        if (key == 0) key = (int)getpid() * 10 + 10000;
+        int key = -1;
+        uid_t uid = getuid();
+        if (uid == 0) {
+            key = (int)getpid() * 10 + 10000;
+        } else {
+            for (int slot = 1; slot < 9; slot++) {
+                int candidate = (int)(uid * 10000) + slot * 1100;
+                errno = 0;
+                int id = shmget(candidate + ID_SHM_SIM, 0, 0);
+                if (id == -1 && errno == ENOENT) { key = candidate; break; }
+            }
+            if (key == -1) {
+                fprintf(stderr,
+                    "[lg_fmu] tutti gli 8 slot SHR_USR_KEY per uid=%u sono "
+                    "occupati: rilascia istanze precedenti (killsim) o attendi.\n",
+                    (unsigned)uid);
+                return;
+            }
+        }
         char buf[32];
         snprintf(buf, sizeof(buf), "%d", key);
         setenv("SHR_USR_KEY", buf, 0);
