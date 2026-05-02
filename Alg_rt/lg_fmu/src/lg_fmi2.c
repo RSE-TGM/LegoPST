@@ -201,10 +201,17 @@ static void setup_legopst_env(const char *legoroot, int bundle_mode)
     if (!getenv("LEGOROOT")) setenv("LEGOROOT", legoroot, 0);
     if (!getenv("OS"))       setenv("OS", "Linux", 0);
 
-    /* SHR_USR_KEY: replica logica di Alg_env.sh (USR_KEY*10000 dove USR_KEY=getuid). */
+    /* SHR_USR_KEY: replica logica di Alg_env.sh (USR_KEY*10000 dove
+     * USR_KEY=getuid). In container root (uid=0) il valore sarebbe 0, ma
+     * key=0 corrisponde a IPC_PRIVATE in SysV (la SHM non e' condivisibile
+     * tra processi distinti) -> attach impossibile. Usiamo PID come fallback
+     * non-zero (usato nel container come single-instance: il PID e' stabile
+     * per la durata della FMU). */
     if (!getenv("SHR_USR_KEY")) {
+        int key = (int)(getuid() * 10000);
+        if (key == 0) key = (int)getpid() * 10 + 10000;
         char buf[32];
-        snprintf(buf, sizeof(buf), "%d", (int)(getuid() * 10000));
+        snprintf(buf, sizeof(buf), "%d", key);
         setenv("SHR_USR_KEY", buf, 0);
     }
     /* SHR_USR_KEYS = SHR_USR_KEY + 1000 (vedi Alg_env.sh:236). Senza questa
@@ -327,6 +334,20 @@ static int launch_sim_and_wait(lg_fmi2_instance *inst)
     char script[LG_FMI2_PATH_MAX];
     char cmd[LG_FMI2_PATH_MAX * 2 + 64];
     if (inst->bundle_mode) {
+        /* fmpy estrae il bundle via Python zipfile, che NON preserva il
+         * bit +x. restore_perms.sh (generato da bundle/build.sh) riapplica
+         * chmod +x sui file noti del bundle; lo invochiamo via `bash` (che
+         * non richiede l'exec bit sul file stesso) prima del launch.
+         * Idempotente: se i bit erano gia' a posto (estrazione via unzip
+         * sull'host), il chmod e' un no-op. */
+        char rcmd[LG_FMI2_PATH_MAX + 64];
+        snprintf(rcmd, sizeof(rcmd),
+                 "bash \"%s/restore_perms.sh\" >/dev/null 2>&1",
+                 inst->legoroot_path);
+        if (getenv("LG_FMU_DEBUG"))
+            fprintf(stderr, "[lg_fmu DBG] restore_perms: %s\n", rcmd);
+        system(rcmd);
+
         /* launch_sim.sh setta LEGOROOT/PATH/LD_LIBRARY_PATH e poi invoca
          * net_startup_headless.sh dentro il bundle. */
         snprintf(script, sizeof(script),

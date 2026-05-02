@@ -188,9 +188,13 @@ if [[ $BUNDLE -eq 1 ]]; then
     cp -p "$LEGOROOT_ABS/.profile_legoroot" "$BD/.profile_legoroot"
     cp -p "$LEGOROOT_ABS/Alg_env.sh"        "$BD/Alg_env.sh"
 
-    # Task corrente: copia escludendo log/trend rigenerabili e binari Windows
+    # Task corrente: copia escludendo log/trend rigenerabili e binari Windows.
+    # legoclix_*_bundle/ e legoclix_*/ sono dir di unzip residue di run di
+    # fmpy precedenti: vanno escluse sennò il bundle si include ricorsivamente.
     rsync -a \
         --exclude='*.fmu' \
+        --exclude='legoclix_*_bundle' \
+        --exclude='legoclix_*_bundle/' \
         --exclude='*.log' \
         --exclude='dispatcher.out' \
         --exclude='banco.log' \
@@ -247,6 +251,29 @@ export BUNDLE_MODE=1
 exec "$LEGOROOT/Alg_rt/lg_fmu/scripts/net_startup_headless.sh" "$@"
 LAUNCH
     chmod 0755 "$BD/launch_sim.sh"
+
+    # restore_perms.sh: fmpy estrae il bundle via Python zipfile, che NON
+    # preserva il bit +x. lg_fmi2.c (bundle_mode) lo invoca via `bash` (che
+    # non richiede exec bit sul file) prima di lanciare launch_sim.sh.
+    cat > "$BD/restore_perms.sh" <<'PERMS'
+#!/usr/bin/env bash
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+chmod +x "$SCRIPT_DIR/launch_sim.sh" \
+         "$SCRIPT_DIR/Alg_rt/bin/dispatcher" \
+         "$SCRIPT_DIR/Alg_rt/bin/net_sked" \
+         "$SCRIPT_DIR/Alg_rt/bin/killsim" \
+         "$SCRIPT_DIR/Alg_rt/lg_fmu/scripts/net_startup_headless.sh" \
+         "$SCRIPT_DIR/Alg_rt/lg_fmu/tools/probe_init" \
+         "$SCRIPT_DIR/lego_big/bin/initav" 2>/dev/null || true
+# Eseguibili dentro task/<name>/proc/ (lg5sk e altri lg*).
+shopt -s nullglob
+for f in "$SCRIPT_DIR"/task/*/proc/*; do
+    [[ -f "$f" ]] && chmod +x "$f"
+done
+shopt -u nullglob
+exit 0
+PERMS
+    chmod 0755 "$BD/restore_perms.sh"
 
     # Sommario bundle
     BUNDLE_SIZE=$(du -sh "$BD" | cut -f1)

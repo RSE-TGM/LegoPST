@@ -1,6 +1,11 @@
-#!/bin/sh
+#!/usr/bin/env bash
 #
 # net_startup_headless.sh — minimal sim startup per la FMU autonoma.
+#
+# Shebang bash (NON sh): .profile_legoroot e Alg_env.sh contengono
+# costrutti bash (set -o emacs, [[ ]], etc.). In debian/ubuntu /bin/sh
+# e' dash che non li digerisce -> source silente fallisce e PATH non
+# viene esteso, dispatcher non trovato, container muore.
 #
 # Differenze rispetto a Alg_rt/procedure/net_startup.sh:
 #   - NIENTE check xhost  (la FMU gira in fmpy/Simulink, no X)
@@ -37,12 +42,24 @@ SCRIPT_DIR=$(cd "$(dirname "$0")" 2>/dev/null && pwd)
 LEGOROOT=$(cd "$SCRIPT_DIR/../../.." 2>/dev/null && pwd)
 export LEGOROOT
 
+# Backup di SHR_USR_KEY/SHR_USR_KEYS impostate dal caller (es. lg_fmi2.c
+# in bundle mode). Alg_env.sh:234-236 li riscrive da `id -u`*10000, che in
+# container root (uid=0) produce 0 = IPC_PRIVATE, rompendo l'attach. Dopo
+# il sourcing li riapplichiamo se erano gia' settate.
+SHR_USR_KEY_CALLER="${SHR_USR_KEY:-}"
+SHR_USR_KEYS_CALLER="${SHR_USR_KEYS:-}"
+
 # Source .profile_legoroot e' OBBLIGATORIO: net_sked legge env tipo
 # N001..N008/M001..M010/NR00/NP00 (parametri di dimensionamento) e
 # LEGORT_INCLUDE/LEGOMMI_BIN/EXTENSION (via Alg_env.sh sourceato dentro
 # il profile). Senza queste net_sked muore subito dopo il banner.
 # Passiamo LEGOROOT come $1 cosi' il profile non prova a dedurlo da $0.
 . "$LEGOROOT/.profile_legoroot" "$LEGOROOT" >/dev/null 2>&1 || true
+
+if [ -n "$SHR_USR_KEY_CALLER" ]; then
+    export SHR_USR_KEY="$SHR_USR_KEY_CALLER"
+    export SHR_USR_KEYS="${SHR_USR_KEYS_CALLER:-$((SHR_USR_KEY_CALLER + 1000))}"
+fi
 
 # Glibc env utili (vedi net_startup.sh)
 export MALLOCTYPE=3.1
