@@ -8,7 +8,7 @@ e stessa interfaccia FMI ma diversa modalità di deployment:
 | Variante | File | Self-contained | Richiede LegoPST installato sul target | Dimensione tipica |
 |----------|------|----------------|----------------------------------------|-------------------|
 | **base**   | `legoclix_<task>.fmu`         | no  | sì | ~80 KB |
-| **bundle** | `legoclix_<task>_bundle.fmu`  | sì  | no | ~12 MB |
+| **bundle** | `legoclix_<task>_bundle.fmu`  | sì  | no | ~3.8 MB |
 
 Entrambe sono "bound al task": una FMU vale per la singola task LegoPST sulla
 quale è stata generata (`TASK_PATH` embedded in `resources/task_info.env`).
@@ -114,6 +114,39 @@ Note:
 - `unzipdir` accanto al `.fmu` (non `/tmp/fmpy_*`) per coerenza con la regola di output path.
 - `LG_FMU_DEBUG=1` (env var aggiuntiva) attiva il dump diagnostico `[lg_fmu DBG] ...` su stderr.
 
+### Eseguire la FMU bundle in container Linux pulito (deployment)
+
+Validato su `python:3.11-slim` (debian-trixie, glibc 2.41, no LegoPST installato):
+
+```bash
+docker run --rm \
+  -v /home/antonio/legocad/collet/legoclix_collet_bundle.fmu:/tmp/bundle.fmu:ro \
+  python:3.11-slim bash -c '
+pip install --quiet fmpy
+python -c "
+from fmpy import simulate_fmu, extract
+extract(\"/tmp/bundle.fmu\", unzipdir=\"/tmp/b\")
+result = simulate_fmu(\"/tmp/b\", stop_time=10)
+print(f\"OK {len(result)} sample\")"'
+```
+
+**Compatibilità glibc**: la baseline dei binari del bundle è **GLIBC_2.38** (limite imposto da `net_sked`). Distribuzioni compatibili:
+
+| Distro | glibc | Compatibile |
+|--------|-------|-------------|
+| Ubuntu 22.04 | 2.35 | ❌ no |
+| Ubuntu 24.04 | 2.39 | ✅ sì |
+| Debian 12 (bookworm) | 2.36 | ❌ no |
+| Debian 13 (trixie) | 2.41 | ✅ sì |
+| Fedora 39+ | 2.38+ | ✅ sì |
+
+Per target con glibc < 2.38 servirebbe rebuild dei binari LegoPST in un container con baseline più bassa (es. `aguagliardi/legopst_multi:2.0` su Ubuntu 20.04 = glibc 2.31).
+
+**Note di implementazione (non rilevanti per l'utente, lette dalla FMU automaticamente):**
+- fmpy estrae lo zip via Python `zipfile` che NON preserva il bit `+x` → la FMU invoca `bash restore_perms.sh` (generato da `bundle/build.sh`) prima del launch.
+- Container con utente root (uid=0): SysV SHM key=0 = `IPC_PRIVATE`, non condivisibile. La FMU ricalcola `SHR_USR_KEY = getpid()*10 + 10000` come fallback.
+- `net_startup_headless.sh` ha shebang `bash` (non `sh`): in debian/ubuntu `/bin/sh = dash` non digerisce i costrutti bash di `.profile_legoroot` (`set -o emacs`, `[[ ]]`).
+
 ### Cleanup dopo i test
 
 ```bash
@@ -182,9 +215,10 @@ cd $LEGOROOT/Alg_rt/lg_fmu/tests && make -f Makefile.mk
 2. `read_env_value` su `resources/task_info.env`:
    - `TASK_PATH`, `LEGOROOT`, `BUNDLE_MODE`
    - **12 var LEGO** (`N000..N007`, `M001..M005`) → `setenv` (overwrite=0)
-3. `setup_legopst_env`: `SHR_USR_KEY` (= `getuid()*10000`), `SHR_USR_KEYS`, `OS=Linux`, `PATH`, `LD_LIBRARY_PATH` (bundle), `SHR_TAV_KEY=999` (bundle)
+3. `setup_legopst_env`: `SHR_USR_KEY` (= `getuid()*10000`, fallback `getpid()*10+10000` se uid=0), `SHR_USR_KEYS = SHR_USR_KEY+1000`, `OS=Linux`, `PATH`, `LD_LIBRARY_PATH` (bundle), `SHR_TAV_KEY=999` (bundle)
 4. `chdir(TASK_PATH)`
 5. `try_attach_db` (RtCreateDbPunti). Se OK → attach mode (`we_started_sim=0`). Se NO → `launch_sim_and_wait` (`we_started_sim=1`)
+   - In bundle mode: pre-launch invoca `bash restore_perms.sh` (riapplica `chmod +x` post-fmpy.extract)
 6. **`init_sim_if_stopped`**: se `RtDbPGetStato == STATO_STOP`, manda `SD_inizializza(BI)` + poll `STATO != STOP` (timeout 30s). Idempotente (no-op se già FREEZE/RUN)
 7. `lg_var_open` + `build_var_index` su `variabili.rtf`
 
@@ -214,6 +248,7 @@ master chiede `stepSize < dt_sked`, log warning e avanziamo comunque di un
       .profile_legoroot
       Alg_env.sh
       launch_sim.sh           # entry point: setta env + exec net_startup_headless.sh
+      restore_perms.sh        # chmod +x post-fmpy.extract (zipfile non preserva mode)
       Alg_rt/bin/{dispatcher,net_sked,killsim}
       Alg_rt/lg_fmu/scripts/net_startup_headless.sh
       Alg_rt/lg_fmu/tools/probe_init
@@ -226,6 +261,18 @@ master chiede `stepSize < dt_sked`, log warning e avanziamo comunque di un
 
 In bundle mode `TASK_PATH=task/<name>` (relativo); `LEGOROOT` ricalcolato a
 runtime come `<resources>/bundle`.
+
+### Adattamenti runtime per container Linux (P7-bis)
+
+Quando la FMU bundle viene caricata da un host che NON è la macchina di build,
+serve adattare l'environment in modi che il flusso "host con LegoPST già
+installato" non vede:
+
+| Problema (in container) | Causa | Fix in lg_fmu |
+|-------------------------|-------|---------------|
+| File del bundle senza bit `+x` dopo `fmpy.extract` | Python `zipfile` non preserva i permessi unix dello zip | `bundle/restore_perms.sh` (generato da `bundle/build.sh`) chmoda i file noti; `lg_fmi2.c::launch_sim_and_wait` lo invoca via `bash` (non richiede exec bit sul file invocato) prima di `launch_sim.sh` |
+| `SHR_USR_KEY=0` in container root (uid=0) → `IPC_PRIVATE`, SHM non condivisibile | `Alg_env.sh:234`: `USR_KEY=$(id -u)`, poi `SHR_USR_KEY=USR_KEY*10000` | `lg_fmi2.c::setup_legopst_env`: se `getuid()==0` fallback a `getpid()*10 + 10000`; `net_startup_headless.sh` preserva `SHR_USR_KEY` del caller dopo source profile |
+| `dispatcher non in PATH` exit 2 dal launcher | `/bin/sh = dash` su debian/ubuntu, non digerisce sintassi bash di `.profile_legoroot` (`set -o emacs`, `[[ ]]`) → source silente fallisce → `PATH` non esteso | `net_startup_headless.sh` ora ha shebang `#!/usr/bin/env bash` |
 
 ### Diagnostica
 
@@ -253,11 +300,16 @@ Tools standalone (richiedono sim attiva sulla task corrente):
 | `lg5sk` SIGFPE in `trova_(tavole/trova.c:77)` | `SHR_TAV_KEY=999` cancellata da `killsim`, non ripopolata | `net_startup_headless.sh` chiama `initav` post-killsim (idempotente). Se ancora rotto, controlla che `lego_big/bin/{initav,TAVOLE.DAT}` siano presenti |
 | `to_dispatcher` + `msg_ack.ret=1` ma tempo non avanza | Sim attiva ma in stato sporco da test precedente | `killsim` + `net_startup_headless.sh` |
 | Bundle gira con env normale ma fallisce con `env -i` | Eredità di env vars LegoPST dalla shell del builder | Verifica con `unzip -p <fmu> resources/task_info.env` che le 12 N/M siano presenti |
+| Container: `[lg_fmu LAUNCH] sh: ... Permission denied` | `fmpy.extract` non preserva il bit `+x` | Fixato in P7-bis: `restore_perms.sh` invocato pre-launch. Verifica che il bundle contenga `resources/bundle/restore_perms.sh` |
+| Container root: polling `try_attach_db` infinito, sim non parte | `SHR_USR_KEY=0` (uid root) = `IPC_PRIVATE` | Fixato in P7-bis: fallback a `pid*10+10000`. Verifica con `LG_FMU_DEBUG=1` la riga `SHR_USR_KEY=...` post-setup |
+| Container debian/ubuntu: launcher exit 2 "dispatcher non in PATH" | `/bin/sh = dash`, source `.profile_legoroot` (bash) fallisce silenziosamente | Fixato in P7-bis: shebang `bash` in `net_startup_headless.sh`. Bash deve essere disponibile nel target (lo è in tutte le distro Linux mainstream) |
+| Glibc del target < 2.38 → `version 'GLIBC_2.38' not found` | Bundle compilato su host con glibc recente; `net_sked` link a 2.38 | Rebuild dei binari LegoPST in container con glibc baseline più bassa (es. ubuntu:20.04) |
 
-### File modificati (stato 2026-05-01, NON committati)
+### File modificati (stato 2026-05-02)
 
 Vedi `~/.claude/projects/-home-antonio-LegoPST/memory/project_lg_fmu_linux.md`
-per la lista completa per fase (P4 → P7.5).
+per la lista completa per fase (P4 → P7-bis). P7-bis (container support)
+committato 2026-05-02.
 
 ### Architettura di riferimento
 
