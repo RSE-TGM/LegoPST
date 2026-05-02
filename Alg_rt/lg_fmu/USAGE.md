@@ -47,13 +47,24 @@ $LEGOROOT/Alg_rt/lg_fmu/scripts/dolgfmu.sh /home/antonio/legocad/collet
 
 ### Generare una FMU (variante bundle)
 
-Manualmente, con sim attiva sulla task:
+Dalla UI tix_new (consigliato): menu **Tools → Build FMU (bundle)**.
+
+Da CLI tramite `dolgfmu.sh -b`:
+```bash
+source $LEGOROOT/.profile_legoroot
+$LEGOROOT/Alg_rt/lg_fmu/scripts/dolgfmu.sh -b /home/antonio/legocad/collet
+# Output: /home/antonio/legocad/collet/legoclix_collet_bundle.fmu
+```
+
+`dolgfmu.sh -b` riusa la stessa logica detect/start/cleanup della variante
+base (attach se sim viva, altrimenti headless launch + probe_init + killsim
+finale), e passa `-b` a `bundle/build.sh`.
+
+Da CLI tramite `bundle/build.sh` direttamente (senza orchestrazione sim):
 ```bash
 source $LEGOROOT/.profile_legoroot
 cd /home/antonio/legocad/collet
-# se la sim non è attiva, lanciala prima:
-$LEGOROOT/Alg_rt/lg_fmu/scripts/net_startup_headless.sh /home/antonio/legocad/collet
-
+# la sim deve essere gia' attiva sulla task
 $LEGOROOT/Alg_rt/lg_fmu/bundle/build.sh -b \
     -o /home/antonio/legocad/collet/legoclix_collet_bundle.fmu
 ```

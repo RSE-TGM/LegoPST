@@ -12,17 +12,44 @@
 #   - output di default: <TASK>/legoclix_<basename(TASK)>.fmu
 #
 # Uso:
-#   dolgfmu.sh [TASK_DIR]
+#   dolgfmu.sh [-b|--bundle] [TASK_DIR]
+#       -b, --bundle  produce la variante self-contained (~12 MB), include
+#                     dispatcher/net_sked/killsim/initav/TAVOLE.DAT/libs.
+#                     Output: legoclix_<TASK>_bundle.fmu
 #       TASK_DIR: dir della task (default: $PWD).
 #
 # Exit code:
 #   0  ok
-#   1  task non valida (manca variabili.rtf)
+#   1  task non valida (manca variabili.rtf) o argomento sconosciuto
 #   2  errore di build (bundle/build.sh ha fallito)
 #   3  fallito avvio sim headless
 #
 
 set -u
+
+# ---- arg parsing --------------------------------------------------------
+BUNDLE=0
+TASK_ARG=""
+while [ $# -gt 0 ]; do
+    case "$1" in
+        -b|--bundle) BUNDLE=1; shift ;;
+        -h|--help)
+            sed -n '/^#!/d; /^set -u/q; s/^# \{0,1\}//p' "$0"
+            exit 0
+            ;;
+        -*)
+            echo "ERRORE: argomento sconosciuto '$1'." >&2
+            exit 1
+            ;;
+        *)
+            if [ -n "$TASK_ARG" ]; then
+                echo "ERRORE: TASK_DIR specificata piu' volte." >&2
+                exit 1
+            fi
+            TASK_ARG="$1"; shift
+            ;;
+    esac
+done
 
 # ---- 0. LEGOROOT --------------------------------------------------------
 SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
@@ -44,7 +71,7 @@ if [ -z "${N001:-}" ]; then
 fi
 
 # ---- 1. TASK_DIR --------------------------------------------------------
-TASK_DIR="${1:-$PWD}"
+TASK_DIR="${TASK_ARG:-$PWD}"
 if [ ! -d "$TASK_DIR" ]; then
     echo "ERRORE: TASK_DIR '$TASK_DIR' non esiste." >&2
     exit 1
@@ -57,13 +84,20 @@ if [ ! -f "$TASK_DIR/variabili.rtf" ]; then
     exit 1
 fi
 
-OUTPUT="$TASK_DIR/legoclix_${TASK_NAME}.fmu"
+if [ $BUNDLE -eq 1 ]; then
+    OUTPUT="$TASK_DIR/legoclix_${TASK_NAME}_bundle.fmu"
+    VARIANT="bundle (self-contained)"
+else
+    OUTPUT="$TASK_DIR/legoclix_${TASK_NAME}.fmu"
+    VARIANT="base"
+fi
 
 echo "============================================================"
 echo "  dolgfmu — build FMU per task LegoPST"
 echo "============================================================"
 echo "  LEGOROOT  : $LEGOROOT"
 echo "  TASK_DIR  : $TASK_DIR"
+echo "  VARIANT   : $VARIANT"
 echo "  OUTPUT    : $OUTPUT"
 echo
 
@@ -112,9 +146,13 @@ else
 fi
 
 # ---- 4. Build .fmu -------------------------------------------------------
+BUILD_ARGS=( -o "$OUTPUT" )
+if [ $BUNDLE -eq 1 ]; then
+    BUILD_ARGS=( -b "${BUILD_ARGS[@]}" )
+fi
 echo
-echo "[build] $LEGOROOT/Alg_rt/lg_fmu/bundle/build.sh -o $OUTPUT"
-( cd "$TASK_DIR" && "$LEGOROOT/Alg_rt/lg_fmu/bundle/build.sh" -o "$OUTPUT" )
+echo "[build] bundle/build.sh ${BUILD_ARGS[*]}"
+( cd "$TASK_DIR" && "$LEGOROOT/Alg_rt/lg_fmu/bundle/build.sh" "${BUILD_ARGS[@]}" )
 BUILD_RC=$?
 
 # ---- 5. Cleanup sim se l'avevamo avviata noi -----------------------------
