@@ -262,6 +262,46 @@ static void setup_legopst_env(const char *legoroot, int bundle_mode)
     }
 }
 
+/* Se la sim e' in STATO_STOP (net_startup_headless lascia la sim ferma in
+ * attesa di SKDIS_INITIALIZE, normalmente inviato dal banco operatore),
+ * manda SD_inizializza(BI) e poll fino a transizione FREEZE/RUN o timeout.
+ * Senza questo, il primo SD_goup di fmi2DoStep non avanza il tempo (sked in
+ * stato STOP ignora GO_UP). Idempotente: se la sim e' gia' in FREEZE/RUN
+ * (caso "sim gia' viva, attach-only" su sim avviata da banco), no-op. */
+static int init_sim_if_stopped(lg_fmi2_instance *inst)
+{
+    int dbg = getenv("LG_FMU_DEBUG") != NULL;
+    int stato = -1;
+
+    RtDbPGetStato((RtDbPuntiOggetto)inst->dbpunti, &stato);
+    if (dbg) fprintf(stderr, "[lg_fmu DBG] stato pre-init=%d\n", stato);
+    if (stato != STATO_STOP) return 0;
+
+    int rc = SD_inizializza(BI);
+    if (dbg) fprintf(stderr, "[lg_fmu DBG] SD_inizializza(BI) -> %d\n", rc);
+    if (rc <= 0) {
+        lg_log(inst, fmi2Error, "logStatusError",
+               "SD_inizializza(BI) fallita rc=%d", rc);
+        return -1;
+    }
+
+    /* Poll: la transizione STOP -> FREEZE puo' richiedere qualche secondo
+     * (es. modello collet inizializza ~246s di tempo simulato prima di
+     * stabilizzarsi). 30s di budget con poll a 200ms. */
+    for (int k = 0; k < 150; ++k) {
+        msleep(200);
+        RtDbPGetStato((RtDbPuntiOggetto)inst->dbpunti, &stato);
+        if (stato != STATO_STOP) {
+            if (dbg) fprintf(stderr,
+                "[lg_fmu DBG] init OK dopo %d poll, stato=%d\n", k+1, stato);
+            return 0;
+        }
+    }
+    lg_log(inst, fmi2Error, "logStatusError",
+           "timeout post-SD_inizializza, stato resta STOP");
+    return -1;
+}
+
 /* try attach: on success, store dbpunti in inst->dbpunti and return 1. */
 static int try_attach_db(lg_fmi2_instance *inst)
 {
@@ -425,6 +465,21 @@ static int attach_or_launch(lg_fmi2_instance *inst)
         inst->bundle_mode = 1;
     }
 
+    /* Parametri di dimensionamento LEGO da task_info.env: senza questi
+     * GetParLego() (libsim/par_lego.c) cade sui DEF_* e il dimensionamento
+     * delle strutture interne non combacia con la SHM creata dalla sim
+     * (-> fmi2DoStep status 3). Setenv solo se la chiave esiste in
+     * task_info.env e non e' gia' definita nell'env del caller. */
+    static const char *const lego_keys[] = {
+        "N000","N001","N002","N003","N004","N005","N007",
+        "M001","M002","M003","M004","M005", NULL
+    };
+    for (const char *const *k = lego_keys; *k; ++k) {
+        char val[64] = {0};
+        if (read_env_value(info, *k, val, sizeof(val)) == 0 && val[0])
+            setenv(*k, val, 0);
+    }
+
     if (inst->bundle_mode) {
         /* In bundle mode i path sono relativi al bundle estratto da fmpy:
          * res_dir = .../resources, LEGOROOT = .../resources/bundle,
@@ -478,11 +533,11 @@ static int attach_or_launch(lg_fmi2_instance *inst)
         inst->we_started_sim = 0;
         lg_log(inst, fmi2OK, "logAll",
                "sim gia' viva, attach-only su %s", inst->task_path);
-        return 0;
+        return init_sim_if_stopped(inst);
     }
 
     /* 6. Launch + wait */
-    if (launch_sim_and_wait(inst)) return 0;
+    if (launch_sim_and_wait(inst)) return init_sim_if_stopped(inst);
     return -1;
 }
 

@@ -140,6 +140,19 @@ BUNDLE_MODE=$BUNDLE
 TASK_NAME=$TASK_NAME
 EOF
 
+# Parametri di dimensionamento LEGO (N000..N007, M001..M005): GetParLego()
+# in libsim/par_lego.c li legge da env. Senza, le strutture interne usano i
+# DEF_* che non combaciano con la SHM creata dalla sim attiva (mismatch ->
+# fmi2DoStep status 3). Dump dall'env del builder (.profile_legoroot deve
+# essere stato sourceato): se assenti scrive "" (lg_fmi2.c salta la setenv).
+{
+    echo
+    echo "# Parametri dimensionamento LEGO (Alg_env.sh)"
+    for v in N000 N001 N002 N003 N004 N005 N007 M001 M002 M003 M004 M005; do
+        echo "${v}=${!v:-}"
+    done
+} >> "$STAGING/resources/task_info.env"
+
 # ---- 3.5 BUNDLE (--bundle): include tutto il runtime LegoPST ------------
 if [[ $BUNDLE -eq 1 ]]; then
     echo "[3.5/4] bundling self-contained (--bundle)"
