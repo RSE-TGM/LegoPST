@@ -341,6 +341,8 @@ Tools standalone (richiedono sim attiva sulla task corrente):
 | Container debian/ubuntu: launcher exit 2 "dispatcher non in PATH" | `/bin/sh = dash`, source `.profile_legoroot` (bash) fallisce silenziosamente | Fixato in P7-bis: shebang `bash` in `net_startup_headless.sh`. Bash deve essere disponibile nel target (lo è in tutte le distro Linux mainstream) |
 | Glibc del target < 2.38 → `version 'GLIBC_2.38' not found` | Bundle compilato su host con glibc recente; `net_sked` link a 2.38 | Rebuild dei binari LegoPST in container con glibc baseline più bassa (es. ubuntu:20.04) |
 | `[lg_fmu] tutti gli 8 slot SHR_USR_KEY per uid=N occupati` | 8 FMU concorrenti già attive sullo stesso uid | Rilascia istanze precedenti (`killsim` da una shell con `SHR_USR_KEY=<slot>` settata) o attendi la chiusura. `ipcs -m` mostra le chiavi occupate |
+| `TIMEOUT init: stato=0`, `out/lg5c.out` arriva a `reg_prolog - uscita` ma `lg5.out` resta a `FILE06= lg5.out`, in `net_sked.fmu.log` `SIGCHILD_HANDLER: CLD_DUMPED ... process child pid = <pid>` seguito da `restart_task: creazione path per files .out: File exists` in loop | `proc/lg5sk` della task source obsoleto/inconsistente con i N/M del runtime: lg5sk segfaulta dopo `reg_prolog`, net_sked entra in `restart_task` infinito, STATO_STOP permane | Ricompila `lg5sk` per la task (in legopc: `Make` sulla task, oppure manualmente `make -f Makefile.mk` in `<task>/`) e rigenera il bundle (`dolgfmu.sh -b <task>`) |
+| `ValueError: relative path can't be expressed as a file URI` da `fmpy.fmi2.instantiate` | Python ≥ 3.13: `pathlib.Path(...).as_uri()` rifiuta path relativi | Passa un path assoluto a `simulate_fmu` / `extract`: `unz = os.path.abspath('legoclix_<task>_bundle')` |
 
 ### Procedura di test — multi-istanza FMU (P5)
 
@@ -373,11 +375,15 @@ killsim 2>/dev/null; ipcs -m
 cd /home/antonio/legocad/collet
 env -i HOME=$HOME USER=$USER PATH=/usr/bin LG_FMU_DEBUG=1 \
   /home/antonio/fmpy_venv/bin/python3 -c "
+import os
 from fmpy import simulate_fmu, extract
-extract('legoclix_collet_bundle.fmu', unzipdir='legoclix_collet_bundle')
-result = simulate_fmu('legoclix_collet_bundle', stop_time=5)
+unz = os.path.abspath('legoclix_collet_bundle')
+extract('legoclix_collet_bundle.fmu', unzipdir=unz)
+result = simulate_fmu(unz, stop_time=5)
 print(f'OK {len(result)} sample')" 2>&1 | grep -E "SHR_USR_KEY|sample"
 ```
+
+`os.path.abspath` è necessario su Python ≥ 3.13: `pathlib.Path(...).as_uri()` (chiamata da `fmpy.fmi2.instantiate`) rifiuta path relativi con `ValueError: relative path can't be expressed as a file URI`.
 
 Atteso:
 ```
@@ -410,20 +416,26 @@ Aprire il banco normale su `collet` (`net_startup` o tix_new "Run"), poi lanciar
 
 #### T4 (stress, opzionale) — 9ª istanza fallisce in modo pulito
 
+Pre-requisito: T1 già eseguito una volta nella cwd, così `legoclix_collet_bundle/` è già estratta.
+
 ```bash
 cd /home/antonio/legocad/collet
 for i in 1 2 3 4 5 6 7 8; do
   (env -i HOME=$HOME USER=$USER PATH=/usr/bin \
     /home/antonio/fmpy_venv/bin/python3 -c "
+import os
 from fmpy import simulate_fmu
-simulate_fmu('legoclix_collet_bundle', stop_time=20)" &)
+unz = os.path.abspath('legoclix_collet_bundle')
+simulate_fmu(unz, stop_time=20)" &)
   sleep 1
 done
 sleep 5
 env -i HOME=$HOME USER=$USER PATH=/usr/bin LG_FMU_DEBUG=1 \
   /home/antonio/fmpy_venv/bin/python3 -c "
+import os
 from fmpy import simulate_fmu
-simulate_fmu('legoclix_collet_bundle', stop_time=5)" 2>&1 | tail -5
+unz = os.path.abspath('legoclix_collet_bundle')
+simulate_fmu(unz, stop_time=5)" 2>&1 | tail -5
 ```
 
 Atteso (sulla 9ª): messaggio `[lg_fmu] tutti gli 8 slot SHR_USR_KEY per uid=1000 sono occupati: rilascia istanze precedenti (killsim) o attendi.` + fallimento `fmi2Instantiate`.
