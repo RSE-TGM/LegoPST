@@ -121,7 +121,12 @@ nohup dispatcher \
 
 sleep 1
 
-nohup net_sked 2 \
+# net_sked 1 = MASTER senza demone_attivo. argv[1]==2 attiverebbe il demone_mmi
+# (sked.c:192-195) che richiederebbe Alg_mmi/bin/demone_mmi nel bundle. Per la
+# FMU headless il demone non serve (no MMI client) e ometterlo evita di dover
+# bundlare Alg_mmi. net_prepf22 invece resta sempre spawnato (sked_start.c:1034
+# = `if (tipo_sked == MASTER)`) e va incluso nel bundle.
+nohup net_sked 1 \
     -num_snap $SNAP_S \
     -num_bktk $BACK_T \
     -num_camp_cr $CAMPIO \

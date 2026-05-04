@@ -165,8 +165,12 @@ if [[ $BUNDLE -eq 1 ]]; then
              "$BD/task" \
              "$BD/lib"
 
-    # Binari principali (Alg_rt/bin)
-    for b in dispatcher net_sked killsim; do
+    # Binari principali (Alg_rt/bin). net_prepf22 e' OBBLIGATORIO: net_sked
+    # MASTER lo spawna in sked_start.c:1039 e attende un ack con timeout
+    # TIMEOUT_AUS*10 = 1350s. Senza net_prepf22 nel PATH, sked_start blocca
+    # ~22 minuti prima di proseguire e la sim non arriva mai a STATO_FREEZE
+    # entro il timeout della FMU.
+    for b in dispatcher net_sked killsim net_prepf22; do
         cp -p "$LEGOROOT_ABS/Alg_rt/bin/$b" "$BD/Alg_rt/bin/" \
             || { echo "ERR: $b non trovato in $LEGOROOT_ABS/Alg_rt/bin" >&2; exit 4; }
     done
@@ -262,6 +266,7 @@ chmod +x "$SCRIPT_DIR/launch_sim.sh" \
          "$SCRIPT_DIR/Alg_rt/bin/dispatcher" \
          "$SCRIPT_DIR/Alg_rt/bin/net_sked" \
          "$SCRIPT_DIR/Alg_rt/bin/killsim" \
+         "$SCRIPT_DIR/Alg_rt/bin/net_prepf22" \
          "$SCRIPT_DIR/Alg_rt/lg_fmu/scripts/net_startup_headless.sh" \
          "$SCRIPT_DIR/Alg_rt/lg_fmu/tools/probe_init" \
          "$SCRIPT_DIR/lego_big/bin/initav" 2>/dev/null || true

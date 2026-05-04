@@ -114,9 +114,15 @@ Opzioni utili di `build.sh`:
 
 ```bash
 source $LEGOROOT/.profile_legoroot
-$LEGOROOT/Alg_rt/lg_fmu/scripts/run_fmu.sh /home/antonio/legocad/collet/legoclix_collet.fmu --stop-time 30
+# variante base
+$LEGOROOT/Alg_rt/lg_fmu/scripts/run_fmu.sh /home/antonio/legocad/collet --stop-time 30
+# variante bundle
+$LEGOROOT/Alg_rt/lg_fmu/scripts/run_fmu.sh -b /home/antonio/legocad/collet --stop-time 30
 # CSV in /home/antonio/legocad/collet/results.csv
 ```
+
+L'argomento posizionale può essere il path al `.fmu`, una task dir LegoPST, oppure
+omesso (cerca `*.fmu` nella cwd). Con `-b`/`--bundle` cerca `legoclix_<task>_bundle.fmu`.
 
 Subcommand:
 - (default): simulate → CSV
@@ -124,6 +130,7 @@ Subcommand:
 - `--validate`: passa attraverso `fmpy.validation`
 
 Opzioni:
+- `-b`, `--bundle`: usa la variante bundle (`legoclix_<task>_bundle.fmu`)
 - `--stop-time T` (default 30 s)
 - `--step-size DT` (default da modelDescription.xml)
 - `--set VAR=VAL` (ripetibile, override input)
@@ -135,11 +142,11 @@ Opzioni:
 cd /home/antonio/legocad/collet
 env -i HOME=$HOME USER=$USER PATH=/usr/bin:/usr/local/bin \
   /home/antonio/fmpy_venv/bin/python3 -c "
+import os
 from fmpy import simulate_fmu, extract
-fmu = '/home/antonio/legocad/collet/legoclix_collet_bundle.fmu'
-unzip = '/home/antonio/legocad/collet/legoclix_collet_bundle'
-extract(fmu, unzipdir=unzip)
-result = simulate_fmu(unzip, stop_time=10)
+unz = os.path.abspath('legoclix_collet_bundle')
+extract('legoclix_collet_bundle.fmu', unzipdir=unz)
+result = simulate_fmu(unz, stop_time=10)
 print(f'{len(result)} sample. Ultimo: {result[-1]}')
 "
 ```
@@ -147,6 +154,7 @@ print(f'{len(result)} sample. Ultimo: {result[-1]}')
 Note:
 - `env -i` rimuove tutto l'environment ereditato → testa che il bundle sia davvero self-contained.
 - `unzipdir` accanto al `.fmu` (non `/tmp/fmpy_*`) per coerenza con la regola di output path.
+- `os.path.abspath` su Python ≥ 3.13: `pathlib.Path(...).as_uri()` chiamato da `fmpy.fmi2.instantiate` rifiuta path relativi (`ValueError: relative path can't be expressed as a file URI`).
 - `LG_FMU_DEBUG=1` (env var aggiuntiva) attiva il dump diagnostico `[lg_fmu DBG] ...` su stderr.
 
 ### Eseguire la FMU bundle in container Linux pulito (deployment)
@@ -341,7 +349,8 @@ Tools standalone (richiedono sim attiva sulla task corrente):
 | Container debian/ubuntu: launcher exit 2 "dispatcher non in PATH" | `/bin/sh = dash`, source `.profile_legoroot` (bash) fallisce silenziosamente | Fixato in P7-bis: shebang `bash` in `net_startup_headless.sh`. Bash deve essere disponibile nel target (lo è in tutte le distro Linux mainstream) |
 | Glibc del target < 2.38 → `version 'GLIBC_2.38' not found` | Bundle compilato su host con glibc recente; `net_sked` link a 2.38 | Rebuild dei binari LegoPST in container con glibc baseline più bassa (es. ubuntu:20.04) |
 | `[lg_fmu] tutti gli 8 slot SHR_USR_KEY per uid=N occupati` | 8 FMU concorrenti già attive sullo stesso uid | Rilascia istanze precedenti (`killsim` da una shell con `SHR_USR_KEY=<slot>` settata) o attendi la chiusura. `ipcs -m` mostra le chiavi occupate |
-| `TIMEOUT init: stato=0`, `out/lg5c.out` arriva a `reg_prolog - uscita` ma `lg5.out` resta a `FILE06= lg5.out`, in `net_sked.fmu.log` `SIGCHILD_HANDLER: CLD_DUMPED ... process child pid = <pid>` seguito da `restart_task: creazione path per files .out: File exists` in loop | `proc/lg5sk` della task source obsoleto/inconsistente con i N/M del runtime: lg5sk segfaulta dopo `reg_prolog`, net_sked entra in `restart_task` infinito, STATO_STOP permane | Ricompila `lg5sk` per la task (in legopc: `Make` sulla task, oppure manualmente `make -f Makefile.mk` in `<task>/`) e rigenera il bundle (`dolgfmu.sh -b <task>`) |
+| `TIMEOUT init: stato=0`, `out/lg5c.out` arriva a `reg_prolog - uscita` ma `lg5.out` resta a `FILE06= lg5.out`, `net_sked.fmu.log` con `SIGCHILD_HANDLER: CLD_DUMPED ... process child pid = <pid>` seguito da `restart_task: creazione path per files .out: File exists` in loop | `proc/lg5sk` della task source obsoleto/inconsistente con i N/M del runtime: lg5sk segfaulta dopo `reg_prolog`, net_sked entra in `restart_task` infinito | Ricompila `lg5sk` per la task (in legopc: `Make` sulla task, oppure manualmente `make -f Makefile.mk` in `<task>/`) e rigenera il bundle (`dolgfmu.sh -b <task>`) |
+| `TIMEOUT init: stato=0` (lg5sk vivo, niente CLD_DUMPED), `lg5sk` e `net_sked` entrambi in `do_msgrcv` (deadlock visibile via `cat /proc/<pid>/wchan`) | `net_prepf22` mancante dal bundle: `sked_start` (con `net_sked 2` = MASTER+demone) lo spawna a [sked_start.c:1039](Alg_rt/net_simula/net_sked/sked_start.c#L1039) e attende il suo ack con timeout `TIMEOUT_AUS*10 = 1350s`. La FMU polla solo 30s → TIMEOUT prima dell'ack di prep_f22, sim mai a STATO_FREEZE | Fixato 2026-05-04: `bundle/build.sh` include `net_prepf22` nel bundle, `net_startup_headless.sh` usa `net_sked 1` (MASTER senza demone_attivo, evita anche lo spawn di `demone_mmi` che richiederebbe Alg_mmi nel bundle). `net_prepf22` resta indispensabile perché serve al salvataggio risultati in `f22circ.dat` |
 | `ValueError: relative path can't be expressed as a file URI` da `fmpy.fmi2.instantiate` | Python ≥ 3.13: `pathlib.Path(...).as_uri()` rifiuta path relativi | Passa un path assoluto a `simulate_fmu` / `extract`: `unz = os.path.abspath('legoclix_<task>_bundle')` |
 
 ### Procedura di test — multi-istanza FMU (P5)

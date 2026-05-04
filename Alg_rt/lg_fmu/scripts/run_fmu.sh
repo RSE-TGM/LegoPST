@@ -11,9 +11,11 @@
 # Argomento posizionale:
 #   <fmu_path>   path al .fmu da simulare/ispezionare
 #   <task_dir>   dir di una task LegoPST: usa <task_dir>/legoclix_<task>.fmu
+#                (o legoclix_<task>_bundle.fmu con --bundle)
 #   (se omesso) cerca *.fmu nella cwd
 #
 # Opzioni:
+#   -b, --bundle           usa la variante bundle (legoclix_<task>_bundle.fmu)
 #   -i, --info             metadati + lista variabili (no simulate)
 #   -V, --validate         lancia fmpy.validation e poi esce
 #   -t, --stop-time T      tempo finale [s] (default: 30)
@@ -52,10 +54,12 @@ STEP_SIZE=""
 CSV_FILE=""
 SET_KV=()
 TARGET=""
+BUNDLE=0
 
 while [ $# -gt 0 ]; do
     case "$1" in
         -h|--help)        usage ;;
+        -b|--bundle)      BUNDLE=1; shift ;;
         -i|--info)        MODE="info"; shift ;;
         -V|--validate)    MODE="validate"; shift ;;
         -t|--stop-time)   STOP_TIME="$2"; shift 2 ;;
@@ -68,12 +72,15 @@ while [ $# -gt 0 ]; do
 done
 
 # ---- Risolvi FMU --------------------------------------------------------
+SUFFIX=""
+[ "$BUNDLE" = 1 ] && SUFFIX="_bundle"
+
 if [ -z "$TARGET" ]; then
-    FMU="$(ls -1 *.fmu 2>/dev/null | head -1 || true)"
+    FMU="$(ls -1 *${SUFFIX}.fmu 2>/dev/null | head -1 || true)"
     [ -n "$FMU" ] && FMU="$(pwd)/$FMU"
 elif [ -d "$TARGET" ]; then
     TASK_NAME="$(basename "$(cd "$TARGET" && pwd)")"
-    FMU="$(cd "$TARGET" && pwd)/legoclix_${TASK_NAME}.fmu"
+    FMU="$(cd "$TARGET" && pwd)/legoclix_${TASK_NAME}${SUFFIX}.fmu"
 elif [ -f "$TARGET" ]; then
     FMU="$(cd "$(dirname "$TARGET")" && pwd)/$(basename "$TARGET")"
 else
@@ -104,6 +111,7 @@ done
 echo "[run_fmu] FMU      : $FMU"
 echo "[run_fmu] python   : $PYBIN"
 echo "[run_fmu] mode     : $MODE"
+echo "[run_fmu] bundle   : $BUNDLE"
 
 # ---- Esegui Python inline ----------------------------------------------
 # Passiamo gli argomenti via env per evitare quoting hell con --set VAR=VAL.

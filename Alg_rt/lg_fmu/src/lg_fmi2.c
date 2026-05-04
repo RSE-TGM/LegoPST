@@ -339,14 +339,21 @@ static int init_sim_if_stopped(lg_fmi2_instance *inst)
     return -1;
 }
 
-/* try attach: on success, store dbpunti in inst->dbpunti and return 1. */
+/* try attach: on success, store dbpunti in inst->dbpunti and return 1.
+ * Passiamo file_top="TEST" (non NULL): in RtDbPunti.c::InitializeDbPunti
+ * questo seleziona condizione=2, che in caso di magic mismatch (sim non viva
+ * o residui invalidati da killsim) si limita a sganciare la SHM in silenzio
+ * invece di emettere "[error shared-memory not attached]" via RtShowErrore.
+ * Per noi try_attach_db e' speculativo (polling pre-launch) e il fail e'
+ * atteso: niente rumore. Se la sim e' viva, condizione=2 stampa "TEST:
+ * SHARED AGGANCIATA" che e' informativo e non segnala errore. */
 static int try_attach_db(lg_fmi2_instance *inst)
 {
     if (!inst->errore)
         inst->errore = (lg_rt_errore_t)RtCreateErrore(
             RT_ERRORE_TERMINALE, (char *)inst->instanceName);
     inst->dbpunti = (lg_rt_dbpunti_t)RtCreateDbPunti(
-        (RtErroreOggetto)inst->errore, NULL, DB_PUNTI_INT, NULL);
+        (RtErroreOggetto)inst->errore, "TEST", DB_PUNTI_INT, NULL);
     return inst->dbpunti ? 1 : 0;
 }
 
@@ -711,15 +718,17 @@ FMI2_Export void fmi2FreeInstance(fmi2Component c)
 
     free(inst->unique_addrs);
     free(inst->is_input);
-    if (inst->vars)    lg_var_close(inst->vars);
-    if (inst->dbpunti) RtDestroyDbPunti((RtDbPuntiOggetto)inst->dbpunti);
+    if (inst->vars) lg_var_close(inst->vars);
     /* RtErrore: no public Destroy in this header set; leak the handle. */
 
-    /* Punto 4: cleanup autonomo. Se la FMU ha lanciato lei la sim
-     * (we_started_sim == 1), ora deve farne killsim — altrimenti i
-     * processi dispatcher/net_sked sopravvivono come orfani.
-     * Se invece c'era gia' una sim al momento dell'attach, NON tocchiamo
-     * niente: l'utente la stava usando per altro. */
+    /* Cleanup ordine condizionale:
+     * - launch mode (we_started_sim==1): killsim PRIMA cancella SHM/code/proc
+     *   della sim. NON chiamare RtDestroyDbPunti dopo: le SHM sono gia'
+     *   sparite e CloseDbPunti->elimina_shrmem tenterebbe un re-attach interno
+     *   che logga "[error shared-memory not attached]" come effetto cosmetico
+     *   (la sim e' comunque pulita, no zombi).
+     * - attach mode (we_started_sim==0): la sim utente continua a girare per
+     *   altro, niente killsim. Sganciamo solo il nostro handle al db. */
     if (inst->we_started_sim) {
         lg_log(inst, fmi2OK, "logAll",
                "auto-cleanup: killsim (la FMU aveva lanciato la sim)");
@@ -727,6 +736,8 @@ FMI2_Export void fmi2FreeInstance(fmi2Component c)
         if (rc != 0)
             lg_log(inst, fmi2Warning, "logAll",
                    "killsim ha ritornato rc=%d (non fatale)", rc);
+    } else if (inst->dbpunti) {
+        RtDestroyDbPunti((RtDbPuntiOggetto)inst->dbpunti);
     }
 
     free(inst);
