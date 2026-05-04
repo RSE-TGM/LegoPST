@@ -134,13 +134,15 @@ else
         exit 3
     fi
     sleep 2
+    # probe_init manda SD_inizializza E poi polla RtDbPGetStato fino a uscire
+    # da STATO_STOP (timeout 30s). Senza questo polling lg5sk non avrebbe il
+    # tempo di leggere F04 + LGTOPS + reg_wrshm e gli input free finirebbero
+    # a 0 nel modelDescription.xml (lg3 in F04 ha i loro valori di stazionario,
+    # ma reg_wrshm li scrive in SHM solo al primo passo dentro LGDYNS).
     if ! "$LEGOROOT/Alg_rt/lg_fmu/tools/probe_init" >/dev/null 2>&1; then
-        echo "ERRORE: probe_init (SD_inizializza) ha fallito." >&2
+        echo "ERRORE: probe_init (SD_inizializza + wait FREEZE) ha fallito." >&2
         exit 3
     fi
-    # Attesa che lg5sk spawni e popoli SHM_VAR. 3s e' empiricamente sufficiente
-    # per la task collet; per task piu' grandi il polling lo fa la FMU stessa.
-    sleep 3
     SIM_STARTED_BY_US=1
     echo "[detect] sim avviata."
 fi

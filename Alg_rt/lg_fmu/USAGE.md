@@ -78,7 +78,10 @@ $LEGOROOT/Alg_rt/lg_fmu/scripts/dolgfmu.sh /home/antonio/legocad/collet
 ```
 
 `dolgfmu.sh` rileva se la sim sulla task è già viva (attach) o no
-(headless launch + probe_init + build + killsim finale).
+(headless launch + probe_init + build + killsim finale). La sim viva è
+necessaria perché il `modelDescription.xml` viene generato leggendo
+nomi/indirizzi/start values dalla SHM live (vedi sezione developer
+"Perché serve una sim viva durante il build della FMU").
 
 ### Generare una FMU (variante bundle)
 
@@ -167,9 +170,11 @@ docker run --rm \
   python:3.11-slim bash -c '
 pip install --quiet fmpy
 python -c "
+import os
 from fmpy import simulate_fmu, extract
-extract(\"/tmp/bundle.fmu\", unzipdir=\"/tmp/b\")
-result = simulate_fmu(\"/tmp/b\", stop_time=10)
+unz = os.path.abspath(\"/tmp/b\")
+extract(\"/tmp/bundle.fmu\", unzipdir=unz)
+result = simulate_fmu(unz, stop_time=10)
 print(f\"OK {len(result)} sample\")"'
 ```
 
@@ -261,7 +266,7 @@ cd $LEGOROOT/Alg_rt/lg_fmu/tests && make -f Makefile.mk
    - **12 var LEGO** (`N000..N007`, `M001..M005`) → `setenv` (overwrite=0)
 3. `setup_legopst_env`: `SHR_USR_KEY` (se non in env: probe slot 1..8 di `uid*10000+slot*1100` via `shmget(ID_SHM_SIM)` finché ENOENT — slot 0 riservato alla sessione LegoPST normale; uid=0 fallback `getpid()*10+10000`), `SHR_USR_KEYS = SHR_USR_KEY+1000`, `OS=Linux`, `PATH`, `LD_LIBRARY_PATH` (bundle), `SHR_TAV_KEY=999` (bundle)
 4. `chdir(TASK_PATH)`
-5. `try_attach_db` (RtCreateDbPunti). Se OK → attach mode (`we_started_sim=0`). Se NO → `launch_sim_and_wait` (`we_started_sim=1`)
+5. `try_attach_db` (`RtCreateDbPunti(errore, "TEST", ...)`). `file_top="TEST"` (anziché `NULL`) seleziona `condizione=2` in `InitializeDbPunti` ([RtDbPunti.c:121-127](AlgLib/Rt/RtDbPunti.c#L121-L127)), che in caso di magic mismatch sgancia silenziosamente la SHM invece di emettere `[error shared-memory not attached]`: per noi il fail è atteso (probing pre-launch). Se OK → attach mode (`we_started_sim=0`). Se NO → `launch_sim_and_wait` (`we_started_sim=1`)
    - In bundle mode: pre-launch invoca `bash restore_perms.sh` (riapplica `chmod +x` post-fmpy.extract)
 6. **`init_sim_if_stopped`**: se `RtDbPGetStato == STATO_STOP`, manda `SD_inizializza(BI)` + poll `STATO != STOP` (timeout 30s). Idempotente (no-op se già FREEZE/RUN)
 7. `lg_var_open` + `build_var_index` su `variabili.rtf`
@@ -293,7 +298,7 @@ master chiede `stepSize < dt_sked`, log warning e avanziamo comunque di un
       Alg_env.sh
       launch_sim.sh           # entry point: setta env + exec net_startup_headless.sh
       restore_perms.sh        # chmod +x post-fmpy.extract (zipfile non preserva mode)
-      Alg_rt/bin/{dispatcher,net_sked,killsim}
+      Alg_rt/bin/{dispatcher,net_sked,killsim,net_prepf22}
       Alg_rt/lg_fmu/scripts/net_startup_headless.sh
       Alg_rt/lg_fmu/tools/probe_init
       lego_big/bin/{initav,TAVOLE.DAT}
@@ -317,6 +322,76 @@ installato" non vede:
 | File del bundle senza bit `+x` dopo `fmpy.extract` | Python `zipfile` non preserva i permessi unix dello zip | `bundle/restore_perms.sh` (generato da `bundle/build.sh`) chmoda i file noti; `lg_fmi2.c::launch_sim_and_wait` lo invoca via `bash` (non richiede exec bit sul file invocato) prima di `launch_sim.sh` |
 | `SHR_USR_KEY=0` in container root (uid=0) → `IPC_PRIVATE`, SHM non condivisibile | `Alg_env.sh:234`: `USR_KEY=$(id -u)`, poi `SHR_USR_KEY=USR_KEY*10000` | `lg_fmi2.c::setup_legopst_env`: se `getuid()==0` fallback a `getpid()*10 + 10000`; `net_startup_headless.sh` preserva `SHR_USR_KEY` del caller dopo source profile |
 | `dispatcher non in PATH` exit 2 dal launcher | `/bin/sh = dash` su debian/ubuntu, non digerisce sintassi bash di `.profile_legoroot` (`set -o emacs`, `[[ ]]`) → source silente fallisce → `PATH` non esteso | `net_startup_headless.sh` ora ha shebang `#!/usr/bin/env bash` |
+
+### Perché serve una sim viva durante il build della FMU
+
+Per produrre una FMU (sia base sia bundle) `bundle/build.sh` richiede che la
+sim della task sia attiva. `dolgfmu.sh` se ne occupa automaticamente: rileva
+con `ipcs -m` se la sim e' gia' viva (attach mode, lasciata viva dopo il
+build), altrimenti la avvia con `net_startup_headless.sh + probe_init`,
+builda la FMU, poi `killsim`. La domanda e': perche' non si puo' generare
+la FMU "a freddo" partendo solo dai file della task?
+
+Il `.fmu` contiene un solo file specifico alla task: `modelDescription.xml`.
+Il resto del bundle (binari LegoPST, libs, runtime, `.so`) e' identico tra
+task. Quindi tutta la dipendenza e' nella generazione di
+`modelDescription.xml`.
+
+[`tools/gen_modeldescription.c`](tools/gen_modeldescription.c) si attacca
+alla sim viva via `RtCreateDbPunti` e usa `costruisci_var` di libsim
+([AlgLib/libsim/var_sh.c:527](AlgLib/libsim/var_sh.c#L527)) che riempie
+l'array `VARIABILI vars[]` partendo dalla SHM `ID_SHM_VAR` (offset 5 da
+`SHR_USR_KEY`). Questa SHM viene popolata da **`lg5sk` durante `reg_prolog`
++ il primo ciclo**: prima ci sono solo dimensioni vuote, dopo c'e' la lista
+completa di variabili con i loro indirizzi e i loro valori correnti.
+
+Cosa serve per `modelDescription.xml` e da dove viene preso:
+
+| Informazione | Sorgente | Disponibile a freddo? |
+|--------------|----------|----------------------|
+| Nomi qualificati `<modello>.B<blocco>.<nome>` | `costruisci_var` da SHM `ID_SHM_VAR` | ❌ richiede sim viva |
+| `valueReference` = addr SHM | `vars[i].addr` post-`costruisci_var` | ❌ idem |
+| `causality` (input/output/local) | `vars[i].tipo` (`LG_VAR_INPUT_NC`, `LG_VAR_OUTPUT`, ...) | ❌ idem |
+| `start` value degli input | `RtDbPGetValue(addr)` live | ❌ richiede sim viva (e SHM popolata da lg5sk) |
+| `dt_sked`, `timescaling` per `defaultExperiment.stepSize` | `RtDbPGetDt`, `RtDbPGetTimeScaling` su DB live | ❌ vivono solo a runtime |
+| GUID univoco | `/proc/sys/kernel/random/uuid` | ✅ no dipendenza |
+
+Alternativa teorica — parsare a freddo i file `s04`/`s05` (NOMI_MODELLI/
+NOMI_BLOCCHI/VARIABILI binari) + `variabili.rtf` (causality):
+
+- Richiederebbe un parser separato del formato binario `s04`/`s05`, che
+  oggi e' incapsulato in `costruisci_var` (libsim). Il formato e' interno
+  a lego_big e cambia tra release.
+- Niente start value live → solo default statici, meno informativi per il
+  master FMI che importa la FMU (specie con flag `provideAllStartValues`).
+- Niente `dt_sked` / `timescaling` (non sono persistiti nei file di task,
+  vengono dal config runtime di sked).
+- Si duplicherebbe la logica gia' implementata in libsim, mantenuta
+  insieme al runtime.
+
+Scelta architetturale: piggyback su `costruisci_var` come "lettore canonico"
+del layout SHM. Costo: serve sim viva durante il build (gestito in modo
+trasparente da `dolgfmu.sh`).
+
+**Sequenza temporale critica per gli `start` values degli input**:
+
+I valori di stazionario per gli `INPUT_FREE` sono calcolati da `lg3` e
+salvati come parte di `UU` in [`<task>/proc/f04.dat`](AlgLib/libsim/reg_wrshm.c).
+Quando `lg5sk` parte:
+
+1. `reg_prolog`: registra al dispatcher e crea code IPC. SHM `ID_SHM_VAR` e' creata vuota (zeri).
+2. `LG5SIM` apre `f04.dat` e legge `XY/UU/XYU` in memoria locale Fortran ([lg5sim.f:124](legocad/lego_big/sorglego/sub/lg5sim.f#L124)).
+3. `LGTOPS` costruisce la topologia + factorization (lavoro non banale per modelli grandi).
+4. `LGDYNS` primo passo → chiama `reg_000(ipr=1)` → **`reg_wrshm` scrive XY/UU in SHM** ([reg_wrshm.c:48](AlgLib/libsim/reg_wrshm.c#L48)).
+5. `lg5sk` `msg_snd` primo ack → `sked_start` torna → `sked.c:330` setta `STATO_FREEZE`.
+
+**Il punto critico**: se `gen_modeldescription` legge la SHM **prima** del
+passo 4, gli input free sono ancora a 0. Per questo `dolgfmu.sh` headless
+chiama `probe_init` che ora **polla `RtDbPGetStato` fino a uscire da
+`STATO_STOP`** (timeout 30s), garantendo che `reg_wrshm` sia stato chiamato
+prima del build. Senza il polling (`sleep` cieco), la latenza dipende dal
+modello (su `collet` ~4-5s reali) ed e' impossibile fissare un valore
+sicuro a priori.
 
 ### Diagnostica
 
@@ -352,6 +427,7 @@ Tools standalone (richiedono sim attiva sulla task corrente):
 | `TIMEOUT init: stato=0`, `out/lg5c.out` arriva a `reg_prolog - uscita` ma `lg5.out` resta a `FILE06= lg5.out`, `net_sked.fmu.log` con `SIGCHILD_HANDLER: CLD_DUMPED ... process child pid = <pid>` seguito da `restart_task: creazione path per files .out: File exists` in loop | `proc/lg5sk` della task source obsoleto/inconsistente con i N/M del runtime: lg5sk segfaulta dopo `reg_prolog`, net_sked entra in `restart_task` infinito | Ricompila `lg5sk` per la task (in legopc: `Make` sulla task, oppure manualmente `make -f Makefile.mk` in `<task>/`) e rigenera il bundle (`dolgfmu.sh -b <task>`) |
 | `TIMEOUT init: stato=0` (lg5sk vivo, niente CLD_DUMPED), `lg5sk` e `net_sked` entrambi in `do_msgrcv` (deadlock visibile via `cat /proc/<pid>/wchan`) | `net_prepf22` mancante dal bundle: `sked_start` (con `net_sked 2` = MASTER+demone) lo spawna a [sked_start.c:1039](Alg_rt/net_simula/net_sked/sked_start.c#L1039) e attende il suo ack con timeout `TIMEOUT_AUS*10 = 1350s`. La FMU polla solo 30s → TIMEOUT prima dell'ack di prep_f22, sim mai a STATO_FREEZE | Fixato 2026-05-04: `bundle/build.sh` include `net_prepf22` nel bundle, `net_startup_headless.sh` usa `net_sked 1` (MASTER senza demone_attivo, evita anche lo spawn di `demone_mmi` che richiederebbe Alg_mmi nel bundle). `net_prepf22` resta indispensabile perché serve al salvataggio risultati in `f22circ.dat` |
 | `ValueError: relative path can't be expressed as a file URI` da `fmpy.fmi2.instantiate` | Python ≥ 3.13: `pathlib.Path(...).as_uri()` rifiuta path relativi | Passa un path assoluto a `simulate_fmu` / `extract`: `unz = os.path.abspath('legoclix_<task>_bundle')` |
+| `modelDescription.xml` con tutti gli input `<Real start="0"/>` (anche per pressioni/entalpie/lift che in stazionario non sono zero) | Build fatto con `dolgfmu.sh` headless prima che `reg_wrshm` (in `LGDYNS::reg_000`) scrivesse `UU` da F04 in SHM. La sim era ancora in `STATO_STOP` quando `gen_modeldescription` ha letto i valori | Fixato 2026-05-04: `probe_init` ora polla `RtDbPGetStato` fino a uscire da `STATO_STOP` (timeout 30s) prima di ritornare. `dolgfmu.sh` headless rigenera bundle con start corretti. Workaround se non si puo' rebuildare la FMU: usare modalita' attach (banco vivo + `dolgfmu -b` mentre il banco e' attivo) |
 
 ### Procedura di test — multi-istanza FMU (P5)
 
@@ -456,11 +532,12 @@ killsim
 ipcs -m   # atteso: solo SHR_TAV_KEY=0x000003e7
 ```
 
-### File modificati (stato 2026-05-02)
+### File modificati (stato 2026-05-04)
 
 Vedi `~/.claude/projects/-home-antonio-LegoPST/memory/project_lg_fmu_linux.md`
-per la lista completa per fase (P4 → P7-bis). P7-bis (container support)
-committato 2026-05-02.
+per la lista completa per fase (P4 → P7-bis → P5). Il bundle FMU funziona
+end-to-end native + container, T1 multi-istanza PASS dal 2026-05-04 (fix
+`net_prepf22` mancante + `net_sked 1` + `try_attach_db("TEST")`).
 
 ### Architettura di riferimento
 
@@ -468,4 +545,6 @@ committato 2026-05-02.
 - ValueReference FMI = SHM `addr` (1:1 con cella di memoria, stabile nel tempo)
 - Una cella SHM può apparire in più entry di `VARIABILI[]` (alias): la FMU espone una `ScalarVariable` per `addr` unico (`lg_var_unique_*`)
 - `dt_sked` letto live via `RtDbPGetDt(db, mod=0, &dt)` durante `fmi2Instantiate`
-- Cleanup in `fmi2FreeInstance`: `system("killsim")` solo se `we_started_sim==1`
+- Cleanup in `fmi2FreeInstance` ([lg_fmi2.c:707](Alg_rt/lg_fmu/src/lg_fmi2.c#L707)):
+  - **launch mode** (`we_started_sim==1`): `system("killsim")` distrugge SHM/code/proc; **NO** `RtDestroyDbPunti` perché le SHM sono già sparite (eviterebbe `CloseDbPunti->elimina_shrmem` su puntatori invalidi e il `[error shared-memory not attached]` cosmetico)
+  - **attach mode** (`we_started_sim==0`): solo `RtDestroyDbPunti` (sgancio pulito dell'handle, la sim utente continua a girare); niente `killsim`

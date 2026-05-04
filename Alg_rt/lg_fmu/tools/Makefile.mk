@@ -41,7 +41,7 @@ LIB_FMU = ../src/liblg_fmu.a
 
 OTHER_LIB = -lsqlite3 -lm
 
-BINS = probe_attach probe_step gen_modeldescription
+BINS = probe_attach probe_step probe_init gen_modeldescription
 
 all: $(BINS)
 
@@ -50,6 +50,9 @@ probe_attach: probe_attach.o $(LIBS)
 
 probe_step: probe_step.o $(LIBS)
 	cc -o $@ probe_step.o -Wl,--start-group $(LIBS) -Wl,--end-group $(OTHER_LIB)
+
+probe_init: probe_init.o $(LIBS)
+	cc -o $@ probe_init.o -Wl,--start-group $(LIBS) -Wl,--end-group $(OTHER_LIB)
 
 gen_modeldescription: gen_modeldescription.o $(LIB_FMU) $(LIBS)
 	cc -o $@ gen_modeldescription.o \
