@@ -100,18 +100,33 @@ static void dstr_appendf(dstr *s, const char *fmt, ...)
 
 
 /* -------------------------------------------------------------------- */
-/* XML escape (minimal: & < > " ')                                      */
+/* XML escape (minimal: & < > " ').                                      */
+/* Le description LegoPST sono Latin-1/CP1252 (es. m³ = byte 0xB3 da     */
+/* solo, "²" = 0xB2). Il modelDescription.xml dichiara encoding="UTF-8",  */
+/* quindi convertiamo on-the-fly: ogni byte >= 0x80 -> sequenza UTF-8 a   */
+/* 2 byte. Senza questa conversione lxml/fmpy.read_model_description     */
+/* fallisce con "Invalid bytes in character encoding".                   */
 /* -------------------------------------------------------------------- */
 static void xml_escape(dstr *out, const char *s)
 {
-    for (; *s; ++s) {
-        switch (*s) {
+    for (const unsigned char *u = (const unsigned char *)s; *u; ++u) {
+        switch (*u) {
             case '&':  dstr_append(out, "&amp;");  break;
             case '<':  dstr_append(out, "&lt;");   break;
             case '>':  dstr_append(out, "&gt;");   break;
             case '"':  dstr_append(out, "&quot;"); break;
             case '\'': dstr_append(out, "&apos;"); break;
-            default:   dstr_appendn(out, s, 1);    break;
+            default:
+                if (*u < 0x80) {
+                    dstr_appendn(out, (const char *)u, 1);
+                } else {
+                    /* Latin-1 -> UTF-8: 0x80..0xFF -> 0xC2/0xC3 + low6 */
+                    char b[2];
+                    b[0] = (char)(0xC0 | (*u >> 6));
+                    b[1] = (char)(0x80 | (*u & 0x3F));
+                    dstr_appendn(out, b, 2);
+                }
+                break;
         }
     }
 }

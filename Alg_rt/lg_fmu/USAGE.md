@@ -70,10 +70,11 @@ Il file `.fmu` è uno standard FMI 2.0 e può essere caricato da qualunque maste
 Dalla UI tix_new (consigliato): menu **Tools → Build FMU**. Apre un xterm con
 l'output di `dolgfmu.sh` sulla task corrente (`$DIRMODEL`).
 
-Da CLI:
+Da CLI (gli script sono installati in `Alg_rt/bin/` come gli altri eseguibili
+LegoPST, quindi chiamabili direttamente dopo `source .profile_legoroot`):
 ```bash
 source $LEGOROOT/.profile_legoroot
-$LEGOROOT/Alg_rt/lg_fmu/scripts/dolgfmu.sh /home/antonio/legocad/collet
+dolgfmu /home/antonio/legocad/collet
 # Output: /home/antonio/legocad/collet/legoclix_collet.fmu
 ```
 
@@ -87,10 +88,10 @@ nomi/indirizzi/start values dalla SHM live (vedi sezione developer
 
 Dalla UI tix_new (consigliato): menu **Tools → Build FMU (bundle)**.
 
-Da CLI tramite `dolgfmu.sh -b`:
+Da CLI tramite `dolgfmu -b`:
 ```bash
 source $LEGOROOT/.profile_legoroot
-$LEGOROOT/Alg_rt/lg_fmu/scripts/dolgfmu.sh -b /home/antonio/legocad/collet
+dolgfmu -b /home/antonio/legocad/collet
 # Output: /home/antonio/legocad/collet/legoclix_collet_bundle.fmu
 ```
 
@@ -118,14 +119,20 @@ Opzioni utili di `build.sh`:
 ```bash
 source $LEGOROOT/.profile_legoroot
 # variante base
-$LEGOROOT/Alg_rt/lg_fmu/scripts/run_fmu.sh /home/antonio/legocad/collet --stop-time 30
+run_fmu /home/antonio/legocad/collet --stop-time 30
 # variante bundle
-$LEGOROOT/Alg_rt/lg_fmu/scripts/run_fmu.sh -b /home/antonio/legocad/collet --stop-time 30
+run_fmu -b /home/antonio/legocad/collet --stop-time 30
 # CSV in /home/antonio/legocad/collet/results.csv
 ```
 
 L'argomento posizionale può essere il path al `.fmu`, una task dir LegoPST, oppure
-omesso (cerca `*.fmu` nella cwd). Con `-b`/`--bundle` cerca `legoclix_<task>_bundle.fmu`.
+omesso (cerca `*.fmu` o `*_bundle.fmu` nella cwd). Con `-b`/`--bundle` cerca
+`legoclix_<task>_bundle.fmu`.
+
+La FMU viene estratta in una directory **accanto al `.fmu`** (es.
+`<task>/legoclix_<task>_bundle/`), non in `/tmp/fmpy_*`. La dir di unzip
+persiste tra run, conforme alla regola di output path del progetto. Il CSV
+finisce in `<fmu_dir>/results.csv` di default.
 
 Subcommand:
 - (default): simulate → CSV
@@ -232,13 +239,25 @@ tools/
   probe_step                # SD_goup(BI) N volte (diagnostico cadenza)
   probe_attach              # attach + read smoke test
 scripts/
-  dolgfmu.sh                # entry point UI: build FMU base sulla task
+  dolgfmu.sh                # entry point UI: build FMU base / bundle sulla task
   run_fmu.sh                # wrapper fmpy per eseguire una FMU
   net_startup_headless.sh   # dispatcher + net_sked headless (no banco, no X)
 tests/
   test_var_mapping          # test offline su lg_var_mapping
+Makefile.mk                 # installa gli script in Alg_rt/bin/ (no .sh nel nome)
 USAGE.md                    # questo file
 ```
+
+Il `Makefile.mk` di `Alg_rt/lg_fmu` e' agganciato a `Alg_rt/Makefile.mk` (`make`
+globale lo richiama dopo `procedure/`, `util/` e `algrt_db/`). Installa i 3
+script in `Alg_rt/bin/` rinominandoli senza estensione, cosi' sono nel PATH
+dopo `source .profile_legoroot`. Pattern coerente con
+`Alg_rt/procedure/Makefile.mk` (cp + chmod 755).
+
+I sorgenti C/headers (`src/`, `tools/`, `tests/`, `include/`) e il builder
+`bundle/build.sh` hanno Makefile locali e build manuale, NON agganciati al
+build globale (eviterebbe di forzare `-fPIC` su tutta `AlgLib` ad ogni `make`
+di root).
 
 ### Build da zero
 
@@ -428,6 +447,8 @@ Tools standalone (richiedono sim attiva sulla task corrente):
 | `TIMEOUT init: stato=0` (lg5sk vivo, niente CLD_DUMPED), `lg5sk` e `net_sked` entrambi in `do_msgrcv` (deadlock visibile via `cat /proc/<pid>/wchan`) | `net_prepf22` mancante dal bundle: `sked_start` (con `net_sked 2` = MASTER+demone) lo spawna a [sked_start.c:1039](Alg_rt/net_simula/net_sked/sked_start.c#L1039) e attende il suo ack con timeout `TIMEOUT_AUS*10 = 1350s`. La FMU polla solo 30s → TIMEOUT prima dell'ack di prep_f22, sim mai a STATO_FREEZE | Fixato 2026-05-04: `bundle/build.sh` include `net_prepf22` nel bundle, `net_startup_headless.sh` usa `net_sked 1` (MASTER senza demone_attivo, evita anche lo spawn di `demone_mmi` che richiederebbe Alg_mmi nel bundle). `net_prepf22` resta indispensabile perché serve al salvataggio risultati in `f22circ.dat` |
 | `ValueError: relative path can't be expressed as a file URI` da `fmpy.fmi2.instantiate` | Python ≥ 3.13: `pathlib.Path(...).as_uri()` rifiuta path relativi | Passa un path assoluto a `simulate_fmu` / `extract`: `unz = os.path.abspath('legoclix_<task>_bundle')` |
 | `modelDescription.xml` con tutti gli input `<Real start="0"/>` (anche per pressioni/entalpie/lift che in stazionario non sono zero) | Build fatto con `dolgfmu.sh` headless prima che `reg_wrshm` (in `LGDYNS::reg_000`) scrivesse `UU` da F04 in SHM. La sim era ancora in `STATO_STOP` quando `gen_modeldescription` ha letto i valori | Fixato 2026-05-04: `probe_init` ora polla `RtDbPGetStato` fino a uscire da `STATO_STOP` (timeout 30s) prima di ritornare. `dolgfmu.sh` headless rigenera bundle con start corretti. Workaround se non si puo' rebuildare la FMU: usare modalita' attach (banco vivo + `dolgfmu -b` mentre il banco e' attivo) |
+| `OSError: Error reading file 'modelDescription.xml': Invalid bytes in character encoding` da `lxml`/`fmpy.read_model_description` | Le `description` LegoPST sono Latin-1/CP1252 (es. `m³`/`m²` con `³`=`0xB3`, `²`=`0xB2` da soli) e finivano grezze nell'XML che dichiara `encoding="UTF-8"` | Fixato 2026-05-04: `gen_modeldescription.c::xml_escape` ora converte byte ≥ 0x80 nella sequenza UTF-8 a 2 byte (`0xC0|h>>6`, `0x80|h&0x3F`). Rebuild gen_modeldescription + ricostruisci la FMU. Validazione: `iconv -f UTF-8 -t UTF-8 modelDescription.xml > /dev/null` deve passare |
+| `ERRORE: SHM <id> esiste ed ha dim X superiori a Y` + segfault (rc=139) durante `simulate_fmu` | `run_fmu.sh` source `.profile_legoroot` che setta `SHR_USR_KEY=uid*10000` (slot 0). Senza un banco operatore vivo a quello slot, la FMU lancia la sim su slot 0 e collide con residui SHM di altre task lasciati da run precedenti (es. SHM dimensionata per N variabili diverse) | Fixato 2026-05-04: `run_fmu.sh` rileva via `ipcs -m` se c'e' una sim viva a slot 0 (chiave `uid*10000+5` = ID_SHM_VAR). Se sì, mantiene `SHR_USR_KEY` per attach mode. Se no, fa `unset SHR_USR_KEY/SHR_USR_KEYS` e lascia che `lg_fmi2.c::setup_legopst_env` scelga slot 1..8 libero (logica P5) |
 
 ### Procedura di test — multi-istanza FMU (P5)
 

@@ -67,3 +67,7 @@ all:
 #	algrt_db
 #
 	cd ./algrt_db; $(MAKE) -f Makefile.mk
+#
+#	lg_fmu (installa gli script utente: dolgfmu, run_fmu, net_startup_headless)
+#
+	cd ./lg_fmu; $(MAKE) -f Makefile.mk
