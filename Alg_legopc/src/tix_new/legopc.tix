@@ -4612,7 +4612,16 @@ set ::stileanim_prec $::stileanim
     $m add command -label "SincView" -command lanciasincviewGui
     $m add command -label "Xterm" -command {
     	global curFileName DIRMODEL
-    	exec xterm &
+#    	exec xterm &
+    	exec $env(LG_XTERM) &
+    }
+    $m add command -label "Build FMU" -command {
+    	global DIRMODEL
+    	exec xterm -title "Build FMU" -e "$env(LEGOROOT)/Alg_rt/lg_fmu/scripts/dolgfmu.sh $DIRMODEL; echo; echo Premi invio per chiudere; read x" &
+    }
+    $m add command -label "Build FMU (bundle)" -command {
+    	global DIRMODEL
+    	exec xterm -title "Build FMU bundle" -e "$env(LEGOROOT)/Alg_rt/lg_fmu/scripts/dolgfmu.sh -b $DIRMODEL; echo; echo Premi invio per chiudere; read x" &
     }
 
     set m .menu.grafics_ut

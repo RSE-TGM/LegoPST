@@ -80,6 +80,21 @@ fi
 # --- Pulizia eventuale sim precedente ---------------------------------
 killsim 2>/dev/null || true
 
+# --- Reset file di stato runtime dal run precedente -------------------
+# ATTENZIONE: questa rm e' DISTRUTTIVA per i dati del run precedente.
+#   f22circ.dat  = buffer circolare dei campioni grafici (usato da run_graphics.sh)
+#   backtrack.dat = snapshot di backtrack per tornare indietro nel tempo
+# Entrambi sopravvivono a fmpy.extract (che non cancella la unzipdir) e a
+# killsim (che pulisce solo SHM/code/sem, non il filesystem).
+# Senza questa rm il dispatcher riapre f22circ.dat in append mode (flag
+# DF22_APPEND) e net_sked legge backtrack.dat e restaura lo stato del run
+# precedente, mettendo la sim in uno stato che impedisce SD_goup al secondo
+# lancio -> fmi2DoStep timeout -> status 3 (fmi2Error).
+# Se si vogliono conservare i grafici del run precedente, copiare
+# f22circ.dat PRIMA di eseguire nuovamente la FMU (vedi USAGE.md sezione
+# "Ciclo di vita di f22circ.dat e backtrack.dat").
+rm -f f22circ.dat backtrack.dat 2>/dev/null || true
+
 # --- Ripristino tavole acqua/vapore -----------------------------------
 # killsim su Linux cancella TUTTE le SHM (vedi killsim.c:402 "test fittizio
 # per LINUX"), inclusa SHR_TAV_KEY=999 che initav popola via .profile_legoroot.

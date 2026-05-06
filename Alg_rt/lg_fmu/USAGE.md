@@ -53,6 +53,7 @@ Il file `.fmu` è uno standard FMI 2.0 e può essere caricato da qualunque maste
 | `run_fmu.sh` (wrapper bash su fmpy) | base, bundle | `source .profile_legoroot` + `/home/antonio/fmpy_venv` | smoke test rapido in CLI con CSV out | ✅ supportato |
 | `fmpy.simulate_fmu` (Python diretto) | base, bundle | `pip install fmpy` (Python ≥ 3.8) | scripting, integrazione test, debug fine-grained con `LG_FMU_DEBUG=1` | ✅ supportato |
 | Container Linux pulito (`docker run python:3.11-slim` + fmpy) | **solo bundle** | `pip install fmpy` nel container | deployment, CI esterna, demo | ✅ validato 2026-05-02 |
+| `test_fmu_docker` (wrapper bash su docker + fmpy) | **solo bundle** | Docker installato e avviato; `DISPLAY` per grafica post-sim | smoke test parallelo di più FMU in container isolato ed effimero | ✅ supportato |
 | Simulink R2023a (Linux master) | base, bundle | Simulink Linux + FMI Toolbox | integrazione modelli misti | ⏸ non testato (utente usa Simulink Windows) |
 | Simulink R2023a (Windows host) | nessuna | — | — | ❌ serve FMU Windows separata, non Linux |
 | OpenModelica | base, bundle | `dnf/apt install openmodelica` | validazione cross-tool open-source | ⏸ non testato (non installato) |
@@ -240,6 +241,67 @@ Per target con glibc < 2.38 servirebbe rebuild dei binari LegoPST in un containe
 - Multi-istanza (uid≠0, sim non viva): la FMU sceglie automaticamente uno degli 8 slot `uid*10000 + slot*1100` (slot 1..8) disponibili. Lo slot 0 (= `uid*10000`) è riservato alla sessione LegoPST normale dell'utente: aprendo il banco operatore mentre una FMU gira, le SHM non collidono. Limite: max 8 FMU concorrenti per uid.
 - `net_startup_headless.sh` ha shebang `bash` (non `sh`): in debian/ubuntu `/bin/sh = dash` non digerisce i costrutti bash di `.profile_legoroot` (`set -o emacs`, `[[ ]]`).
 
+### Testare una o più FMU bundle in container con `test_fmu_docker`
+
+`test_fmu_docker` (installato in `Alg_rt/bin/` dal Makefile) automatizza il
+lancio di uno o più bundle FMU in un singolo container `python:3.11-slim`
+effimero. Le simulazioni vengono eseguite **in parallelo** (una per FMU,
+subshell bash in background + `wait`), ciascuna con la propria directory di
+estrazione.
+
+**Sintassi**
+
+```bash
+test_fmu_docker [-t SECONDI] <fmu_1.fmu> [fmu_2.fmu ...]
+```
+
+- `-t SECONDI`: durata della simulazione (default: 10 s)
+- Senza argomenti o con `-h`/`--help`: mostra l'usage
+
+**Esempi**
+
+```bash
+# smoke test singolo (10s default)
+test_fmu_docker legoclix_collet_bundle.fmu
+
+# simulazione di 25 secondi
+test_fmu_docker -t 25 legoclix_TCon-r1_bundle.fmu
+
+# due FMU in parallelo per 5 secondi
+test_fmu_docker -t 5 legoclix_collet_bundle.fmu legoclix_TCon-r1_bundle.fmu
+```
+
+**Cosa fa**
+
+1. Verifica che tutti i file `.fmu` esistano e calcola i path assoluti.
+2. `xhost +local:docker` per abilitare X11 dal container.
+3. `docker run --rm -it --net host python:3.11-slim` con:
+   - ogni `.fmu` montato in sola lettura come `/tmp/fmu_N.fmu`
+   - `STOP_TIME` e `FILES` passati come variabili d'ambiente
+   - `/tmp/.X11-unix` e `DISPLAY` per la grafica
+4. Nel container: `pip install fmpy`, poi per ogni FMU in parallelo:
+   - `fmpy.extract` nella dir `/tmp/dir_<basename>`
+   - `fmpy.simulate_fmu` per `STOP_TIME` secondi
+   - se `resources/bundle/run_graphics.sh` è presente, lo esegue (apre il viewer Motif `graphics` su `f22circ.dat`)
+5. `wait` — aspetta il completamento di tutte le simulazioni prima di uscire.
+6. Il container si autodistrugge (`--rm`).
+
+**Prerequisiti**
+
+- Docker installato e il demone in esecuzione (`systemctl start docker` o Docker Desktop)
+- `DISPLAY` impostato (sessione X11 o WSL con X server, es. VcXsrv/X410) — necessario solo se si vuole la grafica post-sim
+- Solo bundle FMU (la variante base richiede LegoPST installato sul target)
+
+**Limitazioni**
+
+| Aspetto | Dettaglio |
+|---------|-----------|
+| Dati effimeri | Container con `--rm`: `f22circ.dat`, log di dispatcher/net_sked e risultati CSV vivono solo dentro il container; non sono accessibili dall'host dopo l'uscita |
+| `fmpy` installato ad ogni run | Nessuna cache Docker per fmpy → ~30–60 s di overhead al primo avvio. Per uso frequente, costruire un'immagine con fmpy pre-installato |
+| Grafica | `run_graphics.sh` apre una finestra X11 sul desktop dell'host; se il server X non è raggiungibile, il viewer fallisce silenziosamente (la simulazione è comunque completata) |
+| glibc | Come per qualunque bundle FMU: baseline GLIBC_2.38. `python:3.11-slim` (Debian trixie, glibc 2.41) è compatibile ✅ |
+| IPC per FMU multiple | Ogni FMU sceglie uno slot `SHR_USR_KEY` indipendente (P5). In container con uid=0 il fallback è `getpid()*10+10000` — pid diversi → chiavi diverse → nessuna collisione |
+
 ### Cleanup dopo i test
 
 ```bash
@@ -279,6 +341,7 @@ scripts/
   dolgfmu.sh                # entry point UI: build FMU base / bundle sulla task
   run_fmu.sh                # wrapper fmpy per eseguire una FMU
   net_startup_headless.sh   # dispatcher + net_sked headless (no banco, no X)
+  test_fmu_docker.sh        # smoke test FMU bundle in container Docker (anche in parallelo)
 tests/
   test_var_mapping          # test offline su lg_var_mapping
 Makefile.mk                 # installa gli script in Alg_rt/bin/ (no .sh nel nome)

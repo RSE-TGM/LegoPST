@@ -288,8 +288,6 @@ printf("net_sked main DEBUG: flag_demo = %d\ttempo_license = %lf\n",
       id_msg_from_sked = msg_create(shr_usr_key + ID_MSG_FROM_SKED, 0);
 
       id_sem_disp = sem_create(shr_usr_key + ID_SEM_DISP, 0);
-printf("main sked.c: 0 GUAG prima di to_someone \n");
-fflush(stdout);
       to_someone(id_msg_from_sked, id_msg_to_sked, 1, 1, (char*)&err, sizeof(int));
       }
 
@@ -315,7 +313,6 @@ fflush(stdout);
 // printf("prima di sked_s02 \n");
    sked_s02();
 // printf("dopo di sked_s02 \n");
-printf(" DEBUG main sked: check env:   N001=%s \n",getenv("N001"));
 /* Esecuzione lancio task */
    sked_start();
 
@@ -333,7 +330,6 @@ printf(" DEBUG main sked: check env:   N001=%s \n",getenv("N001"));
       sked_banco(0, NULL);
    } else
       sked_slave();
-system("env");
 
 /* Loppo di schedulazione */
    while (1)
