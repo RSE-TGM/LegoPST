@@ -4612,7 +4612,8 @@ set ::stileanim_prec $::stileanim
     $m add command -label "SincView" -command lanciasincviewGui
     $m add command -label "Xterm" -command {
     	global curFileName DIRMODEL
-    	exec xterm &
+#    	exec xterm &
+    	exec $env(LG_XTERM) &
     }
     $m add command -label "Build FMU" -command {
     	global DIRMODEL

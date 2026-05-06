@@ -156,5 +156,10 @@ GEMINI.md
 CLAUDE.md
 legocad_r_MDC0
 
+# ai-docs 
+.ai-docs/
+CONVENTIONS.md
+
 # File generato da Makefile.mk (coordinate repository)
 docker/repo_info.conf
+.aider*

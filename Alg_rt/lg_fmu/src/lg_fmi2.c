@@ -59,7 +59,8 @@
 
 /* poll cadence for waiting on time advance after SD_goup */
 #define LG_GOUP_POLL_MS       20
-#define LG_GOUP_MAX_POLLS     500   /* 10 s safety cap per step */
+/* Default 10 s; override con LG_FMU_STEP_TIMEOUT_S=<sec> per task grandi */
+#define LG_GOUP_MAX_POLLS_DEFAULT  500
 
 /* poll cadence for waiting on sim startup (Punto 4) */
 #define LG_BOOT_POLL_MS       200
@@ -906,6 +907,19 @@ FMI2_Export fmi2Status fmi2DoStep(fmi2Component c,
     int    n_goup  = (int)ceil(steps_d);
     if (n_goup < 1) n_goup = 1;
 
+    /* Timeout per step configurabile: LG_FMU_STEP_TIMEOUT_S=<sec> (default 10). */
+    int timeout_s = LG_GOUP_MAX_POLLS_DEFAULT * LG_GOUP_POLL_MS / 1000;
+    const char *to_env = getenv("LG_FMU_STEP_TIMEOUT_S");
+    if (to_env && atoi(to_env) > 0) timeout_s = atoi(to_env);
+    int max_polls = timeout_s * 1000 / LG_GOUP_POLL_MS;
+
+    int dbg_step = getenv("LG_FMU_DEBUG") != NULL;
+    if (dbg_step)
+        fprintf(stderr,
+            "[lg_fmu DBG] DoStep t=%.3f h=%.3f dt_sked=%.3f n_goup=%d timeout=%ds\n",
+            (double)currentCommunicationPoint, (double)communicationStepSize,
+            (double)inst->dt_sked, n_goup, timeout_s);
+
     float t_pre = -1.0f, t_post = -1.0f;
     RtDbPGetTime((RtDbPuntiOggetto)inst->dbpunti, &t_pre);
 
@@ -922,14 +936,15 @@ FMI2_Export fmi2Status fmi2DoStep(fmi2Component c,
 
         /* Wait for sked to publish the new time (single iteration). */
         int k;
-        for (k = 0; k < LG_GOUP_MAX_POLLS; ++k) {
+        for (k = 0; k < max_polls; ++k) {
             msleep(LG_GOUP_POLL_MS);
             RtDbPGetTime((RtDbPuntiOggetto)inst->dbpunti, &t_post);
             if (t_post > t_before + 1e-4f) break;
         }
-        if (k >= LG_GOUP_MAX_POLLS) {
+        if (k >= max_polls) {
             lg_log(inst, fmi2Error, "logStatusError",
-                   "timeout aspettando avanzamento tempo (step %d)", i + 1);
+                   "timeout %ds aspettando avanzamento tempo (step %d/%d)",
+                   timeout_s, i + 1, n_goup);
             return fmi2Error;
         }
     }

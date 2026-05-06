@@ -146,6 +146,43 @@ Opzioni:
 - `--set VAR=VAL` (ripetibile, override input)
 - `--csv FILE` (default `<fmu_dir>/results.csv`)
 
+### Visualizzare i grafici di simulazione con `run_graphics.sh`
+
+Il bundle include il programma `graphics` (viewer Motif/X11 per file `f22circ.dat`)
+e il wrapper `run_graphics.sh` che imposta l'ambiente corretto. Il file `f22circ.dat`
+viene prodotto dalla simulazione durante ogni `fmi2DoStep` (via `net_prepf22`) e
+si trova nella task bundled estratta.
+
+**Nota storica**: `graphics` vuole il path **senza l'estensione `.dat`** (es.
+`.../task/collet/f22circ`). Il wrapper gestisce questo automaticamente.
+
+```bash
+# Dopo aver estratto il bundle ed eseguito la simulazione:
+cd /home/antonio/legocad/collet/legoclix_collet_bundle/resources/bundle
+
+# senza argomento: trova f22circ in task/*/
+./run_graphics.sh
+
+# con path esplicito (accetta con o senza .dat)
+./run_graphics.sh task/collet/f22circ
+./run_graphics.sh task/collet/f22circ.dat   # .dat rimosso automaticamente
+
+# oppure dalla task dir
+./run_graphics.sh task/collet/
+```
+
+Requisiti:
+- `DISPLAY` impostato (sessione X11 o WSL con server X11, es. VcXsrv / X410)
+- Il bundle è self-contained per Motif (`libXm.so.4`, `libMrm.so.4`) e le altre
+  dipendenze X11 non standard (`libXp.so.6`): vengono bundlate dal ldd scan
+  automatico in `build.sh`
+
+Il wrapper setta:
+- `LEGORT_UID=$BUNDLE/Alg_rt/uid/` → `graphics.uid` (file MRM compilato)
+- `HOME=$BUNDLE/home_stub/` → `chdefaults()` trova `defaults/uni_misc.dat`
+  (unità di misura: portata, pressione, temperatura, …)
+- `LD_LIBRARY_PATH=$BUNDLE/lib/` → Motif + altre lib non standard
+
 ### Eseguire la FMU bundle in env pulito (verifica self-containment)
 
 ```bash
@@ -304,6 +341,54 @@ for (i = 0; i < n_goup; i++) {
 master chiede `stepSize < dt_sked`, log warning e avanziamo comunque di un
 `dt_sked` intero (fmpy non gestisce `fmi2Discard` → loop infinito).
 
+#### Relazione tra `-d` / `communicationStepSize` e `dt_sked`
+
+`dt_sked` è il passo di integrazione fisso della simulazione LegoPST: ogni
+`SD_goup` avanza il tempo simulato di esattamente `dt_sked` e non esiste
+granularità inferiore. Il valore è riportato in `DefaultExperiment.stepSize`
+nel `modelDescription.xml` (scritto da `gen_modeldescription` via
+`RtDbPGetDt` al momento del build della FMU).
+
+`communicationStepSize` (opzione `-d` di `run_fmu.sh`) è invece il
+*passo di comunicazione* del master FMI: con quale frequenza il master chiama
+`fmi2DoStep` e legge gli output. I due passi sono indipendenti ma vincolati:
+
+**Regola**: `-d` deve essere un **multiplo intero di `dt_sked`** per avere
+comportamento corretto. `n_goup = ceil(communicationStepSize / dt_sked)` è
+l'arrotondamento al multiplo superiore; se il rapporto non è intero si
+accumula drift tra il tempo interno della sim e quello dichiarato al master.
+
+| `dt_sked` (da modelDescription) | `-d` passato | `n_goup` | Comportamento |
+|---|---|---|---|
+| 1.0 | 1.0 | 1 | ✅ naturale, 1 SD_goup per step, 1 campione/s |
+| 1.0 | 2.0 | 2 | ✅ corretto, sim avanza 2s per step, meno campioni |
+| 1.0 | 5.0 | 5 | ✅ corretto, 1 campione ogni 5s sim |
+| 1.0 | 0.5 | 1 | ⚠️ warning: sim avanza 1s ma master pensa 0.5s → drift |
+| 0.5 | 0.5 | 1 | ✅ naturale per una task con dt_sked=0.5s |
+| 0.5 | 1.0 | 2 | ✅ corretto |
+| 0.5 | 0.25 | 1 | ⚠️ warning: sim avanza 0.5s ma master pensa 0.25s → drift |
+| 0.5 | 0.7 | 2 | ⚠️ nessun warning ma sim avanza 1.0s per step (non 0.7s) → drift |
+
+**Drift temporale**: quando `communicationStepSize` non è multiplo esatto di
+`dt_sked`, `inst->current_time` (tempo dichiarato al master) e il tempo reale
+della sim divergono. Dopo K step il tempo reale è `K × n_goup × dt_sked`
+mentre il master vede `K × communicationStepSize`. I valori letti sono
+comunque coerenti con il tempo reale della sim, non con il timestamp fmpy.
+
+**Caso d'uso tipico**: non specificare `-d` (oppure `-d <valore uguale a
+DefaultExperiment.stepSize>`). Senza `-d`, `run_fmu.sh` passa `step_size=None`
+a fmpy che usa `defaultExperiment.stepSize` dal modelDescription — cioè
+esattamente `dt_sked` — ed è sempre corretto.
+
+**Ridurre la frequenza di campionamento** (es. output ogni 5s su una task
+con dt_sked=1s): usare `-d 5.0`. La sim gira comunque a passo 1s ma fmpy
+legge gli output solo ogni 5 passi. Riduce dimensione del CSV e overhead del
+master senza cambiare la fisica della simulazione.
+
+**Verificare il comportamento con `LG_FMU_DEBUG=1`**: ogni `fmi2DoStep`
+stampa su stderr `[lg_fmu DBG] DoStep t=%.3f h=%.3f dt_sked=%.3f n_goup=%d`.
+Da lì si vede immediatamente se `n_goup > 1` o se c'è disallineamento.
+
 ### Layout di un bundle estratto
 
 ```
@@ -412,6 +497,75 @@ prima del build. Senza il polling (`sleep` cieco), la latenza dipende dal
 modello (su `collet` ~4-5s reali) ed e' impossibile fissare un valore
 sicuro a priori.
 
+### Ciclo di vita di `f22circ.dat` e `backtrack.dat` (FMU headless)
+
+`f22circ.dat` e `backtrack.dat` sono file di stato che il runtime LegoPST
+scrive nella directory della task. La FMU headless li tratta diversamente
+dal banco operatore interattivo.
+
+**Cosa contengono**
+
+| File | Scritto da | Contenuto |
+|------|-----------|-----------|
+| `f22circ.dat` | `net_prepf22` (processo figlio di net_sked) | Buffer circolare dei campioni di simulazione: header + N campioni × M variabili grafiche. Usato da `run_graphics.sh` per visualizzare i risultati post-run |
+| `backtrack.dat` | `net_sked` / `dispatcher` (snapshot periodici) | Stato completo della simulazione a istanti passati, usato per la funzione "torna indietro nel tempo" |
+
+**Quando vengono cancellati — operazione distruttiva**
+
+`net_startup_headless.sh` cancella **entrambi** subito dopo `killsim`, prima
+di avviare il nuovo `dispatcher` + `net_sked`:
+
+```bash
+killsim 2>/dev/null || true
+rm -f f22circ.dat backtrack.dat 2>/dev/null || true   # ← QUI
+nohup dispatcher ... &
+nohup net_sked 1 ... &
+```
+
+Questo avviene **all'inizio di ogni nuovo lancio FMU** (ogni chiamata a
+`fmi2Instantiate` in launch mode che avvia la sim). I dati del run
+precedente sono irrecuperabili dopo questo punto.
+
+**Perché è necessario**
+
+Il `dispatcher` è compilato con il flag `DF22_APPEND` (vedi `dispatcher.c`):
+apre `f22circ.dat` in append mode (`O_WRONLY | O_CREAT | O_APPEND`) anziché
+troncare. Se il file esiste da un run precedente, `net_sked` al riavvio
+legge l'header e trova `p_fine=N` (campioni del run precedente) → la sim
+entra in uno stato "restored" incompatibile con `SD_goup` headless → il
+secondo `fmi2DoStep` va in timeout e ritorna status 3 (fmi2Error).
+
+**Conseguenze pratiche per l'utente**
+
+> ⚠️ Se si esegue la FMU bundle più volte sulla stessa directory di
+> estrazione (`unzipdir`), il `f22circ.dat` del run precedente viene
+> **cancellato prima del nuovo run**. I grafici di quel run non sono
+> più visualizzabili.
+
+Se si vogliono conservare i dati grafici di un run, copiare `f22circ.dat`
+**prima** di eseguire nuovamente la FMU:
+
+```bash
+# Dopo il primo run — prima del secondo
+cp legoclix_<task>_bundle/resources/bundle/task/<task>/f22circ.dat \
+   /tmp/f22circ_run1.dat
+run_fmu -b legoclix_<task>_bundle.fmu --stop-time 30  # run 2 → cancella e ricrea
+./run_graphics.sh /tmp/f22circ_run1.dat               # grafici del run 1
+```
+
+Questo non si applica alla **FMU base** (non bundle): in quel caso la task
+vive nella sua directory originale (`/home/antonio/legocad/<task>`), non
+nella dir di estrazione fmpy, e il `f22circ.dat` è il file di task normale
+(quello che il banco operatore usa già).
+
+**Comportamento di fmpy.extract (ulteriore dettaglio)**
+
+`fmpy.extract(fmu_path, unzipdir=...)` usa `zipfile.ZipFile.extractall()`
+che **non cancella** la directory di destinazione prima di estrarre. File
+generati a runtime (`f22circ.dat`, `backtrack.dat`, `*.fmu.log`) sopravvivono
+tra run successivi sulla stessa `unzipdir`. Il `rm` in `net_startup_headless.sh`
+è il punto di pulizia designato; non esiste un altro meccanismo di reset.
+
 ### Diagnostica
 
 Variabile env `LG_FMU_DEBUG=1` (si setta nel processo che carica la `.so`):
@@ -437,6 +591,7 @@ Tools standalone (richiedono sim attiva sulla task corrente):
 | `chdir(...) fallito` in DBG | TASK_PATH errato; in bundle, dir non estratta correttamente | Cancella e re-estrai il bundle (`rm -rf <fmu_dir>/<task>_bundle/` poi `fmpy.extract`) |
 | `lg5sk` SIGFPE in `trova_(tavole/trova.c:77)` | `SHR_TAV_KEY=999` cancellata da `killsim`, non ripopolata | `net_startup_headless.sh` chiama `initav` post-killsim (idempotente). Se ancora rotto, controlla che `lego_big/bin/{initav,TAVOLE.DAT}` siano presenti |
 | `to_dispatcher` + `msg_ack.ret=1` ma tempo non avanza | Sim attiva ma in stato sporco da test precedente | `killsim` + `net_startup_headless.sh` |
+| **`fmi2DoStep` status 3** al secondo run, `net_sked.fmu.log` mostra `f22_leggo_header header: p_fine=N` con N>0 | `f22circ.dat` del run precedente sopravvive a `fmpy.extract` (che non cancella la dir); il dispatcher lo riapre in append mode e net_sked lo legge come stato restored → `SD_goup` non avanza il tempo | Fixato 2026-05-06: `net_startup_headless.sh` esegue `rm -f f22circ.dat backtrack.dat` dopo `killsim`. Se ancora presente: cancella manualmente `<unzipdir>/resources/bundle/task/<task>/f22circ.dat` e `backtrack.dat`. Vedi sezione "Ciclo di vita di `f22circ.dat`" |
 | Bundle gira con env normale ma fallisce con `env -i` | Eredità di env vars LegoPST dalla shell del builder | Verifica con `unzip -p <fmu> resources/task_info.env` che le 12 N/M siano presenti |
 | Container: `[lg_fmu LAUNCH] sh: ... Permission denied` | `fmpy.extract` non preserva il bit `+x` | Fixato in P7-bis: `restore_perms.sh` invocato pre-launch. Verifica che il bundle contenga `resources/bundle/restore_perms.sh` |
 | Container root: polling `try_attach_db` infinito, sim non parte | `SHR_USR_KEY=0` (uid root) = `IPC_PRIVATE` | Fixato in P7-bis: fallback a `pid*10+10000`. Verifica con `LG_FMU_DEBUG=1` la riga `SHR_USR_KEY=...` post-setup |

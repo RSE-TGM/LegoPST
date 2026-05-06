@@ -6,6 +6,7 @@
 #   LG_BROWSER     browser HTML     (default: xdg-open o quello da .profile_legoroot)
 #   LG_ICOEDITOR   editor icone     (default: gimp o quello da .profile_legoroot)
 #   LG_PDFVIEWER   viewer PDF/PNG   (default: evince o quello da .profile_legoroot)
+#   LG_XTERM       terminale X      (default: xterm o quello da .profile_legoroot)
 #
 # Le modifiche vengono applicate immediatamente all'env del processo corrente
 # e salvate in legopc_prefs.tcl (in LG_ENTRY = dir utente, non sovrascritta
@@ -43,6 +44,12 @@ proc lancia_settings {} {
     } else {
         set ::settings_pv "evince"
     }
+    if {[info exists env(LG_XTERM)] && $env(LG_XTERM) ne ""} {
+        set ::settings_xt $env(LG_XTERM)
+    } else {
+        set ::settings_xt "xterm"
+    }
+
 
     # ── Frame principale ──
     frame $w.f
@@ -53,7 +60,8 @@ proc lancia_settings {} {
         "Text editor:"  ::settings_te \
         "HTML browser:" ::settings_br \
         "Icon editor:"  ::settings_ie \
-        "PDF viewer:"   ::settings_pv] {
+        "PDF viewer:"   ::settings_pv \
+        "Terminal:"     ::settings_xt] {
 
         label  $w.f.lbl$row -text $lbl -anchor w -width 14
         entry  $w.f.ent$row -textvariable $var -width 42
@@ -100,6 +108,7 @@ proc settings_apply {w} {
     set env(LG_BROWSER)    $::settings_br
     set env(LG_ICOEDITOR)  $::settings_ie
     set env(LG_PDFVIEWER)  $::settings_pv
+    set env(LG_XTERM)      $::settings_xt
     savePrefs
     destroy $w
 }

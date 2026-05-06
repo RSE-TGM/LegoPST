@@ -24,6 +24,11 @@
 #   -o, --csv FILE         output CSV (default: results.csv accanto alla FMU)
 #   -h, --help
 #
+# Variabili d'ambiente:
+#   LG_FMU_DEBUG=1              abilita log diagnostico su stderr (dt_sked, n_goup, ...)
+#   LG_FMU_STEP_TIMEOUT_S=N     timeout in secondi per ciascun SD_goup (default 10).
+#                               Aumentare per task grandi/lente (es. =120 per TCon-r1).
+#
 # Exit code:
 #   0 ok, 1 args, 2 fmu non trovata, 3 fmpy non disponibile, 4 simulate fallito
 #

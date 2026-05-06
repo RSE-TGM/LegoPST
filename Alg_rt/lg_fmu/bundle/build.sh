@@ -188,6 +188,20 @@ if [[ $BUNDLE -eq 1 ]]; then
     cp -p "$LG_FMU_DIR/scripts/net_startup_headless.sh" "$BD/Alg_rt/lg_fmu/scripts/"
     cp -p "$LG_FMU_DIR/tools/probe_init"                "$BD/Alg_rt/lg_fmu/tools/"
 
+    # Graphics viewer (Motif GUI, richiede DISPLAY): binary + MRM resource + unita' di misura
+    cp -p "$LEGOROOT_ABS/Alg_rt/bin/graphics"       "$BD/Alg_rt/bin/" \
+        || { echo "ERR: graphics non trovato in $LEGOROOT_ABS/Alg_rt/bin" >&2; exit 4; }
+    mkdir -p "$BD/Alg_rt/uid"
+    cp -p "$LEGOROOT_ABS/Alg_rt/uid/graphics.uid"   "$BD/Alg_rt/uid/" \
+        || { echo "ERR: graphics.uid non trovato in $LEGOROOT_ABS/Alg_rt/uid" >&2; exit 4; }
+    # chdefaults() cerca uni_misc.dat in $HOME/defaults/: forniamo uno stub
+    mkdir -p "$BD/home_stub/defaults"
+    if [[ -f "$HOME/defaults/uni_misc.dat" ]]; then
+        cp -p "$HOME/defaults/uni_misc.dat" "$BD/home_stub/defaults/"
+    else
+        echo "AVVISO: $HOME/defaults/uni_misc.dat non trovato, graphics partira' senza unita' di misura" >&2
+    fi
+
     # Profile + Alg_env (eseguiti con LEGOROOT=<bundle> a runtime)
     cp -p "$LEGOROOT_ABS/.profile_legoroot" "$BD/.profile_legoroot"
     cp -p "$LEGOROOT_ABS/Alg_env.sh"        "$BD/Alg_env.sh"
@@ -263,10 +277,12 @@ LAUNCH
 #!/usr/bin/env bash
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 chmod +x "$SCRIPT_DIR/launch_sim.sh" \
+         "$SCRIPT_DIR/run_graphics.sh" \
          "$SCRIPT_DIR/Alg_rt/bin/dispatcher" \
          "$SCRIPT_DIR/Alg_rt/bin/net_sked" \
          "$SCRIPT_DIR/Alg_rt/bin/killsim" \
          "$SCRIPT_DIR/Alg_rt/bin/net_prepf22" \
+         "$SCRIPT_DIR/Alg_rt/bin/graphics" \
          "$SCRIPT_DIR/Alg_rt/lg_fmu/scripts/net_startup_headless.sh" \
          "$SCRIPT_DIR/Alg_rt/lg_fmu/tools/probe_init" \
          "$SCRIPT_DIR/lego_big/bin/initav" 2>/dev/null || true
@@ -279,6 +295,53 @@ shopt -u nullglob
 exit 0
 PERMS
     chmod 0755 "$BD/restore_perms.sh"
+
+    # run_graphics.sh: wrapper per aprire graphics sul f22circ.dat prodotto
+    # dalla sim. Il programma graphics (per ragioni storiche) vuole il path
+    # SENZA estensione .dat: es. ".../task/collet/f22circ" non "...f22circ.dat".
+    cat > "$BD/run_graphics.sh" <<'GRAFICS'
+#!/usr/bin/env bash
+#
+# run_graphics.sh — visualizza f22circ prodotto dalla simulazione FMU bundle.
+#
+# Uso:
+#   run_graphics.sh                    # cerca f22circ in task/*/
+#   run_graphics.sh /path/f22circ      # path esplicito (senza .dat)
+#   run_graphics.sh /path/f22circ.dat  # .dat accettato (rimosso automaticamente)
+#   run_graphics.sh <task_dir>         # usa task_dir/f22circ
+#
+# Richiede: DISPLAY impostato (sessione X11).
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+export LEGORT_UID="$SCRIPT_DIR/Alg_rt/uid/"
+export HOME="$SCRIPT_DIR/home_stub"
+export LD_LIBRARY_PATH="$SCRIPT_DIR/lib:${LD_LIBRARY_PATH:-}"
+
+GRAPHICS_BIN="$SCRIPT_DIR/Alg_rt/bin/graphics"
+[[ -x "$GRAPHICS_BIN" ]] || { echo "ERR: $GRAPHICS_BIN non trovato o non eseguibile" >&2; exit 1; }
+[[ -n "${DISPLAY:-}" ]] || { echo "ERR: DISPLAY non impostato (serve sessione X11)" >&2; exit 1; }
+
+if [[ $# -eq 0 ]]; then
+    # Cerca f22circ (file senza estensione) nella prima task bundled
+    F22BASE=$(find "$SCRIPT_DIR/task" -maxdepth 2 -name "f22circ.dat" 2>/dev/null | head -1)
+    [[ -z "$F22BASE" ]] && {
+        echo "ERR: nessun f22circ.dat in $SCRIPT_DIR/task/." >&2
+        echo "     Esegui prima la simulazione con fmpy o run_fmu." >&2
+        exit 2
+    }
+    # Rimuovi .dat: graphics vuole il path senza estensione
+    F22BASE="${F22BASE%.dat}"
+elif [[ -d "$1" ]]; then
+    F22BASE="$1/f22circ"
+else
+    # Accetta sia "f22circ" che "f22circ.dat"
+    F22BASE="${1%.dat}"
+fi
+
+[[ -f "${F22BASE}.dat" ]] || { echo "ERR: ${F22BASE}.dat non trovato" >&2; exit 2; }
+echo "[run_graphics] $F22BASE"
+exec "$GRAPHICS_BIN" "$F22BASE"
+GRAFICS
+    chmod 0755 "$BD/run_graphics.sh"
 
     # Sommario bundle
     BUNDLE_SIZE=$(du -sh "$BD" | cut -f1)
