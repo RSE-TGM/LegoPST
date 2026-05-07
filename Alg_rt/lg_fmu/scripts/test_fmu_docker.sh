@@ -1,27 +1,37 @@
 #!/bin/bash
 
 # ==========================================
+# CONFIGURAZIONE
+# ==========================================
+DOCKER_IMAGE="python:3.11-slim"
+X11_SOCK_DIR="/tmp/.X11-unix"
+CONTAINER_WORK="/tmp"   # working dir dentro il container (fmu mount, extract, script)
+STOP_TIME=10            # secondi di default
+
+# ==========================================
 # GESTIONE PARAMETRI (-t e lista file)
 # ==========================================
-STOP_TIME=10 # Valore di default
-
-# Controlla se il primo parametro è "-t"
 if [ "$1" == "-t" ]; then
     if [ -z "$2" ]; then
         echo "Errore: devi specificare i secondi dopo -t"
         exit 1
     fi
     STOP_TIME="$2"
-    shift 2 # Rimuove "-t" e il "numero" dalla lista degli argomenti
+    shift 2
 fi
 
-# Se dopo aver tolto il tempo non ci sono file, mostra l'aiuto
 if [ "$#" -lt 1 ] || [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
-    echo "Uso: $0 [-t secondi_transitorio] <file_fmu_1> [file_fmu_2] ..."
+    echo "Lancia una o più FMU bundle in un container Docker effimero ($DOCKER_IMAGE),"
+    echo "simulando in parallelo e aprendo la grafica post-run se disponibile."
+    echo ""
+    echo "Uso: $0 [-t secondi] <fmu_1> [fmu_2 ...]"
+    echo ""
+    echo "  -t secondi   durata simulazione (default: $STOP_TIME)"
+    echo ""
     echo "Esempi:"
-    echo "  $0 modello.fmu                    (usa 10 sec di default)"
-    echo "  $0 -t 25 modello.fmu              (simula per 25 secondi)"
-    echo "  $0 -t 5 mod_A.fmu mod_B.fmu       (simula A e B in parallelo per 5 sec)"
+    echo "  $0 modello.fmu"
+    echo "  $0 -t 25 modello.fmu"
+    echo "  $0 -t 5 mod_A.fmu mod_B.fmu"
     exit 1
 fi
 
@@ -39,42 +49,36 @@ for FMU_FILE in "$@"; do
         echo "Errore: Il file '$FMU_FILE' non esiste. Interruzione."
         exit 1
     fi
-    
+
     ABS_PATH=$(realpath "$FMU_FILE")
-    # Crea la stringa dei volumi es: -v /mio/path.fmu:/tmp/fmu_1.fmu:ro
-    DOCKER_VOLUMES="$DOCKER_VOLUMES -v $ABS_PATH:/tmp/fmu_$INDEX.fmu:ro"
-    # Salva la lista dei percorsi interni al container
-    CONTAINER_FILES="$CONTAINER_FILES /tmp/fmu_$INDEX.fmu"
-    
+    DOCKER_VOLUMES="$DOCKER_VOLUMES -v $ABS_PATH:$CONTAINER_WORK/fmu_$INDEX.fmu:ro"
+    CONTAINER_FILES="$CONTAINER_FILES $CONTAINER_WORK/fmu_$INDEX.fmu"
+
     INDEX=$((INDEX + 1))
 done
 
 # ==========================================
-# ABILITAZIONE GRAFICA X11/WAYLAND
+# ABILITAZIONE GRAFICA X11
 # ==========================================
 xhost +local:docker > /dev/null 2>&1
 
 # ==========================================
 # ESECUZIONE DOCKER
 # ==========================================
-# Nota: Passiamo le variabili DOCKER_VOLUMES (senza virgolette per farle espandere)
-# Passiamo STOP_TIME e FILES come variabili d'ambiente dentro il container.
-
 docker run --rm -it \
   --net host \
-  -e DISPLAY=$DISPLAY \
+  -e DISPLAY="$DISPLAY" \
   -e STOP_TIME="$STOP_TIME" \
   -e FILES="$CONTAINER_FILES" \
-  -v /tmp/.X11-unix:/tmp/.X11-unix:rw \
+  -e CONTAINER_WORK="$CONTAINER_WORK" \
+  -v "$X11_SOCK_DIR:$X11_SOCK_DIR:rw" \
   $DOCKER_VOLUMES \
-  python:3.11-slim bash -c '
+  "$DOCKER_IMAGE" bash -c '
 
 echo ">>> [Container] Installazione fmpy..."
 pip install --quiet fmpy
 
-# Creiamo un file python temporaneo dentro il container. 
-# È molto più pulito che fare tutto su una sola riga!
-cat << "EOF" > /tmp/simula.py
+cat << "EOF" > "$CONTAINER_WORK/simula.py"
 import sys, os
 from fmpy import simulate_fmu, extract
 
@@ -95,18 +99,13 @@ EOF
 
 echo ">>> [Container] Avvio simulazioni in parallelo..."
 
-# Ciclo su tutti i file passati nella variabile d ambiente $FILES
 for f in $FILES; do
-    # Crea un blocco ( ... ) & per eseguire ogni file in background (parallelo)
     (
-        # Estraiamo il nome file senza estensione per creare cartelle separate
-        BASENAME=$(basename $f .fmu)
-        UNZ_DIR="/tmp/dir_$BASENAME"
-        
-        # 1. Lancia lo script python per questo file
-        python /tmp/simula.py "$f" "$UNZ_DIR"
-        
-        # 2. Avvia la grafica
+        BASENAME=$(basename "$f" .fmu)
+        UNZ_DIR="$CONTAINER_WORK/dir_$BASENAME"
+
+        python "$CONTAINER_WORK/simula.py" "$f" "$UNZ_DIR"
+
         cd "$UNZ_DIR"
         if [ -f "./resources/bundle/run_graphics.sh" ]; then
             chmod +x ./resources/bundle/run_graphics.sh
@@ -114,11 +113,9 @@ for f in $FILES; do
         else
             echo "[$f] ATTENZIONE: Script grafico non trovato."
         fi
-    ) & 
+    ) &
 done
 
-# Comando cruciale: aspetta che tutti i processi in background (&) finiscano
-# prima di distruggere il container Docker.
 wait
 
 echo ">>> [Container] Tutte le simulazioni completate. Uscita."
