@@ -628,12 +628,12 @@ proc itemEnter {c} {
 				after $ms $c delete infoitem
 			}
 			class {
-				set pisqu [file rootname [lindex [$c gettags current] [lsearch [$c gettags current] *.cls]]] 
+				set pisqu [file rootname [lindex [$c gettags current] [lsearch [$c gettags current] *.cls]]]
 				if {$pisqu == ""} {
                          set pisqu [$c itemcget current -image]
                         }
 				set tid [$c create text $x $y -text $pisqu -tags {infoitem}]
-				set lc [$c bbox $tid] 
+				set lc [$c bbox $tid]
 				set x1 [lindex $lc 0]
 				set y1 [lindex $lc 1]
 				set x2 [lindex $lc 2]
@@ -647,7 +647,7 @@ proc itemEnter {c} {
 				set hlpid [checkopen [file join $helpPath $classname.tch] r]
 				set tid [$c create text $x $y -text [read -nonewline $hlpid] \
 					-font helpFont -width 120 -tags {infoitem}]
-				set lc [$c bbox $tid] 
+				set lc [$c bbox $tid]
 				set x1 [lindex $lc 0]
 				set y1 [lindex $lc 1]
 				set x2 [lindex $lc 2]

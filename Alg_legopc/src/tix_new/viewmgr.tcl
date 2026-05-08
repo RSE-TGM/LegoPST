@@ -149,7 +149,7 @@ proc ShowNames { c tipo } {
 		set y1 [lindex $lc 1]
 		set x2 [lindex $lc 2]
 		set y2 [lindex $lc 3]
-		$c create rectangle $x1 $y1 $x2 $y2 -fill yellow -tags {infoitemname}
+		$c create rectangle [expr {$x1-2}] [expr {$y1-2}] [expr {$x2+2}] [expr {$y2+2}] -fill yellow -outline {} -tags {infoitemname}
 		$c raise $tid
 	    }
 		incr nelem
