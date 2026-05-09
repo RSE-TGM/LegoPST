@@ -1,0 +1,22 @@
+{
+  "model_name": "Sistema_Multi_FMU",
+  "settings": {
+    "stop_time": 30.0,
+    "step_size": 1.0,
+    "harvest_interval": 5.0
+  },
+  "fmus": {
+    "MDC": "legoclix_MDC_GV_bundle.fmu",
+    "CONTROLLER": "legoclix_collet_bundle.fmu"
+  },
+  "parameters": {
+    "MDC.gain": 1.0,
+    "CONTROLLER.target": 50.0
+  },
+  "boundary_conditions": {
+    "CONTROLLER.enable": true
+  },
+  "connections": {
+    "CONTROLLER.output_signal": ["MDC.input_signal"]
+  }
+}
