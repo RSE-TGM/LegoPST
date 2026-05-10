@@ -3,20 +3,19 @@
   "settings": {
     "stop_time": 30.0,
     "step_size": 1.0,
-    "harvest_interval": 5.0
+    "speedup": null,
+    "log_file": "log_cosim.csv",
+    "log_vars": ["MDC.TFLDTMIS", "CONTROLLER.ALZAVING"]
   },
   "fmus": {
-    "MDC": "legoclix_MDC_GV_bundle.fmu",
-    "CONTROLLER": "legoclix_collet_bundle.fmu"
+    "MDC":        "example/legoclix_MDC_GV_bundle.fmu",
+    "CONTROLLER": "example/legoclix_collet_bundle.fmu"
   },
-  "parameters": {
-    "MDC.gain": 1.0,
-    "CONTROLLER.target": 50.0
+  "start_values": {
+    "MDC.ALZAVAU1": 0.5,
+    "CONTROLLER.ITYPTMIS": 1
   },
-  "boundary_conditions": {
-    "CONTROLLER.enable": true
-  },
-  "connections": {
-    "CONTROLLER.output_signal": ["MDC.input_signal"]
-  }
+  "connections": [
+    {"from": "CONTROLLER.ALZAVING", "to": "MDC.ALZAVAU1"}
+  ]
 }
