@@ -10,28 +10,124 @@ Uso:
 Speedup: null/0 = massima velocità, 1.0 = real-time, 2.0 = 2× real-time
 """
 
-import json, os, sys, csv, time, shutil, tempfile, argparse
+import json, os, sys, csv, time, argparse, ctypes, glob
 from fmpy import read_model_description, extract
 from fmpy.fmi2 import FMU2Slave
+
+# os.environ opera su un dict Python che non riceve le modifiche fatte da
+# codice C caricato come .so (setenv/unsetenv C non aggiornano il dict).
+# Usiamo ctypes per manipolare direttamente l'env C del processo.
+_libc = ctypes.CDLL(None, use_errno=True)
+_libc.getenv.restype    = ctypes.c_char_p
+_libc.setenv.argtypes   = [ctypes.c_char_p, ctypes.c_char_p, ctypes.c_int]
+_libc.unsetenv.argtypes = [ctypes.c_char_p]
+_libc.shmget.restype    = ctypes.c_int
+_libc.shmget.argtypes   = [ctypes.c_int, ctypes.c_size_t, ctypes.c_int]
+
+# ID_SHM_VAR = 5 (sim_ipc.h): offset della SHM topology/variabili rispetto a
+# SHR_USR_KEY. È l'unica SHM creata in modalità headless (RtCreateDbPunti).
+# ID_SHM_SIM = 0 (la SHM net_sked) NON viene creata in bundle headless, quindi
+# il probe in lg_fmi2.c (che usa ID_SHM_SIM) trova sempre slot libero.
+_ID_SHM_VAR = 5
+
+def _cenv_get(key):
+    v = _libc.getenv(key.encode())
+    return v.decode() if v else None
+
+def _cenv_unset(key):
+    _libc.unsetenv(key.encode())
+    os.environ.pop(key, None)   # mantiene il dict Python allineato
+
+def _cenv_set(key, value):
+    _libc.setenv(key.encode(), value.encode(), 1)
+    os.environ[key] = value     # mantiene il dict Python allineato
+
+def _find_free_slot():
+    """Trova il primo slot SHM LegoPST libero (1..8) per l'utente corrente.
+    Controlla ID_SHM_VAR=5 che è la SHM effettivamente creata in headless mode.
+    Il probe C usa ID_SHM_SIM=0 che non viene creata -> always free -> bug."""
+    uid = os.getuid()
+    for slot in range(1, 9):
+        candidate = uid * 10000 + slot * 1100
+        sid = _libc.shmget(candidate + _ID_SHM_VAR, 0, 0)
+        if sid == -1:   # ENOENT: slot libero
+            return candidate
+    return None
 
 
 class _FMUInstance:
     def __init__(self, name, fmu_path):
         self.name = name
-        self.unzip_dir = tempfile.mkdtemp(prefix=f"lg_cosim_{name}_")
+        # Dir persistente accanto al .fmu (come run_fmu.sh): evita problemi di
+        # path relativi in sked_start e collisioni su run successivi.
+        self.unzip_dir = os.path.splitext(os.path.abspath(fmu_path))[0]
         extract(fmu_path, unzipdir=self.unzip_dir)
+        self._patch_killsim_guard()
         md = read_model_description(fmu_path)
         self.guid     = md.guid
         self.model_id = md.coSimulation.modelIdentifier
         self.vr    = {v.name: v.valueReference for v in md.modelVariables}
         self.vtype = {v.name: v.type           for v in md.modelVariables}
+        # alias: nome breve (ultima componente) → nome completo, se univoco
+        self._alias = {}
+        for fullname in self.vr:
+            short = fullname.rsplit('.', 1)[-1]
+            self._alias[short] = self._alias.get(short, []) + [fullname]
         self.slave = None
+        self._shr_usr_key  = None   # slot SHM scelto da fmi2Instantiate
+        self._shr_usr_keys = None
+
+    def _patch_killsim_guard(self):
+        """Wrappa killsim nei net_startup_headless.sh estratti con la guardia
+        LG_COSIM_NO_KILLSIM: killsim su Linux cancella TUTTE le SHM utente,
+        uccidendo le FMU già avviate in co-simulazione. Idempotente."""
+        _OLD = 'killsim 2>/dev/null || true'
+        _NEW = ('if [ -z "${LG_COSIM_NO_KILLSIM:-}" ]; then\n'
+                '    killsim 2>/dev/null || true\nfi')
+        pattern = os.path.join(self.unzip_dir, '**', 'net_startup_headless.sh')
+        for path in glob.glob(pattern, recursive=True):
+            try:
+                txt = open(path).read()
+                if _OLD in txt and 'LG_COSIM_NO_KILLSIM' not in txt:
+                    open(path, 'w').write(txt.replace(_OLD, _NEW))
+            except OSError:
+                pass
+
+    def _resolve(self, var):
+        if var in self.vr:
+            return var
+        candidates = self._alias.get(var, [])
+        if len(candidates) == 1:
+            return candidates[0]
+        if len(candidates) > 1:
+            raise KeyError(f"variabile '{var}' ambigua in '{self.name}': {candidates}")
+        raise KeyError(f"variabile '{var}' non trovata in FMU '{self.name}'")
 
     def instantiate(self):
+        # Il probe slot in lg_fmi2.c usa ID_SHM_SIM=0 che in modalità headless
+        # non viene mai creato → tutti gli slot sembrano liberi → collisione.
+        # Facciamo il probe qui da Python usando ID_SHM_VAR=5 (la SHM che esiste
+        # davvero) e pre-assegniamo SHR_USR_KEY prima di chiamare fmi2Instantiate.
+        # Usiamo ctypes perché os.environ non vede i setenv() delle .so C.
+        slot_key = _find_free_slot()
+        if slot_key is None:
+            raise RuntimeError(f"[lg_cosim] tutti gli 8 slot SHM occupati per uid={os.getuid()}")
+        _cenv_set('SHR_USR_KEY',  str(slot_key))
+        _cenv_set('SHR_USR_KEYS', str(slot_key + 1000))
         self.slave = FMU2Slave(
             guid=self.guid, unzipDirectory=self.unzip_dir,
             modelIdentifier=self.model_id, instanceName=self.name)
         self.slave.instantiate()
+        self._shr_usr_key  = _cenv_get('SHR_USR_KEY')
+        self._shr_usr_keys = _cenv_get('SHR_USR_KEYS')
+        print(f"[lg_cosim] {self.name}: slot SHM SHR_USR_KEY={self._shr_usr_key}")
+        # Stampa percorsi log per il debug (net_sked.fmu.log, dispatcher.fmu.log)
+        task_dir = os.path.join(self.unzip_dir, "resources", "bundle", "task")
+        if os.path.isdir(task_dir):
+            tasks = os.listdir(task_dir)
+            for t in tasks:
+                td = os.path.join(task_dir, t)
+                print(f"[lg_cosim] {self.name}: log dir → {td}")
 
     def setup_experiment(self, t0, t_end):
         self.slave.setupExperiment(startTime=t0, stopTime=t_end)
@@ -44,26 +140,37 @@ class _FMUInstance:
         self.slave.doStep(currentCommunicationPoint=t, communicationStepSize=h)
 
     def get(self, var):
-        vr, vt = [self.vr[var]], self.vtype[var]
+        fullname = self._resolve(var)
+        vr, vt = [self.vr[fullname]], self.vtype[fullname]
         if vt == 'Real':    return self.slave.getReal(vr)[0]
         if vt == 'Integer': return self.slave.getInteger(vr)[0]
         if vt == 'Boolean': return self.slave.getBoolean(vr)[0]
         return self.slave.getReal(vr)[0]
 
     def set(self, var, value):
-        vr, vt = [self.vr[var]], self.vtype[var]
+        fullname = self._resolve(var)
+        vr, vt = [self.vr[fullname]], self.vtype[fullname]
         if vt == 'Real':    self.slave.setReal(vr, [float(value)])
         elif vt == 'Integer': self.slave.setInteger(vr, [int(value)])
         elif vt == 'Boolean': self.slave.setBoolean(vr, [bool(value)])
 
     def terminate(self):
         if self.slave:
-            try: self.slave.terminate(); self.slave.freeInstance()
+            try:
+                # killsim (chiamato dentro fmi2FreeInstance via system())
+                # legge SHR_USR_KEY dall'env C. Ripristiniamo la chiave
+                # di questa istanza prima di freeInstance.
+                if self._shr_usr_key:
+                    _cenv_set('SHR_USR_KEY',  self._shr_usr_key)
+                if self._shr_usr_keys:
+                    _cenv_set('SHR_USR_KEYS', self._shr_usr_keys)
+                self.slave.terminate()
+                self.slave.freeInstance()
             except: pass
             self.slave = None
 
     def cleanup(self):
-        shutil.rmtree(self.unzip_dir, ignore_errors=True)
+        pass  # dir persistente accanto al .fmu: non cancellare
 
 
 class LgCosim:
@@ -77,7 +184,13 @@ class LgCosim:
         self.t_end    = float(s["stop_time"])
         self.h        = float(s["step_size"])
         self.speedup  = s.get("speedup")       # None/0 = max, 1.0 = RT, 2.0 = 2×RT
-        self.log_file = s.get("log_file", "log_cosim.csv")
+        # lg_fmi2.c esegue chdir(task_path) durante fmi2Instantiate: i path
+        # relativi vengono risolti nella task dir dell'ultima FMU. Li rendiamo
+        # assoluti subito, ancorati alla dir del config.
+        log_file = s.get("log_file", "log_cosim.csv")
+        if not os.path.isabs(log_file):
+            log_file = os.path.join(self._cfg_dir, log_file)
+        self.log_file = log_file
         self.log_vars = s.get("log_vars", [])  # ["FMU.VAR", ...]
 
         self.connections  = cfg.get("connections", [])   # [{"from":"A.X","to":"B.Y"}, ...]
@@ -93,14 +206,17 @@ class LgCosim:
     @staticmethod
     def _split(ref):
         """'FMU.VAR' -> ('FMU', 'VAR')"""
-        dot = ref.index('.')
-        return ref[:dot], ref[dot+1:]
+        return ref.split('.', 1)
 
     def step_hook(self, t):
         """Override in sottoclasse per logica Python nel loop (es. calcoli ibridi)."""
         pass
 
     def run(self):
+        # Impedisce a killsim (Linux) di cancellare TUTTE le SHM utente:
+        # in co-simulazione ammazzerebbe le FMU già avviate.
+        _cenv_set('LG_COSIM_NO_KILLSIM', '1')
+
         # Instantiate + init
         for inst in self.fmus.values():
             inst.instantiate()
@@ -125,6 +241,7 @@ class LgCosim:
         speedup_label = (f"{self.speedup}×RT" if self.speedup else "max")
         print(f"[lg_cosim] avvio: t_end={self.t_end} h={self.h} speedup={speedup_label}")
 
+        interrupted = False
         try:
             while t < self.t_end - self.h * 0.5:
                 # Step Gauss-Seidel (ordine di dichiarazione in config)
@@ -148,6 +265,7 @@ class LgCosim:
                     f, v = self._split(ref)
                     row.append(self.fmus[f].get(v))
                 writer.writerow(row)
+                log_f.flush()
 
                 # Sync real-time / accelerato
                 if self.speedup:
@@ -160,13 +278,21 @@ class LgCosim:
 
                 print(f"\r[lg_cosim] t={t:.2f}/{self.t_end:.1f}s", end="", flush=True)
 
+        except KeyboardInterrupt:
+            interrupted = True
+            print(f"\n[lg_cosim] interrotto dall'utente a t={t:.2f}s")
+        except Exception as e:
+            print(f"\n[lg_cosim] ERRORE: {e}")
+            raise
         finally:
             log_f.close()
+            _cenv_unset('LG_COSIM_NO_KILLSIM')
             for inst in self.fmus.values():
                 inst.terminate()
-                inst.cleanup()
+                print(f"[lg_cosim] {inst.name}: dir FMU → {inst.unzip_dir}")
 
-        print(f"\n[lg_cosim] fine — {n_steps} passi, log → {self.log_file}")
+        if not interrupted:
+            print(f"\n[lg_cosim] fine — {n_steps} passi, log → {self.log_file}")
         if overruns:
             pct = overruns / n_steps * 100
             print(f"[lg_cosim] attenzione: {overruns} overrun real-time ({pct:.1f}% dei passi)")
@@ -176,11 +302,16 @@ class LgCosim:
 def main():
     ap = argparse.ArgumentParser(description="LegoPST FMU co-simulation master")
     ap.add_argument("config", nargs="?", default="config.json")
-    ap.add_argument("--stop-time", type=float, metavar="T",   help="Override stop_time")
-    ap.add_argument("--step-size", type=float, metavar="H",   help="Override step_size")
-    ap.add_argument("--speedup",   type=float, metavar="S",
+    ap.add_argument("--stop-time",  type=float, metavar="T", help="Override stop_time")
+    ap.add_argument("--step-size",  type=float, metavar="H", help="Override step_size")
+    ap.add_argument("--speedup",    type=float, metavar="S",
                     help="Override speedup: 1.0=RT, 2.0=2×RT, 0=max")
+    ap.add_argument("--debug",      action="store_true",
+                    help="Abilita LG_FMU_DEBUG=1 (output verbose dal C della FMU)")
     args = ap.parse_args()
+
+    if args.debug:
+        os.environ['LG_FMU_DEBUG'] = '1'
 
     sim = LgCosim(args.config)
     if args.stop_time is not None: sim.t_end   = args.stop_time

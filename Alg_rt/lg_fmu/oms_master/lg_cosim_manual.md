@@ -25,26 +25,39 @@ oms_master/
   example/
     legoclix_MDC_GV_bundle.fmu
     legoclix_collet_bundle.fmu
+    legoclix_ctrcoll_bundle.fmu
 ```
 
 ---
 
 ## Avvio rapido
 
+`lg_cosim.py` richiede `fmpy` — usare il venv già configurato per `run_fmu.sh`:
+
 ```bash
 cd /home/antonio/LegoPST/Alg_rt/lg_fmu/oms_master
 
 # run base (massima velocità)
-python3 lg_cosim.py config.json
+/home/antonio/fmpy_venv/bin/python3 lg_cosim.py config.json
+
+# con output diagnostico FMU (LG_FMU_DEBUG=1)
+/home/antonio/fmpy_venv/bin/python3 lg_cosim.py config.json --debug
 
 # real-time
-python3 lg_cosim.py config.json --speedup 1.0
+/home/antonio/fmpy_venv/bin/python3 lg_cosim.py config.json --speedup 1.0
 
 # tempo accelerato 5×
-python3 lg_cosim.py config.json --speedup 5.0
+/home/antonio/fmpy_venv/bin/python3 lg_cosim.py config.json --speedup 5.0
 
 # override parametri al volo
-python3 lg_cosim.py config.json --stop-time 120 --step-size 0.5 --speedup 2.0
+/home/antonio/fmpy_venv/bin/python3 lg_cosim.py config.json --stop-time 120 --step-size 0.5 --speedup 2.0
+```
+
+In alternativa, attivare il venv prima:
+
+```bash
+source ~/fmpy_venv/bin/activate
+python3 lg_cosim.py config.json
 ```
 
 ---
@@ -87,7 +100,7 @@ python3 lg_cosim.py config.json --stop-time 120 --step-size 0.5 --speedup 2.0
 | `stop_time`   | float   | —                  | Tempo finale (obbligatorio)                              |
 | `step_size`   | float   | —                  | Passo di comunicazione FMI (obbligatorio)                |
 | `speedup`     | float\|null | `null`         | Vedi sezione [Speedup](#speedup-e-real-time) sotto       |
-| `log_file`    | string  | `"log_cosim.csv"`  | Path del CSV di output (relativo alla dir di lavoro)     |
+| `log_file`    | string  | `"log_cosim.csv"`  | Path del CSV di output; se relativo, risolto rispetto alla dir di `config.json` (non al CWD del processo, che `lg_fmi2.c` sposta nella task dir) |
 | `log_vars`    | lista   | `[]`               | Variabili da loggare nel CSV, formato `"FMU.VARNAME"`    |
 
 ### Campo `fmus`
@@ -229,15 +242,83 @@ con `t` = tempo simulato corrente (già avanzato del passo).
 ## Argomenti da riga di comando
 
 ```
-usage: lg_cosim.py [config] [--stop-time T] [--step-size H] [--speedup S]
+usage: lg_cosim.py [config] [--stop-time T] [--step-size H] [--speedup S] [--debug]
 
   config        path al file JSON (default: config.json)
   --stop-time T sovrascrive settings.stop_time
   --step-size H sovrascrive settings.step_size
   --speedup S   sovrascrive settings.speedup (0 = max)
+  --debug       setta LG_FMU_DEBUG=1 — output [lg_fmu DBG] su stderr per ogni FMU
 ```
 
 Exit code: `0` se nessun overrun, `1` se ci sono stati overrun real-time.
+
+---
+
+## Variabili nel config: nome breve vs nome completo
+
+I nomi delle variabili nel `modelDescription.xml` hanno la forma `taskname.Bnn.NOMEVARIABILE`
+(es. `ctrcoll.B5.IN_1PMIS`). Nel `config.json` puoi usare indifferentemente:
+
+- **Nome breve**: `CONTROLLER.IN_1PMIS` — sufficiente se il nome è univoco all'interno della FMU
+- **Nome completo**: `CONTROLLER.ctrcoll.B5.IN_1PMIS` — necessario solo in caso di ambiguità
+
+Il nome simbolico dell'istanza (`CONTROLLER`, `COLLET`, ...) serve come disambiguatore
+di istanza, non di variabile: permette di avere due copie della stessa FMU con nomi distinti
+(es. `COLLET_A` e `COLLET_B`).
+
+---
+
+## Note su co-simulazione multi-istanza (stesso processo)
+
+Ogni bundle FMU lancia il proprio `dispatcher` + `net_sked` usando un **slot SHM**
+(chiave SysV IPC). Il meccanismo di slot LegoPST:
+
+- Slot disponibili: `uid*10000 + slot*1100`, con `slot` ∈ {1..8}
+- Slot 0 (`uid*10000`) riservato alla sessione LegoPST interattiva dell'utente
+- Ogni istanza occupa ~1030 chiavi consecutive
+
+### Selezione slot Python-side (`_find_free_slot`)
+
+`lg_cosim.py` effettua il probe degli slot lato Python via `shmget(key + ID_SHM_VAR, 0, 0)`.
+`ID_SHM_VAR=5` è la SHM effettivamente creata in modalità headless. Il probe interno
+a `lg_fmi2.c` usa invece `ID_SHM_SIM=0`, che in modalità headless non viene mai
+creato → tutti gli slot sembrano liberi → colliderebbero. Per questo il probe
+Python pre-assegna `SHR_USR_KEY` via `ctypes.setenv` prima di ogni
+`fmi2Instantiate`, garantendo slot isolati per ciascuna FMU.
+
+Il log di avvio mostra il slot assegnato:
+```
+[lg_cosim] COLLET:     slot SHM SHR_USR_KEY=10001100
+[lg_cosim] CONTROLLER: slot SHM SHR_USR_KEY=10002200
+```
+
+### `LG_COSIM_NO_KILLSIM` — protezione da killsim distruttivo
+
+`killsim` su Linux cancella **tutte** le SHM dell'utente (non solo il proprio
+slot), come documentato in `killsim.c:402` ("test fittizio per LINUX"). In
+co-simulazione, il `killsim` chiamato da `net_startup_headless.sh` della
+seconda FMU distruggerebbe le SHM della prima FMU già avviata.
+
+`lg_cosim.py` setta `LG_COSIM_NO_KILLSIM=1` nell'environment C (via
+`ctypes.setenv`) prima di qualunque `fmi2Instantiate`. `net_startup_headless.sh`
+(sia la versione in `Alg_rt/lg_fmu/scripts/` sia quelle estratte dai bundle)
+rispetta questa variabile:
+
+```bash
+if [ -z "${LG_COSIM_NO_KILLSIM:-}" ]; then
+    killsim 2>/dev/null || true
+fi
+```
+
+I `net_startup_headless.sh` estratti dai bundle vengono patchati on-the-fly
+da `_patch_killsim_guard()` in `_FMUInstance.__init__()` subito dopo
+`fmpy.extract`, in modo che il guard sia attivo anche nei bundle già generati
+prima dell'aggiornamento degli script.
+
+**Limite**: massimo 8 FMU concorrenti per utente (slot 1..8). Se tutti gli slot
+sono occupati da run precedenti, usare `killsim` per liberarli (con una sola
+FMU alla volta).
 
 ---
 
@@ -245,12 +326,17 @@ Exit code: `0` se nessun overrun, `1` se ci sono stati overrun real-time.
 
 | Sintomo | Causa probabile | Soluzione |
 |---------|----------------|-----------|
-| `KeyError: 'NOMEVARIABILE'` | Variabile non presente nel modelDescription | Verificare con `run_fmu.sh --info` o `unzip -p *.fmu modelDescription.xml` |
-| `fmi2DoStep failed` al secondo run | File `f22circ.dat`/`backtrack.dat` residui | Vedi `USAGE.md` §"Ciclo di vita f22circ.dat" — lg_cosim estrae in dir temp separate, questo non dovrebbe accadere |
+| `KeyError: 'NOMEVARIABILE'` | Variabile non presente nel modelDescription | Verificare con `run_fmu.sh --info` o `unzip -p *.fmu modelDescription.xml \| grep name=` |
+| `fmi2DoStep failed` al secondo run | File `f22circ.dat`/`backtrack.dat` residui nella dir estratta | `net_startup_headless.sh` li cancella automaticamente ad ogni lancio. Se persiste, cancellare manualmente `<bundle_dir>/resources/bundle/task/<task>/f22circ.dat` e `backtrack.dat` |
+| FMU avviata scompare durante init della seconda FMU | `killsim` della seconda FMU ha distrutto le SHM della prima | Verificare che `LG_COSIM_NO_KILLSIM` sia visibile a `net_startup_headless.sh`; su bundle vecchi (precedenti alla patch) ri-estrarre e rilanciar: `_patch_killsim_guard()` provvede automaticamente |
+| `COLLET.VAR` / `CONTROLLER.VAR` → `KeyError` durante log | Nome variabile sbagliato in `log_vars` | Usare `unzip -p <fmu> modelDescription.xml \| grep 'name='` per vedere i nomi effettivi; i nomi brevi (ultima componente) funzionano se univoci |
+| CSV finisce in una directory inattesa | `lg_fmi2.c` chiama `chdir(task_path)` durante l'instantiate | `log_file` relativo è ora risolto rispetto alla dir di `config.json`, non al CWD. Aggiornare a `lg_cosim.py` ≥ 2026-05-11 |
 | Overrun real-time sistematici | `step_size` troppo piccolo o macchina sovraccarica | Aumentare `step_size` oppure ridurre `speedup` |
-| FMU non parte (timeout init) | `net_sked` non raggiunge `STATO_FREEZE` | Lanciare con `LG_FMU_DEBUG=1` nell'env per diagnostica |
-| Slot IPC esauriti (> 8 istanze) | P5: massimo 8 FMU concorrenti per utente | Terminare le istanze in eccesso con `killsim` |
+| FMU non parte (timeout init) | `net_sked` non raggiunge `STATO_FREEZE` | Lanciare con `--debug` per output `[lg_fmu DBG]` su stderr |
+| Slot IPC esauriti (> 8 istanze) | Massimo 8 FMU concorrenti per utente | Terminare le istanze in eccesso con `killsim`; `ipcs -m` mostra i slot occupati |
+| `to_dispatcher: ...` su stdout durante la sim | Output normale del dispatcher C (non un errore) | Redirigere stderr a `/dev/null` o a file se disturbano |
 
 ---
 
-*Versione: lg_cosim 1.0 — 2026-05-10*
+*Versione: lg_cosim 1.1 — 2026-05-11*  
+*Aggiornamenti: slot probe Python-side (ID_SHM_VAR), `LG_COSIM_NO_KILLSIM`, `_patch_killsim_guard`, log_file assoluto.*

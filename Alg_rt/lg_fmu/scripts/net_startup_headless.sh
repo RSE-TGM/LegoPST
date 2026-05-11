@@ -78,7 +78,12 @@ if [ ! -f variabili.rtf ]; then
 fi
 
 # --- Pulizia eventuale sim precedente ---------------------------------
-killsim 2>/dev/null || true
+# In co-simulazione (LG_COSIM_NO_KILLSIM=1) killsim su Linux cancella TUTTE
+# le SHM dell'utente, uccidendo le altre FMU già avviate. Lo saltiamo: il
+# probe slot in lg_cosim.py/_find_free_slot() garantisce già slot liberi.
+if [ -z "${LG_COSIM_NO_KILLSIM:-}" ]; then
+    killsim 2>/dev/null || true
+fi
 
 # --- Reset file di stato runtime dal run precedente -------------------
 # ATTENZIONE: questa rm e' DISTRUTTIVA per i dati del run precedente.

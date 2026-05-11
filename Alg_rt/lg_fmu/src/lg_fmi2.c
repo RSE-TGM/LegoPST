@@ -215,9 +215,12 @@ static void setup_legopst_env(const char *legoroot, int bundle_mode)
      *     riservato ad Alg_env.sh);
      *   - altre FMU concorrenti dello stesso uid.
      * Probe degli slot 1..8 (= uid*10000 + slot*1100): per ogni slot
-     * candidato, shmget(ID_SHM_SIM) torna ENOENT se libero. Primo slot libero
+     * candidato, shmget(ID_SHM_VAR) torna ENOENT se libero. Primo slot libero
      * vince. Spazio uid*10000 = 10000 key, ogni istanza occupa ~1030 key
      * consecutive, slot 0 riservato -> max 8 FMU concorrenti per uid.
+     * Nota: si usa ID_SHM_VAR (=5, topology DB) invece di ID_SHM_SIM (=0)
+     * perché in modalità headless net_sked NON crea la SHM ID_SHM_SIM; l'unica
+     * SHM garantita è quella creata da RtCreateDbPunti (ID_SHM_VAR=5).
      *
      * Caso uid=0 (container root): key=0 == IPC_PRIVATE in SysV, non
      * condivisibile -> fallback PID-based di P7-bis (single-instance ok). */
@@ -230,7 +233,7 @@ static void setup_legopst_env(const char *legoroot, int bundle_mode)
             for (int slot = 1; slot < 9; slot++) {
                 int candidate = (int)(uid * 10000) + slot * 1100;
                 errno = 0;
-                int id = shmget(candidate + ID_SHM_SIM, 0, 0);
+                int id = shmget(candidate + ID_SHM_VAR, 0, 0);
                 if (id == -1 && errno == ENOENT) { key = candidate; break; }
             }
             if (key == -1) {
