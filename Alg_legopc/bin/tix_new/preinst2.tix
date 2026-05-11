@@ -544,7 +544,7 @@ catch { file delete $env(TMPDIR)/sca.tmp -force}
 #catch {file delete $env(LG_PREINST)/Vorwahl2.exe -force}
 #catch { file delete $env(LG_PREINST)/$modfor -force}
 #catch { file delete $env(LG_PREINST)/sca.tmp -force}
-focus .tmg
+if {[winfo exists .tmg]} { focus .tmg }
 } -width 15
 frame .pr.sep5 -relief ridge -bd 1 -height 0 
 pack .pr.btn .pr.sep5 -pady 2m

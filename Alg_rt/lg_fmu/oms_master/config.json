@@ -17,6 +17,6 @@
   },
   "connections": [
     {"from": "COLLET.PCOLMANI", "to": "CONTROLLER.IN_1PMIS"},
-    {"from": "CONTROLLER.USOMUCTR", "to": "COLLET.ALZAVAU1"}
+    {"from": "CONTROLLER.USOMUCTR", "to": "COLLET.ALZAVING"}
   ]
 }

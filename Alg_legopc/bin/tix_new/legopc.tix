@@ -618,7 +618,7 @@ proc itemEnter {c} {
 #				set pisqu [file rootname [lindex [$c gettags all ] [lsearch [$c gettags all] *.name]]]; # here you must retrieve name info		
 #tk_messageBox -icon warning -message $pisqu -type ok
 				set tid [$c create text $x $y -text $pisqu -tags {infoitem}]
-				set lc [$c bbox $tid]
+				set lc [$c bbox $tid] 
 				set x1 [lindex $lc 0]
 				set y1 [lindex $lc 1]
 				set x2 [lindex $lc 2]
@@ -2243,7 +2243,11 @@ set ::retcolor $buff_color
 #
 	set mndlg $c.testo_edit
 	catch {destroy $mndlg}
-	frame $mndlg -relief raised
+	toplevel $mndlg
+	wm title $mndlg "Modifica Remark"
+	wm transient $mndlg [winfo toplevel $c]
+	wm resizable $mndlg 0 0
+	wm withdraw $mndlg
 	
 	set mndlg_testo  $mndlg.testo
   frame $mndlg_testo
@@ -2344,9 +2348,13 @@ pack $mndlg_but -side bottom
 #	
 	
    $mndlg_testo.t insert end $vecchio_testo
-#	set wid [$c create window $xx $yy -window $mndlg]
-	set wid [$c create window $x $y -window $mndlg]
+	set sx [expr {[winfo rootx $c] + int($x - [$c canvasx 0])}]
+	set sy [expr {[winfo rooty $c] + int($y - [$c canvasy 0])}]
+	wm geometry $mndlg "+${sx}+${sy}"
+	wm deiconify $mndlg
+	raise $mndlg
 	focus $mndlg
+	grab set $mndlg
 
 	vwait mfontdone
         if { $ignora == 0 } {         	
@@ -2366,8 +2374,7 @@ set xfont_color "$::xfont $::retcolor"
 	set ::modified 1
         }
 	grab release $mndlg
-	$c delete $wid
-#set retcolor [tk_chooseColor]
+	destroy $mndlg
 }
 
 
