@@ -103,10 +103,14 @@
 #include <string.h>
 #ifdef Linux
 #include <ctype.h>
+#include <unistd.h>
 #endif
 
 #ifndef Linux
 #include <windows.h>
+#include <io.h>
+#define access _access
+#define F_OK 0
 #endif
 
 #include "pag2f01.h"
@@ -128,7 +132,7 @@ fpdesc *fol2midpbuf[MAXMULTLINK];           /* buffer contenente le porte dei 2 
 moddesc *modlist[MAXNMODULE];               /* lista globale dei moduli                     */
 int fol2Lbuf[MAXMULTLINK];                  /* buffer contenente gli ID dei moduli dei limiti della catena di 2 Lcorrente */
 fpdesc *fol2Lpbuf[MAXMULTLINK];             /* buffer contenente le porte dei limiti della Lcatena di 2 */
-char tempstr[MAXLINELENGTH*2];
+char tempstr[MAXLINELENGTH*4];
 int cftreecount;
 int conftree[CFTREE_MAXMODUNASS][MAXNMATCFG + 1]; /* albero di check combinazioni matematiche */
 int confnet[CFTREE_MAXMODUNASS], autocfgOK;
@@ -1708,6 +1712,7 @@ int main(int argc, char **argv)
   char *tpstr, fpcandname[FPPAGNAMENCH + 1], fpnam[FPNAMENCH + 1], tagpag[TAGPAGNCH + 1];
   char tmvname[MVNAMENCH + 1], tmvtype[MVTYPENCH + 1];
   char i5path_bounded[MAXLINELENGTH]; /* copia di I5PATH con dimensione nota per analisi GCC */
+  int flat_mode;
   char mvname1[MVNAMENCH + 1], mvname2[MVNAMENCH + 1];
   int modcur, typel, itlen, itmlen, itplen, ownermod, k;
   fpdesc *fpcurptr, *fpd, *fpdI, *fpdO;
@@ -1736,6 +1741,12 @@ int main(int argc, char **argv)
 
   if (argc != 2 && argc != 3)
     essit("usage: pag2f01 [-p] <inputfile>\n");
+
+  /* determina modalità: flat (files_i5/) vs libreria */
+  {
+    char *i5dir = getenv("LG_FILESI5");
+    flat_mode = (i5dir != NULL) && (access(i5dir, F_OK) == 0);
+  }
 
   /* alcune inizializzazioni */
 
@@ -1940,6 +1951,10 @@ int main(int argc, char **argv)
       strcpy(modlist[modcur]->modpname, partmodname);
       modlist[modcur]->fpnum = 0;
       modlist[modcur]->mvnum = 0;
+      modlist[modcur]->modlibpath[0] = '\0';
+
+      if (!flat_mode)
+        fscanf(fptop, "%s", modlist[modcur]->modlibpath);
 
       fscanf(fptop, "%s", tempstr);
       modcur++;
@@ -2019,7 +2034,10 @@ int main(int argc, char **argv)
     for (imm = 0; imm < strlen(tempstr); imm++)
       tempstr[imm] = (char)tolower(tempstr[imm]);
 
-    snprintf(i5fname, sizeof(i5fname), "%s/%.*s.i5", i5path_bounded, MODNAMENCH, tempstr);
+    if (flat_mode)
+      snprintf(i5fname, sizeof(i5fname), "%s/%.*s.i5", i5path_bounded, MODNAMENCH, tempstr);
+    else
+      snprintf(i5fname, sizeof(i5fname), "%s/%.*s.i5", modlist[m]->modlibpath, MODNAMENCH, tempstr);
 
     /*printf("opening file %s\n", i5fname);*/
     if ((fpI5 = fopen(i5fname, "r")) == NULL)

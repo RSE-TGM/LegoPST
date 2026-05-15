@@ -4620,7 +4620,7 @@ set ::stileanim_prec $::stileanim
     $m add command -label "Xterm" -command {
     	global curFileName DIRMODEL
 #    	exec xterm &
-    	exec $env(LG_XTERM) &
+    	set _xt [expr {[info exists env(LG_XTERM)] && $env(LG_XTERM) ne "" ? $env(LG_XTERM) : "xterm"}]; exec $_xt &
     }
     $m add command -label "Build FMU" -command {
     	global DIRMODEL

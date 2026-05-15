@@ -432,8 +432,13 @@ sostituisci_in_file  $path_list($old_instance)/$old_instance $env(LG_LIBRARIES)/
 # tolti gli xbm
 #	set old_files_xbm [file rootname $env(LG_XBM)/$old_instance]
 #	set new_files_xbm [file rootname $env(LG_XBM)/$instance]
-	set old_files_I5 [file rootname $env(LG_FILESI5)/$old_instance]
-	set new_files_I5 [file rootname $env(LG_FILESI5)/$instance]
+	if {[info exists env(LG_FILESI5)] && [file isdirectory $env(LG_FILESI5)]} {
+	    set old_files_I5 [file rootname $env(LG_FILESI5)/$old_instance]
+	    set new_files_I5 [file rootname $env(LG_FILESI5)/$instance]
+	} else {
+	    set old_files_I5 [file rootname $path_list($old_instance)/$old_instance]
+	    set new_files_I5 [file rootname $env(LG_LIBRARIES)/$liberr/$instance]
+	}
 	set old_files_help [file rootname $env(LG_HELP)/$old_instance]
 	set new_files_help [file rootname $env(LG_HELP)/$instance]
 	
@@ -645,10 +650,14 @@ proc remove_instance {instance lib} {
 	set mex [tk_messageBox -icon warning -type yesno \
          	-title Warning -parent . -message "Do you want to delete instance $instance?"]
 	if {$mex == "yes"} {
-		file delete $env(LG_LIBRARIES)/$lib/$instance.tcl       	  
-		file delete $env(LG_LIBRARIES)/$lib/$instance.pi3       	  
+		file delete $env(LG_LIBRARIES)/$lib/$instance.tcl
+		file delete $env(LG_LIBRARIES)/$lib/$instance.pi3
 		file delete $env(LG_LIBRARIES)/$lib/$instance.pi4
-		file delete $env(LG_FILESI5)/$instance.i5       	  
+		if {[info exists env(LG_FILESI5)] && [file isdirectory $env(LG_FILESI5)]} {
+		    file delete $env(LG_FILESI5)/$instance.i5
+		} else {
+		    catch {file delete $env(LG_LIBRARIES)/$lib/$instance.i5}
+		}
 		file delete $env(LG_HELP)/$instance.tch
 
 		set filegif [glob -nocomplain $env(LG_LIBRARIES)/$lib/$instance*.gif]

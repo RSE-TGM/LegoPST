@@ -126,6 +126,7 @@ typedef struct moduleDesc {
 	char fullmodname[MODNAMENCH+1];
 	char modpname[MODPAGNAMENCH+1];
 	char modcomment[COMMENTNCH];
+	char modlibpath[512];
 	fpdesc *fplist[MAXNFPORT];
 	int fpnum;
 	int status, numconfig, cftreeslot, cfLtreeslot, cfL2treeslot;

@@ -194,13 +194,21 @@ puts $fileid "\$c addtag \$var1_anim.anim withtag \$mymodId"
 	exec $env(LG_TOOLS)/i32i5 $rootfname.pi4
 	set curFileName [file tail $rootfname].i5
 #	file rename -force $env(LG_TOOLS)/$curFileName $env(LG_FILESI5)/$curFileName
-	file rename -force $env(TMPDIR)/$curFileName $env(LG_FILESI5)/$curFileName
+	if {[info exists env(LG_FILESI5)] && [file isdirectory $env(LG_FILESI5)]} {
+	    file rename -force $env(TMPDIR)/$curFileName $env(LG_FILESI5)/$curFileName
+	} else {
+	    file rename -force $env(TMPDIR)/$curFileName [file dirname $rootfname]/$curFileName
+	}
 
 # cancellazione del .pi4
 	#file delete $rootfname.pi4
 
 # creazione del .tch
-        cd $env(LG_FILESI5)
+	if {[info exists env(LG_FILESI5)] && [file isdirectory $env(LG_FILESI5)]} {
+	    cd $env(LG_FILESI5)
+	} else {
+	    cd [file dirname $rootfname]
+	}
         set curFileName [file tail $rootfname].i5
         set fileid [checkopen $curFileName r]
         gets $fileid line

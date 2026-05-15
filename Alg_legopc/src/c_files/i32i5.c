@@ -229,7 +229,7 @@ printf("1 - i5name=%s\n",i5name);
     fscanf(fpI3, "%s %d\n",
 		  fplist[fp].fpname,
 		  &(fplist[fp].fptype));
-    fgets(fplist[fp].fpcomment, MAXLINELENGTH-1, fpI3);
+    fgets(fplist[fp].fpcomment, COMMENTNCH-1, fpI3);
 
     nfv = fpvnum[fplist[fp].fptype];
 
