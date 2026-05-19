@@ -1,0 +1,1063 @@
+#!/usr/local/bin/tixwish4.1.8.0 -f
+#
+# Tix user interface for LEGO-WGS - Simulation Activity
+
+source $env(LG_TIX)/checkopen.tcl
+
+
+global tcl_platform  listPert 
+
+set lgsincropid -1
+set listPert {}
+
+set SLV         $env(LG_LEGO)
+set LIBUT       $env(LG_LIBUT)
+set LEGOPHI     $env(LG_TIX)	
+set MODELS_BASE $env(LG_MODELS)
+
+   set env(LEGO_PATH)  [join [split $env(LG_LEGO) / ] \\ ]
+   set env(LIBUT_PATH) [join [split $env(LG_LIBUT) / ] \\ ]
+
+
+set f14File ""
+set tk_strictMotif 0
+
+#source $env(LG_TIX)/monitor.tcl
+
+
+proc lancia_net_monit {} {
+global lgsincropid
+     set comm1 [file join $::env(LEGO_BIN) cad_crealg5sk ]
+     set comm2 "p"
+     set comm3 "lg5comp.out"
+     set chk [catch {exec $comm1 $comm2 > $comm3} result]
+     if { $chk != 0 } {
+     tk_messageBox -icon info -message "Build Transient Error: $comm1 $comm2 > $comm3 chk:$chk - result:$result"
+     }
+#     if { $chk == 1 } { tk_messageBox -icon error -message "LG3 Compilation failed: Details in $comm3"; return }
+     set comm1 "startup"
+     set comm2 "&"
+
+#     tk_messageBox -icon info -message "lancia_net_monit 2: $comm1 $comm2"
+
+###     set chk [catch {exec $comm1 $comm2 } result]
+      set lgsincropid [ exec $comm1 $comm2 ]
+#tk_messageBox -icon info -message "lancia_net_monit 2: $comm1 $comm2\n pid=$lgsincropid"
+#tk_messageBox -icon info -message "lancia_net_monit 3: processo=[pid startup]"
+
+}
+
+
+
+proc calc_transient {} {
+        global lgsincropid  f14File tk_strictMotif  tcl_platform
+        global  curFileName  SLV
+	if {$curFileName == "untitled" || $curFileName == "" || $curFileName == "-"} {
+		set messaggio "No Model is selected!"
+		tk_messageBox -message $messaggio -type ok -icon error
+		return   
+	}
+	
+	if  { $::LINUXPLAT == 1 } { lancia_net_monit; return }
+  
+        if {  [ esiste_processo $lgsincropid ] == 1 && $lgsincropid != -1 } { return }  
+        if {  [ esiste_processo "LgSincro" ] == 1 } {
+        	tk_messageBox -icon warning -message  "LgSincro is running!" -type ok
+        	return
+        	}
+#set compslist "pslist" 
+#catch [ exec $compslist $lgsincropid | grep -c "was not found"] esito
+#if { [ lindex $esito 0 ] == "0" && $lgsincropid != -1 } { return } 
+
+         if {![file exists tasks.dat] && ![file exists simul.dat]} {
+         file copy  $SLV/tasks.templ tasks.dat
+         file copy  $SLV/simul.templ simul.dat          
+         } elseif { ![file exists tasks.dat] && [file exists simul.dat] } {
+              tk_messageBox -icon info \
+                            -message "Attenzione manca il file tasks.dat riconfigurare la task con l'attivit�Edit Task" \
+                            -type ok -parent .
+              return        
+ 
+	 }
+        catch { set lgsincropid [ exec lgsincro /LOC & ] }
+
+#tk_messageBox -message [winfo id .pwatch]
+#set command2 "pslist"  
+#catch [ exec $command2 223 | grep -c "was not found"] qq1 
+#catch [ exec $command2 222 | grep -c "was not found"] qq2 
+#tk_messageBox -message [ lindex $qq1 0 ]
+#tk_messageBox -message [ lindex $qq2 0 ]
+
+        return
+
+}
+proc calc_regime {} {
+
+#Guag 17 ott 2005
+# proc  attualmente non utilizzata da nessuno!
+
+
+        global lgsincropid  f14File tk_strictMotif  tcl_platform
+           destroy .conv
+           destroy .nonconv
+           set filelist [split $f14File /]
+      
+           if ![string compare [lindex $filelist [expr [llength $filelist]-1]] f14.dat] {
+              if [file exists proc/f24.da2] {
+                 file rename -force proc/f24.da2 proc/f24.da3
+              }
+              if [file exists proc/f24.da1] {
+                 file rename -force proc/f24.da1 proc/f24.da2
+              }
+              if [file exists proc/f24.dat] {
+                 file rename -force proc/f24.dat proc/f24.da1
+              }    
+
+
+		  if {$tk_strictMotif == 1} {
+   			exec make -f $SLV/crea_solver lg3
+		  } else {
+   			catch {exec $SLV/nssls.bat}
+   			catch {exec $SLV/lgser.bat}
+#              tk_messageBox -icon info \
+#                            -message "eccomi 2" \
+#                            -type ok -parent .
+
+              }
+       
+              catch {exec proc/nssls <lg3.inp >lg3.out}
+
+              if {$tk_strictMotif != 0} {
+                 set cond1 [catch {exec grep -c "CONDIZIONI DI REGIME CALCOLATE" lg3.out}]
+                 set cond2 [catch {exec grep -c "EQUAZIONI NON SONO VERIFICATE" lg3.out}]
+                 if {($cond1 > 9) || ($cond1 < 1)} {set cond1 0}
+                 if {($cond2 > 9) || ($cond2 < 1)} {set cond2 0}
+              } elseif {$tcl_platform(os) == "Windows NT"} {
+                 set cond1 [catch {exec grep -c "CONDIZIONI DI REGIME CALCOLATE" lg3.out}]
+                 set cond2 [catch {exec grep -c "EQUAZIONI NON SONO VERIFICATE" lg3.out}]
+                 if {$cond1 == 0} { 
+                  set cond1 1
+                 } elseif {$cond1 == 1} {
+                  set cond1 0
+                 }
+                 if {$cond2 == 0} { 
+                  set cond2 1
+                 } elseif {$cond2 == 1} {
+                  set cond2 0
+                 }
+              } else {
+                 set cond1 [exec grep -c "CONDIZIONI DI REGIME CALCOLATE" lg3.out]
+                 set cond2 [exec grep -c "EQUAZIONI NON SONO VERIFICATE" lg3.out]
+              }
+              if {($cond1 == 0) || (($cond1 > 0) && ($cond2 > 0))} {
+		  catch {destroy .nonconv}
+                  toplevel .nonconv
+                  label .nonconv.lab -width 50 -text "Steady state doesn't converge" -font "Times 14 bold"
+                  frame .nonconv.button1
+                  frame .nonconv.button2
+                  label .nonconv.button1.lab -text "view file lg3.out" -justify left
+                  button .nonconv.button1.lg3 -background red -command "edit lg3.out $tk_strictMotif"
+                  label .nonconv.button2.lab -text "view differences between f14 and f24"
+                  button .nonconv.button2.df  -background red \
+                                              -command "compareFiles f14.dat proc/f24.dat" \
+                                              -justify left
+                  pack .nonconv.lab -side top
+                  pack .nonconv.button1.lg3  -side left -padx 1m -pady 1m
+                  pack .nonconv.button1.lab  -side left -padx 1m -pady 1m
+                  pack .nonconv.button1 -fill x -expand 1
+                  pack .nonconv.button2.df -side left -padx 1m -pady 1m
+                  pack .nonconv.button2.lab  -side left -padx 1m -pady 1m
+                  pack .nonconv.button2 -fill x -expand 1
+                  frame .nonconv.button3
+                  label .nonconv.button3.lab -text "Copy f24 in f14"
+                  button .nonconv.button3.but -background blue -justify left -command {
+                          file delete f14.dat
+                          file copy proc/f24.dat f14.dat
+                  }
+                  pack .nonconv.button3.but -side left -padx 1m -pady 1m
+                  pack .nonconv.button3.lab -side left -padx 1m -pady 1m
+                  pack .nonconv.button3 -fill x -expand 1
+                  frame .nonconv.buttonok
+                  button .nonconv.buttonok.ok -text Cancel -command {destroy .nonconv}
+                  pack .nonconv.buttonok.ok -expand 1
+                  pack .nonconv.buttonok -side bottom -fill x -expand 1
+              } else {
+		  catch {destroy .conv}
+                  toplevel .conv
+                  label .conv.lab -width 50 -text "Steady state converges" -font "Times 14 bold"
+                  frame .conv.button1
+                  frame .conv.button2
+                  label .conv.button1.lab -text "view file lg3.out" -justify left
+                  button .conv.button1.lg3 -background red -command "edit lg3.out $tk_strictMotif"
+                  label .conv.button2.lab -text "view differences between f14 and f24"
+                  button .conv.button2.df  -background red \
+                                           -command "compareFiles f14.dat proc/f24.dat" \
+                                           -justify left
+                  pack .conv.lab -side top
+                  pack .conv.button1.lg3  -side left -padx 1m -pady 1m
+                  pack .conv.button1.lab  -side left -padx 1m -pady 1m
+                  pack .conv.button1 -fill x -expand 1
+                  pack .conv.button2.df -side left -padx 1m -pady 1m
+                  pack .conv.button2.lab  -side left -padx 1m -pady 1m
+                  pack .conv.button2 -fill x -expand 1
+                  frame .conv.button3
+                  label .conv.button3.lab -text "Copy f24 in f14"
+                  button .conv.button3.but -background blue -justify left -command {
+                          file delete f14.dat
+                          file copy proc/f24.dat f14.dat
+                  }
+                  frame .conv.button4
+                  label .conv.button4.lab -text "Execute drift"
+                  button .conv.button4.but -background green -justify left -command {
+                          execLg5 $SLV $LIBUT "drift" $tk_strictMotif 
+                  }
+                  pack .conv.button3.but -side left -padx 1m -pady 1m
+                  pack .conv.button3.lab -side left -padx 1m -pady 1m
+                  pack .conv.button3 -fill x -expand 1
+                  pack .conv.button4.but -side left -padx 1m -pady 1m
+                  pack .conv.button4.lab -side left -padx 1m -pady 1m
+                  pack .conv.button4 -fill x -expand 1
+                  frame .conv.buttonok
+                  button .conv.buttonok.ok -text Cancel -command {destroy .conv}
+                  pack .conv.buttonok.ok -expand 1
+                  pack .conv.buttonok -side bottom -fill x -expand 1
+		  file copy -force proc/f24.dat proc/f24.last
+              }
+           } else {
+#	      catch {destroy .top1}
+#              toplevel .top1
+#              label .top1.lab -text "A f14.dat file must be selected !!" -font "Times 14"
+#              label .top1.lab -text "A Model must be selected !!" -font "Times 14"
+#              button .top1.ok -text OK -command "destroy .top1"
+#              pack .top1.lab -padx 3m -pady 3m -fill x -side top
+#              pack .top1.ok -expand 1 -side bottom 
+tk_messageBox -message "Np Model is selected!" -type ok -icon error 
+
+           }
+
+}
+
+
+
+proc createsimul { nbf } {
+
+global env
+#set demo_dir "C:/Programmi/Tix8.1.3/demos"
+#
+#    tixSelect $nbf.just -allowzero false -radio false \
+#	-label "Justification: "\
+#	-options {
+#	    label.width 15
+#	    label.padx 4
+#	    label.anchor e
+#	}
+#    $nbf.just add left      -bitmap @$demo_dir/bitmaps/leftj.xbm
+#    $nbf.just add right     -bitmap @$demo_dir/bitmaps/rightj.xbm
+#    $nbf.just add center    -bitmap @$demo_dir/bitmaps/centerj.xbm
+#    $nbf.just add justified -bitmap @$demo_dir/bitmaps/justify.xbm
+#    pack $nbf.just
+
+
+set fsl $nbf.left
+frame $fsl 
+set fsr $nbf.right
+frame $fsr
+
+
+
+frame $nbf.sep1 -relief ridge -bd 1 -height 2
+frame $nbf.sep2 -relief ridge -bd 1 -height 2
+pack $nbf.sep1 -side top -fill x -pady 2m
+pack $nbf.sep2 -side bottom -fill x -pady 2m
+
+
+
+#frame $nbf.buttons
+
+image create photo steady1 -file $env(LG_TIX)/img/regime.gif
+image create photo trans1 -file $env(LG_TIX)/img/transitorio.gif
+
+
+#$nbf configure -background pink
+
+
+button $fsl.calc_reg -text "Compute steady state"  -state normal -command "golg3 2 $fsr " -background green -foreground black -activebackground  red
+set compo1 [image create compound -window $fsl.calc_reg ]
+$compo1 add image -image steady1
+$compo1 add space -width 20
+$compo1 add text -text "Compute steady state"
+$fsl.calc_reg config -image $compo1
+
+button $fsr.calc_trans -text "Compute transient" -state normal -command calc_transient -background green -foreground black -activebackground  red
+set compo1 [image create compound -window $fsr.calc_trans ]
+$compo1 add image -image trans1
+$compo1 add space -width 20
+$compo1 add text -text "Compute transient"
+$fsr.calc_trans config -image $compo1
+
+
+
+button $fsr.watch -text "Plot trends" -state normal -command {watchtrends 0 }
+
+button $fsl.edit -text "Edit F14" -state normal -command {
+        set filelist [split $f14File /]
+        if ![string compare [lindex $filelist [expr [llength $filelist]-1]] f14.dat] {
+           edit [file dirname $f14File]/f14.dat $tk_strictMotif
+        } else {
+#	   catch {destroy .top2}
+#           toplevel .top2
+#           label .top2.lab -text "A model must be selected !!" -font "Times 14"
+#           button .top2.ok -text OK -command "destroy .top2"
+#           pack .top2.lab -padx 3m -pady 3m -fill x -side top
+#           pack .top2.ok -expand 1 -side bottom
+tk_messageBox -message "Np Model is selected!" -type ok -icon error 
+        }
+}
+
+
+button $fsl.config_steady  -text "Steady state options" -state normal -command {
+     if ![file exists lg3.inp] {
+        set calcmode 0
+        set jacob 0
+        set damp 0
+        set tolerance 0.00001
+        set peso0 0.01
+        set epsilon 1.D-5
+        set percent 0.1
+     } else {
+        set f [checkopen lg3.inp r]
+        gets $f line
+        gets $f line
+        if {[string first "3" $line] >= 0} {
+           set jacob 1
+        } else {
+           set jacob 0
+        }
+        gets $f tolerance
+        gets $f line
+        gets $f damp
+        if {$damp != 0} {
+           gets $f percent
+        } else {
+           set percent 0.1
+        }
+        if {$line == "S"} {
+         set calcmode 0
+         gets $f peso0
+         gets $f epsilon
+        } else {
+         set calcmode 1
+         set peso0 0.01
+         set epsilon 1.D-5
+        }
+        close $f
+    }
+    catch {destroy .config}
+    toplevel .config   
+    wm title .config "Steady State Configuration"
+    wm iconname .config "CFGs"
+    frame .config.frm
+    frame .config.frm.toll
+    label .config.frm.toll.lab -width 17 -justify left -pady 3m -font "Times 12" \
+                                         -text "Tolerance " -anchor w
+    entry .config.frm.toll.ent -width 20 -textvariable tolerance
+    pack .config.frm.toll.lab .config.frm.toll.ent -side left -padx 2m -padx 2m
+    pack .config.frm.toll -side top -padx 2m -padx 2m -anchor w
+    frame .config.frm.p0
+    label .config.frm.p0.lab -width 17 -justify left -pady 3m -font "Times 12" \
+                                       -text "Zero weight " -anchor w
+    entry .config.frm.p0.ent -width 20 -textvariable peso0
+    pack .config.frm.p0.lab .config.frm.p0.ent -side left -padx 2m -padx 2m
+    pack .config.frm.p0 -side top -padx 2m -padx 2m -anchor w
+    frame .config.frm.eps
+    label .config.frm.eps.lab -width 17 -justify left -pady 3m -font "Times 12" \
+                                        -text "Epsilon " -anchor w
+    entry .config.frm.eps.ent -width 20 -textvariable epsilon
+    pack .config.frm.eps.lab .config.frm.eps.ent -side left -padx 2m -padx 2m
+    pack .config.frm.eps -side top -padx 2m -padx 2m -anchor w
+    if {$calcmode == 1} {
+     .config.frm.p0.ent configure -state disabled
+     .config.frm.eps.ent configure -state disabled
+    }
+    frame .config.frm.perc
+    label .config.frm.perc.lab -width 17 -justify left -pady 3m -font "Times 12" \
+                                        -text "Damping p.u. (if any)" -anchor w
+    entry .config.frm.perc.ent -width 20 -textvariable percent
+    pack .config.frm.perc.lab .config.frm.perc.ent -side left -padx 2m -padx 2m
+    pack .config.frm.perc -side top -padx 2m -padx 2m -anchor w
+    frame .config.frm.smorz
+    radiobutton .config.frm.smorz.no -text "No damping" -variable damp -relief flat -value 0
+    radiobutton .config.frm.smorz.ec -text "Exceedings" -variable damp -relief flat -value 1
+    radiobutton .config.frm.smorz.al -text "All vars"   -variable damp -relief flat -value 2
+    frame .config.frm.calcmode
+    radiobutton .config.frm.calcmode.gr -text "Gram Schmidt" -variable calcmode -relief flat -value 0 -command {
+             if {$calcmode == 1} {
+              .config.frm.p0.ent configure -state disabled
+              .config.frm.eps.ent configure -state disabled
+             } else {
+              .config.frm.p0.ent configure -state normal
+              .config.frm.eps.ent configure -state normal
+             }
+      }
+    radiobutton .config.frm.calcmode.ma -text "MA28" -variable calcmode -relief flat -value 1 -command {
+             if {$calcmode == 1} {
+              .config.frm.p0.ent configure -state disabled
+              .config.frm.eps.ent configure -state disabled
+             } else {
+              .config.frm.p0.ent configure -state normal
+              .config.frm.eps.ent configure -state normal
+            }
+      }
+    pack .config.frm.smorz.no .config.frm.smorz.ec .config.frm.smorz.al -side left \
+                                                        -padx 3m -pady 2m
+    pack .config.frm.smorz -side top -padx 4m -padx 4m -anchor w
+    pack .config.frm.calcmode -side top -padx 4m -padx 4m -anchor w
+    pack .config.frm.calcmode.gr .config.frm.calcmode.ma -side left -padx 10m -pady 2m
+    frame .config.frm.jaco
+    label .config.frm.jaco.text -width 17 -justify left -pady 3m -font "Times 12" \
+                                          -text "Print jacobian " -anchor w
+    checkbutton .config.frm.jaco.chb -variable jacob -relief flat -anchor w
+    pack .config.frm.jaco.text .config.frm.jaco.chb -side left -padx 2m
+    pack .config.frm.jaco -side top -padx 2m -padx 2m -anchor w
+    frame .config.frm.butt
+    button .config.frm.butt.ok -text "OK" -command {
+        destroy .config
+        puts "ciao"
+        set f [checkopen lg3.inp w]
+        puts $SLV
+        puts $f "SI"
+        if {$jacob == 0} {
+           puts $f "1 2"
+        } else {
+           puts $f "1 2 3"
+        }
+        puts $f $tolerance
+        if {$calcmode == 0} {
+         puts $f "S"
+        } else {
+         puts $f "M"
+        }
+        puts $f $damp
+        if {$damp != 0} {
+           puts $f $percent
+        }
+        if {$calcmode == 0} {
+         puts $f $peso0
+         puts $f $epsilon
+        }
+        puts $f "SI"
+        close $f
+    }
+    button .config.frm.butt.default -text "Default" -command {
+        destroy .config
+        file copy -force $SLV/lg3.def lg3.inp
+    }
+    button .config.frm.butt.canc  -text "Cancel" -command "destroy .config"
+    pack .config.frm.butt.ok .config.frm.butt.default .config.frm.butt.canc \
+                          -side left -expand 1
+    pack .config.frm.butt -padx 2m -pady 2m -fill x
+    pack .config.frm -pady 2m -padx 2m
+}
+
+
+#button $nbf.buttons.exit -text Exit -command " stopreq 1 "
+
+
+pack $fsl $fsr -side left -expand yes -fill y  -pady 1c -padx 1c
+
+label $fsl.label -text "Steady State" -font "Times 14 bold"
+frame $fsl.sep -relief ridge -bd 1 -height 2 
+pack $fsl.label -side top 
+pack $fsl.sep -side top -fill x -expand no
+
+pack $fsl.calc_reg -side top -pady .5c -anchor w -fill x
+pack $fsl.edit -side top -pady .5c -anchor w -fill x
+pack $fsl.config_steady -side top -pady .5c -anchor w -fill x
+
+
+label $fsr.label -text "Transient" -font "Times 14 bold"
+frame $fsr.sep -relief ridge -bd 1 -height 2 
+pack $fsr.label -side top 
+pack $fsr.sep -side top -fill x -expand no
+
+pack $fsr.calc_trans -side top -pady .5c -anchor w -fill x
+pack $fsr.watch -side top -pady .5c -anchor w -fill x
+#pack $nbf.buttons -side bottom
+#pack $nbf.buttons.exit
+
+
+
+set monList {}
+#set models_list [glob $MODELS_BASE/*]
+set models_list [glob $env(LG_MODELS)/*]
+
+
+
+
+}
+
+proc transient_batch_valid { res } {
+$res configure -background yellow
+return 1}
+
+proc transient_batch {} {
+	global listPert
+        global  curFileName
+	if {$curFileName == "untitled" || $curFileName == "" || $curFileName == "-"} {
+		set messaggio "No Model is selected!"
+		tk_messageBox -message $messaggio -type ok -icon error
+		return
+	}
+
+           if ![file exists proc/f04.dat] {
+              tk_messageBox -icon info \
+                            -message "You must first\n calculate a steady state!" \
+                            -type ok -parent .
+           } else {
+#           	tk_messageBox -message "transient_batch" -type ok
+              set listPert {}
+	      catch {destroy .trans}
+              toplevel .trans
+              wm title .trans "Transient Setup"
+              wm iconname .trans "tSET"
+              frame .trans.up
+              frame .trans.up.left
+              frame .trans.up.right
+              label .trans.up.left.title -text "Transient title" -font "Courier 12"
+              label .trans.up.left.time  -text "Transient final time" -font "Courier 12"
+              label .trans.up.left.intg  -text "Integration step \[s\]" -font "Courier 12"
+              label .trans.up.left.rstm  -text "Registration step (multiplier)" -font "Courier 12"
+              entry .trans.up.right.title -width 25 -textvariable title
+              entry .trans.up.right.time  -width 25 -textvariable time
+              entry .trans.up.right.intg  -width 25 -textvariable intg
+              entry .trans.up.right.rstm  -width 25 -textvariable rstm
+	      pack .trans.up.left.title .trans.up.left.time .trans.up.left.intg	.trans.up.left.rstm -side top -anchor w -pady 2m
+              pack .trans.up.left -side left
+	      pack .trans.up.right.title .trans.up.right.time .trans.up.right.intg .trans.up.right.rstm -side top -anchor w -pady 2m
+              pack .trans.up.right -side left
+              pack .trans.up -padx 3m -pady 3m
+              
+	      frame .trans.sep1 -relief ridge -bd 1 -height 2
+              pack .trans.sep1 -side top -fill x
+              frame .trans.center
+              label .trans.center.lab -text "Printing options ..." -font "Courier 12"
+
+	      checkbutton .trans.center.ingre -variable ingre \
+			-anchor w -text "inputs at each step" -padx 5m
+	      checkbutton .trans.center.jaco  -variable jaco  \
+			-anchor w -text "jacobian at each change" -padx 5m
+	      checkbutton .trans.center.iter  -variable iter \
+			-anchor w -text "iterations number at each step" -padx 5m
+	      checkbutton .trans.center.topo  -variable topo \
+			-anchor w -text "jacobian topological matrix" -padx 5m
+	      checkbutton .trans.center.resi  -variable resi \
+			-anchor w -text "residuals at each iteration" -padx 5m
+
+              pack .trans.center.lab -side top -anchor w -pady 2m
+	      pack .trans.center.ingre .trans.center.jaco .trans.center.iter \
+			.trans.center.topo .trans.center.resi -side top -anchor w -pady 1m -fill x
+              pack .trans.center -side top -padx 3m -pady 5m -anchor center
+
+	      frame .trans.sep2  -relief ridge -bd 1 -height 2
+              pack .trans.sep2 -side top -fill x
+
+	      set transalg 0
+	      
+  if  { $::tcl_platform(os) != "Linux" } {
+	      frame .trans.algo
+              pack .trans.algo -side top -pady 3m -anchor center
+              label .trans.algo.lab -text "Algorithm choice" -font "Courier 12"
+              pack .trans.algo.lab -side top -anchor center -pady 1m
+              radiobutton .trans.algo.ma -text "MA28" -variable transalg -relief flat -value 0
+              radiobutton .trans.algo.qn -text "Quasi Newton" -variable transalg -relief flat -value 1
+              pack .trans.algo.ma .trans.algo.qn -side left -padx 18m -pady 1m
+              frame .trans.sep3  -relief ridge -bd 1 -height 2
+              pack .trans.sep3 -side top -fill x
+  }
+
+              frame .trans.down
+              button .trans.down.ok -text Calc -width 8 -command {
+#                   global listPert
+                   set f [checkopen lg4.inp w]
+                   puts $f ""
+                   puts $f $title
+                   puts $f $time
+                   puts $f $intg
+                   foreach i $listPert  {
+                           puts $f [lindex $i 0]
+                           if {[string range [lindex $listInputs [lsearch -glob $listInputs [lindex $i 0]* ]] 10 19] == 0.} {
+                              puts $f "1."
+                           }
+                           puts $f [lindex $i 1]
+                           if {[lindex $i 1] == 1 || [lindex $i 1] == 3} {
+                              puts $f [lindex $i 2]
+                           } else {
+                              set tabList [split [lindex $i 2] ,]
+                              foreach i $tabList {
+                                 puts $f [string trim $i]
+                              }
+                              puts $f ""
+                           }
+                           if {[lindex $i 1] == 1} {
+                              puts $f "1"
+                           }
+                   }
+                   puts $f ""
+                   puts $f "*"
+                   puts $f $rstm
+                   puts $f ""
+                   close $f
+                   set f [checkopen lg5.inp w]
+                   if {$ingre || $jaco || $iter || $topo || $resi} {
+                      puts $f "SI"
+
+                      set string ""
+                      if {$ingre} {
+                        set string "1"
+                      } 
+                      if {$jaco} {
+                        set string "${string}2"
+                      } 
+                      if {$iter} {
+                        set string "${string}3"
+                      } 
+                      if {$topo} {
+                        set string "${string}4"
+                      }
+                      if {$resi} {
+                        set string "${string}5"
+                      }   
+                      puts $f $string
+                   } else {
+                      puts $f ""
+                   }
+                   if {$transalg == 0} {
+                    puts $f "M"
+                   } else {
+                    puts $f "N"
+                   }
+                   close $f  
+                   execLg5 $SLV $LIBUT "trans" $tk_strictMotif
+              }
+              #comando pertlist
+              button .trans.down.watch -text "PertList" -width 8 -command {
+                     set n 0
+                     set strList {"  Nr  Variable  Type  Command" "  --  --------  ----  -------  "}
+                     foreach i $listPert {
+                             if {[lindex $i 1]  == 1} {
+                                set styp "Ramp"
+                             } elseif {$type == 2} {
+                                set styp "Tab."
+                             } elseif {$type == 3} {
+                                set styp "Grad"
+                             }
+                             lappend strList [format "  %2d  %8s  %4s  %s  " [incr n] \
+                                                [lindex $i 0] $styp [lindex $i 2] ]
+                     }
+ 		     catch {destroy .pwatch}
+                     toplevel .pwatch
+                     wm title .pwatch "Perturbations View"
+                     wm iconname .pwatch "PView"
+                     listbox .pwatch.lbox -setgrid 1 -height 10 -width 0 -font "Courier 12"
+                     foreach i $strList {
+                             .pwatch.lbox insert end $i
+                     }
+                     frame  .pwatch.sep -relief ridge -bd 1 -height 2
+                     frame .pwatch.butt
+                     button .pwatch.butt.ok -text OK -command {
+                             destroy .pwatch
+                     }
+                     button .pwatch.butt.del -text DelPert -command {
+                             set delindex [expr [lsearch -glob $strList [selection get]]-2]
+                             if {$delindex < 0} {
+                                tk_messageBox -icon info \
+                                     -message "You can't delete this line!" \
+                                     -type ok -parent .pwatch
+                             } else {
+                               set listPert [lreplace $listPert $delindex $delindex]
+                               set strList [lreplace $strList $delindex $delindex]
+                               .pwatch.lbox delete [expr $delindex+2] [expr $delindex+2]
+                             }
+                     }
+                     pack .pwatch.butt.ok .pwatch.butt.del -side left -expand 1
+                     pack .pwatch.lbox .pwatch.sep .pwatch.butt -side top -fill x -padx 2m -pady 3m
+              }
+              #comando Cancel
+	      button .trans.down.canc -text Cancel -width 8 -command {
+                     destroy .trans
+              }
+	      
+	      
+	      pack .trans.down.ok  .trans.down.watch .trans.down.canc -side left -pady 2m -expand 1
+              pack .trans.down -side bottom -pady 3m -fill x
+	      
+           }
+
+	frame .trans.newpert
+	label .trans.newpert.lab -text "Add perturbations ..." -font "Courier 12"
+	button .trans.newpert.ramp -text Ramp -relief groove -width 8 -command {
+		     catch {destroy .pert}
+		     toplevel .pert
+                     wm title .pert "Ramp:   Perturbation Setting"
+		     set type 1
+		     set styp "Ramp"
+                     frame .pert.list
+		     listbox .pert.list.lbox -yscroll ".pert.list.scrl set" \
+				-setgrid 1 -height 8 -width 0 -font "Courier 12"
+                     scrollbar .pert.list.scrl -command ".pert.list.lbox yview"
+                     set listInputs {}
+                     set f [checkopen proc/f24.last r]
+                     for {set i 1} {$i < 6} {incr i} {
+                           gets $f line
+                     }
+                     while {[string index $line 24] == "*"} {
+                           gets $f line
+                     }
+                     gets $f line
+                     while {[string index $line 24] == "*"} {
+                            lappend listInputs [string range $line 4 23]
+                            gets $f line
+                     }
+                     close $f
+                     foreach i $listInputs {
+                            .pert.list.lbox insert end $i
+                     }
+                     frame .pert.sep1 -relief ridge -bd 1 -height 2
+                     frame .pert.choose
+		     
+		     button .pert.choose.btn1 -text "Find" -width 6
+                     entry .pert.choose.entry1 -textvariable findVar -width 24
+                     bind .pert.choose.btn1 <Button-1> {
+                          if ![info exists srcIndex] {set srcIndex ""}
+                          findItem .pert.list.lbox srcIndex $findVar
+                     }
+		     
+		     label .pert.choose.lbl -text "Variable" -font "Courier 12"
+                     entry .pert.choose.entry2 -textvariable pervar -width 24  
+                     button .pert.choose.btn2 -text "Select" -width 6
+		     bind .pert.choose.btn2 <Button-1> {
+                           set pervar [string range [selection get] 0 7]
+			   set pervar1 [string range [selection get] 10 20]
+                     }
+
+		     grid .pert.choose.entry1 -column 1 -row 1 -pady 2m -padx 2m
+		     grid .pert.choose.btn1 -column 2 -row 1 -pady 2m -padx 2m
+		     grid .pert.choose.lbl -column 0 -row 2
+		     grid .pert.choose.entry2 -column 1 -row 2
+		     grid .pert.choose.btn2 -column 2 -row 2
+
+		     frame .pert.dat
+		     frame .pert.dat.r
+		     frame .pert.dat.l
+		     label .pert.dat.l.lbl1 -text "Initial time sec " -font "Courier 12"
+		     label .pert.dat.l.lbl2 -text "Final time sec " -font "Courier 12"
+		     label .pert.dat.l.lbl3 -text "Final value " -font "Courier 12"
+		     frame .pert.butt
+                     button .pert.butt.ok -text Insert -command {
+
+		     #comando che specifica il tipo di perturbazione
+		       	if {$pervar1==0.0} {
+		      		set comvar3 $comvarx
+		      	} else {
+		      		set comvar3 [expr $comvarx/$pervar1]
+		      	}
+			lappend comvar [list $comvar1 , $comvar2 , $comvar3]
+			lappend listPert [list $pervar 1 $comvar1,$comvar2,$comvar3]
+			if [winfo exists .pwatch] {
+                        	destroy .pwatch
+                        	.trans.down.watch invoke
+                        }
+			.pert.butt.ok configure -background gray80
+		}
+		     entry .pert.dat.r.comm1 -textvariable comvar1 -width 15 -validate key \
+		      -validatecommand { transient_batch_valid .pert.butt.ok }
+		     entry .pert.dat.r.comm2 -textvariable comvar2 -width 15 -validate key \
+		      -validatecommand { transient_batch_valid .pert.butt.ok }
+		     entry .pert.dat.r.comm3 -textvariable comvarx -width 15 -validate key \
+		      -validatecommand { transient_batch_valid .pert.butt.ok }
+
+
+		     button .pert.butt.canc -text Exit -width 8 -command "destroy .pert"
+                     frame .pert.sep2 -relief ridge -bd 1 -height 2
+
+		     pack .pert.list.lbox .pert.list.scrl -side left -fill y
+
+		     pack .pert.dat.l.lbl1 .pert.dat.l.lbl2 .pert.dat.l.lbl3 -anchor w -pady 2m
+		     pack .pert.dat.l -side left
+		     pack .pert.dat.r.comm1 .pert.dat.r.comm2 .pert.dat.r.comm3 -anchor w -pady 2m
+		     pack .pert.dat.r -side left
+
+
+		     pack .pert.butt.ok .pert.butt.canc -side left -expand 1
+		     pack .pert.list .pert.choose
+		     pack .pert.sep1 -pady 3m -fill x
+		     pack .pert.dat -side top -pady 3m
+		     pack .pert.sep2 -pady 3m -fill x
+		     pack .pert.butt -side bottom -fill x -pady 2m
+
+              }
+
+
+button .trans.newpert.grad -text Grad -relief groove -width 8 -command {
+		     catch {destroy .pert}
+		     toplevel .pert
+                     wm title .pert "Grad:   Perturbation Setting"
+                     set type 3
+                     frame .pert.list
+		     listbox .pert.list.lbox -yscroll ".pert.list.scrl set" \
+			-setgrid 1 -height 8 -width 0 -font "Courier 12"
+                     scrollbar .pert.list.scrl -command ".pert.list.lbox yview"
+                     set listInputs {}
+                     set f [checkopen proc/f24.last r]
+                     for {set i 1} {$i < 6} {incr i} {
+                           gets $f line
+                     }
+                     while {[string index $line 24] == "*"} {
+                           gets $f line
+                     }
+                     gets $f line
+                     while {[string index $line 24] == "*"} {
+                            lappend listInputs [string range $line 4 23]
+                            gets $f line
+                     }
+                     close $f
+                     foreach i $listInputs {
+                            .pert.list.lbox insert end $i
+                     }
+                     
+		     frame .pert.sep1 -relief ridge -bd 1 -height 2 
+		     frame .pert.choose
+		     button .pert.choose.btn1 -text "Find" -width 6
+                     entry .pert.choose.entry1 -textvariable findVar -width 24
+                     bind .pert.choose.btn1 <Button-1> {
+                          if ![info exists srcIndex] {set srcIndex ""}
+                          findItem .pert.list.lbox srcIndex $findVar
+                     }
+		     
+		     label .pert.choose.lbl -text "Variable" -font "Courier 12"
+                     entry .pert.choose.entry2 -textvariable pervar -width 24  
+                     button .pert.choose.btn2 -text "Select" -width 6
+		     bind .pert.choose.btn2 <Button-1> {
+                           set pervar [string range [selection get] 0 7]
+			   set pervar1 [string range [selection get] 10 20]
+		     }
+	
+		     grid .pert.choose.entry1 -column 1 -row 1 -pady 2m -padx 2m
+		     grid .pert.choose.btn1 -column 2 -row 1 -pady 2m -padx 2m
+		     grid .pert.choose.lbl -column 0 -row 2
+		     grid .pert.choose.entry2 -column 1 -row 2
+		     grid .pert.choose.btn2 -column 2 -row 2
+
+		     frame .pert.dat
+		     frame .pert.dat.r
+		     frame .pert.dat.l
+		     label .pert.dat.l.lbl1 -text "Time sec " -font "Courier 12"
+		     label .pert.dat.l.lbl2 -text "Final value " -font "Courier 12"
+
+		     frame .pert.butt
+		     button .pert.butt.ok -text Insert -command {
+                           	if {$pervar1==0.0} {
+				 	set comvar2 $comvarx
+				 	} else {
+				 	set comvar2 [expr $comvarx/$pervar1]
+				 	}
+				lappend comvar [list $comvar1 , $comvar2]
+				lappend listPert [list $pervar 3 $comvar1,$comvar2] 
+		               if [winfo exists .pwatch] {
+                              destroy .pwatch
+                            .trans.down.watch invoke
+                           }
+			.pert.butt.ok configure -background gray80
+		     }
+
+		     entry .pert.dat.r.comm1 -textvariable comvar1 -width 15  -validate key \
+		      -validatecommand { transient_batch_valid .pert.butt.ok }
+		     entry .pert.dat.r.comm2 -textvariable comvarx -width 15  -validate key \
+		      -validatecommand { transient_batch_valid .pert.butt.ok }
+
+		     button .pert.butt.canc -text Exit -command "destroy .pert"
+                     frame .pert.sep2 -relief ridge -bd 1 -height 2 
+		     
+		     pack .pert.list.lbox .pert.list.scrl -side left -fill y
+		     
+		     pack .pert.dat.l.lbl1 .pert.dat.l.lbl2 -anchor w -pady 2m
+		     pack .pert.dat.l -side left
+		     pack .pert.dat.r.comm1 .pert.dat.r.comm2 -anchor w -pady 2m
+		     pack .pert.dat.r -side left 
+ 
+		     pack .pert.butt.ok .pert.butt.canc -side left -expand 1
+		     pack .pert.list .pert.choose
+		     pack .pert.sep1 -pady 3m -fill x 
+		     pack .pert.dat -side top -pady 3m
+		     pack .pert.sep2 -pady 3m -fill x
+		     pack .pert.butt -side bottom -fill x -pady 2m
+		      
+              }
+
+button .trans.newpert.tab -text Tab -relief groove -width 8 -command {
+		     catch {destroy .pert}
+		     toplevel .pert
+                     wm title .pert "Tab:   Perturbation Setting"
+                     set type 2
+                     frame .pert.list
+		     listbox .pert.list.lbox -yscroll ".pert.list.scrl set" \
+			-setgrid 1 -height 8 -width 0 -font "Courier 12"
+                     scrollbar .pert.list.scrl -command ".pert.list.lbox yview"
+                     set listInputs {}
+                     set f [checkopen proc/f24.last r]
+                     for {set i 1} {$i < 6} {incr i} {
+                           gets $f line
+                     }
+                     while {[string index $line 24] == "*"} {
+                           gets $f line
+                     }
+                     gets $f line
+                     while {[string index $line 24] == "*"} {
+                            lappend listInputs [string range $line 4 23]
+                            gets $f line
+                     }
+                     close $f
+                     foreach i $listInputs {
+                            .pert.list.lbox insert end $i
+                     }
+                     
+                     frame .pert.choose
+		     button .pert.choose.btn1 -text "Find" -width 6
+                     entry .pert.choose.entry1 -textvariable findVar -width 24
+                     bind .pert.choose.btn1 <Button-1> {
+                          if ![info exists srcIndex] {set srcIndex ""}
+                          findItem .pert.list.lbox srcIndex $findVar
+                     }
+		     
+		     label .pert.choose.lbl -text "Variable" -font "Courier 12"
+                     entry .pert.choose.entry2 -textvariable pervar -width 24  
+                     button .pert.choose.btn2 -text "Select" -width 6
+		     bind .pert.choose.btn2 <Button-1> {
+                           set pervar [string range [selection get] 0 7]
+                           set pervar1 [string range [selection get] 10 20]
+                     }
+
+		     grid .pert.choose.entry1 -column 1 -row 1 -pady 2m -padx 2m
+		     grid .pert.choose.btn1 -column 2 -row 1 -pady 2m -padx 2m
+		     grid .pert.choose.lbl -column 0 -row 2
+		     grid .pert.choose.entry2 -column 1 -row 2
+		     grid .pert.choose.btn2 -column 2 -row 2
+
+		     frame .pert.sep1 -relief ridge -bd 1 -height 2 	
+		     frame .pert.dat
+		     frame .pert.dat.str0
+		     
+		     label .pert.dat.str0.lbl1a -text "Time sec" -font "Courier 12"
+		     label .pert.dat.str0.lbl2b -text "   Value" -font "Courier 12"   	
+			
+
+		     frame .pert.butt
+                     button .pert.butt.ok -text Insert -command {
+				set comvar {}
+				for {set i 1} {$i<=10} {incr i} {
+					if {$comvarvl($i)!={}} {
+						if {$comvartm($i)!={}} {
+							set num $i
+						}
+					}
+				}
+
+				for {set i 1} {$i<$num} {incr i} {
+				if {$pervar1==0.0} {
+					lappend comvar $comvartm($i),[expr $comvarvl($i)/1.0],
+					} else {
+						lappend comvar $comvartm($i),[expr $comvarvl($i)/$pervar1],
+						}
+				}
+
+				if {$pervar1==0.0} {
+					lappend comvar $comvartm($num),[expr $comvarvl($num)/1.0]
+					} else {
+						lappend comvar $comvartm($num),[expr $comvarvl($num)/$pervar1]
+						}
+
+				lappend listPert [list $pervar $type $comvar]
+				set comvar {}
+				if [winfo exists .pwatch] {
+                              destroy .pwatch
+                            .trans.down.watch invoke
+			   }
+			.pert.butt.ok configure -background gray80
+		}
+		     for {set i 1} {$i <= 9} {incr i} {
+			frame .pert.dat.str$i
+		     	label .pert.dat.str$i.lbl -text "$i. " -font "Courier 12"
+		     	entry .pert.dat.str$i.tm -textvariable comvartm($i) -width 10  -validate key \
+		      -validatecommand { transient_batch_valid .pert.butt.ok }
+		     	entry .pert.dat.str$i.vl -textvariable comvarvl($i) -width 15  -validate key \
+		      -validatecommand { transient_batch_valid .pert.butt.ok }
+		     }
+		     frame .pert.dat.str10
+		     label .pert.dat.str$i.lbl -text "10." -font "Courier 12"
+		     entry .pert.dat.str$i.tm -textvariable comvartm(10) -width 10  -validate key \
+		      -validatecommand { transient_batch_valid .pert.butt.ok }
+		     entry .pert.dat.str$i.vl -textvariable comvarvl(10) -width 15  -validate key \
+		      -validatecommand { transient_batch_valid .pert.butt.ok }
+
+
+ button .pert.butt.canc -text Exit -command "destroy .pert"
+                     frame .pert.sep2 -relief ridge -bd 1 -height 2 
+		     
+		     pack .pert.list.lbox .pert.list.scrl -side left -fill y
+		     pack .pert.dat.str0.lbl1a  .pert.dat.str0.lbl2b -side left -padx 5m
+   		     for {set i 1} {$i <= 10} {incr i} {
+			pack .pert.dat.str$i.lbl .pert.dat.str$i.tm .pert.dat.str$i.vl -side left -padx 3m -pady 0m
+		     }
+ 		     
+		     pack .pert.butt.ok .pert.butt.canc -side left -expand 1
+		     pack .pert.list .pert.choose
+		     pack .pert.sep1 -pady 3m -fill x 
+
+		     pack .pert.dat.str0 .pert.dat.str1 .pert.dat.str2 .pert.dat.str3 .pert.dat.str4 .pert.dat.str5 .pert.dat.str6 .pert.dat.str7 .pert.dat.str8 .pert.dat.str9 .pert.dat.str10 -side top -pady 1m -padx 5m
+		     pack .pert.dat
+		     pack .pert.sep2 -pady 3m -fill x
+		     pack .pert.butt -side bottom -fill x -pady 2m
+		      
+              }
+
+
+	pack .trans.newpert.lab -side top -anchor w -pady 2m -padx 60m
+	pack .trans.newpert.ramp .trans.newpert.tab .trans.newpert.grad -side left -pady 2m -expand 1
+        pack .trans.newpert -side top -pady 1m -fill x
+	frame .trans.sep4  -relief ridge -bd 1 -height 2
+        pack .trans.sep4 -side top -fill x    
+
+
+}
+
+
+proc stopreq { tipo } {
+#
+# tipo 1: Exit tipo 2: Quit
+#
+	global lgsincropid
+
+#      tk_messageBox -message $lgsincropid  -type ok -icon warning               
+	if { $lgsincropid  != -1 } { 
+		set mex [tk_messageBox -icon question -type yesno \
+         		-title Question -parent . -message "LgSincro running... Do you want to kill it?" ]
+		if {$mex == "yes"} {	
+		      set command2 "pskill" 
+                      catch { exec $command2 $lgsincropid } 
+                      catch { exec $command2 "lgser" }
+                      }
+	}
+                      
+	switch $tipo {
+ 		1 { exit 0 }
+ 		2 { exit 0 } 		  
+	}
+}
+
+
+
+#============================================================
+
+
+source $env(LG_TIX)/subwgs.tcl
+

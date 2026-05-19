@@ -1,0 +1,1104 @@
+###
+### 	compoenent editor 
+### 		ver. 25 Feb. 2002 
+### 		rev. 1.0
+###
+
+
+#####################################################
+#
+# build_comp_editor_win 
+#
+#####################################################
+
+proc build_comp_editor_win { } {
+	# widget lista 
+	global WidList
+
+	gvar_def 
+
+    	set w .wmaincomp
+
+	set compMainW $w
+
+     	toplevel $w
+
+	set titolo "Component Template Configuration"
+     	wm title $w $titolo
+     	wm iconname $w $titolo
+     	wm minsize $w 45 1
+
+    	set top [frame $w.f -bd 1 -relief raised]
+    	set box [tixButtonBox $w.b -bd 1 -relief raised]
+
+    	# Create the buttons
+    	#
+    	$box add ok     -text "Save Template"    -command "comp_ok" -width 20
+    	$box add dolgser    -text "Save Template and Convert"     -command "Convert" -width 20
+    	$box add cancel -text "Quit" -command "Quit" -width 20
+
+    	# creo una scrolled list 
+    	tixScrolledListBox $top.listComp -command {  } 
+    	$top.listComp subwidget listbox config \
+		-font [tix option get fixed_font] -width 60
+  
+      # visualizzo gli widget
+    	pack $top.listComp -expand yes -fill both -padx 4 -pady 6
+    	pack $box -side bottom -fill both
+    	pack $top -side top -fill both -expand yes
+
+	#definizione menù 
+    	$w configure -menu $w.menu
+	menu $w.menu -tearoff 0
+	set cf $w.menu.file
+	set cm $w.menu.comp
+	set cv $w.menu.var
+	set cs $w.menu.sep
+	set conv $w.menu.conv	
+
+	menu $cf -tearoff 0
+	menu $cm -tearoff 0
+	menu $cv -tearoff 0
+	menu $cs -tearoff 0
+	menu $conv -tearoff 0
+
+#	$w.menu add cascade -label "Component" -menu $cm -underline 0
+#	$cm add command -label "Add" -command "add_new_comp"
+#	$cm add command -label "Edit" -command "edit_comp"
+
+	$w.menu add cascade -label "File" -menu $cf -underline 0
+	$cf add command -label "View Result" -command "view_result"
+
+
+	$w.menu add cascade -label "Variable" -menu $cv -underline 0
+#	$cv add command -label "Add" -command "add_new_var"
+	$cv add command -label "Edit" -command "edit_var"
+
+	$w.menu add cascade -label "Text" -menu $cs -underline 0 
+	$cs add cascade -label "Add Separator" -menu $cs.sepopt 
+	menu $cs.sepopt -tearoff 0
+
+	$cs.sepopt add command -label "At end of list" -command "add_sep end"
+	$cs.sepopt add command -label "After current position" -command "add_sep after"
+	$cs.sepopt add command -label "Before current position" -command "add_sep before"
+	
+	$cs add cascade -label "Add Text" -menu $cs.commpopt 	
+	menu $cs.commpopt -tearoff 0
+	$cs.commpopt add command -label "At end of list" -command "add_new_comment  end"
+	$cs.commpopt add command -label "After current position" -command "add_new_comment after"
+	$cs.commpopt add command -label "Before current position" -command "add_new_comment before"
+	$cs add command -label "Edit Text" -command "edit_comp"
+
+	$w.menu add cascade -label "U.M. Conversion" -menu $conv -underline 0
+	$conv add command -label "Default UM definition" -command "um_default"
+	$conv add command -label "Define Conversion Rules" -command "define_conv_rule"
+	$conv add command -label "Define Variable Conversion" -command "define_var_conv"
+
+	$w configure -menu $w.menu
+
+	set WidList $top.listComp 
+
+	puts "BINDING ON [$top.listComp subwidget listbox] "
+	bind [$top.listComp subwidget listbox] <Double-B1-ButtonRelease>  { delete_item }
+	
+	puts "DBG: WidList = $WidList"
+}
+
+proc Quit { } {
+
+	if { [winfo exist .wmaincomp] } {
+		destroy .wmaincomp
+	}	
+
+	if { [winfo exist .wmainconv] } {
+		destroy .wmainconv
+	}	
+
+	if { [winfo exist .wmaincrule] } {
+		destroy .wmaincrule
+	}	
+
+	if { [winfo exist .wmaincv] } {
+		destroy .wmaincv
+	}	
+
+	if { [winfo exist .wdefvars] } {
+		destroy .wdefvars
+	}	
+
+	if { [winfo exist .wdefcrule] } {
+		destroy .wdefcrule
+	}	
+}
+
+#####################################################
+#
+# comp_ok
+#
+#####################################################
+
+proc comp_ok { } {
+
+	# widget lista 
+	global WidList
+	global taskpath
+	global txtsubdir
+	global fntemplate
+
+	set nrow [$WidList  subwidget listbox  size]
+
+
+	set f [file join $txtsubdir $fntemplate]
+
+	set fp [open $f w]
+	
+	for { set i 0 } { $i < $nrow  } {incr i } {
+		set item [$WidList  subwidget listbox  get $i]
+		if { [string length $item] } {
+			puts $fp $item
+		}
+	}
+
+	flush $fp	
+	close $fp
+
+}
+
+#####################################################
+#
+# getconv
+# verifica se nell'item è presente la stringa dic onversione
+# ricercando i caratteri di controllo @C.....@
+# ritorna la stringa di convesione 
+# o -1
+#####################################################
+
+proc getconvstr { item } {
+			
+	# verifico se c'è l'override della conversione 
+	# cercando il carattere @C
+	set flag 0
+	set overini 0
+	set overini [string first "@C" $item]
+	if { $overini > 1 } {
+		# c'e la tag iniziale per l'override
+		# recupero la stringa di override
+		set indini [expr $overini + 2]
+		set stapp1 [string range $item $indini end]
+		set ind1 [string first "@" $stapp1] 
+		set indend [expr $ind1 + $indini -1]
+		set strconv [string range $item $indini $indend]
+		puts "stringa di convesione = <$strconv>"
+		if { $strconv != " " } {
+			set flag 1
+		}
+	}
+
+	if { $flag == 1} {
+		return $strconv
+	} else {
+		return "-1"
+	}
+}
+
+proc getdescrstr { item } {
+
+	# recupero la descrizione che è identificata con 
+	# il carattere di controllo @Dxxx yy zzz@
+	set descrini 0
+	set descrini [string first "@D" $item]
+	if { $descrini > 1 } {
+		# c'e la descrizione
+		set indini [expr $descrini + 2]
+		set stapp1 [string range $item $indini end]
+		set ind1 [string first "@" $stapp1] 
+		set indend [expr $ind1 + $indini -1]
+		set descr [string range $item $indini $indend]
+		puts "descrizione = <$descr>"
+
+		return $descr
+
+	} else {
+
+		return "-1"
+
+	}
+}
+
+proc getvname { item } {
+
+	# recupero la descrizione che è identificata con 
+	# il carattere di controllo @Vxxx@
+	set vini 0
+	set vini [string first "@V" $item]
+puts "VINI=$vini"
+	if { $vini != -1 } {
+		# c'e una variabile 
+		set indini [expr $vini + 2]
+		set stapp1 [string range $item $indini end]
+		puts "stapp1=$stapp1"
+		set ind1 [string first "@" $stapp1] 
+		set vend [expr $ind1 + $indini -1]
+		set vname [string range $item $indini $vend]
+		puts "variable name = <$vname>"
+
+		return $vname
+
+	} else {
+
+		return "-1"
+
+	}
+}
+
+#####################################################
+#
+# Convert
+#
+#####################################################
+
+proc Convert { } {
+
+	# widget lista 
+	global WidList
+	global taskpath
+	global txtsubdir
+	global fnmodello
+
+	# save template 
+	comp_ok
+
+	# and convert
+	global righeF14 arrRigheF14
+	set righeF14 0
+	global righeF01 arrRigheF01
+	set righeF01 0
+
+	# rileggo l'f01 e f14 correnti
+	readAllF14
+	readAllF01 
+
+	set nrow [$WidList  subwidget listbox  size]
+
+	set fdest [file join $txtsubdir $fnmodello]
+
+	set fp [open $fdest w]
+	
+	for { set i 0 } { $i < $nrow  } {incr i } {
+		set vname ""
+		set spare ""
+		set descr ""
+		set appname ""
+
+		# recupero l'item dalla lista
+		# e inizio a controllare la prima stringa
+		# per discriminare se è una variabile
+
+
+# 14/03/02 modifica sulla struttura dell'item descrittivo 
+# della variabile che risulta essere così composto
+## varname @Cconversione@ @Ddescrizione@
+## 
+		
+		set item [$WidList  subwidget listbox  get $i]
+		puts "ITEM READ FROM LIST $item"
+		scan $item %s vname 
+
+		set vname [getvname $item]
+
+		puts ">>> SEARCH FOR: $vname"
+
+		
+		if {$vname != -1 } {
+
+			# controllo se la stringa è una variabile
+			# presente nel f14.dat 
+			# (in caso contrario la procedura ritorna -99
+			set val [searchVarValue $vname]
+			
+
+
+			# verifico se c'è l'override della conversione 
+			set flag 0
+			set strconv [getconvstr $item]
+			puts "STRINGA DI CONVERSIONE IN OVERRIDE $strconv"
+			if { $strconv != "-1" } {
+				set idconv [searchConvInd $strconv]
+				set flag 1
+			}
+
+
+			set descr [getdescrstr $item]
+			if { $descr == "-1" } {
+				# recupero la descrizione della variabile 
+				# dall'f01.dat
+				set descr [searchF01VarDescr $vname]
+			}
+
+
+			# recupero la iniziale della variabile
+			set initvar [string range $vname 0 0]
+
+			# cerco la unità di misura di default
+			# (la procedura ritorna ? se non ci sono associazioni)
+			set defUM [getDefUM $initvar]
+
+			if { ![string compare $defUM "?"] } {
+				puts "Default UM not defined for variable init =$initvar"
+			}
+
+			# verifico se è richiesta una conversione
+			# specifica sulla variabile
+
+			set defconv [findDefaultConv $initvar]
+
+			if { $flag == 1 } {	
+				puts "USO CONVERSIONE ESPLICITA"	
+				set convused $idconv
+				set flag 0
+			} elseif { $defconv > 0 } {		
+				puts "USO CONVERSIONE DI DEFAULT"	
+				set convused $defconv
+			} else {
+				puts "CONVERSIONE NON DEFINITA"	
+				set convused 0
+			}
+
+			puts "DBG: convused=$convused"
+
+			if { $convused > 0 } {
+				# devo convertire il valore
+				# e la corrispondente um
+				if { $val != "-0" } {
+					set newval [converti $val $convused]
+				} else {
+					set newval $val
+				}
+				set newUM [getNewUM $convused]
+				
+			} else {
+				set newval $val
+				set newUM $defUM
+			}			
+
+			# definisco il nuovo item da scrivere su file
+			set formato "%s\t%7.7f\t%s\t%s"
+			set newitem [format $formato $vname $newval $newUM $descr]
+			
+		} else {
+			#
+			# altrimenti riscrivo l'item pari pari
+			#
+			set newitem "$item"
+		}
+		puts $fp $newitem
+	}
+
+	flush $fp	
+	close $fp
+}
+
+#####################################################
+#
+# build_comp_win
+#
+#####################################################
+
+proc build_comp_win { editing {comp_name ""} {cur_pos 0} } {
+	# widget lista 
+	global WidList
+
+	
+puts "build_comp_win CALLED with ARG editing=$editing $comp_name $cur_pos"
+
+	set lpos $cur_pos
+
+    	set w .wincomp
+	set addCompW $w
+
+     	toplevel $w
+     	wm title $w "Component Definition"
+     	wm minsize $w 15 1
+
+
+    	set top [frame $w.f -bd 1 -relief raised]
+
+    	set box [tixButtonBox $w.b -bd 2 -relief raised]
+   
+	# creo un frame per contenere le entry nome,descrizione)
+	set fr $addCompW.frame
+	frame $addCompW.frame
+
+	
+    	tixLabelEntry $fr.lblComp  -label "Text: " \
+		-options {
+	   	 entry.width 40
+	   	 label.width 40
+	   	 label.anchor e
+		}
+
+
+	$fr.lblComp  subwidget entry  delete 0 40
+	$fr.lblComp  subwidget entry  insert 0 $comp_name
+
+	set wid $fr.lblComp  
+
+    	# Create the buttons
+    	#
+if { $editing == 0  } {
+    	$box add ok     -text Ok     -command {add_comp_in_list $comp_name  } -width 3 -height 1
+} else {
+    	$box add ok     -text Ok     -command "edit_comp_in_list $wid $lpos" -width 3 -height 1
+}
+   	$box add cancel -text Cancel -command "destroy $w" -width 3 -height 1
+
+   	pack $box -side bottom -fill both -pady 3
+    	pack $top -side top -fill both -expand yes
+
+	pack $fr.lblComp   -anchor w -padx 10 -pady 10
+#	pack $fr.lblDesc   -anchor w -padx 10 -pady 10
+
+	pack $addCompW.frame -side top -fill both -expand yes
+
+
+}
+
+#####################################################
+#
+# build_var_win
+#
+#####################################################
+
+proc build_var_win { lpos vname vconv vdescr } {
+	# widget lista 
+	global WidList
+	global convUM
+
+	puts "DBG: parameter->$lpos $vname $vconv $vdescr"
+
+	set var_pos $lpos
+	set var_name $vname
+	set var_conv $vconv
+	set var_descr $vdescr
+
+    	set w .wvar
+	set addVarW $w
+
+     	toplevel $w
+     	wm title $w "Variable Definition"
+     	wm minsize $w 15 1
+
+
+    	set top [frame $w.f -bd 1 -relief raised]
+
+    	set box [tixButtonBox $w.b -bd 2 -relief raised]
+   
+	# creo un frame per contenere le entry nome,descrizione)
+	set fr $addVarW.frame
+	frame $addVarW.frame
+
+    	tixLabelEntry $fr.lblVar  -label "Variable name: " \
+		-options {
+	   	 entry.width 20
+	   	 label.width 20
+	   	 entry.textVariable var_name
+		}
+
+
+	# Create and configure comboBox 1 for um conversion
+    	#
+    	tixComboBox $fr.cbx  \
+			-dropdown true \
+			-label "Conversion:" \
+			-options {
+			   	label.width 20
+	    			entry.width    20
+	    			listbox.height 3
+			}
+	
+     	$fr.cbx insert end " "
+	foreach cv $convUM {
+	     	$fr.cbx insert end $cv
+    	}
+
+	#set idconv [searchConvInd $vconv]
+	#puts "DBG: FOUND vconv=$vconv idconv=$idconv"
+	$fr.cbx pick $vconv
+
+
+	$fr.lblVar  subwidget entry  delete 0 20
+	$fr.lblVar  subwidget entry  insert 0 $var_name
+	$fr.lblVar  subwidget entry  configure -state disabled
+
+    	tixLabelEntry $fr.lblDesc  -label "Description: " \
+		-options {
+	   	 entry.width 40
+	   	 label.width 20
+		}
+
+
+	$fr.lblDesc subwidget entry  delete 0 40
+	$fr.lblDesc subwidget entry  insert 0 $var_descr
+
+
+    	# Create the buttons
+    	#
+    	$box add ok     -text Ok     -command "edit_var_in_list $fr.cbx $fr.lblDesc  $var_pos $var_name " -width 3 -height 1
+    	$box add cancel -text Cancel -command "destroy $w" -width 3 -height 1
+
+
+   	pack $box -side bottom -fill both -pady 3
+    	pack $top -side top -fill both -expand yes
+
+	pack  $fr.lblVar   -anchor w -padx 20 -pady 10
+	pack  $fr.cbx	 -anchor w -padx 20 -pady 10
+	pack  $fr.lblDesc	 -anchor w -padx 20 -pady 10
+
+	pack $addVarW.frame -side top -fill both -expand yes
+}
+
+
+#####################################################
+#
+# build_comment_win
+#
+#####################################################
+
+proc build_comment_win { dove_pass curr_pos } {
+	# widget lista 
+	global WidList
+
+
+	set comment ""
+
+    	set w .cvar
+	set addCommW $w
+
+     	toplevel $w
+
+	switch $dove_pass { 
+		end { set p "at end of list" }
+		before {set p "before selected item (row $curr_pos)" }
+		after { set p "after selected item (row $curr_pos)" }
+	}
+
+     	wm title $w "Insert Comment $p"
+     	wm minsize $w 15 1
+
+
+    	set top [frame $w.f -bd 1 -relief raised]
+
+    	set box [tixButtonBox $w.b -bd 2 -relief raised]
+
+
+   
+	# creo un frame per contenere le entry nome,descrizione)
+	set fr $addCommW.frame
+	frame $addCommW.frame
+
+    	tixLabelEntry $fr.lblVar  -label "Text: " \
+		-options {
+	   	 entry.width 40
+	   	 label.width 40
+	   	 label.anchor e
+		 entry.textVariable comment
+		}
+
+
+    	tixLabelEntry $fr.lblPar  -label "dove: " \
+		-options {
+	   	 entry.width 40
+	   	 label.width 40
+	   	 label.anchor e
+	   	 entry.textVariable dove
+		}
+
+    	tixLabelEntry $fr.lblCurrIdx  -label "Posizione corrente: " \
+		-options {
+	   	 entry.width 40
+	   	 label.width 40
+	   	 label.anchor e
+	   	 entry.textVariable pos	
+		}
+
+    	# Create the buttons
+    	#
+    	$box add ok     -text Ok     -command {add_comm_in_list $comment $dove $pos } -width 3 -height 1
+    	$box add cancel -text Cancel -command "destroy $w" -width 3 -height 1
+
+
+   	pack $box -side bottom -fill both -pady 3
+    	pack $top -side top -fill both -expand yes
+
+	pack $fr.lblVar   -anchor w -padx 10 -pady 10
+
+	
+	pack $addCommW.frame -side top -fill both -expand yes
+
+	$fr.lblVar  subwidget entry  delete 0 40
+	$fr.lblVar  subwidget entry  insert 0 $comment
+
+	$fr.lblPar subwidget entry  delete 0 40
+	$fr.lblPar subwidget entry  insert 0 $dove_pass
+
+	set cur_pos [$WidList subwidget listbox curselection]
+
+	$fr.lblCurrIdx subwidget entry  delete 0 40
+	$fr.lblCurrIdx subwidget entry  insert 0 $curr_pos
+
+}
+
+
+#####################################################
+#
+# add_new_comp 
+#
+#####################################################
+proc add_new_comp { } {
+	# widget lista 
+	global WidList
+
+
+	set editing 0
+	
+	build_comp_win $editing 
+
+}
+
+#####################################################
+#
+# edit_comp 
+#
+#####################################################
+proc edit_comp {  } {
+	# widget lista 
+	global WidList
+
+	set vname ""
+	set item ""
+	set curpos 0
+	puts "EDIT_COMP called..."
+
+
+	set curpos [$WidList subwidget listbox curselection]
+	set item [$WidList  subwidget listbox  get $curpos]
+
+	scan $item "%s" vname
+	set lenname [string length $vname]
+
+	if { [string range $vname 0 1] == "@V" } {
+		tk_messageBox -type ok -icon error  -message "This is a variable"		
+		return
+	}
+
+	puts "DBG: curpos=$curpos"
+	puts "DBG: item = $item"
+	puts "vname=$vname "
+
+	set editing 1
+#	build_comp_win $editing $vname  $curpos 
+	build_comp_win $editing $item  $curpos 
+
+
+}
+
+#####################################################
+#
+# add_new_var
+#
+#####################################################
+
+proc add_new_var { } {
+	# widget lista 
+	global WidList
+
+	set vname ""
+	set vdescr ""
+	set vconv 0
+
+#	build_var_win $vname $vdescr $vconv
+}
+
+#####################################################
+#
+# add_var_in_list
+#
+#####################################################
+
+proc add_var_in_list { where pos name } {
+	# widget lista 
+	global WidList
+
+	set item "@V$name@"
+
+	#add_in_wlistbox $item	
+	add_in_wlistbox $item $where $pos
+}
+
+#####################################################
+#
+# edit_var
+#
+#####################################################
+
+proc edit_var { } {
+	# widget lista 
+	global WidList
+
+	set vname ""
+	set vdescr ""
+	set vconv 0
+
+
+	puts "EDIT_VAR called..."
+
+
+	set curpos [$WidList subwidget listbox curselection]
+
+	set item [$WidList  subwidget listbox  get $curpos]
+
+	scan $item "%s" vname
+	set lenname [string length $vname]
+	set lenitem [string length $item]
+
+	if { [string range $vname 0 1] != "@V" } {
+		tk_messageBox -type ok -icon error  -message "This is not a variable"		
+		return
+	}
+
+	puts "lenname=$lenname lenitem=$lenitem"
+
+	# c'è anche la conversione
+	if { $lenitem > $lenname } {
+
+#		set stconv [string range $item [expr $lenname+1] end]
+		set stconv [getconvstr $item]
+		set vconv [searchConvInd $stconv]
+		# incremento di 1 perchè nella combo box
+		# la prima riga è un blank
+		# che è utilizzato per resettare la conversione
+		incr vconv
+		puts "C'e anche la conversione $stconv idx=$vconv"
+	}
+
+	# c'è anche la descrizione
+	set descr [getdescrstr $item]
+	if { $descr != "-1" } {
+		set vdescr $descr
+	} else {
+		set vdescr ""
+	}
+
+	puts "DBG: curpos=$curpos"
+	puts "DBG: item = $item"
+	puts "vname=$vname vconv=$vconv vdescr=$vdescr"
+
+
+	build_var_win $curpos $vname $vconv $vdescr
+}
+
+#####################################################
+#
+# add_new_comment
+#
+#####################################################
+
+proc add_new_comment { where } {
+	# widget lista 
+	global WidList
+
+
+	puts "DBG: add_new_comment where=$where"
+
+	set curpos [$WidList subwidget listbox curselection]
+
+	build_comment_win $where $curpos
+}
+
+
+#####################################################
+#
+# add_comp_in_list
+#
+#####################################################
+
+proc add_comp_in_list {name } {
+	# widget lista 
+	global WidList
+
+
+	set item "$name"
+
+	add_in_wlistbox $item	
+
+	destroy .wincomp
+}
+
+#####################################################
+#
+# edit_comp_in_list
+#
+#####################################################
+
+proc edit_comp_in_list { wid vpos } {
+	# widget lista 
+	global WidList
+
+puts "DBG: edit_comp_in_list $vpos "
+
+	set c_name [$wid  subwidget entry  get]
+
+puts "c_name: $c_name"
+
+	set item "$c_name"
+
+	subst_in_wlistbox $vpos $item
+
+	destroy .wincomp
+}
+
+#####################################################
+#
+# edit_var_in_list
+#
+#####################################################
+
+proc edit_var_in_list { widconv widdesc vpos vname  } {
+	# widget lista 
+	global WidList
+
+	puts "edit_var_in_list $vname " 
+
+	set vconv [$widconv subwidget entry get]
+	set vdescr [$widdesc subwidget entry get]
+
+	set item "$vname @C$vconv@ @D$vdescr@"
+
+	subst_in_wlistbox $vpos $item
+
+	destroy .wvar
+
+}
+
+#####################################################
+#
+# add_sep
+#
+#####################################################
+
+proc add_sep { where } {
+	# widget lista 
+	global WidList
+
+	set item "====================================================================="
+
+	set pos [$WidList subwidget listbox curselection]
+
+	add_in_wlistbox $item $where $pos
+}
+
+#####################################################
+#
+# add_comm_in_list
+#
+#####################################################
+
+proc add_comm_in_list {comment dove pos} {
+	# widget lista 
+	global WidList
+
+	puts "DBG: add_comm_in_list $comment $dove $pos"
+
+	set item "$comment"
+
+	add_in_wlistbox $item $dove $pos
+}
+
+#####################################################
+#
+# add_in_wlistbox 
+# 
+#####################################################
+
+proc add_in_wlistbox { item {where end} {idxpass 0} } {
+	# widget lista 
+	global WidList
+
+
+	set wid $WidList
+
+#	set curpos [$WidList subwidget listbox curselection]
+
+	#inizializzo	
+
+	switch -exact $where {
+		end { set idx "end" }
+		after {set idx [expr $idxpass +1]}
+		before {set idx  $idxpass }
+	}
+
+	$WidList subwidget listbox insert $idx $item
+
+}
+
+#####################################################
+#
+# subst_in_wlistbox 
+# 
+#####################################################
+
+proc subst_in_wlistbox { pos item } {
+	# widget lista 
+	global WidList
+
+
+	set wid $WidList
+
+	
+
+	$WidList subwidget listbox delete $pos
+	$WidList subwidget listbox insert $pos $item
+
+}
+
+#####################################################
+#
+# gvar_def 
+# 
+# global variable definition
+#
+#####################################################
+
+proc gvar_def { } {
+
+	# lista dei componenti e delle variabili
+	global compList 
+	global varList
+
+}
+
+
+#####################################################
+#
+# gvar_init
+# 
+# global variable initialization
+#
+#####################################################
+
+proc gvar_init { } {
+
+	# inizializzo le variabili 
+	set compList [list]
+	set varList  [list]
+
+
+}
+
+#####################################################
+#
+# show_data
+#
+#####################################################
+
+proc show_data { path } {
+	# widget lista 
+	global WidList
+	global txtsubdir
+	global fntemplate	
+
+	set fnome [file join $txtsubdir $fntemplate]
+
+	set chk [catch {set fp [open $fnome r]} result]
+	if {$chk != 0} {
+		set messaggio "The file $fnome doesn't exist"
+		tk_messageBox -message $messaggio -type ok
+		return 1
+	}
+
+	puts "READ [file join $path $fntemplate]"	
+	
+	while {![eof $fp]} {
+		gets $fp item
+		add_in_wlistbox $item 
+	}
+	
+	close $fp
+}
+
+#####################################################
+#
+# main_comped
+#
+#####################################################
+
+proc main_comped { simulpath } {
+	global env 
+	gvar_def 
+	gvar_init 
+
+	global taskpath
+
+#	set srcdir $env(LG_TIX)
+
+	set modelname [file tail $simulpath]	
+	set curFileName [file join $simulpath $modelname] 
+
+	set curSimulPathName "$simulpath"
+	set taskpath $curSimulPathName 
+
+puts "main_comped simulpath=$simulpath modelname=$modelname"
+
+#	source [file join $srcdir leggiF14VarValue.tcl]
+#	source [file join $srcdir UMconv.tcl]
+	
+	#inizializzazione default u.m.
+	# e regole di conversione
+	puts "Start initialization ..."
+	initDefUM
+	puts "iniDefUm passed ..."
+	initConvRule
+	puts "initConvRule passed ..."
+	initConvVar
+	puts "initConvVar passed ..."
+
+	cd $simulpath
+
+	global righeF14 arrRigheF14
+	set righeF14 0
+	global righeF01 arrRigheF01
+	set righeF01 0
+
+
+	readAllF14
+	readAllF01 
+
+	# widget lista 
+	global WidList
+
+	build_comp_editor_win 
+
+	# populate list with data (if exist)
+
+	show_data $taskpath 
+
+}
+
+
+proc delete_item {  } {
+	# widget lista 
+	global WidList
+
+	set cur_pos [$WidList subwidget listbox curselection]
+	$WidList subwidget listbox delete $cur_pos
+}
+
+
+proc view_result { } {
+	global env
+	global txtsubdir
+	global fnmodello
+
+	set fname [file join $txtsubdir $fnmodello]
+	exec $env(LG_LEGO)/edita.bat $fname &
+}

@@ -1,0 +1,1307 @@
+
+#####################################################
+#
+# comp_editor	vers 1.0		Feb 2002
+#
+# programma per il post processig del file f14.dat
+# e relativa presentazione
+#
+# Variabili di environment che devono essere definite prima
+# della esecuzione del programma:
+#  	 LG_BASE	p.es. set LG_BASE=C:\carlo\dati
+#  	 LG_BROWSER=C:/Programmi/Internet Explorer/iexplore.exe
+#  	 LG_HELP_PATH=D:/help_lego_pc/LegoPCHelp
+#
+#	example: you can set this in your autoexec.bat
+#
+#	set LG_BASE=C:\lego\dati
+#	set LG_BROWSER=C:/Programmi/Internet Explorer/iexplore.exe
+#	set LG_HELP_PATH=D:/help_lego_pc/LegoPCHelp
+#
+#
+#
+#####################################################
+
+#####################################################
+#
+# utilities per la cancellazione di item da una lista
+#
+# l1 lista sorgente da cui eliminare gli item
+# l2 lista degli indici di item da eliminare
+#
+#####################################################
+
+source $env(LG_TIX)/checkopen.tcl
+
+
+proc ldelete { l1 l2 } {
+
+	set le [llength $l2]
+
+	if { $le } {
+		set numdel 0
+		for { set i 0 } { $i < $le } { incr i } {
+			set idxtodel [ expr [lindex $l2 $i] - $numdel]
+			set l1  [lreplace $l1  $idxtodel $idxtodel]
+			incr numdel
+		}
+	}
+	return $l1
+}
+
+#####################################################
+#
+# showOptions 
+#
+#####################################################
+proc showOptions {c x y} {
+
+	set myTags [$c gettags current]
+	set appo $myTags
+
+
+	set modName [string range [lindex $myTags 2] 0 3]
+ 	
+	catch	{$c delete modOpt}
+
+
+	set x1 $x
+	set y1 [expr $y - 30]
+	set mylist [list "Block $modName" "Variables" "Help" "Quit"]
+	for {set idTid 0} {$idTid < 4} {incr idTid} {
+		set el [lindex $mylist $idTid]
+		set tid($idTid) [$c create text $x1 $y1 -text $el -anchor n -tags modOpt]
+		set lc [$c bbox $tid($idTid)]
+		set y1 [lindex $lc 3]
+	}
+	$c itemconfigure $tid(0) -fill coral3
+	$c bind $tid(0) <B1-ButtonRelease> ""
+	$c bind $tid(1) <B1-ButtonRelease> "showVars $c %x %y {$appo}"
+	$c bind $tid(2) <B1-ButtonRelease> "open_hlp   $modName"
+	$c bind $tid(3) <B1-ButtonRelease> "$c delete modOpt"
+
+	set lc [$c bbox modOpt]
+	set x1 [expr [lindex $lc 0] - 5]
+	set y1 [expr [lindex $lc 1] - 1]
+	set x2 [expr [lindex $lc 2] + 5]
+	set y2 [lindex $lc 3]
+	$c create rectangle $x1 $y1 $x2 $y2 -fill white -tags modOpt
+	$c raise $tid(0)
+	$c raise $tid(1)
+	$c raise $tid(2)
+	$c raise $tid(3)
+}
+
+#####################################################
+#
+# view_error 
+#
+#####################################################
+proc view_error { errn } {
+
+     	switch $errn  {
+        		F_100 {
+		tk_messageBox -type ok -icon error  -message "Simul.dat \nFormat Error\nSee input variable number"
+       		}
+        		F_101 {
+		tk_messageBox -type ok -icon error  -message "Simul.dat \nFormat Error\nSee monitored variable number"
+       		}
+        		F_102 {
+		tk_messageBox -type ok -icon error  -message "Simul.dat \nFormat Error\nBad END keyword"
+       		}
+   	 }
+}
+
+#####################################################
+#
+# reset_global_cvar
+#
+#####################################################
+
+proc reset_global_cvar { } {
+	### lista contenirore variabili input e monitored
+	global  componentList  compVartList  
+	# reset variabili globali relative alle valorizzazione di simul.dat
+
+	set componentList [list ]
+	set compVartList [list ]
+
+}
+
+#####################################################
+#
+# showVars
+#
+# procedura con numero variabile di argomenti
+# solamente i primi tre canvas x e y sono obbligatori
+# nel caso che non sia passata la tag dell'oggetto desiderato
+# viene ricercato l'oggetto current
+#####################################################
+
+proc showVars {c x y args } {
+	
+	if { [llength $args]<=0 } {
+		set myTags [$c gettags current]
+	} else {
+		set myTags [lindex $args 0]
+	}
+
+     	 if {[file rootname [lindex $myTags [lsearch $myTags *.ori]]] == ""} {
+	 	set modName [string range [lindex $myTags 3] 0 3]
+      	} else {
+      		 set modName [string range [lindex $myTags 5] 0 3]
+	}
+	catch	{$c delete modOpt}	
+	showIt $modName
+	$c delete modOpt
+}
+
+#####################################################
+#
+# pix2c
+#
+#####################################################
+proc pix2c {v} {
+	global convConst
+	return [expr ($v/$convConst)*1.9]
+}
+
+#####################################################
+#
+# showlt
+#
+#####################################################
+proc showIt {mod} {
+	global curFileName campo
+	global numVars nomeVars tipoVars tipVarMod
+
+#####only for debug
+	global numBlo listBlo
+	global blocModu blocBloc blocDesc blocNvar blocVars
+	global numVars nomeVars tipoVars descVars valuVars weightvars
+	global tipVarMod numeVblo listVblo matrVblo
+	global varwinMainW
+
+
+	if {[loadVariables $mod]} return
+
+
+
+	for {set i 0} {$i < $numVars} {incr i} {
+		set nomeVars($i) $blocVars($mod,$i,nome)
+		set tipoVars($i) $blocVars($mod,$i,tipo)
+		set descVars($i) $blocVars($mod,$i,desc)
+		set nom $nomeVars($i)
+		set tip $tipVarMod($nom)
+		set valuVars($i) [string trim $matrVblo($nom,$tip,valu)]
+            set weightvars($i) $matrVblo($nom,$tip,code)
+	}
+
+	set w1 ".varwin"
+	set varwinMainW $w1
+
+	catch {destroy $w1}
+	toplevel $w1
+	wm title $w1 "Block $mod variables"
+	wm maxsize $w1 620 440
+
+	set but $w1.buttons
+	frame $but
+	pack $but -side bottom -pady 10
+	button $but.quit -text "Quit" -command "destroy $w1"
+	pack $but.quit -side left -expand yes -ipadx 35 -padx 50
+
+	set w2 $w1.sfondo
+	tixScrolledWindow $w2 -scrollbar "auto -x"
+	pack $w2
+	set w3 [$w2 subwidget window]
+
+	frame $w3.middle
+	pack $w3.middle -side top -padx 10 -pady 10
+
+	set tit $w3.middle.titolo
+	frame $tit
+	pack $tit -side top
+
+	set campo(0) "Var.Name"
+	set campo(1) "  "
+
+	button $tit.nome -textvariable campo(0) -width 8 -relief raised \
+		-font titleFont -state disabled -background green \
+		-disabledforeground black
+	button $tit.tipo -textvariable campo(1) -width 2 -relief raised \
+		-font titleFont -state disabled -background green
+	pack $tit.nome $tit.tipo -side left -anchor w
+
+	for {set index 0} {$index < $numVars} {incr index} {
+		set rig $w3.middle.riga$index
+		frame $rig
+		pack $rig -side top
+            	set nome $nomeVars($index)
+            	set tipovar $tipVarMod($nome)
+		button $rig.nome -textvariable nomeVars($index) -width 8 -relief groove \
+			-font entryFont -background gray80
+		bind $rig.nome <1> "setSlot %W %x %y $mod  $index $tipVarMod($nomeVars($index))"
+		button $rig.tipo -textvariable tipoVars($index) -width 2 -relief groove \
+			-font entryFont -state disabled -background yellow \
+			-disabledforeground black
+		pack $rig.nome $rig.tipo -side left
+	}
+}
+
+#####################################################
+#
+# sel_comp
+# componente attivo selezione 
+#####################################################
+proc sel_comp { lbox } {
+	global  componentList  compVartList 
+      global WidCompList  WidCvarList 
+	global curr_sel_comp
+
+    	set idx [$lbox  subwidget listbox curselection]
+
+	set comp [lindex $componentList $idx]
+
+	puts "lista completa [puts $componentList]"
+
+	puts "sel_comp DBG: comp=$comp"
+	
+	set curr_sel_comp $comp
+
+	puts "CURRENT COMPONENT:  $comp"
+}
+
+#####################################################
+#
+# del_var_sel
+#
+# procedura per la cancellazione dell'item selezionato della listbox
+#
+#####################################################
+proc del_var_sel {lbox } {
+      global  componentList  compVartList 
+      global WidCompList  WidCvarList 
+
+
+    	set idx [$lbox  subwidget listbox curselection]
+     	$lbox  subwidget listbox delete $idx    
+
+     	if {$lbox == $WidCvarList } {
+		set ltype "IN"
+    	 } else {
+		set ltype "UA"
+    	 }
+
+    	 del_var $idx $ltype
+ 	
+
+}
+
+#####################################################
+#
+# del_var
+#
+# procedura per la cancellazione dell'item selezionato della lista globale delle variabili
+#
+#####################################################
+proc del_var { ind vtype } {
+     	global  componentList  compVartList 
+ 	global simul_change
+
+   	set idx  [expr $ind]
+
+     	switch $vtype {
+        		IN {
+		set compVartList  [lreplace $compVartList $idx $idx ]
+       		}
+        		UA {
+		set compVartList  [lreplace $compVartList $idx $idx]
+        		}
+       		 US {
+		set compVartList [lreplace $compVartList  $idx $idx]
+      		 }
+   	 }
+
+	 set simul_change "YES"
+}
+
+#####################################################
+#
+# save_template
+#
+# save template.dat
+#
+#####################################################
+proc save_template { } {
+      global  componentList  compVartList 
+      global curSimulPathName 
+ 	global simul_change
+
+     	set fname "template.dat"	
+
+
+      set f [file join  $curSimulPathName  $fname]
+
+
+     	set ncomp [llength $componentList]
+     	set ncvar [llength $compVartList]
+
+
+    	set fp [checkopen $f w]
+
+	puts $fp "=================="
+	puts $fp "== COMPONENTI ===="
+	puts $fp "=================="
+	
+	# scrivo i componenti
+      for { set i 0} {$i<$ncomp} {incr i} {
+      	puts $fp "[lindex $componentList  $i]"
+      }
+
+	puts $fp "=================="
+	puts $fp "== VARIABILI ===="
+	puts $fp "=================="
+	
+     	for { set i 0} {$i<$ncvar} {incr i} {
+          		puts $fp "[lindex $compVartList  $i]"
+     	}
+	puts $fp "=================="
+	puts $fp "====== FINE ======"
+	puts $fp "=================="
+
+	flush $fp
+    	close $fp	
+
+ 	set simul_change "NO"
+	
+	return
+
+}
+
+#####################################################
+#
+# read_template
+#
+# read file template.dat
+#
+#####################################################
+proc read_template { } {
+     	global  componentList  compVartList 
+     	global curSimulPathName 
+
+     	reset_global_cvar
+
+    	set ncomp 0
+     	set ncvar 0
+
+     	set fname "template.dat"
+     	set f [file join  $curSimulPathName  $fname]
+
+    	set fp [checkopen $f r]
+
+    	close $fp
+
+	return
+
+}
+
+#####################################################
+#
+# callback bottone Ok finestra edit simul
+#
+#####################################################
+proc ok_comp { } {
+    
+    	# salva template.dat
+    	save_template
+}
+
+#####################################################
+#
+# callback bottone Write Result finestra edit template
+#
+#####################################################
+proc esegui_WriteRes { } {
+###
+### lascio tutto commentato perche' poterbbe servirmi in seguito
+### magari er richiamare excel per visualizzare una sorta 
+### di risultato
+###
+###	set wd [pwd]
+###
+###	catch { exec "dolgser.bat" } res
+###	tk_messageBox -message $res
+}
+
+#####################################################
+#
+# sel_vars_for_simul 
+#
+# procedura di visualizazione della
+# finestra di configurazione del file Simul.dat
+#
+#####################################################
+proc sel_vars_for_simul {} {
+    	global env envir 
+    	global rvar evar1 evar2 evar3 evar4
+   	global componentList compVartList
+
+   	global WidCompList WidCvarList 
+    	global Wpouts 
+	global varMainW
+
+    	set w .varch
+
+	set varMainW $w
+
+     	toplevel $w
+     	wm title $w "Template Configuration"
+     	wm iconname $w "Component Template"
+     	wm minsize $w 15 1
+
+    	set top [frame $w.f -bd 1 -relief raised]
+    	set box [tixButtonBox $w.b -bd 1 -relief raised]
+   
+    	# Create the buttons
+    	#
+    	$box add ok     -text Ok     -command "ok_comp" -width 6
+    	$box add dolgser    -text "Write Resul"     -command "esegui_WriteRes" -width 6
+    	$box add cancel -text Cancel -command "destroy $w" -width 6
+#    	$box add cancel -text Cancel -command "edit_template_prompt_close" -width 6
+
+   	 # creo una PanedWindow per contenere le due liste di variabili
+    	#
+    	set pw [tixPanedWindow $w.pane -paneborderwidth 0 -separatorbg gray50]
+   	pack $pw -side top -expand yes -fill both -padx 10 -pady 10
+
+    	#definisco due pane p1, p2 all'interno della panedWindow pw
+    	set p1 [$pw add listComp -min 70 -size 120]
+    	set p2 [$pw add listVar -min 70 -size 120]
+###
+###    	set p3 [$pw add dataSim -min 200 -size 210]
+###
+   	# label sopra la lista dei componente
+   	label $p1.lblComp  -wraplength 4i -justify left -text "Component"
+    	pack $p1.lblComp  -side top
+
+    	# creo la scrolled list dei componenti
+   	tixScrolledListBox $p1.listComp -browsecmd {sel_comp $WidCompList } -command {del_var_sel $WidCompList }
+   	$p1.listComp subwidget listbox config -font [tix option get fixed_font]
+
+   	# label sopra la lista delle variabili
+    	label $p2.lblVar  -wraplength 4i -justify left -text "Variables"
+    	pack $p2.lblVar  -side top
+ 
+    	# creo la scrolled list delle variabili Monitored
+    	tixScrolledListBox $p2.listVar -command {del_var_sel $WidCvarList  }
+    	$p2.listVar subwidget listbox config -font [tix option get fixed_font]
+  
+      # visualizzo gli widget
+    	pack $p1.listComp -expand yes -fill both -padx 4 -pady 6
+    	pack $p2.listVar -expand yes -fill both -padx 4 -pady 6
+ 
+   	pack $box -side bottom -fill both
+    	pack $top -side top -fill both -expand yes
+    	pack $pw -side top -expand yes -fill both -padx 10 -pady 10
+
+   	 # gestisco anche il pane menu 
+    	$w configure -menu $w.menu
+
+	#definizione men Component
+	menu $w.menu -tearoff 0 -activebackground darkblue -activeforeground white
+	set cm $w.menu.comp
+	set cv $w.menu.var
+
+	menu $cm -tearoff 0 -activebackground darkblue -activeforeground white
+	menu $cv -tearoff 0 -activebackground darkblue -activeforeground white
+
+	$w.menu add cascade -label "Component" -menu $cm -underline 0
+	$cm add command -label "Add" -command "add_comp"
+	$cm add command -label "Edit" -command "edit_comp"
+
+	$w.menu add cascade -label "Variable" -menu $cv -underline 0
+	$cv add command -label "Edit" -command "edit_variable"
+
+	$w configure -menu $w.menu
+
+    	set WidCompList  $p1.listComp
+    	set WidCvarList $p2.listVar
+}
+
+#####################################################
+# 
+# add_comp 
+#
+# feb.2002
+#
+#####################################################
+proc add_comp { } {
+
+    	global WidCompList  WidCvarList 
+   	global  componentList  compVartList 
+	global simul_change
+
+puts "Creo la add_comp windows"
+
+    	set w .wincomp
+	set addCompW $w
+
+     	toplevel $w
+     	wm title $w "Add Component"
+     	wm minsize $w 15 1
+
+	set comp_name ""
+
+    	set top [frame $w.f -bd 1 -relief raised]
+
+    	set box [tixButtonBox $w.b -bd 2 -relief raised]
+   
+    	# Create the buttons
+    	#
+    	$box add ok     -text Ok     -command {add_clist $comp_name $comp_descr } -width 3 -height 1
+    	$box add cancel -text Cancel -command "destroy $w" -width 3 -height 1
+
+	# creo un frame per contenere le entry nome,descrizione)
+	set fr $addCompW.frame
+	frame $addCompW.frame
+
+   	# label sopra la lista dei componente
+   	#label $fr.lblComp  -wraplength 4i -justify left -text "Component name:"
+    	#pack $fr.lblComp  -side top
+
+    	tixLabelEntry $fr.lblComp  -label "Component name: " \
+		-options {
+	   	 entry.width 20
+	   	 label.width 20
+	   	 label.anchor e
+	   	 entry.textVariable comp_name
+		}
+
+    	tixLabelEntry $fr.lblDesc  -label "Description: " \
+		-options {
+	   	 entry.width 40
+	   	 label.width 20
+	   	 label.anchor e
+	   	 entry.textVariable comp_descr
+		}
+
+
+   	pack $box -side bottom -fill both -pady 3
+    	pack $top -side top -fill both -expand yes
+
+	pack $fr.lblComp   -anchor w -padx 10 -pady 10
+	pack $fr.lblDesc   -anchor w -padx 10 -pady 10
+
+	pack $addCompW.frame -side top -fill both -expand yes
+
+}
+
+proc edit_comp { } {
+	puts "Chiamata procedura edit_comp"
+}
+
+#####################################################
+# 
+# add_clist 
+#
+# aggiunge il componente alla lista
+#
+#####################################################
+
+proc add_clist { cname cdescr } {
+	global componentList  WidCompList  
+
+# qui completare con formattazione dell'item da inserire
+# nella lista (nome - descrizione taggatura etc.)
+
+	puts "COMPONENENT: $cname $cdescr"
+	set citem "$cname - $cdescr"
+	lappend componentList $cname
+	$WidCompList  subwidget listbox insert end $citem
+
+	puts "CHIAMO la add_component $cname $cdescr"
+	add_component $cname "$cdescr"
+
+# definisco il nuovo componente com attivo per la
+# aggiunta delle variabili
+
+	global curr_sel_comp
+	set curr_sel_comp $cname
+}
+
+#####################################################
+# 
+# contr_var
+#
+# procedura controllo univocit�variabili nella lista
+#
+#####################################################
+proc contr_var { ltype var} {
+   	 global  compVartList 
+
+	switch -exact $ltype {
+		IN {
+			set found [lsearch -exact $compVartList $var]
+		}
+		US {
+			set found [lsearch -exact $compVartList $var]		}
+		UA {
+			set found [lsearch -exact $compVartList $var]
+		}
+	}
+ 	
+	if { $found >= 0 } {
+		# trovata
+		return 1	
+	} else {
+		#non trovata
+		return 0	
+	}
+}
+
+
+#####################################################
+#
+# setSlot
+#
+# procedura per aggiungere una variabile nella lista
+#
+#####################################################
+proc setSlot {W x y mname idxvname vtype} {
+	global nomeVars
+    	global WidCompList  WidCvarList 
+   	global  componentList  compVartList 
+	global simul_change
+
+	global whichVar
+
+    	set vname $nomeVars($idxvname)
+	set whichVar $vname
+
+	set fine "end"
+	set prima "before"
+	set dopo "after"
+	
+	if { ![winfo exist .popup] } { 
+		menu .popup -tearoff 0 -activebackground darkblue -activeforeground white
+		.popup add command -label "add after current position" \
+			-command "CBtest $dopo"
+		.popup add command -label "add before current position" \
+			-command "CBtest $prima"
+		.popup add command -label "add at the end of list" \
+			-command "CBtest $fine"
+
+
+	}
+
+
+	set gx [winfo rootx $W] 
+	set gy [winfo rooty $W] 
+
+	set mx [expr $gx + $x]
+	set my [expr $gy + $y]
+
+	tk_popup .popup $mx $my
+	 
+#	add_var_in_list $vname
+}
+
+proc CBtest { where  } {
+	global WidList
+	global whichVar
+
+	puts "ADD VARIABLE $whichVar"
+	set pos [$WidList subwidget listbox curselection]
+
+	puts "test callback called... add $where pos=$pos"
+	#puts "add $where" 
+
+	add_var_in_list $where $pos $whichVar
+
+	unset whichVar 
+}
+
+#####################################################
+#
+# show_templ_data 
+#
+#####################################################
+
+proc show_templ_data { } {
+    	global WidCompList  WidCvarList 
+    	global  componentList  compVartList printouts
+
+	# populate variable list
+	for {set i 0} {$i<[llength $componentList]  } {incr i}  {
+		$WidCompList   subwidget listbox insert end [lindex $componentList $i]
+    	}
+
+   	for {set i 0} {$i< [llength $compVartList] } {incr i}  {
+		$WidCvarList  subwidget listbox insert end [lindex $compVartList $i]
+    	}
+
+}
+
+#####################################################
+# check_templ_data
+#
+# check and validate data in simul.dat
+# verifico:
+# 	che le variabili siano corrette rispetto al file f01.dat
+#
+#####################################################
+proc check_templ_data { } {
+   	global  componentList  compVartList printouts
+	global numBlo listBlo blocNvar
+	global numVars nomeVars tipoVars tipVarMod
+
+	set nv  [llength $componentList]
+
+	set inp_idx_todel 	[list]
+	set mon_idx_todel 	[list]
+
+	for { set k 0 } { $k < $nv} { incr k} {
+							
+		set foundVar 0
+		set nomeVarSim  [lindex $componentList  $k]
+
+		for {set j 0} {$j < $numBlo} {incr j} {
+
+			set nomeMod $listBlo($j)
+			loadVariables $nomeMod
+
+			for {set index 0} {$index < $numVars} {incr index} {
+
+            				set nome $nomeVars($index)
+            				set tipovar $tipVarMod($nome)
+			
+				switch $tipovar {
+					IN {
+						if { [string compare $nome $nomeVarSim  ] == 0 } {
+							set foundVar 1
+							set vartodel [expr $k+1]
+							break
+						}
+					}
+					UA {
+						continue
+						if { [string compare $nome $nomeVarSim  ] == 0 } {
+							set foundVar 1
+							break
+						}
+					}
+					US {
+						continue
+						if { [string compare $nome $nomeVarSim  ] == 0 } {
+							set foundVar 1
+							break
+						}
+					}
+				}
+			}
+		}
+
+		if { !$foundVar && [string length $nomeVarSim] } {
+			tk_messageBox -message "$nomeVarSim NOT FOUND\n Delete from input variables list"
+			set vartodel [lsearch -exact  $componentList $nomeVarSim]
+			set inp_idx_todel [linsert $inp_idx_todel end $vartodel]
+		}
+	}
+
+	# elimino gli item dalla lista delle variabili di input
+	set componentList [ldelete $componentList $inp_idx_todel]
+
+	set nv  [llength $compVartList]
+	set inp_idx_todel 	[list]
+	set mon_idx_todel 	[list]
+
+	for { set k 0 } { $k < $nv} { incr k} {
+							
+		set foundVar 0
+		set nomeVarSim  [lindex $compVartList  $k]
+
+		for {set j 0} {$j < $numBlo} {incr j} {
+
+			set nomeMod $listBlo($j)
+			loadVariables $nomeMod
+
+			for {set index 0} {$index < $numVars} {incr index} {
+
+            				set nome $nomeVars($index)
+            				set tipovar $tipVarMod($nome)
+			
+				switch $tipovar {
+					IN {
+						continue
+						if { [string compare $nome $nomeVarSim  ] == 0 } {
+							set foundVar 1
+							break
+						}
+					}
+					UA {
+						if { [string compare $nome $nomeVarSim  ] == 0 } {
+							set foundVar 1
+							set vartodel  [expr $k+1]
+							break
+						}
+					}
+					US {
+						if { [string compare $nome $nomeVarSim  ] == 0 } {
+							set foundVar 1
+							set vartodel  [expr $k+1]
+							break
+						}
+					}
+				}
+			}
+		}
+
+
+		if { !$foundVar && [string length $nomeVarSim] } {
+			tk_messageBox -message "$nomeVarSim NOT FOUND\n Delete from monitored variables list"
+			set vartodel [lsearch -exact  $compVartList $nomeVarSim]
+			set inp_idx_todel [linsert $inp_idx_todel end $vartodel]
+		}
+
+	}
+
+	# elimino gli item dalla lista delle variabili di input
+	set compVartList [ldelete $compVartList $inp_idx_todel]
+
+
+}
+
+#####################################################
+# build_template_win 
+#
+# costruzione finestra per template
+#
+#####################################################
+proc build_template_win { } {
+
+	# reset variabili global di valorizzazione simul.dat
+	reset_global_cvar
+
+	# costruzione window  gestione dati del simulatore
+	# e fill con i dati letti da simul.dat
+	read_template
+
+	# check and validate simul data
+	check_templ_data
+
+	# build window
+	sel_vars_for_simul
+
+	# populate window with data
+	show_templ_data
+
+}
+
+#####################################################
+#
+# genera un file task.dat di default nel direttorio del simulatore
+# contente il path "./"
+#
+# NON USATA IN EDIT_COMP
+#
+#####################################################
+#proc crea_default_file_task { } {
+#
+#	global curSimulPathName 
+#    	set fname "Tasks.dat"
+#     	set f [file join  $curSimulPathName  $fname]
+#
+#	if { ![file exists $f] } { 	
+#    		set fp [open $f w+]
+#     		puts $fp ".\\"
+#  		close $fp
+#	}
+#}
+#
+
+#####################################################
+#
+#   MAIN 
+# 
+# comp_editor $simulpath 
+#
+#####################################################
+
+proc comp_editor { simulpath } { 
+
+	###################################
+	## definizione variabili globali ##
+	###################################
+	global env envir
+	global wsBackg wsWidth wsBackg wsWidth wsHeight 
+	global wsScrWidth wsScrHeight wsXsiz wsYsiz wsXmin wsYmin 
+	global progNumb portw curTool progName palId jshift porth
+	global numBlo convConst
+	global curSimulPathName 
+	### widget  variabili di input e monitored
+###	global WidCompList  WidCvarList  
+
+	### lista contenirore componente e variabili
+###	global  componentList  compVartList  
+
+	### componente corerntemente selezionato 
+###	global curr_sel_comp
+###	set curr_sel_comp ""
+
+	### dati generali di simulazione
+
+	# debug flag
+	global debug
+	global clines
+	global curFileName
+	# finestre top level 
+	global esMainW
+	global varMainW
+	global varwinMainW
+ 	global simul_change
+
+ 	set simul_change "NO"
+
+### 
+### aggiunte specifiche per comp editor
+###
+###	global convUM
+###	global arrConvUM
+
+
+
+	set esMainW ""
+	set varMainW ""
+	set varwinMainW ""
+
+	set clines(0,0) 0
+
+	############################
+	## inizializzazione variabile debug
+	############################
+	set debug 0
+
+###	reset_global_cvar 
+	
+	set envir PostProc
+
+	set modelname [file tail $simulpath]	
+	set curFileName [file join $simulpath $modelname] 
+
+	set curSimulPathName "$simulpath"
+
+puts "EDIT COMPONENT rev. 1.0"
+puts "deb2 curSimulPathName  $curSimulPathName"
+
+
+	if { ![file exist $curFileName.tom] } { 
+		tk_messageBox -message "$curFileName.tom File not found"
+		return
+	}
+
+	#
+	set wsBackg gray90
+	set wsWidth 512
+	set wsHeight 384
+	set wsScrWidth 800
+	set wsScrHeight 600
+	set wsXsiz $wsScrWidth
+	set wsYsiz $wsScrHeight
+	set wsXmin $wsWidth
+	set wsYmin $wsHeight
+	#
+	set progNumb 0
+	set portw 12
+	set curTool none
+	set progName "name"
+	set palId 0
+	set jshift .5
+	set porth 12
+	set numBlo 0
+	set convConst 72.
+
+	set mainW ".esMainW"
+	set esMainW $mainW
+
+	toplevel $mainW
+
+
+	wm title $mainW "Edit Component - $curSimulPathName"
+
+
+	#definizione main men
+	menu $mainW.menu -tearoff 0 -activebackground darkblue -activeforeground white
+	set m $mainW.menu.file
+###	set hlp $mainW.menu.help
+	menu $m -tearoff 0 -activebackground darkblue -activeforeground white
+###	menu $hlp -tearoff 0
+	$mainW.menu add cascade -label "File" -menu $m -underline 0
+###	$mainW.menu add cascade -label "Help" -menu $hlp -underline 0
+###	#$m add command -label "Show Template" -command "destroy .varch;selVarsForSimul"
+	$m add command -label "Template Definition" -command "main_comped $simulpath"
+#	$m add command -label "Close All" -command "destroy $mainW .varch .varwin;"
+	$m add command -label "Close All" -command "edit_template_prompt_close"
+###	$hlp add command -label "Index" -command "open_hlp index"
+	$mainW configure -menu $mainW.menu
+
+	set c $mainW.frame.c
+	frame $mainW.frame
+	pack $mainW.frame -side top -fill both -expand yes
+	canvas $c -bg $wsBackg -scrollregion [list 0 0 $wsScrWidth $wsScrHeight] \
+		-width $wsWidth -height $wsHeight -xscrollcommand "$mainW.frame.hscroll set" \
+		-yscrollcommand "$mainW.frame.vscroll set"
+	scrollbar $mainW.frame.vscroll -command "$c yview"
+	scrollbar $mainW.frame.hscroll -orient horiz -command "$c xview"
+
+	grid $c -in $mainW.frame -row 0 -column 0 -rowspan 1 -columnspan 1 -sticky news
+	grid $mainW.frame.vscroll -row 0 -column 1 -rowspan 1 -columnspan 1 -sticky news
+	grid $mainW.frame.hscroll -row 1 -column 0 -rowspan 1 -columnspan 1 -sticky news
+	grid rowconfig $mainW.frame 0 -weight 1 -minsize 0
+	grid columnconfig $mainW.frame 0 -weight 1 -minsize 0
+
+	#images
+#	set pixmapPath "."
+#	set pixmapPath $simulpath
+#	set pixmapPath [file join $simulpath "Pixmaps"]
+	set pixmapPath $env(LG_PIXMAPS)
+
+	set olddir [pwd]
+	cd $pixmapPath
+	foreach singleconn [glob -nocomplain {????_[news].ppm}] {
+		image create photo [file rootname $singleconn] -file [file join $pixmapPath $singleconn]
+	}
+	image create photo portActive -file [file join $pixmapPath actconn.ppm]
+	cd $olddir
+
+	#help files
+	catch {font create helpFont -family Helvetica -size 9}
+	catch {font create entryFont -family Courier -size 9}
+	catch {font create titleFont -family Courier -size 9 -weight bold -slant italic}
+	catch {font create entryBig -family Courier -size 14}
+	catch {font create titleBig -family Courier -size 14 -weight bold}
+
+	#$c bind module <1> "showVars $c %x %y"
+	$c bind module <1> "showOptions $c %x %y"
+
+
+#	La srcdir individua la directory dove ricercare i sorgenti	
+#	
+#	set srcdir $env(LG_TIX)
+#
+# 	in attesa di posizionarli nel posto definitivo li metto in
+#	c:/ProveSDI/sorgenti
+#
+
+	set srcdir $env(LG_TIX)
+	set src2dir $env(LG_POSTPROC)
+
+	puts "srcdir=$srcdir"
+
+	cd $simulpath
+
+	source [file join $srcdir  read_con.tcl]
+	source [file join $srcdir  read_f01.tcl]
+	source [file join $srcdir  fileio.tcl]
+	source [file join $srcdir itemjoin.tcl]
+	source [file join $srcdir openHelp.tcl]
+	
+### 
+### aggiunte specifiche per comp editor
+###
+	puts "[file join $srcdir  leggiF14VarValue.tcl]"
+
+	source [file join $src2dir  leggiF14VarValue.tcl]
+	source [file join $src2dir  UMconv.tcl]
+	source [file join $src2dir  build_comp_win.tix]
+
+
+###	source [file join $srcdir  gest_comp.tcl]
+###
+###
+###
+
+###	inizializza_comp
+###	initConvRule
+
+	topRead $c $curFileName
+	loadF01 $c no
+
+	#
+	# leggo tutto il file f14.dat
+	# e per ogni riga carico l'array arrRigheF14
+	# sul quale tramite la searchVarValue posso recuperare
+	# i valori delle variabili
+	#
+###	global righeF14 arrRigheF14
+###	set righeF14 0
+###	readAllF14
+
+	if { ![file exists  $curSimulPathName] } {
+		tk_messageBox -message "DIRECTORY NOT FOUND $curSimulPathName" 
+
+		destroy $mainW
+
+		return
+	}
+
+	# controlla la esistenza del file template.dat
+	# l'utente pu scegliere di uscire senza fare modifiche di nessun tipo
+
+###	if { ![file exists [file join $curSimulPathName "template.dat"]] } {
+###
+###		set result [tk_messageBox -parent $mainW \
+###			-title "WARNING"  -type okcancel \
+###			-icon warning \
+###			-message "template.dat \nFILE NOT FOUND \nVerify directory $curSimulPathName\nOk continue and create empty file\nCancel exit"]
+
+###		if { $result != "ok"} { 
+###
+### MODIFICA COMP_EDITOR
+###
+###			# commento da reinserire nella versione finale
+###			#	exit
+###		} else {
+###			# save an empty file
+###			save_template
+###			
+###			build_template_win 
+###		}
+###	} else {
+###		build_template_win
+###	}
+
+	#creo un file tasks.dat di default se non esiste gi�#	crea_default_file_task 
+
+	wm title $mainW "Edit Component - $curSimulPathName"
+
+	wm protocol $mainW WM_DELETE_WINDOW "edit_template_prompt_close"
+
+	# apro subito anche la finestra del template
+	main_comped $simulpath
+}
+
+
+proc edit_template_prompt_close { } {
+	global esMainW 
+	global varMainW
+	global varwinMainW
+	global  simul_change
+
+	if { $simul_change == "YES" } {
+		set resp [tk_messageBox -type yesnocancel \
+				-title "WARNING ON EXIT" \
+				-message "You haven't save your changes\nDo you want save?"]
+		case $resp {
+			yes {
+				save_template
+			}
+			cancel {
+				return
+			}
+		}
+	}
+	
+
+	if { [winfo exist $varwinMainW] } {
+		destroy $varwinMainW
+	}
+
+	if { [winfo exist $varMainW ] } {
+		destroy $varMainW 
+	}
+
+	if { [winfo exist $esMainW ] } {
+		destroy $esMainW 
+	}	
+
+	if { [winfo exist .wmaincomp] } {
+		destroy .wmaincomp
+	}	
+
+	if { [winfo exist .wmainconv] } {
+		destroy .wmainconv
+	}	
+
+	if { [winfo exist .wmaincrule] } {
+		destroy .wmaincrule
+	}	
+
+	if { [winfo exist .wmaincv] } {
+		destroy .wmaincv
+	}	
+
+	exit 0
+}
+
+proc get_filename { } {
+	global env
+
+	set file_type {
+		{ "task files" { .tom } }
+	}
+
+# modifica del 13/03/02 per prove al CESI
+	set inidir $env(LG_MODELS)  
+#	set inidir [pwd]
+
+	set filename [tk_getOpenFile -filetypes $file_type -initialdir $inidir  ]
+
+	puts "filename=<$filename>"
+	if { ![string length $filename] } {
+		set filename "none"
+	}
+
+	return $filename 
+
+}
+
+#####################################################
+#
+# START PER VERSIONE STAND ALONE 
+#
+# il test consente di poter effettuare il lancio dello script sia stand alone
+# che richiamato da applicativo (edit_tasks) senza che la source di questo
+# file faccia subito partire l'editor stesso
+#####################################################
+
+#----------------------------------------------------------------------
+# Start!
+#----------------------------------------------------------------------
+
+global txtsubdir
+global fnvarass
+global fnconvrule
+global fnvarconv
+global fntemplate
+global fnmodello
+
+#definizione dei nomi dei file utilizzati
+set fnsubdir	"filetxt"
+set fnvarass  	"varass.txt"
+set fnconvrule 	"convrule.txt"
+set fnvarconv 	"varconv.txt"
+set fntemplate 	"template.txt"
+set fnmodello 	"modello.txt"
+
+
+wm withdraw .
+
+
+set initdir [file dirname [get_filename ]]
+
+puts "initial task dir: $initdir"
+
+if { $initdir == "." } {
+	puts "file not selected. Exit"
+	exit 0
+} else {
+
+	set txtsubdir [file join $initdir $fnsubdir]
+
+	if { ![file exist $txtsubdir] } {
+		file mkdir $txtsubdir
+	}
+
+	comp_editor $initdir
+}

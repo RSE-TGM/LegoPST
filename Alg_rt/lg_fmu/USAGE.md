@@ -69,7 +69,7 @@ Il file `.fmu` è uno standard FMI 2.0 e può essere caricato da qualunque maste
 
 ### Generare una FMU (variante base)
 
-Dalla UI tix_new (consigliato): menu **Tools → Build FMU**. Apre un xterm con
+Dalla UI tix (consigliato): menu **Tools → Build FMU**. Apre un xterm con
 l'output di `dolgfmu.sh` sulla task corrente (`$DIRMODEL`).
 
 Da CLI (gli script sono installati in `Alg_rt/bin/` come gli altri eseguibili
@@ -88,7 +88,7 @@ nomi/indirizzi/start values dalla SHM live (vedi sezione developer
 
 ### Generare una FMU (variante bundle)
 
-Dalla UI tix_new (consigliato): menu **Tools → Build FMU (bundle)**.
+Dalla UI tix (consigliato): menu **Tools → Build FMU (bundle)**.
 
 Da CLI tramite `dolgfmu -b`:
 ```bash
@@ -739,7 +739,7 @@ più `0x000003e7 = 999` (SHR_TAV_KEY condivisa). Nessuna collisione tra le 2 FMU
 
 #### T3 (opzionale) — coesistenza FMU + banco operatore
 
-Aprire il banco normale su `collet` (`net_startup` o tix_new "Run"), poi lanciare una FMU come T1. Verificare che il banco occupi slot 0 (`10000000`) e la FMU slot 1 (`10001100`). Le SHMs in `ipcs -m` sono due insiemi disgiunti.
+Aprire il banco normale su `collet` (`net_startup` o tix "Run"), poi lanciare una FMU come T1. Verificare che il banco occupi slot 0 (`10000000`) e la FMU slot 1 (`10001100`). Le SHMs in `ipcs -m` sono due insiemi disgiunti.
 
 #### T4 (stress, opzionale) — 9ª istanza fallisce in modo pulito
 

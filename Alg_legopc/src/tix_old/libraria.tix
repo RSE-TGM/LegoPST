@@ -1,0 +1,815 @@
+source $env(LG_TIX)/checkopen.tcl
+
+proc refrlist {} {
+
+# CARICA LA LISTA MODULI NELL'INTERFACCIA GRAFICA
+# DI LIBRARIAN
+
+global env 
+
+.b.listmod delete 0 end
+
+set lismod [checkopen $env(LG_LIBUT)/l_moduli.dat r]
+
+while {[set buf [gets $lismod]] != {}} {
+ .b.listmod insert end $buf
+}
+close $lismod
+}
+
+proc aggmex {} {
+
+# AGGIORNA IL TEXT WIDGET RELATIVO AI MESSAGGI
+# DI SISTEMA
+
+global env 
+
+set idf [checkopen $env(LG_LIBUT)/comp.out r]
+
+while {[eof $idf] != 1} {
+
+ .d.text insert end [gets $idf]\n
+}
+close $idf
+}
+
+# 
+# MAIN PROGRAM
+#
+package require Tix
+#wm maxsize . 540 500
+#wm minsize . 540 500
+wm title . "USERS MODULES LIBRARY"
+
+global modulo percorso instance stato_second_phase
+
+set stato_second_phase disabled
+frame .a
+pack .a -side top -anchor w -pady 5m -padx 2m
+label .a.mod -text "USER MODULES"
+pack .a.mod -side left
+
+frame .b
+pack .b -side top -pady 2m -padx 3m
+
+scrollbar .b.scroll -command ".b.listmod yview"
+listbox .b.listmod -yscroll ".b.scroll set" -setgrid 1 -height 10 -width 70
+
+pack .b.scroll -side right -fill y
+pack .b.listmod -side left -expand 1 -fill both
+
+refrlist
+
+frame .sepa1 -relief ridge -bd 1 -height 2
+pack .sepa1 -side top -fill x -pady .2c
+
+frame .c
+pack .c -side top -anchor n -pady 2m -padx 2m
+label .c.mex -text "COMPILE MESSAGES"
+pack .c.mex -side top
+
+frame .d
+pack .d -side top -pady 2m -padx 3m
+
+scrollbar .d.scroll -command ".d.text yview"
+text .d.text -yscroll ".d.scroll set" -setgrid 1 -height 10 -width 70
+
+pack .d.scroll -side right -fill y
+pack .d.text -side left -expand 1 -fill both
+
+frame .sepa2 -relief ridge -bd 1 -height 2
+pack .sepa2 -side top -fill x -pady .2c
+
+menu .topmenu -tearoff 0
+
+set m .topmenu.file
+menu $m -tearoff 0 -activebackground darkblue -activeforeground white
+.topmenu add cascade -label "File" -menu $m -underline 0
+$m add command -label Quit -command {destroy .}
+
+set m .topmenu.module
+menu $m -tearoff 0 -activebackground darkblue -activeforeground white
+.topmenu add cascade -label "Module" -menu $m -underline 0
+$m add command -label {Call NEWMOD} -command {lancianmod} -underline 5
+$m add command -label {Edit code} -command {selmod; edifor} -underline 5 -state disabled
+$m add command -label {Make preinst} -command {timing} -underline 8 -state disabled
+$m add command -label {Delete} -command {selmod; delfor} -underline 0 -state disabled
+$m add command -label {Foraus} -command {selmod; genforaus} -underline 0 -state disabled
+
+set m .topmenu.compile
+menu $m -tearoff 0 -activebackground darkblue -activeforeground white
+.topmenu add cascade -label "Compile" -menu $m -underline 0
+$m add command -label {Compile module} -command {selmod; compila} -underline 0 -state disabled
+  if  { $::tcl_platform(os) != "Linux" } {
+    $m add command -label {Insert module into library} -command {selmod;linka} -underline 0 -state disabled
+    $m add command -label {Generate library} -command {genlib} -underline 0
+  }
+$m add command -label {Update library} -command {uplib} -underline 0
+
+. configure -menu .topmenu
+
+bind .b.listmod <ButtonPress-1> {abimenu}
+
+set forflag 0
+
+proc abimenu {} {
+
+# ABILITA LE VOCI DI MENU QUANDO VIENE SELEZIONATO 
+# UN MODULO DELLA LISTA
+
+.topmenu.module entryconfigure 1 -state normal
+.topmenu.module entryconfigure 3 -state normal
+.topmenu.module entryconfigure 4 -state normal
+.topmenu.compile entryconfigure 0 -state normal
+.topmenu.compile entryconfigure 1 -state normal
+.topmenu.module entryconfigure 2 -state normal
+
+}
+
+proc disabimenu {} {
+
+# DISABILITA LE VOCI DI MENU QUANDO RICHIESTO
+
+.topmenu.module entryconfigure 1 -state disabled
+.topmenu.module entryconfigure 3 -state disabled
+.topmenu.module entryconfigure 4 -state disabled
+.topmenu.compile entryconfigure 0 -state disabled
+
+}
+
+proc selmod {} {
+
+# RITORNA IL MODULO DELLA LISTA SELEZIONATO E SE HA IL FORTRAN AUSILIARIO
+
+global env modulo modfor forflag
+
+set id [.b.listmod curselection]
+if {$id == ""} {return 0}
+set modulo [string range [.b.listmod get $id] 0 3]
+set ifor [string range [.b.listmod get $id] 4 4]
+if {$ifor == "*"} {
+ set forflag 1
+} else {
+ set forflag 0
+}
+
+if  { $::tcl_platform(os) != "Linux" } {set modfor [string tolower "$modulo\.for"]
+} else { set modfor [string tolower "$modulo\.f"]
+}
+
+
+if ![file exists [file join $env(LG_LIBUT) $modfor] ] {
+   tk_messageBox -icon warning -type ok -title Warning -parent . \
+                 -message "The file $modfor does not exist"
+}
+
+return 1
+
+}
+
+proc edifor {} {
+
+# EDITA IL FILE "MODULO.FOR"
+
+global modulo modfor env
+
+#	set EDITOR notepad
+	set EDITOR $::env(LG_TEXTEDITOR)
+
+
+
+if [file exists $env(LG_LIBUT)/$modfor] {
+ exec $EDITOR [file join $env(LG_LIBUT) $modfor] &
+ return
+} else {
+ set mex [tk_messageBox -icon warning -type ok \
+         -title Warning -parent . -message "The file $env(LG_LIBUT)/$modfor does not exist"]
+ return
+}
+}
+
+proc delfor {} {
+
+# CANCELLA IL FILE "MODULO.FOR"
+
+global modulo modfor env forflag
+
+set intname "$modulo\.i"
+set modobj [string tolower "$modulo\.obj"]
+set modmin [string tolower $modulo]
+
+if [file exists $env(LG_LIBUT)/$modfor] {
+
+ set mex [tk_messageBox -icon question -type yesno \
+         -title Question -parent . -message "Do you want to delete\
+          the file $modfor ?"]
+
+ if {$mex == "no"} {
+  return
+ }
+
+ file delete $env(LG_LIBUT)/$modfor -force
+ file delete $env(LG_LIBUT)/$intname -force
+ file delete $env(LG_LIBUT)/$modobj -force
+ cd $env(LG_LIBUT)
+ catch {exec rmobj.bat $modobj}
+# Cancella i file gif, tcl, pi3, pi4, i5
+
+
+ set giflist [glob -nocomplain $env(LG_LIBRARIES)/*/$modmin*.gif ]
+ set tcllist [glob -nocomplain $env(LG_LIBRARIES)/*/$modmin*.tcl ]
+ set pi3list [glob -nocomplain $env(LG_LIBRARIES)/*/$modmin*.pi3 ]
+ set pi4list [glob -nocomplain $env(LG_LIBRARIES)/*/$modmin*.pi4 ]
+ set pi5list [glob -nocomplain $env(LG_FILESI5)/$modmin*.i5]
+ 
+
+ if {$giflist != ""} {
+  foreach x $giflist {
+   file delete $x -force
+  }
+ }
+
+ if {$tcllist != ""} {
+  foreach x $tcllist {
+   file delete $x -force
+  }
+ }
+
+ if {$pi3list != ""} {
+  foreach x $pi3list {
+   file delete $x -force
+  }
+ }
+
+ if {$pi4list != ""} {
+  foreach x $pi4list {
+   file delete $x -force
+  }
+ }
+ 
+ if {$pi5list != ""} {
+  foreach x $pi5list {
+   file delete $x -force
+  }
+ }
+
+# Aggiorna la lista moduli
+
+ set lismod [checkopen $env(LG_LIBUT)/l_moduli.dat r]
+ set temp [checkopen lmod.tmp w]
+
+ while {[string range [set buff [gets $lismod]] 0 3] != $modulo} {
+  puts $temp $buff
+ } 
+
+ while {[eof $lismod] != 1} {
+  puts $temp [gets $lismod]
+ }
+ 
+ close $lismod
+ close $temp
+
+ file delete $env(LG_LIBUT)/l_moduli.dat -force
+
+ file copy lmod.tmp $env(LG_LIBUT)/l_moduli.dat
+
+ file delete lmod.tmp -force
+
+ refrlist
+ set mex [tk_messageBox -icon info -type ok \
+         -title Notice -parent . -message "The file $modfor has been deleted"]
+
+ # Aggiorna il foraus_b
+ 
+ if {$forflag == 1} {
+ set forbid [checkopen $env(LG_LIBUT)/foraus_b.for r]
+ set forbtemp [checkopen $env(LG_LIBUT)/fortemp.tmp w]
+ set flag1 0
+ set indexfor "C~FORAUS_$modulo~C"
+ gets $forbid line
+ while {[eof $forbid] != 1} {
+  if {[string trim $line] == $indexfor && $flag1 == 0} {
+   set flag1 1
+  } elseif {[string trim $line] == $indexfor && $flag1 == 1} {
+   set flag1 0
+   gets $forbid line
+  }
+  if {$flag1 == 0} {
+   puts $forbtemp $line
+  }
+  gets $forbid line
+ }
+ close $forbid
+ close $forbtemp
+ file delete -force $env(LG_LIBUT)/foraus_b.for
+ file copy -force $env(LG_LIBUT)/fortemp.tmp $env(LG_LIBUT)/foraus_b.for
+ file delete -force $env(LG_LIBUT)/fortemp.tmp
+ cd $env(LG_LIBUT)
+ catch {exec comp.bat foraus_b.for}
+ exec linforb.bat foraus_b.obj
+ file delete foraus_b.obj -force
+ aggmex
+ }
+ 
+ disabimenu
+
+ return
+
+} else {
+ set mex [tk_messageBox -icon warning -type ok \
+         -title Warning -parent . -message "The file $modfor does not exist"]
+ return
+}
+}
+
+proc edicon { file } {
+
+# EDITA IL FILE ICONA
+
+global modulo env
+if [file exists $file] {
+exec $env(LG_ICOEDITOR) $file &
+} else {
+exec $env(LG_ICOEDITOR) &
+}
+
+}
+
+proc lancianmod {} {
+
+# LANCIA IL PROGRAMMA NEWMOD
+
+global env 
+set comm1 [info nameofexecutable]
+set comm2 "$env(LG_NEWMOD)/newmod.tix"
+exec $comm1 -f $comm2 &
+destroy .
+}
+
+
+proc compila {} {
+
+# LANCIA LA COMPILAZIONE DEL FILE FORTRAN
+
+global modulo modfor env idf
+
+
+
+.d.text delete 0.0 end
+cd $env(LG_LIBUT)
+
+
+ if  { $::tcl_platform(os) != "Linux" } {
+    set modobj [string tolower "$modulo\.obj"]
+    catch {exec comp.bat $modfor}
+    aggmex
+    file delete $env(LG_LIBUT)/comp.out -force
+  } else {
+    catch {exec cad_crealibut > $env(LG_LIBUT)/comp.out }
+    aggmex
+
+  }
+
+
+
+}
+
+proc linka {} {
+
+global env modulo 
+
+.d.text delete 0.0 end
+
+set olddir [pwd]
+cd $env(LG_LIBUT)
+
+set object [string tolower "$modulo\.obj"]
+
+if ![file exists $object] {
+   compila
+}
+exec link.bat $object
+
+aggmex
+
+file delete $object -force
+file delete comp.out -force
+
+cd $olddir
+
+}
+
+proc uplib {} {
+
+# RIGENERA LA LIBRERIA DEI MODULI E LA FORAUS_B
+
+global env
+
+  if  { $::tcl_platform(os) == "Linux" } { compila; return }
+
+     .d.text delete 0.0 end
+
+     set lmod [checkopen $env(LG_LIBUT)/L_moduli.dat r]
+     set laux [checkopen $env(LG_LIBUT)/l_aux.dat r]
+
+     set libdata [file mtime $env(LG_LIBUT)/moduli.lib]
+     set fordatalib [file mtime $env(LG_LIBUT)/foraus_b.lib]
+
+     set fordata [file mtime $env(LG_LIBUT)/foraus_b.for]
+
+     if {$fordata >= $fordatalib} {
+        cd $env(LG_LIBUT)
+        catch {exec comp.bat foraus_b.for}
+        aggmex
+        exec linforb.bat foraus_b.obj
+        file delete foraus_b.obj -force
+        aggmex
+
+     }
+
+while {[eof $lmod] != 1} {
+
+ set buff [string tolower [string range [gets $lmod] 0 3]]
+ set nomefor "$buff\.for"
+ set nomeobj "$buff\.obj"
+
+
+ if {[file exists $env(LG_LIBUT)/$nomefor] && ![file exists $env(LG_LIBUT)/$nomeobj]}  {
+  set filetime [file mtime $env(LG_LIBUT)/$nomefor]
+  if {$filetime >= $libdata} {
+     cd $env(LG_LIBUT)
+     catch {exec comp.bat $nomefor}
+     aggmex
+  }
+ }
+ if [file exists $env(LG_LIBUT)/$nomeobj] {
+    cd $env(LG_LIBUT)
+    exec link.bat $nomeobj
+    aggmex
+    file delete $env(LG_LIBUT)/$nomeobj -force
+ }
+}
+
+close $lmod
+
+while {[eof $laux] != 1} {
+
+ set buff [string tolower [gets $laux]]
+ set nomefor "$buff\.for"
+ set nomeobj "$buff\.obj"
+
+
+ if [file exists $env(LG_LIBUT)/$nomefor] {
+  set filetime [file mtime $env(LG_LIBUT)/$nomefor]
+  if {$filetime >= $libdata} {
+     cd $env(LG_LIBUT)
+     catch {exec comp.bat $nomefor}
+     aggmex
+     exec link.bat $nomeobj
+     aggmex
+     file delete $env(LG_LIBUT)/$nomeobj -force
+  }
+ }
+}
+
+close $laux
+
+file delete $env(LG_LIBUT)/comp.out -force
+
+}
+
+proc genlib {} {
+
+# GENERA EX NOVO LA LIBRERIA DEI MODULI E LA FORAUS_B
+
+global env  
+
+.d.text delete 0.0 end
+
+set ans [tk_messageBox -icon question -message "Do you want to recreate modules library?" \
+                       -type yesno -parent .]
+
+if {$ans == "no"} {
+   return
+} else {
+   tk_messageBox -icon info -message "\nWARNING:\n\    This operation will take a few minutes." \
+                 -type ok -parent .
+}
+
+set lmod [checkopen $env(LG_LIBUT)/L_moduli.dat r]
+set laux [checkopen $env(LG_LIBUT)/l_aux.dat r]
+
+if [file exists $env(LG_LIBUT)/foraus_b.lib] {
+   file delete $env(LG_LIBUT)/foraus_b.lib -force
+}
+
+if [file exists $env(LG_LIBUT)/moduli.lib] {
+   file delete $env(LG_LIBUT)/moduli.lib -force
+}
+   
+ cd $env(LG_LIBUT)
+ catch {exec comp.bat foraus_b.for}
+ aggmex
+ exec linforb.bat foraus_b.obj
+ file delete foraus_b.obj -force
+ aggmex
+
+
+while {[eof $lmod] != 1} {
+ 
+ set buff [string tolower [string range [gets $lmod] 0 3]]
+ set nomefor "$buff\.for"
+ set nomeobj "$buff\.obj"
+
+ if {[file exists $env(LG_LIBUT)/$nomefor] && ![file exists $env(LG_LIBUT)/$nomeobj]}  {
+     cd $env(LG_LIBUT)
+     catch {exec comp.bat $nomefor}
+     aggmex
+ }
+ if [file exists $env(LG_LIBUT)/$nomeobj] {
+    cd $env(LG_LIBUT)
+    exec link.bat $nomeobj
+    aggmex
+  file delete $env(LG_LIBUT)/$nomeobj -force
+ }
+}
+
+close $lmod
+
+while {[eof $laux] != 1} {
+ 
+ set buff [string tolower [gets $laux]]
+ set nomefor "$buff\.for"
+ set nomeobj "$buff\.obj"
+
+ if [file exists $env(LG_LIBUT)/$nomefor] {
+     cd $env(LG_LIBUT)
+     catch {exec comp.bat $nomefor}
+     aggmex
+     exec link.bat $nomeobj
+     aggmex
+    file delete $env(LG_LIBUT)/$nomeobj -force
+ }
+}
+
+close $laux
+
+if [file exists $env(LG_LIBUT)/tavmare.c] {
+    cd $env(LG_LIBUT)
+    catch {exec tavmare.bat}
+    aggmex
+}
+
+file delete $env(LG_LIBUT)/comp.out -force
+
+}
+
+proc genforaus {} {
+
+global env modulo forflag modfor indexfor
+
+# controlla se esiste il fortran ausiliario del modulo
+
+set flag1 0
+set flag3 0
+set indexfor "C~FORAUS_$modulo~C"
+
+toplevel .foredit
+wm title .foredit "FORAUS MODULE $modulo"
+frame .foredit.a
+pack .foredit.a -side top -anchor w -padx 3m -pady 2m
+
+label .foredit.a.tit -text "Edit foraus"
+pack .foredit.a.tit -side top -anchor w -padx 1m -pady 1m
+
+set w .foredit.a
+text $w.text -relief sunken -bd 2 -yscrollcommand "$w.yscroll set" \
+             -xscrollcommand "$w.xscroll set" -setgrid 1 -height 15
+scrollbar $w.yscroll -command "$w.text yview"
+scrollbar $w.xscroll -command "$w.text xview" -orient horizontal
+pack $w.yscroll -side right -fill y
+pack $w.text -side top -anchor w -padx 1m -pady 1m
+pack $w.xscroll -side bottom -fill x
+
+frame .foredit.sepa1 -relief ridge -bd 1 -height 2
+pack .foredit.sepa1 -side top -fill x -pady .1c
+
+frame .foredit.b
+pack .foredit.b -side top -anchor w -padx 3m -pady 2m
+
+label .foredit.b.tit -text "Edit foraus_b"
+pack .foredit.b.tit -side top -anchor w -padx 1m -pady 1m
+
+set wb .foredit.b
+text $wb.text -relief sunken -bd 2 -yscrollcommand "$wb.yscroll set" \
+             -xscrollcommand "$wb.xscroll set" -setgrid 1 -height 5
+scrollbar $wb.yscroll -command "$wb.text yview"
+scrollbar $wb.xscroll -command "$wb.text xview" -orient horizontal
+pack $wb.yscroll -side right -fill y
+pack $wb.text -side top -anchor w -padx 1m -pady 1m
+pack $wb.xscroll -side bottom -fill x
+
+frame .foredit.sepa2 -relief ridge -bd 1 -height 2
+pack .foredit.sepa2 -side top -fill x -pady .1c
+
+frame .foredit.c
+pack .foredit.c -side top -anchor w -padx 3m -pady 2m
+
+button .foredit.c.bu1 -text Save -width 6 -command {set savdel 0; savdelfor $savdel}
+ 
+button .foredit.c.bu2 -text Delete -width 6 -command {set savdel 1; savdelfor $savdel}
+button .foredit.c.bu3 -text Cancel -width 6 -command {destroy .foredit}
+
+pack .foredit.c.bu1 -side left -anchor w -padx 1m -pady 1m
+pack .foredit.c.bu2 -side left -anchor w -padx 2m -pady 1m
+pack .foredit.c.bu3 -side left -anchor w -padx 2m -pady 1m
+
+if {$forflag == 1} { 
+
+ set modid [checkopen $env(LG_LIBUT)/$modfor r]
+ set forbid [checkopen $env(LG_LIBUT)/foraus_b.for r]
+ 
+ gets $modid line
+
+ while {[eof $modid] != 1} {
+   if {[string trim $line] == $indexfor} {
+    set flag1 1
+    break
+   }
+    gets $modid line
+ }
+  if {$flag1 == 1} {
+   gets $modid line
+   $w.text insert end $line 
+   while {[eof $modid] != 1} {
+    gets $modid line
+    if {[string trim $line] == $indexfor} break	
+    $w.text insert end \n$line
+   }
+  } else {
+   destroy .foredit
+   tk_messageBox -icon warning -type ok \
+         -title Warning -message "The foraus of the module $modulo doesn't exist" 
+  }
+
+ gets $forbid line
+ while {[eof $forbid] != 1} {
+   if {[string trim $line] == $indexfor} {
+    set flag3 1
+    break
+   }
+    gets $forbid line
+ }
+  if {$flag3 == 1} {
+   gets $forbid line
+   $wb.text insert end $line 
+   while {[eof $forbid] != 1} {
+    gets $forbid line
+    if {[string trim $line] == $indexfor} break	
+    $wb.text insert end \n$line
+   }
+  } else {
+   destroy .foredit
+   tk_messageBox -icon warning -type ok \
+         -title Warning -message "The forausbase of the module $modulo doesn't exist" 
+  }
+  close $modid
+  close $forbid 		
+}
+}
+
+proc savdelfor {flagfor} {
+      global env modulo forflag modfor indexfor 
+      set forbuf [.foredit.a.text get 1.0 "end-1 chars"]
+      set forbbuf [.foredit.b.text get 1.0 "end-1 chars"]
+      set fortemp [checkopen $env(LG_LIBUT)/foraus.tmp w]
+      set modid [checkopen $env(LG_LIBUT)/$modfor r]
+      set forbtemp [checkopen $env(LG_LIBUT)/forausb.tmp w]
+      set forbid [checkopen $env(LG_LIBUT)/foraus_b.for r]
+      if {$flagfor == 1} {
+       set answ [tk_messageBox -icon question -type yesno \
+         -title Question -message "Delete FORAUS?"]
+       if {$answ == "no"} return
+      } 
+      if {$forflag == 1} {
+        set flag2 0
+        set flag4 0
+        gets $modid line
+        while {[eof $modid] != 1} {
+         if {$flag2 == 0} {
+          if {[string trim $line] != $indexfor} {
+           puts $fortemp $line
+          } elseif {[string trim $line] == $indexfor && $flagfor == 0} {
+           puts $fortemp $line	
+          }
+         }
+         if {[string trim $line] == $indexfor && $flag2 == 0} {
+          if {$flagfor == 1} {
+           set forbuf ""
+          }
+          puts $fortemp $forbuf
+          set flag2 1
+         } elseif {[string trim $line] == $indexfor && $flag2 == 1} {
+          if {$flagfor == 0} {
+           puts $fortemp $line
+          }
+          set flag2 0
+         }
+         gets $modid line
+        }
+
+        gets $forbid line
+        while {[eof $forbid] != 1} {
+         if {$flag4 == 0} {
+          if {[string trim $line] != $indexfor} {
+           puts $forbtemp $line
+          } elseif {[string trim $line] == $indexfor && $flagfor == 0} {
+           puts $forbtemp $line
+          }
+         }
+         if {[string trim $line] == $indexfor && $flag4 == 0} {
+           if {$flagfor == 1} {
+           set forbbuf ""
+          }
+          puts $forbtemp $forbbuf
+          set flag4 1
+         } elseif {[string trim $line] == $indexfor && $flag4 == 1} {
+          if {$flagfor == 0} {
+           puts $forbtemp $line
+          }
+          set flag4 0
+         }
+         gets $forbid line
+        }
+        close $fortemp
+        close $modid
+        close $forbid
+        close $forbtemp
+        file delete -force $env(LG_LIBUT)/$modfor
+        file copy -force $env(LG_LIBUT)/foraus.tmp $env(LG_LIBUT)/$modfor
+        file delete -force $env(LG_LIBUT)/foraus.tmp
+        file delete -force $env(LG_LIBUT)/foraus_b.for
+        file copy -force $env(LG_LIBUT)/forausb.tmp $env(LG_LIBUT)/foraus_b.for
+        file delete -force $env(LG_LIBUT)/forausb.tmp        
+      } else {
+        while {[eof $modid] != 1} {
+          gets $modid line
+          puts $fortemp $line
+        }
+        puts $fortemp $indexfor
+        puts $fortemp $forbuf
+        puts $fortemp $indexfor
+
+        while {[eof $forbid] != 1} {
+          gets $forbid line
+          puts $forbtemp $line
+        }
+        puts $forbtemp $indexfor
+        puts $forbtemp $forbbuf
+        puts $forbtemp $indexfor
+
+        close $fortemp
+        close $modid
+        close $forbtemp
+        close $forbid
+        file delete -force $env(LG_LIBUT)/$modfor
+        file copy -force $env(LG_LIBUT)/foraus.tmp $env(LG_LIBUT)/$modfor
+        file delete -force $env(LG_LIBUT)/foraus.tmp
+        file delete -force $env(LG_LIBUT)/foraus_b.for
+        file copy -force $env(LG_LIBUT)/forausb.tmp $env(LG_LIBUT)/foraus_b.for
+        file delete -force $env(LG_LIBUT)/forausb.tmp
+      }                
+
+# Aggiorna la lista moduli
+       if {$forflag != 1 || $flagfor == 1} {
+        set lismod [checkopen $env(LG_LIBUT)/L_MODULI.DAT r]
+        set temp [checkopen lmod.tmp w]
+
+        while {[string range [set buff [gets $lismod]] 0 3] != $modulo} {
+         puts $temp $buff
+        }
+        if {$flagfor == 1} { 
+         puts $temp $modulo
+         puts $modulo
+        } else {
+         puts $temp "$modulo*"
+        }	
+        while {[eof $lismod] != 1} {
+         puts $temp [gets $lismod]
+        }
+
+        close $lismod
+        close $temp
+
+        file delete $env(LG_LIBUT)/L_MODULI.DAT -force
+
+        file copy lmod.tmp $env(LG_LIBUT)/L_MODULI.DAT
+
+        file delete lmod.tmp -force
+
+        refrlist
+      }
+      destroy .foredit
+     }
+
+source $env(LG_TIX)/preinst2.tix

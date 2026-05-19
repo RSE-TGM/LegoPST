@@ -243,7 +243,11 @@ puts "writeFiles: $item è un MODULO nelem=$nelem  blo_nam=$blo_nam($nelem)"
 		 puts $fileid $strstr
 		}
 		puts $fileid [file rootname [lindex [$c gettags $item] [lsearch [$c gettags $item] *.name]]]
-		puts $fileid ""
+		if {[info exists env(LG_FILESI5)] && [file isdirectory $env(LG_FILESI5)]} {
+		    puts $fileid ""
+		} else {
+		    puts $fileid [file rootname [lindex [$c gettags $item] [lsearch [$c gettags $item] *.lpath]]]
+		}
 	    }
 	   }
 	   puts $fileid "****"
@@ -591,4 +595,5 @@ proc setCanSiz {c} {
 	$c configure -scrollregion [list 0 0 $wsXsiz $wsYsiz]
 	set modified 1
 }
+
 

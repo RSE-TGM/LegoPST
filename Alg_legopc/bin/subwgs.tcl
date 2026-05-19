@@ -58,12 +58,13 @@ proc compareFiles {f14 f24} {
     close $f2
     catch {destroy .cpr}
     toplevel .cpr
+    wm withdraw .cpr
     wm title .cpr "Comparison between f14.dat and f24.dat"
     wm iconname .cpr "diff"
 
     frame .cpr.a
-    
-    frame .cpr.a.frm0     
+
+    frame .cpr.a.frm0
     label .cpr.a.frm0.lab14 -text "F14 - initial conditions" \
                          -font "Courier 12"
     scrollbar .cpr.a.frm0.scrl -command {scrollProc}
@@ -71,19 +72,23 @@ proc compareFiles {f14 f24} {
                          -setgrid 1 -height 12 -width 0  \
                          -font "Courier 12"
 
-    frame .cpr.a.frm   
+    frame .cpr.a.frm
     label .cpr.a.frm.lab24 -text "F24 - final conditions" \
                          -font "Courier 12"
-                        
+
     listbox .cpr.a.frm.f24 -yscroll ".cpr.a.frm0.scrl set" \
                          -setgrid 1 -height 12 -width 0 \
                          -font "Courier 12"
-                         
-    foreach  i $list1 j $list2  {
-       .cpr.a.frm0.f14 insert end $i
-       .cpr.a.frm.f24 insert end $j
-       if { [string compare -length 25 $i $j ] != 0 } { .cpr.a.frm.f24 itemconfigure end -background yellow; \
-              .cpr.a.frm0.f14 itemconfigure end -background yellow; }
+
+    set idx 0
+    foreach i $list1 j $list2 {
+        .cpr.a.frm0.f14 insert end $i
+        .cpr.a.frm.f24  insert end $j
+        if {[string compare -length 25 $i $j] != 0} {
+            .cpr.a.frm.f24  itemconfigure $idx -background yellow
+            .cpr.a.frm0.f14 itemconfigure $idx -background yellow
+        }
+        incr idx
     }
 
 global icontcerca seastring
@@ -120,7 +125,7 @@ set lunlist2 [llength  $list2]
     pack .cpr.a.frm.lab24
     pack .cpr.a.frm.f24 -side left -fill y -expand yes
 
-
+    wm deiconify .cpr
 
 }
 

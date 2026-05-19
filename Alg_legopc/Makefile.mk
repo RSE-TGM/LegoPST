@@ -16,7 +16,7 @@ all:
 	cd ./src/f01totom; $(MAKE) -f makefile
 	cd ./src/tables; $(MAKE) -f makefile
 	cd ./src/tix; $(MAKE) -f makefile
-	cd ./src/tix_new; $(MAKE) -f makefile
+	cd ./src/tix_old; $(MAKE) -f makefile
 	cd ./src/inhoud; $(MAKE) -f makefile
 	cd ./src/postproc; $(MAKE) -f makefile
 	cd ./src/lego; $(MAKE) -f Makefile.mk

@@ -130,7 +130,7 @@ if {$modified == 0 } { return 0}
 	   foreach item [$c find withtag tiporeg] {
             set blo_ite($nelem) $item
             set blo_nam($nelem) [file rootname [lindex [$c gettags $item] [lsearch [$c gettags $item] *.name]]]
-#puts "writeFiles: $item è un REGOL. nelem=$nelem  blo_nam=$blo_nam($nelem)"
+puts "writeFiles: $item è un REGOL. nelem=$nelem  blo_nam=$blo_nam($nelem)"
             
 	    incr nelem
         }	    
@@ -138,7 +138,7 @@ if {$modified == 0 } { return 0}
 	   if {[lsearch [$c gettags $item] tiporeg] == -1} {
             set blo_ite($nelem) $item
             set blo_nam($nelem) [file rootname [lindex [$c gettags $item] [lsearch [$c gettags $item] *.name]]]
-#puts "writeFiles: $item è un MODULO nelem=$nelem  blo_nam=$blo_nam($nelem)"
+puts "writeFiles: $item è un MODULO nelem=$nelem  blo_nam=$blo_nam($nelem)"
             
 	    incr nelem
 	   }
@@ -243,7 +243,11 @@ if {$modified == 0 } { return 0}
 		 puts $fileid $strstr
 		}
 		puts $fileid [file rootname [lindex [$c gettags $item] [lsearch [$c gettags $item] *.name]]]
-		puts $fileid ""
+		if {[info exists env(LG_FILESI5)] && [file isdirectory $env(LG_FILESI5)]} {
+		    puts $fileid ""
+		} else {
+		    puts $fileid [file rootname [lindex [$c gettags $item] [lsearch [$c gettags $item] *.lpath]]]
+		}
 	    }
 	   }
 	   puts $fileid "****"
@@ -591,4 +595,5 @@ proc setCanSiz {c} {
 	$c configure -scrollregion [list 0 0 $wsXsiz $wsYsiz]
 	set modified 1
 }
+
 

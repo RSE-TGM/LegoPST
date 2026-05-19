@@ -1,21 +1,26 @@
+set ::LINUXPLAT 1
+set ::modegrafpert "Plot"
+set ::comandoAccShM "$env(LG_BIN)/LegoSim/LgSincroAccShM.exe"
+set ::lastmod "-"
 
 source $env(LG_TIX)/checkopen.tcl
 
-proc ShowGraf { kill evar1 evar2 evar3 evar4 } {
+source $env(LG_TIX)/balloon.tcl
+
+proc ShowGraf { kill evar1 evar2 evar3 evar4} {
 	global env argc argv grafpid f22name refr  args
 
 	set command "$env(LG_GRAF)/grafics"
 
 #tk_messageBox -message 	"ShowGraf: file da leggere=$f22name" -type ok
 	if { $kill == 1 } {
-                  set command2 "pskill"
-                  catch { exec $command2 $grafpid }
+                  catch {exec taskkill /F /PID $grafpid}
         }
 
 
 	set i 0
         set args($i) "-FILE=$f22name"; incr i
-	if { $argc == 2 } { set args($i) "-R=$refr" ; incr i }
+	if { $argc == 2 || $argc == 3 } { set args($i) "-R=$refr" ; incr i }
 
 
 
@@ -34,7 +39,7 @@ proc ShowGraf { kill evar1 evar2 evar3 evar4 } {
 	if {$evar4 != ""} {
  		set args($i) "-V=$evar4"; incr i
 	}
-		
+
 	switch [expr $i - 1] {
  		1 {set grafpid [exec $command $args(0) $args(1) & ] }
  		2 {set grafpid [exec $command $args(0) $args(1) $args(2) & ] } \
@@ -52,9 +57,9 @@ proc ShowGraf_lin { kill evar1 evar2 evar3 evar4 } {
 #	set command "$env(LEGORT_BIN)/graphics"
         set command $::grafexec
 
-	
+
 	#creo una lista dei processi attivi
-	set result [exec ps] 
+	set result [exec ps]
 
 	#elimino dalla lista i processi di tipo grafics che sono dichiarati defunti
 	set index [lsearch $result *defunct*]
@@ -98,7 +103,6 @@ proc ShowGraf_lin { kill evar1 evar2 evar3 evar4 } {
 	if {$evar4 != ""} {
  		set args($i) "$evar4"; incr i
 	}
-
 #tk_messageBox -message  "draw2fgr: f22name:$f22name args0-->$args(0) args1-->$args(1)" -type ok
 
 
@@ -129,10 +133,49 @@ proc showVars { c x y} {
 	$c delete modOpt
 }
 
+
+proc getIndipIng {} {
+
+      set contarighe 0
+      set index 0
+      set fileid [checkopen "proc/f14.dat" r]
+      gets $fileid linea
+      while { $linea != "*LG*EOF" } {
+       set righef14($contarighe) $linea
+	 incr contarighe
+	 gets $fileid  linea
+
+       if { $linea == "*LG*CONDIZIONI INIZIALI VARIABILI DI INGRESSO  " } {
+        while {$linea != "*LG*DATI FISICI E GEOMETRICI DEL SISTEMA SUDDIVISI A BLOCCHI" } {
+            incr index
+            set righef14($contarighe) $linea
+	      incr contarighe
+	      gets $fileid linea
+
+             if { $linea != "*LG*DATI FISICI E GEOMETRICI DEL SISTEMA SUDDIVISI A BLOCCHI" } {
+                set nome [string range $linea 4 11]
+		    set rig $w3.middle.riga$index
+		    frame $rig
+	          pack $rig -side top
+                set nome1 [ string range $linea 8 11 ]
+                if { $mod == $nome1 } {
+		       set nomeVars($index) $nome
+                   set tipovar $tipVarMod($nome)
+				}
+				}
+				}
+				}
+	}
+}
+
+
 proc showIt { mod } {
         global curFileName campo
 	global numVars nomeVars tipoVars tipVarMod envir f22name
+	global numVarsINDIP nomeVarsINDIP
 
+
+    set ::lastmod $mod
 #	if {[loadVariables $mod]} return
 
 	set w1 .varwin
@@ -173,22 +216,27 @@ grid $w1 -in .frame -row 0 -column 3 -rowspan 1 -columnspan 1
 	set campo(0) "Var.Name"
 	set campo(1) "  "
 	set campo(2) $mod
+    if {[string compare $::modegrafpert "Plot"]} {
+		set VarColor "red"
+		} else { set VarColor "green"}
 
 	button $tit.modulo -textvariable campo(2) -width 12 -relief raised \
 		-font entryFont -state disabled  \
 		-disabledforeground black
 
 	button $tit.nome -textvariable campo(0) -width 8 -relief raised \
-		-font titleFont -state disabled -background green \
+		-font titleFont -state disabled -background $VarColor \
 		-disabledforeground black
 	button $tit.tipo -textvariable campo(1) -width 2 -relief raised \
-		-font titleFont -state disabled -background green
+		-font titleFont -state disabled -background $VarColor
 	pack $tit.modulo -side top -anchor w
 	pack $tit.nome $tit.tipo -side left -anchor w
 
-	 if { [ string compare $mod "-" ] != 0 } { if {[loadVariables $mod] } return
+	 if { [ string compare $mod "-" ] != 0 } {
+	 if {[loadVariables $mod] } return
 	 } else { return }
 
+if {$::modegrafpert == "Plot"} {
 	for {set index 0} {$index < $numVars} {incr index} {
 		set rig $w3.middle.riga$index
 		frame $rig
@@ -203,7 +251,30 @@ grid $w1 -in .frame -row 0 -column 3 -rowspan 1 -columnspan 1
 			-disabledforeground black
 		pack $rig.nome $rig.tipo -side left
 	}
+} else {
+
+	for {set index 0} {$index < $numVarsINDIP} {incr index} {
+		set rig $w3.middle.riga$index
+		frame $rig
+		pack $rig -side top
+            set nome $nomeVarsINDIP($index)
+            set tipovar "IN"
+		button $rig.nome -textvariable nomeVarsINDIP($index) -width 8 -relief groove \
+			-font entryFont -background gray80
+		bind $rig.nome <1> "setSlot $nomeVarsINDIP($index)"
+		button $rig.tipo -text $tipovar -width 2 -relief groove \
+			-font entryFont -state disabled -background yellow \
+			-disabledforeground black
+		pack $rig.nome $rig.tipo -side left
+	}
+
+
 }
+
+
+}
+
+
 
 proc selVars {} {
      global env
@@ -229,35 +300,106 @@ proc selVars {} {
      .varch.frame.r1 select
 
      frame .varch.butt
-     if  { $::tcl_platform(os) != "Linux" } {
+	 frame .varch.buttMode
+	 set textbut "$::modegrafpert    Mode"
+     if  { $::LINUXPLAT != 1 }  {
      button .varch.butt.ok -text "Show" -command { ShowGraf 1 $evar1 $evar2 $evar3 $evar4 }
      button .varch.butt.oknew -text "Show New" -command { ShowGraf 0 $evar1 $evar2 $evar3 $evar4 }
+
+	button .varch.buttMode.mode   -background green  \
+	   -text $textbut -textvariable textbut -font "Courier 12" \
+	   -command    {
+	          if { $::modegrafpert == "Plot" } {
+				if { ([ non_esiste_processo "lgsincro" ] == 0)  } {
+					catch {exec $::comandoAccShM -pict }
+					catch {exec $::comandoAccShM -pert }
+					set ::modegrafpert "Command"
+					.varch.buttMode.mode configure -background red
+					set textbut "$::modegrafpert Mode"
+					showIt $::lastmod
+					} else { return }
+
+			  } else { \
+				set ::modegrafpert "Plot"
+				.varch.buttMode.mode configure -background green
+				set textbut "$::modegrafpert    Mode"
+				showIt $::lastmod
+
+			}
+
+		 }
+
+	 set_balloon .varch.buttMode.mode "Press LgSincro Pert. to send commands"
+
      } else {
      button .varch.butt.ok -text "Show" -command { ShowGraf_lin 1 $evar1 $evar2 $evar3 $evar4 }
      button .varch.butt.oknew -text "Show New" -command { ShowGraf_lin 0 $evar1 $evar2 $evar3 $evar4 }
      }
 
 
-     button .varch.butt.clear -text "Clear" -command { set evar1 ""; set evar2 "";set evar3 "";set evar4 ""; .varch.frame.r1 select}
+     button .varch.butt.clear -text "Clear" -command { set evar1 ""; set evar2 "";set evar3 "";set evar4 ""; .varch.frame.r1 select }
+
+     frame .varch.taskname
+     label .varch.taskname.lab -text "Task: $::modelname" \
+           -font "Courier 12 bold" -foreground "#003399" -anchor center
+     pack .varch.taskname.lab -padx 4 -pady 6 -fill x
 
      pack .varch
 
-     pack .varch.frame .varch.butt -side top -pady 1m
+     grid .varch.frame -row 0 -column 0 -rowspan 1 -columnspan 1 -sticky news
+     grid .varch.butt -row 1 -column 0 -rowspan 1 -columnspan 1 -sticky news
+     grid .varch.buttMode -row 1 -column 1 -rowspan 1 -columnspan 1 -sticky news
+     grid .varch.taskname -row 0 -column 1 -rowspan 1 -columnspan 1 -sticky news
+
+     #pack .varch.frame .varch.butt -side top -pady 1m
+	 #pack .varch.buttMode -side right -anchor e
 
      pack .varch.frame.r1 .varch.frame.e1 \
           .varch.frame.r2 .varch.frame.e2 \
           .varch.frame.r3 .varch.frame.e3 \
           .varch.frame.r4 .varch.frame.e4 -side left
 
-     pack .varch.butt.ok .varch.butt.oknew  .varch.butt.clear -side left -padx 3m -pady 1m -fill x -expand 1
-}
+#     pack  .varch.butt.ok  .varch.butt.okold  .varch.butt.clear  -side left
+     if  { $::LINUXPLAT != 1 } {
+     pack  .varch.butt.ok .varch.butt.oknew  .varch.butt.clear  -side left -padx 4m -pady 1m -fill x -expand 1
+	 pack  .varch.buttMode.mode -side right -padx 0m -expand 1
+	 } else {
+     pack  .varch.butt.ok .varch.butt.oknew  .varch.butt.clear  -side left -padx 4m -pady 1m -fill x -expand 1
+	 }
+
+
+
+
+	 }
 
 proc setSlot {name} {
 	global rvar evar1 evar2 evar3 evar4
+	global env
 
-	set evar${rvar} $name
-	incr rvar
-	if { $rvar == 5 } {set rvar 1 }
+	# Se un campo giallo è selezionato per il remap, intercetta il click
+	# sulla lista e applica il remap invece di aggiungere una variabile al plot.
+	# Controllo aggiuntivo: il modulo della lista aperta deve corrispondere
+	# al modulo del campo selezionato (::anim_selected_mod == ::lastmod).
+	if { $::anim_selected_item != -1 && $::modegrafpert == "Plot" } {
+		if { [string equal $::anim_selected_mod $::lastmod] } {
+			anim_apply_remap $::draw2gr_c $name
+		} else {
+			# Lista appartenente a un modulo diverso → non consentito
+			tk_messageBox -icon warning -type ok \
+				-message "Select a variable from the icon whose yellow field is highlighted."
+		}
+		return
+	}
+
+	if { $::modegrafpert == "Plot" }	{
+		set evar${rvar} $name
+		incr rvar
+		if { $rvar == 5 } {set rvar 1 }
+	} else {
+	# invio la variabile da perturbare
+		set evar1{rvar} $name
+		catch {exec $::comandoAccShM $name }
+	}
 
 }
 
@@ -301,6 +443,23 @@ wm title . "$envir - $f22nn - $curFileName.tom"
 		return
 
 }
+
+proc chk_exit {} {
+# fermosincview
+#		 anima chiudi qq
+# imposto modalità pict per HMI interno in lgsincro
+	set argom "-nopict"
+	if { ([ non_esiste_processo "lgsincro" ] == 0)  } {
+		catch { exec $::comandoAccShM $argom }
+		}
+
+    exit
+
+  };# chk_exit
+
+
+
+
 ######################################################################
 #
 # Inizio main draw2gr.tcl
@@ -316,6 +475,9 @@ global wsScrWidth wsScrHeight wsXsiz wsYsiz wsXmin wsYmin
 global progNumb portw curTool progName palId jshift porth
 global numBlo
 
+#---main
+wm protocol . WM_DELETE_WINDOW chk_exit
+
 set envir "Draw2Gr"
 
 set grafpid -1
@@ -326,7 +488,7 @@ set i 0
 
 
 
-if  { $::tcl_platform(os) == "Linux" } {
+if  { $::LINUXPLAT == 1 } {
 if { [lindex $::argv 0] == 0 } {
   set ::grafexec $env(LEGORT_BIN)/grafics
   set seqfile 1
@@ -343,22 +505,40 @@ if { [lindex $::argv 0] == 0 } {
    	1 { set args($i) "$f22name"; incr i }
   	2 { set args($i) "$f22name" ; incr i}
     }
-  
+  # lgser_clientnum not used on Linux but must exist for ShowNamesfilt
+  set ::lgser_clientnum -1
+
 } else {
+  # ::lgser_clientnum: numero SHM per sincview in modalità lgser-FMU
+  # -1 = non impostato (usa lgsincro o f14)
+  set ::lgser_clientnum -1
+
   switch $argc  {
  	0 { set f22name "f22.f22"; set args($i) "-FILE=f22.f22"; incr i }
  	1 { set f22name "f22.f22"; set args($i) "-FILE=f22.f22"; incr i }
  	2 { set f22name [lindex $argv 1 ] ; set args($i) "-FILE=$f22name"; incr i }
-	3 { set f22name [lindex $argv 1 ] ; set args($i) "-FILE=$f22name" ; incr i;  \
+    3 { # FMU lgser mode: argv[2] = clientNum (es. 11,12,13)
+        set f22name [lindex $argv 1]; set args($i) "-FILE=$f22name"; incr i
+        set ::lgser_clientnum [lindex $argv 2] }
+    default { set f22name [lindex $argv 1 ] ; set args($i) "-FILE=$f22name" ; incr i;  \
        	    set refr [lindex $argv 2 ] ; set args($i) "-R=$refr" ; incr i }
   }
 }
+
 set  ::dpimon [winfo fpixels . 1i ]
 
 set modelname [file tail [pwd]]
-set curFileName "$env(LG_MODELS)/$modelname/$modelname"
-#wm title . "Graphics Vars Selection - $curFileName.tom"
+# Usa [pwd] come directory del modello: funziona sia in modalità FMU bundle
+# (cwd = bundle/<modelname>/ impostato da CreateProcessA) sia in modalità
+# normale (cwd = LG_MODELS/<modelname>/ dopo apertura modello).
+# LG_MODELS è process-global: con più FMU nello stesso processo (es. Simulink)
+# viene sovrascritto dall'ultima istanza inizializzata → non affidabile.
+set curFileName [file join [pwd] $modelname]
+wm title . "Graphics Vars Selection - $curFileName.tom"
+#wm title . "HMI & Plot Plot - $f22nn - $curFileName.tom"
+
 set c .frame.c
+set ::draw2gr_c $c
 
 menu .menu -tearoff 0
 set m .menu.file
@@ -367,7 +547,7 @@ menu $m -tearoff 0 -activebackground darkblue -activeforeground white
 $m add command -label "Open f22..." -command "openf22 $c "
 $m add command -label "Save Current f22 to..." -command "savef22 $c "
 #$m add command -label "Select Vars" -command "destroy .varch;selVars"
-$m add command -label "Quit" -command "destroy ."
+$m add command -label "Quit" -command "chk_exit"
 
 set m .menu.vmgr
 menu $m -tearoff 0 -activebackground darkblue -activeforeground white
@@ -375,10 +555,18 @@ menu $m -tearoff 0 -activebackground darkblue -activeforeground white
 
 set showon 2
 
-$m add radio -label "Show OFF" -variable showon -value 1 -command "ShowNames $c 1"
-$m add radio -label "Show Names" -variable showon -value 2 -command "ShowNames $c 1; ShowNames $c 2"
-$m add radio -label "Show Classes" -variable showon -value 3 -command "ShowNames $c 1; ShowNames $c 3"
-if  { $::tcl_platform(os) == "Linux" } {
+# $m add radio -label "Show OFF" -variable showon -value 1 -command "ShowNames $c 1"
+# $m add radio -label "Show Names" -variable showon -value 2 -command "ShowNames $c 1; ShowNames $c 2"
+# $m add radio -label "Show Classes" -variable showon -value 3 -command "ShowNames $c 1; ShowNames $c 3"
+
+    $m add radio -label "Show OFF" -variable showon -value 1 -command "ShowNamesfilt $c $c 1"
+    $m add radio -label "Show Names" -variable showon -value 2 -command "ShowNamesfilt $c $c 1; ShowNamesfilt $c $c 2"
+    $m add radio -label "Show Classes" -variable showon -value 3 -command "ShowNamesfilt $c $c 1; ShowNamesfilt $c $c 3"
+    $m add command -label "Show Connections..." -command "viewConn_dlg $c $c $c"
+    $m add radio -label "Show Value" -variable showon -value 4 -command "ShowNamesfilt $c $c 1; ShowNamesfilt $c $c 4"
+
+
+if  { $::LINUXPLAT == 1 } {
 $m add radio -label "Graf sequential" -variable seqfile -value 1 -command "set ::grafexec $env(LEGORT_BIN)/grafics"
 $m add radio -label "Graf circular" -variable seqfile -value 2 -command "set ::grafexec $env(LEGORT_BIN)/graphics"
 }
@@ -386,7 +574,20 @@ $m add radio -label "Graf circular" -variable seqfile -value 2 -command "set ::g
 # aggiungo menu per la ricerca dei blocchi
 set ::canv1 $c
 set ::modalita 1
-$m add command -label "Find name" -command trova_win 
+$m add command -label "Find name" -command trova_win
+
+# Zoom submenu
+set mzoom .menu.vmgr.zoom
+menu $mzoom -tearoff 0 -activebackground darkblue -activeforeground white
+$m add cascade -label "Zoom" -menu $mzoom
+$mzoom add command -label "400%"  -command {doZoom $::canv1 4.0}
+$mzoom add command -label "300%"  -command {doZoom $::canv1 3.0}
+$mzoom add command -label "200%"  -command {doZoom $::canv1 2.0}
+$mzoom add command -label "150%"  -command {doZoom $::canv1 1.5}
+$mzoom add command -label "100%"  -command {doZoom $::canv1 1.0}
+$mzoom add command -label " 75%"  -command {doZoom $::canv1 0.75}
+$mzoom add command -label " 50%"  -command {doZoom $::canv1 0.5}
+$mzoom add command -label " 25%"  -command {doZoom $::canv1 0.25}
 ##############
 
 
@@ -443,6 +644,10 @@ scrollbar .frame.hscroll -orient horiz -command "$c xview"
 grid $c -in .frame -row 0 -column 0 -rowspan 1 -columnspan 1 -sticky news
 grid .frame.vscroll -row 0 -column 1 -rowspan 1 -columnspan 1 -sticky news
 grid .frame.hscroll -row 1 -column 0 -rowspan 1 -columnspan 1 -sticky news
+catch {
+	ttk::sizegrip .frame.sizegrip
+	grid .frame.sizegrip -row 1 -column 1 -sticky se
+}
 
 grid rowconfig .frame 0 -weight 1 -minsize 0
 grid columnconfig .frame 0 -weight 1 -minsize 0
@@ -466,6 +671,100 @@ catch {font create entryBig -family Courier -size 14}
 catch {font create titleBig -family Courier -size 14 -weight bold}
 
 $c bind module <1> "showVars $c %x %y"
+
+# ============================================================
+# Zoom canvas: scaling runtime delle immagini con image copy
+# Livelli fissi: 25%, 50%, 75%, 100%, 150%, 200%, 300%, 400%
+# ============================================================
+array set ::zoomRatios {
+    025 {1 4}
+    050 {1 2}
+    075 {3 4}
+    100 {1 1}
+    150 {3 2}
+    200 {2 1}
+    300 {3 1}
+    400 {4 1}
+}
+array set ::zoomLevelOf {}
+
+proc scaleImage {basename key} {
+    if {$key == "100"} { return $basename }
+    set dest "z${key}_${basename}"
+    if {[lsearch -exact [image names] $dest] < 0} {
+        set ratio $::zoomRatios($key)
+        set zf [lindex $ratio 0]
+        set sf [lindex $ratio 1]
+        image create photo $dest
+        $dest copy $basename -zoom $zf $zf -subsample $sf $sf
+    }
+    return $dest
+}
+
+proc doZoom {c newLevel} {
+    set newKey [format "%03d" [expr {round($newLevel * 100)}]]
+    if {![info exists ::zoomRatios($newKey)]} return
+    set curLevel [expr {[info exists ::zoomLevelOf($c)] ? $::zoomLevelOf($c) : 1.0}]
+    if {$newLevel == $curLevel} return
+    set delta [expr {$newLevel / $curLevel}]
+    $c scale all 0 0 $delta $delta
+    foreach item [$c find withtag module] {
+        if {[$c type $item] != "image"} continue
+        set curImg [$c itemcget $item -image]
+        regsub {^z[0-9]+_} $curImg {} base
+        $c itemconfigure $item -image [scaleImage $base $newKey]
+    }
+    foreach item [$c find withtag port] {
+        if {[$c type $item] != "image"} continue
+        set curImg [$c itemcget $item -image]
+        regsub {^z[0-9]+_} $curImg {} base
+        $c itemconfigure $item -image [scaleImage $base $newKey]
+    }
+    foreach item [$c find all] {
+        if {[$c type $item] != "text"} continue
+        set fontspec [$c itemcget $item -font]
+        if {$fontspec == ""} continue
+        if {![info exists ::origFontOf($c,$item)]} {
+            set ::origFontOf($c,$item) $fontspec
+        }
+        if {[catch {set fa [font actual $::origFontOf($c,$item)]}]} continue
+        set origSize [lindex $fa 3]
+        if {$origSize == 0} continue
+        set newSize [expr {round(abs($origSize) * $newLevel)}]
+        if {$newSize < 1} { set newSize 1 }
+        if {$origSize < 0} { set newSize [expr {-$newSize}] }
+        set family [lindex $fa 1]
+        set weight [lindex $fa 5]
+        set slant  [lindex $fa 7]
+        $c itemconfigure $item -font [list $family $newSize $weight $slant]
+    }
+    set ::zoomLevelOf($c) $newLevel
+    $c configure -scrollregion [list 0 0 \
+        [expr {$::wsXsiz * $newLevel}] \
+        [expr {$::wsYsiz * $newLevel}]]
+}
+
+proc resetZoom {c} {
+    doZoom $c 1.0
+}
+
+# Zoom con Ctrl+MouseWheel
+bind $c <Enter> {focus %W}
+bind $c <Control-MouseWheel> {
+    set _zlevels {0.25 0.5 0.75 1.0 1.5 2.0 3.0 4.0}
+    set _cur [expr {[info exists ::zoomLevelOf(%W)] ? $::zoomLevelOf(%W) : 1.0}]
+    set _idx [lsearch $_zlevels $_cur]
+    if {%D > 0} { incr _idx } else { incr _idx -1 }
+    if {$_idx >= 0 && $_idx < [llength $_zlevels]} {
+        doZoom %W [lindex $_zlevels $_idx]
+    }
+}
+# Dopo topRead il canvas è ridisegnato a 100%: sincronizza stato zoom
+proc draw2gr_syncZoom {c} {
+    set ::zoomLevelOf($c) 1.0
+    array unset ::origFontOf ${c},*
+}
+
 source $env(LG_TIX)/read_con.tcl
 source $env(LG_TIX)/read_f01.tcl
 source $env(LG_TIX)/fileio.tcl
@@ -473,15 +772,315 @@ source $env(LG_TIX)/itemjoin.tcl
 source $env(LG_TIX)/read_f14.tcl
 source $env(LG_TIX)/viewmgr.tcl
 
+#------------------------- nuovo guag 2020
+source $env(LG_TIX)/animate.tcl
 
+# ── Backg Color con colori recenti (condivisi con legopc.tix via stesso file prefs) ──
+# Popup tasto destro canvas: mostra "Backg Color" solo se il click NON è
+# su un item infoitemname (casella animazione / Show Names).
+# In draw2gr.tcl il menu bgcolor è .menu.vmgr.bgcolor (separato da legopc.tix).
+
+if {![info exists ::recentColors]} { set ::recentColors {} }
+
+proc d2g_prefsFile {} {
+    global env
+    return [file join $env(LG_ENTRY) legopc_prefs.tcl]
+}
+proc d2g_loadPrefs {} {
+    set pf [d2g_prefsFile]
+    if {[file exists $pf]} { catch {source $pf} }
+}
+proc d2g_savePrefs {} {
+    # Aggiorna solo la riga recentColors senza toccare le voci di legopc.tix
+    set pf [d2g_prefsFile]
+    set lines {}
+    if {[file exists $pf]} {
+        set fh [open $pf r]
+        set lines [split [read $fh] \n]
+        close $fh
+    }
+    set out {}
+    foreach ln $lines {
+        if {![string match "set ::recentColors*" $ln]} { lappend out $ln }
+    }
+    lappend out "set ::recentColors [list $::recentColors]"
+    set fh [open $pf w]
+    puts $fh [join $out \n]
+    close $fh
+}
+proc d2g_addRecentColor {color} {
+    set idx [lsearch -exact $::recentColors $color]
+    if {$idx >= 0} { set ::recentColors [lreplace $::recentColors $idx $idx] }
+    set ::recentColors [linsert $::recentColors 0 $color]
+    if {[llength $::recentColors] > 8} {
+        set ::recentColors [lrange $::recentColors 0 7]
+    }
+}
+proc d2g_rebuildBgMenu {} {
+    set menu .menu.vmgr.bgcolor
+    set stop 0
+    while {!$stop} {
+        if {[catch {set last [$menu index end]}]} {
+            set stop 1
+        } elseif {$last < 2} {
+            set stop 1
+        } else {
+            $menu delete $last
+        }
+    }
+    if {[llength $::recentColors] > 0} {
+        $menu add separator
+        foreach color $::recentColors {
+            $menu add command -label "  $color" \
+                -background $color \
+                -command [list d2g_applyBgColor $color]
+        }
+    }
+}
+proc d2g_applyBgColor {color} {
+    global wsBackg
+    set wsBackg $color
+    $::canv1 configure -bg $color
+}
+proc d2g_setBgColor {mode} {
+    global wsBackg
+    if {$mode == "default"} {
+        set color gray90
+    } else {
+        set color [tk_chooseColor -initialcolor $wsBackg -title "Background color"]
+        if {$color == ""} return
+        d2g_addRecentColor $color
+        d2g_rebuildBgMenu
+        d2g_savePrefs
+    }
+    d2g_applyBgColor $color
+}
+
+d2g_loadPrefs
+
+menu .menu.vmgr.bgcolor -tearoff 0
+set popc $c.pop
+menu $popc -activebackground darkblue -activeforeground white -tearoff 0
+$popc add cascade -label "Backg Color" -menu .menu.vmgr.bgcolor
+.menu.vmgr.bgcolor add command -label "Default"   -command {d2g_setBgColor default}
+.menu.vmgr.bgcolor add command -label "Custom..." -command {d2g_setBgColor custom}
+d2g_rebuildBgMenu
+
+proc d2g_popup_if_background {pop W X Y x y} {
+    set cx [$W canvasx $x]
+    set cy [$W canvasy $y]
+    set hits [$W find overlapping $cx $cy $cx $cy]
+    foreach h $hits {
+        if {[lsearch [$W gettags $h] infoitemname] >= 0} { return }
+    }
+    tk_popup $pop $X $Y
+}
+bind $c <ButtonRelease-3> "d2g_popup_if_background $popc %W %X %Y %x %y"
+set lgsincropid 1
+
+
+
+proc non_esiste_processo { prid } {
+
+# ritorna 1 se NON esiste il processo con il process id "prid"
+# Usa tasklist (standard Windows, no Sysinternals richiesto)
+
+switch $::LINUXPLAT {
+			0 {
+				if {[regexp {^[0-9]+$} $prid] && $prid > 0} {
+					set filter "PID eq $prid"
+				} else {
+					set nome $prid
+					if {![regexp -nocase {\.exe$} $nome]} { append nome ".exe" }
+					set filter "IMAGENAME eq $nome"
+				}
+				catch {exec tasklist /FI $filter /FO CSV /NH} output
+				# found: output inizia con '"' (CSV); not found: msg INFO
+				if {[string first "\"" $output] == 0} {
+					return 0
+				}
+				return 1
+			}
+
+			1 {
+				return 1
+			}
+		}
+}
+proc ShowNamesfilt { c c2 mod } {
+  global modalita lgsincropid matrVf14
+
+  switch $mod  {
+#modo debug per fare alcune stampe
+  5       { set qq [$c2 gettags infoitemname ]
+#tk_messageBox  -message "ITEM: $item\n 0: [lindex [$c gettags $item] 0 ]\n 1: [lindex [$c gettags $item] 1 ]\n 2: [lindex [$c gettags $item] 2 ]\n 3: [lindex [$c gettags $item] 3 ]\n 4: [lindex [$c gettags $item] 4 ]\n 5: [lindex [$c gettags $item] 5 ]\n"
+#tk_messageBox  -message "ShowNamesfilt: $c2: $qq\n [ lindex $qq 0]\n [ lindex $qq 1]\n [ lindex $qq 2]\n [ lindex $qq 3]\n"
+            set mod 4 }
+
+  4       {
+            if  { $::LINUXPLAT == 1 } {
+                anima chiudi qq
+                set sked_running 0
+                catch {
+                    set psout [exec ps -A -o comm]
+                    foreach _ln [split $psout "\n"] {
+                        if { [string trim $_ln] == "net_sked" } { set sked_running 1; break }
+                    }
+                }
+                if { $sked_running == 1 } {
+                    anima init qq
+                    anima_aggiorna $c2 1
+                } else {
+                    anima_aggiorna $c2 3
+                }
+            } else {
+                # metto in animazione lo schema con i valori del transitorio
+                if { [ non_esiste_processo "lgsincro" ] == 0 } {
+                  # LgSincro in esecuzione: usa sincview con SharedLego1
+                  anima chiudi qq
+                  anima init qq
+                  anima_aggiorna $c2 1
+                } elseif { $::lgser_clientnum >= 0 } {
+                  # FMU lgser diretto: usa sincview con SharedLego{clientNum}
+                  anima chiudi qq
+                  anima init qq
+                  anima_aggiorna $c2 1
+                } else {
+                  # Nessuna simulazione attiva: mostra valori statici da f14
+                  anima chiudi qq
+                  anima_aggiorna $c2 3
+                }
+            }
+
+            }
+
+	default {
+                   anima chiudi qq
+				   ShowNames $c $mod
+	               ShowNames $c2 $mod
+            }
+        }
+}
+
+#------------------------- FINE nuovo guag 2020
+
+# ============================================================
+# REMAP: variabile animata per icona (rimappatura persistente)
+# ============================================================
+# ::anim_remap(pisqu_name) = nome_variabile_completo  (es. "T02TURBO1")
+# ::anim_selected_item     = canvas item id icona selezionata (-1 = nessuna)
+# ::anim_selected_rect     = canvas item id del rettangolo giallo selezionato
+# ::anim_selected_mod      = codice modulo (4 chars) dell'icona selezionata
+
+array set ::anim_remap {}
+set ::anim_selected_item -1
+set ::anim_selected_rect -1
+set ::anim_selected_mod  ""
+
+# Gestisce il doppio-click sul campo giallo sotto un'icona.
+# item  = canvas id del modulo
+# rect  = canvas id del rettangolo giallo
+# modtags = lista dei tag del modulo (passata da animate.tcl)
+proc anim_field_select { c item rect modtags } {
+    # Deseleziona il campo precedentemente selezionato
+    if {$::anim_selected_rect != -1} {
+        catch { $c itemconfigure $::anim_selected_rect \
+                    -fill yellow -outline yellow }
+    }
+
+    # Toggle: doppio-click sullo stesso campo → deseleziona
+    if {$::anim_selected_item == $item} {
+        set ::anim_selected_item -1
+        set ::anim_selected_rect -1
+        set ::anim_selected_mod  ""
+        return
+    }
+
+    # Selezione nuovo campo
+    set ::anim_selected_item $item
+    set ::anim_selected_rect $rect
+
+    # Ricava codice modulo (4 chars) dai tag per filtrare la lista variabili
+    # Usa la stessa logica di showVars: tag index 5 (NOME.name) → 4 chars
+    # ma più robusto: cerca *.name e usa i primi 4 char del nome istanza
+    # (corrispondono al tipo di blocco F01)
+    set name_tag [file rootname [lindex $modtags [lsearch $modtags *.name]]]
+    set ::anim_selected_mod [string range $name_tag 0 3]
+
+    # Evidenzia il campo selezionato (bordo verde, sfondo lime)
+    $c itemconfigure $rect -fill "#CCFF99" -outline "#00AA00"
+
+    # Apre automaticamente la lista variabili per questo modulo
+    # (stessa chiamata di showVars ma senza bisogno di current)
+    showIt $::anim_selected_mod
+}
+
+# Applica il remap: chiamato da setSlot quando un campo è selezionato.
+# name = nome variabile completo (da nomeVars, es. "T02TURBO1")
+proc anim_apply_remap { c name } {
+    global tipVarMod
+
+    set item $::anim_selected_item
+    set rect $::anim_selected_rect
+    if {$item == -1} return
+
+    # Sicurezza: la variabile deve esistere in F01
+    if {![info exists tipVarMod($name)]} return
+
+    # Ricava nome istanza dal tag *.name del modulo
+    set tags_curr [$c gettags $item]
+    set pisqu_name [file rootname [lindex $tags_curr [lsearch $tags_curr *.name]]]
+
+    # Aggiorna remap in memoria
+    set ::anim_remap($pisqu_name) $name
+
+    # Aggiorna tag *.nome_anim sull'item (letto dal loop mode 2)
+    set old_nome_anim [lsearch $tags_curr *.nome_anim]
+    if {$old_nome_anim >= 0} {
+        set old_tag [lindex $tags_curr $old_nome_anim]
+        $c dtag $item $old_tag
+    }
+    $c addtag ${name}.nome_anim withtag $item
+
+    # Aggiorna subito il testo visibile (senza aspettare il prossimo tick)
+    set pisqu_tid [file rootname [lindex [$c gettags $item] \
+                       [lsearch [$c gettags $item] *.visual]]]
+    catch { $c itemconfigure $pisqu_tid -text "$name ..." }
+
+    # Ripristina colore giallo normale e deseleziona
+    catch { $c itemconfigure $rect -fill yellow -outline yellow }
+    set ::anim_selected_item -1
+    set ::anim_selected_rect -1
+    set ::anim_selected_mod  ""
+
+    # Salva su disco
+    catch { anim_save_remap }
+}
 
 topRead $c $curFileName
+viewConn_reapply $c
+draw2gr_syncZoom $c
 loadF01 $c no
 #selVars
 
 showIt "-"
 
 catch { ShowNames $c 2}
-wm title . "$envir - $f22name - $curFileName"
+#wm title . "$envir - $f22name - $curFileName"
+wm title . "HMI & Plot  - $f22name - $curFileName.tom"
+
+
+
+# imposto modalità pict esterno per lgsincro
+if { ([ non_esiste_processo "lgsincro" ] == 0)  } {
+catch { exec $::comandoAccShM -pict }
+# Se avviato in Command Mode (da tasto Pert di LgSincro: argv[3] == "command")
+if { $argc >= 4 && [string equal [lindex $argv 3] "command"] } {
+    catch { exec $::comandoAccShM -pert }
+    set ::modegrafpert "Command"
+    .varch.buttMode.mode configure -background red
+    set textbut "$::modegrafpert Mode"
+}
+}
 
 #tk_messageBox -message "drwa2grf: argc=$argc\n argv=$argv f22name=$f22name"

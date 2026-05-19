@@ -125,6 +125,14 @@ proc calc_regime {} {
 
               }
        
+              # Crea lg3.inp se mancante (da lg3.def o valori di default)
+              if { ![file exists lg3.inp]}  {
+                   if { [catch {file copy -force $SLV/lg3.def lg3.inp}] } {
+                        set _f [open lg3.inp w]
+                        foreach _l {SI "1 2" 0.00001 M 0 SI} { puts $_f $_l }
+                        close $_f
+                   }
+              }
               catch {exec proc/nssls <lg3.inp >lg3.out}
 
               if {$tk_strictMotif != 0} {

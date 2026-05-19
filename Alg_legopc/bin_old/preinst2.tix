@@ -1,0 +1,723 @@
+source $env(LG_TIX)/checkopen.tcl
+
+proc newiconlib {} {
+
+global env lllibbb instance2 percorso path_list
+
+toplevel .libnew
+wm title .libnew "Library name selection"
+		label .libnew.lab -text "Library name:" -font "Courier 12"
+		entry .libnew.ent -textvariable libname
+		frame .libnew.but
+		button .libnew.but.ok -text OK -command {
+                   if [file isdirectory $env(LG_LIBRARIES)/$libname] {
+                      tk_messageBox -icon info -message "Library already exists!" \
+                                    -type ok -parent .
+                   } else {
+			    file mkdir $env(LG_LIBRARIES)/$libname
+			    file copy -force $env(LG_PREINST)/templ.lib $env(LG_LIBRARIES)/$libname/$libname.lib
+			    destroy .libnew
+			    set lllibbb $libname
+			    if {$lllibbb != {} && $instance2 != {} } {
+				.tmg.btn1 configure -state normal
+			    } else {
+				.tmg.btn1 configure -state disabled
+			    }
+			    set percorso [join [split $env(LG_LIBRARIES)/$lllibbb \\ ] / ]
+			    set path_list($instance) [join [split $env(LG_LIBRARIES) \\ ] / ]/$lllibbb
+                   }
+		}
+		
+		button .libnew.but.canc -text Canc -command {destroy .libnew; return}
+		
+		pack .libnew.lab .libnew.ent .libnew.but -side top -pady 3m -padx 2m
+		pack .libnew.but.ok .libnew.but.canc -side left -padx 2m -fill x
+
+}
+
+
+proc new_instance {lista_dei_moduli mod} {
+global env instance instance2 stato_second_phase selected_instance lllibbb commento image2a
+set numeri {}
+set stato_second_phase disabled
+set i 0
+set nome_filexxxx {}
+foreach local_var $lista_dei_moduli {
+	lappend nome_filexxxx [file rootname [file tail $local_var]]
+}
+
+if { $nome_filexxxx != {} } {
+	set sorted_list [lsort -increasing -dictionary $nome_filexxxx]
+	set local_var [lindex $sorted_list $i]
+	regexp {([0-9]+$)} $local_var num
+	while { $i == $num } {
+		incr i
+		set local_var [lindex $sorted_list $i]
+		regexp {([0-9]+$)} $local_var num
+	}
+}
+set instance ${mod}_$i.pi3
+set instance2 ${mod}_$i
+set lllibbb {}
+set commento {}
+catch {image delete image2a}
+image create photo image2a
+image2a configure -file $env(LG_PREINST)/black.gif
+
+if {$lllibbb != {} && $instance2 != {} } {
+	.tmg.btn1 configure -state normal
+} else {
+	.tmg.btn1 configure -state disabled
+}
+
+.tmg.r.h insert end [file rootname $instance]
+
+}
+
+
+proc cerca_gif { fn } {
+    # check if fn exists
+	if { [file exists $fn] } {
+	# get the base name and path
+	set base [file rootname $fn]
+	#set ext  [file extension $fn] ;# includes the dot
+	set ext ".gif"
+	set newName ${base}n${ext}
+    } else {
+	set newName $fn
+    }
+    return $newName
+}
+
+proc prnst2ph {percorsox istanza} {
+
+## LANCIA LA PREINSTANZIAZIONE DEL MODULO
+global env
+set asiajm [cerca_gif $percorsox/$istanza]
+set comm1 [info nameofexecutable]
+set comm2 "$env(LG_TIX)/preinst.tcl"
+if { $istanza == {} } {
+	exec $comm1 -f $comm2 &
+   } else {
+	exec $comm1 -f $comm2 $asiajm &
+   }
+.pr.b4.chk select	
+}
+
+#TRA TUTTI GLI ELEMENTI CONTENUTI NELLA CARTELLA Libraries ESTRAE SOLO LE CARTELLE
+#ESCLUDENDO I FILES 
+proc find_sub_dir {} {
+	global env 
+	set h [glob -nocomplain $env(LG_LIBRARIES)/*]
+	set dir1 {}
+	foreach hx $h {
+		if {![string match *.* $hx]} {
+			lappend dir1 $hx
+		}
+	}
+return $dir1;
+}
+
+proc show_instance {selected_instance} {
+global commento lllibbb instance instance2 models_list percorso percorso_path
+global env image2a path_list stato_second_phase
+#non possono esistere nomi di moduli con lo stesso nome anche se in cartelle differenti
+####tk_messageBox -icon info -type ok -title Warning -parent . -message $selected_instance
+if { $selected_instance == {}} { return}
+foreach k $percorso_path {
+	foreach kk $models_list($k) {
+		set compare $selected_instance.pi3
+		if {$compare == [file tail $kk]} {
+			set lllibbb [file tail $k]
+			set percorso $k
+		}
+	}
+}
+
+if { $lllibbb != {} } {
+	set percorso [join [split $env(LG_LIBRARIES)/$lllibbb \\ ] / ]
+	set lllibbb [lindex [split $percorso / ] end ]
+	set FILE $path_list(${selected_instance}.pi3)/${selected_instance}.pi3
+	set instance2 $selected_instance
+	set instance ${selected_instance}.pi3
+	if [file exists $FILE] {
+		set F [checkopen $FILE r]
+		for {set i 1} {$i<=3} {incr i} {
+			gets $F line
+		}
+		close $F
+		set commento $line
+	}
+        set FILEGIF [file rootname $FILE]n.gif
+	if { ![file exists $FILEGIF]} {
+		tk_messageBox -message "Icon ->$selected_instance non-existent"
+		catch {image delete image2a}
+		image create photo image2a
+		image2a configure -file $env(LG_PREINST)/black.gif
+	} else {
+		catch {image delete image2a}
+		image create photo image2a
+		image2a configure -file $FILEGIF
+	}
+	set stato_second_phase normal
+}
+
+if {$lllibbb != {} && $instance2 != {} } {
+	.tmg.btn1 configure -state normal
+	.tmg.btn3 configure -state normal
+} else {
+	.tmg.btn1 configure -state disabled
+	.tmg.btn3 configure -state disabled
+}
+
+}
+
+
+proc timing {} {
+
+package require Tix 
+
+global modulo env path_list percorso_path percorso MODELNAME commento 
+global instance instance2 FILE lllibbb stato_second_phase models_list stato_save
+
+global image2a models_list_file
+global direlib
+
+set retvar [selmod]
+if {$retvar == 0} {
+   tk_messageBox -icon info -type ok \
+           	  -title Warning -parent . -message "No module is selected"
+   return
+   }
+
+catch {destroy .tmg}
+toplevel .tmg
+wm title .tmg "Preinst module $modulo"
+set models_list_file {}
+set instance	  {}
+set instance2	  {}
+set percorso_path {}
+
+set lllibbb	  {}
+set commento	  {}
+
+set stato_second_phase disabled
+
+frame .tmg.r
+frame .tmg.s
+
+set xxxx [string tolower $modulo]
+
+#dr contiene i path di tutte le sotto-directory di LG_LIBRARIES 
+
+set dr [find_sub_dir]
+
+set direlib $dr
+
+set path_list(0) {}
+if {![info exists path_list(0)]} {
+	set path_list(0) 1
+}
+
+tixComboBox .tmg.r.h -browsecmd show_instance -variable instance2 -editable false -bg white -options {font "Courier 12" }
+
+
+foreach xp $dr {
+	set models_list_tmp [glob -nocomplain $xp/$xxxx*.pi3]
+	if {$models_list_tmp!={}} {
+		lappend percorso_path $xp
+		set models_list($xp) $models_list_tmp
+		foreach fx $models_list_tmp {
+			set nome_file [file tail $fx]
+			#set senza [file rootname $nome_file]
+			lappend models_list_file $fx
+			set path_list($nome_file) $xp
+		}
+	}
+	set models_list_tmp {}
+}
+set file_listxc {}
+set new_models_list_file {}
+foreach civ $models_list_file {
+	lappend file_listxc [file tail $civ]
+}
+set new_models_list_file [lsort -increasing -dictionary $file_listxc]
+
+####tk_messageBox -icon info -type ok -title Warning -parent . -message $new_models_list_file
+####tk_messageBox -icon info -type ok -title Warning -parent . -message $xxxx
+
+foreach civ $new_models_list_file {
+	.tmg.r.h insert end [file rootname $civ]
+	
+}
+
+
+
+
+
+.tmg.r.h subwidget entry configure -width 7 
+.tmg.r.h subwidget listbox configure -height 4
+.tmg.r.h subwidget listbox configure -width 7
+.tmg.r.h subwidget listbox configure -bg white
+
+if {$instance == {} } {
+	set stato_save disabled
+} else {
+	set stato_save normal
+}
+catch {image delete image2a}
+set FILE $env(LG_PREINST)/black.gif
+image create photo image2a
+image2a configure -file $FILE
+
+label .tmg.r.e -text "Image:"
+label .tmg.r.f -image image2a
+label .tmg.r.g -text "Instance"
+
+frame .tmg.sep -relief ridge -bd 1 -height 2 
+
+entry .tmg.r.b -width 15 -textvariable lllibbb -state disabled
+label .tmg.r.a -text "Library"
+entry .tmg.s.l -width 50 -textvariable commento
+label .tmg.s.i -text "Comment"
+button .tmg.btn3  -text "Copy to a\nnew instance" -width 10 -state $stato_save -command {save_as $models_list_file [string tolower $modulo]; focus .tmg }
+button .tmg.r.c  -text "Select Library"  -command {
+ 						global percorso env lllibbb path_list
+                                               	set types { { {Library Files} {.lib} } }
+					       	set filename [tk_getOpenFile -filetypes $types -initialdir $env(LG_LIBRARIES)]
+					if { $filename != "" } {
+					       	set lllibbb [lindex [split [file rootname $filename] / ] end ]
+						if {$lllibbb != {} && $instance2 != {} } {
+# tolgo la conv minuscolo							set lllibbb [string tolower $lllibbb]
+							.tmg.btn1 configure -state normal
+						} else {
+							.tmg.btn1 configure -state disabled
+						}
+						set percorso [join [split $env(LG_LIBRARIES)/$lllibbb \\ ] / ]
+						set path_list($instance) [join [split $env(LG_LIBRARIES) \\ ] / ]/$lllibbb
+					}
+						focus .tmg
+                                             } -state disabled
+#button .tmg.r.d  -text "New Library"  -command "newiconlib " -state $stato_save
+button .tmg.r.d  -text "New Library"  -command "newiconlib " 
+button .tmg.btn4  -text "New instance"  \
+                  -command { 
+		      .tmg.btn3 configure -state disabled
+		      .tmg.r.d  configure -state normal
+		      new_instance $models_list_file [string tolower $modulo]
+		      .tmg.r.c configure -state normal
+	           }
+button .tmg.btn2  -text "Quit"  -command "destroy .tmg"
+button .tmg.btn1  -text "Edit" -width 10 -state $stato_save -command {
+					prnst
+					.tmg.r.c configure -state disabled
+					
+				}
+
+button .tmg.btn_del  -text "Delete instance" -command { remove_instance $instance2 $lllibbb ; focus .tmg }
+#button .tmg.btn_del  -text "refr" -command {refresh_listbox ; focus .tmg }
+
+grid .tmg.r.a -column 1 -row 1 -pady 5m -padx 5m
+grid .tmg.r.b -column 2 -row 1 -pady 5m -padx 5m
+grid .tmg.r.c -column 3 -row 1 -pady 5m -padx 5m
+grid .tmg.r.d -column 4 -row 1 -pady 5m -padx 5m
+grid .tmg.r.e -column 1 -row 2
+grid .tmg.r.f -column 2 -row 2
+grid .tmg.r.g -column 3 -row 2
+grid .tmg.r.h -column 4 -row 2
+pack .tmg.r
+pack .tmg.s.i .tmg.s.l -padx 5m -side left -pady 5m
+pack .tmg.s
+pack .tmg.sep -pady 5m -fill x
+
+pack .tmg.btn1 .tmg.btn3 .tmg.btn4 .tmg.btn_del .tmg.btn2 -padx 5m -pady 5m -side left
+#pack .tmg.btn1 .tmg.btn3 .tmg.btn4  .tmg.btn2 -padx 5m -pady 5m -side left
+
+#selezione e visualizzazione del primo elemento della lista del combobox
+set instance2 [ file rootname [ lindex $new_models_list_file 0] ]
+show_instance $instance2
+
+}
+ 
+ 
+proc sostituisci_in_file { filesorg filetarget  base_old base_new } {
+
+set linetarg ""
+
+	if [file exists $filesorg] {
+		set FSORG [checkopen $filesorg  r]	
+		set FTARG [checkopen $filetarget w+ ]
+        set base_new_low [string tolower $base_new]
+        set base_old_low [string tolower $base_old]
+
+        set base_new_upper [string toupper $base_new]
+        set base_old_upper [string toupper $base_old]
+set i 0
+	while { ![eof $FSORG] }  {
+			gets $FSORG line
+			incr i
+			set ret [ regsub $base_old_low $line $base_new_low linetarg ]
+                        if { $ret == 0 } { regsub $base_old_upper $line $base_new_upper linetarg }
+#tk_messageBox -message 	" line: $line \nlinetarg: $linetarg\n $ret" 
+                        if { $i >= 4 } { set linetarg $line }
+                        if ![eof $FSORG] { puts $FTARG $linetarg	}	
+	}
+		close $FSORG
+		close $FTARG
+
+	}
+return
+
+}
+
+ 
+ 
+ 
+proc save_as {lista_dei_moduli mod} {
+global instance env  lllibbb models_list_file path_list
+
+
+set old_instance $instance
+
+set i 0
+set nome_filexxxx {}
+foreach local_var $lista_dei_moduli {
+	lappend nome_filexxxx [file rootname [file tail $local_var]]
+}
+
+if { $nome_filexxxx != {} } {
+	set sorted_list [lsort -increasing -dictionary $nome_filexxxx]
+	set local_var [lindex $sorted_list $i]
+	regexp {([0-9]+$)} $local_var num
+	while { $i == $num } {
+		incr i
+		set local_var [lindex $sorted_list $i]
+		regexp {([0-9]+$)} $local_var num
+	}
+}
+set num_new $i
+set base_new ${mod}_$num_new
+set base_old [ file rootname $old_instance ]
+
+
+set instance ${mod}_$num_new.pi3
+set instance_pi4 ${mod}_$num_new.pi4
+set old_instance_pi4 $base_old.pi4
+set new_tcl $base_new.tcl
+set old_tcl $base_old.tcl
+#tk_messageBox -message " old_instance_pi4 $old_instance_pi4 instance_pi4 $instance_pi4\n new_tcl $new_tcl old_tcl $old_tcl"
+
+
+set types {{"Preinsted files"		{.pi3}}
+	   {"All files"			    *}}
+set rootfname [tk_getSaveFile -title "Select the library to copy the new instance $base_new" -filetypes $types -parent .tmg -initialdir $env(LG_LIBRARIES) -initialfile $instance]
+if {$rootfname == ""} {    return }
+set listone1 [file split $rootfname]
+set listone2 [file split $env(LG_LIBRARIES)]
+set n1 [llength $listone1]
+set n2 [llength $listone2]
+set liberr [lindex $listone1 [expr $n1 -2 ]]
+if { $liberr == [lindex $listone2 end]} {
+	tk_messageBox -message "$rootfname\n you have missed anything"
+	return
+} else {
+
+	tk_messageBox -message "libreria: $path_list($old_instance)\ninstance: $old_instance\ndestination library: $liberr\nnew name: $instance"
+#copio il file pi3
+#	file copy $path_list($old_instance)/$old_instance $env(LG_LIBRARIES)/$liberr/$instance
+#	tk_messageBox -message "1--> $old_instance $instance"
+sostituisci_in_file  $path_list($old_instance)/$old_instance $env(LG_LIBRARIES)/$liberr/$instance $base_old  $base_new 
+	set old_files [file rootname $path_list($old_instance)/$old_instance]
+	set new_files [file rootname $env(LG_LIBRARIES)/$liberr/$instance]
+# tolti gli xbm
+#	set old_files_xbm [file rootname $env(LG_XBM)/$old_instance]
+#	set new_files_xbm [file rootname $env(LG_XBM)/$instance]
+	set old_files_I5 [file rootname $env(LG_FILESI5)/$old_instance]
+	set new_files_I5 [file rootname $env(LG_FILESI5)/$instance]
+	set old_files_help [file rootname $env(LG_HELP)/$old_instance]
+	set new_files_help [file rootname $env(LG_HELP)/$instance]
+	
+	file copy ${old_files}n.gif ${new_files}n.gif
+	catch {file copy ${old_files}e.gif ${new_files}e.gif}
+	catch {file copy ${old_files}s.gif ${new_files}s.gif}
+	catch {file copy ${old_files}w.gif ${new_files}w.gif}
+# tolti gli xbm	
+#	file copy ${old_files_xbm}n.xbm ${new_files_xbm}n.xbm
+#	catch {file copy ${old_files_xbm}e.xbm ${new_files_xbm}e.xbm}
+#	catch {file copy ${old_files_xbm}s.xbm ${new_files_xbm}s.xbm}
+#	catch {file copy ${old_files_xbm}w.xbm ${new_files_xbm}w.xbm}
+	
+#	file copy ${old_files_help}.tch ${new_files_help}.tch
+sostituisci_in_file ${old_files_help}.tch ${new_files_help}.tch $base_old $base_new	
+	file copy ${old_files_I5}.i5 ${new_files_I5}.i5
+# copio il file pi4
+sostituisci_in_file $path_list($old_instance)/$old_instance_pi4 $env(LG_LIBRARIES)/$liberr/$instance_pi4 $base_old $base_new	
+#copio il file tcl
+sostituisci_in_file $path_list($old_instance)/$old_tcl $env(LG_LIBRARIES)/$liberr/$new_tcl $base_old $base_new	
+
+
+
+	set lllibbb $liberr
+	.tmg.r.h insert end [file rootname $instance]
+	set PATH [join [split $env(LG_LIBRARIES)    \\ ] / ]
+	set models_list_file [concat $models_list_file $PATH/$liberr/$instance]
+	set path_list($instance) $PATH/$liberr
+}
+}
+
+proc prnst {} {
+
+global env modulo instance instance2 stato_second_phase percorso lllibbb
+
+catch {destroy .pr}
+toplevel .pr
+wm title .pr "Module $modulo"
+set w .pr
+for {set i 1} {$i<=4} {incr i} { 
+	frame .pr.b$i
+}
+
+frame .pr.sep0 -relief ridge -bd 1 -height 0
+pack .pr.sep0 -side top -pady 5
+
+checkbutton .pr.b1.chk -variable ICE -relief flat
+.pr.b1.chk deselect
+
+if [file exists $env(LG_LIBRARIES)/$lllibbb/${instance2}n.gif] {.pr.b1.chk select}
+button .pr.b1.btn -text "Icon editing" -command "edicon $env(LG_LIBRARIES)/$lllibbb/${instance2}n.gif ; .pr.b1.chk select" -state normal -width 15
+button .pr.b1.hlp -text "Help" -command {
+tk_messageBox -message "Allows to create the icons\n(format .gif 89 non interlaced,\nwith trasparency attribute),\n one for orientation"; focus .pr } -state normal
+frame .pr.sep1 -relief ridge -bd 1 -height 2 
+pack .pr.b1.chk .pr.b1.btn .pr.b1.hlp -side left -padx 3m -expand 1
+pack .pr.b1 .pr.sep1 -pady 2m -fill x
+
+checkbutton .pr.b2.chk -variable COE -relief flat
+.pr.b2.chk select
+button .pr.b2.btn -text "New Connectors" -command {source $env(LG_TIX)/connectors.tix} -state normal -width 15
+button .pr.b2.hlp -text "Help" -command {
+tk_messageBox -message "Allows to create a new type of connector.\nThe icons (gif ppm and xbm)\nmust be created separately."; focus .pr } -state normal
+frame .pr.sep2 -relief ridge -bd 1 -height 2 
+pack .pr.b2.chk .pr.b2.btn .pr.b2.hlp -side left -padx 3m -expand 1
+pack .pr.b2 .pr.sep2 -pady 2m -fill x
+
+checkbutton .pr.b3.chk -variable FIP -relief flat
+.pr.b3.chk deselect
+if [file exists $env(LG_LIBRARIES)/$lllibbb/$instance] {.pr.b3.chk select}
+button .pr.b3.btn -text "First phase" -command {prnst1ph $instance $commento $lllibbb $modulo $modfor} -state normal -width 15
+button .pr.b3.hlp -text "Help" -command {
+tk_messageBox -message "First phase of a module instantiation.\nIt defines connectors and associated variables."; focus .pr } -state normal
+frame .pr.sep3 -relief ridge -bd 1 -height 2 
+pack .pr.b3.chk .pr.b3.btn .pr.b3.hlp -side left -padx 3m -expand 1
+pack .pr.b3 .pr.sep3 -pady 2m -fill x
+
+checkbutton .pr.b4.chk -variable SEP -relief flat
+.pr.b4.chk deselect
+if [file exists $env(LG_LIBRARIES)/$lllibbb/${instance2}.tcl] {.pr.b4.chk select}
+button .pr.b4.btn -text "Second phase" -command "prnst2ph $percorso $instance" -state $stato_second_phase -width 15
+button .pr.b4.hlp -text "Help" -command {
+tk_messageBox -message "Second phase of a module instatiation.\nIt defines connectors and associated variables"; focus .pr } -state normal
+frame .pr.sep4 -relief ridge -bd 1 -height 2 
+pack .pr.b4.chk .pr.b4.btn .pr.b4.hlp -side left -padx 3m -expand 1
+pack .pr.b4 .pr.sep4 -pady 2m -fill x
+
+if  { $::tcl_platform(os) != "Linux" } {
+  set env(TMPDIR) $env(LG_PREINST)
+}
+button .pr.btn -text "Cancel" -command {
+global env
+destroy .pr
+
+catch {file delete $env(TMPDIR)/i3i4.for -force}
+catch {file delete $env(TMPDIR)/$instance -force}
+catch {file delete $env(TMPDIR)/sca1.tmp -force}
+catch {file delete $env(TMPDIR)/f -force}
+catch {file delete $env(TMPDIR)/vorwahl1.exe -force}
+catch {file delete $env(TMPDIR)/vorwahl2.exe -force}
+catch { file delete $env(TMPDIR)/$modfor -force}
+catch { file delete $env(TMPDIR)/sca.tmp -force}
+#
+#catch {file delete $env(LG_PREINST)/i3i4.for -force}
+#catch {file delete $env(LG_PREINST)/$instance -force}	
+#catch {file delete $env(LG_PREINST)/sca1.tmp -force}
+#catch {file delete $env(LG_PREINST)/F -force}
+#catch {file delete $env(LG_PREINST)/Vorwahl1.exe -force}
+#catch {file delete $env(LG_PREINST)/Vorwahl2.exe -force}
+#catch { file delete $env(LG_PREINST)/$modfor -force}
+#catch { file delete $env(LG_PREINST)/sca.tmp -force}
+focus .tmg
+} -width 15
+frame .pr.sep5 -relief ridge -bd 1 -height 0 
+pack .pr.btn .pr.sep5 -pady 2m
+
+}
+
+proc prnst1ph {instancex commentox lllibbbx modulox modforx} {
+# tk_messageBox -message " prnst1ph: $instancex $commentox $lllibbbx $modulox $modforx"
+global env stato_second_phase w  cancelled
+
+    if  { $::tcl_platform(os) == "Linux" } {
+        set moduloxfor [string tolower $modulox].f
+    } else {
+        set moduloxfor $modulox.FOR
+    }
+
+
+
+
+if { [file exists $env(LG_LIBUT)/$modforx] } {
+	file copy -force $env(LG_LIBUT)/$modforx $env(TMPDIR)/$modforx
+#	set idf [open $env(LG_PREINST)/sca.tmp w]
+	set idf [checkopen $env(TMPDIR)/sca.tmp w]
+	set retnunuxx [regexp {_[0-9]+} [file rootname $instancex] nunuxx]
+# sbagliato	regexp {[0-9]+} [regexp {_[0-9]+} [file rootname $instancex] nunuxx] numberxx
+        regexp {[0-9]+} $nunuxx numberxx
+	puts $idf $modulox
+	if  { $::tcl_platform(os) == "Linux" } {puts $idf $moduloxfor}
+	puts $idf $numberxx
+	puts $idf $commentox
+	close $idf
+	after 1000
+	cd $env(TMPDIR)
+#tk_messageBox -message "prnst1ph 2: idf=$idf $moduloxfor=$$moduloxfor"
+    if  { $::tcl_platform(os) != "Linux" } {
+    exec $env(LG_PREINST)/preinst.bat
+    set vor2 "vorwahl2.exe"
+    } else {
+    exec make -f $env(LG_PREINST)/makevorwahl
+    set vor2 "vorwahl2"
+    }
+
+
+
+#tk_messageBox -message "prnst1ph 2: $instancex $commentox $lllibbbx $modulox $modforx numberxx:$numberxx nunuxx:$nunuxx"
+	
+	if ![file exists $vor2] {
+		if [file exists i3i4.for] {
+			tk_messageBox -message "Preinst failed\nVorwahl2.exe was not created"
+		} else {
+			tk_messageBox -message "Preinst failed\ni3i4.for was not created"
+		}
+		return
+	}
+	source $env(LG_TIX)/prefirst.tix
+	catch {file delete $env(TMPDIR)/i3i4.for -force}
+
+	set nome [file rootname $instancex]
+	#serve per dare il tempo necessario alla creazione dei files per poi distruggerli
+
+	if ![set cancelled] {
+		catch {.pr.b1.chk select}
+		catch {.pr.b3.chk select}
+#tk_messageBox -message "prnst1ph 3:$nome.pi3"
+		while {[file exists $env(TMPDIR)/$nome.pi3] != 1} {
+			after 500
+		}
+#tk_messageBox -message "prnst1ph 4:"
+		set stato_second_phase normal
+		catch {.pr.b4.btn configure -state normal}
+		file copy -force $env(TMPDIR)/$instancex $env(LG_LIBRARIES)/$lllibbbx/$instancex 
+		if {![file exists $env(LG_LIBRARIES)/$lllibbbx/${nome}n.gif] } {
+			file copy -force $env(LG_PREINST)/black.gif $env(LG_LIBRARIES)/$lllibbbx/${nome}n.gif
+		}     
+	}
+#	catch {file delete $env(LG_PREINST)/$instancex -force}
+#	catch {file delete $env(LG_PREINST)/sca1.tmp -force}
+#	catch {file delete $env(LG_PREINST)/F -force}
+#	catch {file delete $env(LG_PREINST)/Vorwahl1.exe -force}
+#	catch {file delete $env(LG_PREINST)/Vorwahl2.exe -force}
+#	catch { file delete $env(LG_PREINST)/$modforx -force}
+#	catch { file delete $env(LG_PREINST)/sca.tmp -force}
+
+	
+} else {
+
+	set mex [tk_messageBox -icon warning -type ok \
+        	  -title Warning -parent . -message "The file $modforx does not exist"]
+
+}
+}
+
+
+proc remove_instance {instance lib} {
+	global env
+	if { $instance == "" } { return }
+	
+	set mex [tk_messageBox -icon warning -type yesno \
+         	-title Warning -parent . -message "Do you want to delete instance $instance?"]
+	if {$mex == "yes"} {
+		file delete $env(LG_LIBRARIES)/$lib/$instance.tcl       	  
+		file delete $env(LG_LIBRARIES)/$lib/$instance.pi3       	  
+		file delete $env(LG_LIBRARIES)/$lib/$instance.pi4
+		file delete $env(LG_FILESI5)/$instance.i5       	  
+		file delete $env(LG_HELP)/$instance.tch
+
+		set filegif [glob -nocomplain $env(LG_LIBRARIES)/$lib/$instance*.gif]
+#tolti gli xbm
+#		set filexbm [glob -nocomplain $env(LG_XBM)/$instance*.xbm]
+#tk_messageBox -icon info -type ok -title Warning -parent . -message $filegif
+#tk_messageBox -icon info -type ok -title Warning -parent . -message $filexbm
+		foreach civ $filegif { file delete $civ }
+#tolti gli xbm
+#		foreach civ $filexbm { file delete $civ }
+
+		set mex { Deleted files $env(LG_LIBRARIES)/$lib/$instance.tcl \
+		                        $env(LG_LIBRARIES)/$lib/$instance.pi3 \
+		                        $env(LG_LIBRARIES)/$lib/$instance.pi4 \
+		                        $env(LG_FILESI5)/$instance.i5 \
+		                        $env(LG_HELP)/$instance.tch \
+		                        $env(LG_LIBRARIES)/$lib/$instance*.gif 
+#tolti gli xbm
+#		                        $env(LG_XBM)/$instance*.xbm
+		                        } 
+		tk_messageBox -icon info -type ok -title Warning -parent . -message $mex
+                refresh_listbox		  
+		return
+	} else {
+		return
+	}
+	
+	return
+}
+
+proc refresh_listbox {} {
+global direlib modulo instance2
+
+set xxxx [string tolower $modulo]
+foreach xp $direlib {
+	set models_list_tmp [glob -nocomplain $xp/$xxxx*.pi3]
+	if {$models_list_tmp!={}} {
+		lappend percorso_path $xp
+		set models_list($xp) $models_list_tmp
+		foreach fx $models_list_tmp {
+			set nome_file [file tail $fx]
+			#set senza [file rootname $nome_file]
+			lappend models_list_file $fx
+			set path_list($nome_file) $xp
+		}
+	}
+	set models_list_tmp {}
+}
+set file_listxc {}
+set new_models_list_file {}
+foreach civ $models_list_file {
+	lappend file_listxc [file tail $civ]
+}
+set new_models_list_file [lsort -increasing $file_listxc]
+
+#tk_messageBox -icon info -type ok -title Warning -parent . -message $new_models_list_file
+
+.tmg.r.h subwidget listbox  delete 0 end
+
+foreach civ $new_models_list_file {
+
+	.tmg.r.h insert end [file rootname $civ]
+
+}
+#tk_messageBox -icon info -type ok -title Warning -parent . -message $instance2
+
+.tmg.r.h pick 1
+#tk_messageBox -icon info -type ok -title Warning -parent . -message $instance2
+
+show_instance $instance2
+
+}

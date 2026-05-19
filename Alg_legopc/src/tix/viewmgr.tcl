@@ -113,12 +113,18 @@ proc ShowNames { c tipo } {
                 # cancello le scritte
 		catch [$c delete infoitemname]
 	 return
-	 }       
+	 }
+         # Font base a 100% zoom; scalato al livello corrente del canvas
+         set baseFont {Helvetica 8}
+         set zl [expr {[info exists ::zoomLevelOf($c)] ? $::zoomLevelOf($c) : 1.0}]
+         set scaledSize [expr {int(round(8 * $zl))}]
+         if {$scaledSize < 1} { set scaledSize 1 }
+         set scaledFont [list Helvetica $scaledSize]
          foreach item [$c find withtag module] {
 #tk_messageBox  -message "ITEM: $item\n [$c gettags $item]\n [lsearch [$c gettags $item] *.name]\n [lindex [$c gettags $item] [lsearch [$c gettags $item] *.name]]]"
 #tk_messageBox  -message "ShowNames: ITEM: $item\n 0: [lindex [$c gettags $item] 0 ]\n 1: [lindex [$c gettags $item] 1 ]\n 2: [lindex [$c gettags $item] 2 ]\n 3: [lindex [$c gettags $item] 3 ]\n 4: [lindex [$c gettags $item] 4 ]\n 5: [lindex [$c gettags $item] 5 ]\n"
 
-		set lc [$c bbox $item] 
+		set lc [$c bbox $item]
 #		set x [lindex $lc 2]
 #tk_messageBox  -message "ShowNames: ITEM: $item\n lc=$lc"
 		set x [expr [expr [lindex $lc 0]+[lindex $lc 2]]/2]
@@ -135,17 +141,19 @@ proc ShowNames { c tipo } {
 	    set nonmodulo [regexp {@} $strstr]
 #tk_messageBox -message "writeFiles: item=$item strsstr=$strstr nonmodulo=$nonmodulo" -type ok
 	    if { $nonmodulo == 0 || $tipo == 3 } {
-         	set tid [$c create text $x $y -text $pisqu -tags {infoitemname}]
-		set lc [$c bbox $tid] 
+         	set tid [$c create text $x $y -text $pisqu -font $scaledFont -tags {infoitemname}]
+                # Pre-popola origFontOf con il font base (100%) cosi doZoom scala correttamente
+                set ::origFontOf($c,$tid) $baseFont
+		set lc [$c bbox $tid]
 		set x1 [lindex $lc 0]
 		set y1 [lindex $lc 1]
 		set x2 [lindex $lc 2]
 		set y2 [lindex $lc 3]
-		$c create rectangle $x1 $y1 $x2 $y2 -fill yellow -tags {infoitemname}
+		$c create rectangle [expr {$x1-2}] [expr {$y1-2}] [expr {$x2+2}] [expr {$y2+2}] -fill yellow -outline {} -tags {infoitemname}
 		$c raise $tid
 	    }
 		incr nelem
-         } 
+         }
 #after $ms $c delete infoitemname
 }
 
@@ -155,7 +163,7 @@ proc trova_win {}  {
 	toplevel .trovaW
 	wm title .trovaW "Find item"
 
-	label .trovaW.lab -text "Serach for:" -font "Courier 12"
+	label .trovaW.lab -text "Search for:" -font "Courier 12"
 	label .trovaW.result -text "  " -font "Courier 12"
 	entry .trovaW.ent -textvariable NameToSearch -width 22 -state normal
 
@@ -268,5 +276,113 @@ proc trova_item { canv nome next } {
             	
             }
          }
-return $trovato       
+return $trovato
+}
+
+## ============================================================
+## View Connections dialog
+## ============================================================
+
+set viewConnDlg "empty"
+
+# Apre (o porta in primo piano) la finestra di visibilita' connessioni.
+# c, c2, c4 sono i canvas su cui agire.
+proc viewConn_dlg {c c2 c4} {
+    global connlist extname clines wsBackg viewConnDlg
+    if {$viewConnDlg != "empty"} { raise $viewConnDlg; wm deiconify $viewConnDlg; return }
+
+    # Inizializza visibilita' se prima apertura della sessione
+    foreach tycon $connlist {
+        if {![info exists ::viewconn_vis($tycon)]} { set ::viewconn_vis($tycon) 1 }
+    }
+    set ::viewconn_canvases [list $c $c2 $c4]
+
+    set d .viewconndlg
+    toplevel $d
+    set viewConnDlg $d
+    wm title $d "View Connections"
+    wm resizable $d 0 0
+
+    label $d.title -text "Connection visibility" -font {Helvetica 10 bold}
+    pack $d.title -side top -pady 4 -padx 8
+
+    frame $d.f
+    pack $d.f -side top -padx 8 -pady 2
+
+    set row 0
+    foreach tycon $connlist {
+        set color $clines($tycon,color)
+        canvas $d.f.sw$tycon -width 18 -height 12 -highlightthickness 0
+        $d.f.sw$tycon create rectangle 2 2 16 10 -fill $color -outline {}
+        grid $d.f.sw$tycon -row $row -column 0 -padx 4 -pady 2
+
+        checkbutton $d.f.cb$tycon \
+            -text [format "%-6s  %s" $tycon $extname($tycon)] \
+            -variable ::viewconn_vis($tycon) \
+            -onvalue 1 -offvalue 0 \
+            -font {Courier 10} \
+            -anchor w \
+            -command [list viewConn_toggle $tycon]
+        $d.f.cb$tycon select
+        grid $d.f.cb$tycon -row $row -column 1 -sticky w -pady 2
+
+        incr row
+    }
+
+    frame $d.but
+    pack $d.but -side bottom -pady 6
+    button $d.but.allon  -text "All On"  -command viewConn_allOn
+    button $d.but.alloff -text "All Off" -command viewConn_allOff
+    button $d.but.close  -text "Close"   -command "destroy $d"
+    pack $d.but.allon $d.but.alloff $d.but.close -side left -padx 6
+
+    bind $d <Destroy> "set viewConnDlg empty"
+}
+
+# Mostra/nasconde le connessioni di tipo $tycon su tutti i canvas registrati.
+proc viewConn_toggle {tycon} {
+    if {![info exists ::viewconn_canvases]} return
+    set newstate [expr {$::viewconn_vis($tycon) == 1 ? "normal" : "hidden"}]
+    foreach c $::viewconn_canvases {
+        if {![winfo exists $c]} continue
+        foreach it [$c find withtag ${tycon}_ltype] {
+            $c itemconfigure $it -state $newstate
+        }
+    }
+}
+
+proc viewConn_allOn {} {
+    global connlist
+    foreach tycon $connlist {
+        set ::viewconn_vis($tycon) 1
+        viewConn_toggle $tycon
+    }
+}
+
+proc viewConn_allOff {} {
+    global connlist
+    foreach tycon $connlist {
+        set ::viewconn_vis($tycon) 0
+        viewConn_toggle $tycon
+    }
+}
+
+# Resetta tutta la visibilita' a "visibile" (chiamato all'apertura di un nuovo modello).
+proc viewConn_resetAll {} {
+    global connlist
+    foreach tycon $connlist {
+        set ::viewconn_vis($tycon) 1
+    }
+}
+
+# Riapplica la visibilita' corrente su $c dopo un topRead (cambio tab topologia).
+proc viewConn_reapply {c} {
+    global connlist
+    foreach tycon $connlist {
+        if {[info exists ::viewconn_vis($tycon)] && $::viewconn_vis($tycon) == 0} {
+            foreach it [$c find withtag ${tycon}_ltype] {
+                $c itemconfigure $it -state hidden
+            }
+        }
+    }
 }

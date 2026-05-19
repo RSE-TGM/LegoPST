@@ -22,7 +22,9 @@ proc aggmex {} {
 # AGGIORNA IL TEXT WIDGET RELATIVO AI MESSAGGI
 # DI SISTEMA
 
-global env 
+global env
+
+if ![file exists $env(LG_LIBUT)/comp.out] return
 
 set idf [checkopen $env(LG_LIBUT)/comp.out r]
 
@@ -31,6 +33,30 @@ while {[eof $idf] != 1} {
  .d.text insert end [gets $idf]\n
 }
 close $idf
+.d.text see end
+update idletasks
+}
+
+proc announce {srcfile} {
+wm title . "Compiling: $srcfile"
+.d.text insert end "\n>>> $srcfile\n"
+.d.text see end
+update idletasks
+}
+
+proc savecomplog {} {
+
+# SALVA IL CONTENUTO DEL TEXT WIDGET COMPILE MESSAGES SU compile.log
+
+global env
+
+set content [.d.text get 1.0 end]
+set logpath [file join $env(LG_LIBUT) compile.log]
+set fid [open $logpath w]
+puts -nonewline $fid $content
+close $fid
+tk_messageBox -icon info -type ok -title "Log salvato" -parent . \
+    -message "Log salvato in:\n$logpath"
 }
 
 # 
@@ -66,7 +92,9 @@ pack .sepa1 -side top -fill x -pady .2c
 frame .c
 pack .c -side top -anchor n -pady 2m -padx 2m
 label .c.mex -text "COMPILE MESSAGES"
-pack .c.mex -side top
+pack .c.mex -side left
+button .c.savelog -text "Save log" -command {savecomplog}
+pack .c.savelog -side right
 
 frame .d
 pack .d -side top -pady 2m -padx 3m
@@ -153,9 +181,7 @@ if {$ifor == "*"} {
  set forflag 0
 }
 
-if  { $::tcl_platform(os) != "Linux" } {set modfor [string tolower "$modulo\.for"]
-} else { set modfor [string tolower "$modulo\.f"]
-}
+set modfor [string tolower "$modulo\.f"]
 
 
 if ![file exists [file join $env(LG_LIBUT) $modfor] ] {
@@ -220,7 +246,11 @@ if [file exists $env(LG_LIBUT)/$modfor] {
  set tcllist [glob -nocomplain $env(LG_LIBRARIES)/*/$modmin*.tcl ]
  set pi3list [glob -nocomplain $env(LG_LIBRARIES)/*/$modmin*.pi3 ]
  set pi4list [glob -nocomplain $env(LG_LIBRARIES)/*/$modmin*.pi4 ]
- set pi5list [glob -nocomplain $env(LG_FILESI5)/$modmin*.i5]
+ if {[info exists env(LG_FILESI5)] && [file isdirectory $env(LG_FILESI5)]} {
+  set pi5list [glob -nocomplain $env(LG_FILESI5)/$modmin*.i5]
+ } else {
+  set pi5list [glob -nocomplain $env(LG_LIBRARIES)/*/$modmin*.i5]
+ }
  
 
  if {$giflist != ""} {

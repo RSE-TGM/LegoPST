@@ -38,18 +38,54 @@ set tk_strictMotif  0
 
 if  { $::LINUXPLAT == 0 } {
 
-     if { ![file exists lg3.inp]}  { file copy -force $SLV/lg3.def lg3.inp }
-
-#tk_messageBox -icon info -message [file rootname [file tail $curFileName]] -type ok
-#tk_messageBox -icon info -message [file rootname $curFileName] -type ok
-#tk_messageBox -icon info -message [file dirname $curFileName] -type ok
-#tk_messageBox -icon info -message $f14File -type ok
-
-     catch {exec $SLV/nssls.bat}
-     catch {exec $SLV/lgser.bat}
+     if { ![file exists lg3.inp]}  {
+          if { [catch {file copy -force $SLV/lg3.def lg3.inp}] } {
+               set _f [open lg3.inp w]
+               foreach _l {SI "1 2" 0.00001 M 0 SI} { puts $_f $_l }
+               close $_f
+          }
      }
 
-     catch {exec proc/nssls <lg3.inp >lg3.out}
+     # Apro .conv subito con messaggio di attesa; al termine del calcolo
+     # viene completato con i risultati (success/failure + pulsanti)
+     toplevel .conv
+     wm title .conv "Computing Steady State..."
+     wm protocol .conv WM_DELETE_WINDOW {}
+     frame .conv.waiting -relief raised -bd 2 -background "#FFF8DC"
+     pack .conv.waiting -fill both -expand 1
+     label .conv.waiting.title -text "Computing Steady State" \
+           -font "Helvetica 14 bold" -background "#FFF8DC" -pady 8 -width 50
+     label .conv.waiting.msg \
+           -text "Please wait..." \
+           -font "Helvetica 11" -background "#FFF8DC" -pady 6 -padx 20
+     label .conv.waiting.note -text "(this may take several seconds)" \
+           -font "Helvetica 9 italic" -foreground "#888888" -background "#FFF8DC" -pady 4
+     pack .conv.waiting.title .conv.waiting.msg .conv.waiting.note -side top
+     update
+     set _sw [winfo screenwidth .]
+     set _sh [winfo screenheight .]
+     set _ww [winfo reqwidth .conv]
+     set _wh [winfo reqheight .conv]
+     wm geometry .conv +[expr {($_sw-$_ww)/2}]+[expr {($_sh-$_wh)/2}]
+     wm deiconify .conv
+     raise .conv
+     update
+
+     catch {exec $SLV/nssls.bat}
+     # Compila lgser.exe solo se necessario:
+     # - lgser.exe non esiste, oppure
+     # - il file .tom (topologia) è più recente di lgser.exe (blocchi aggiunti/rimossi)
+     set _lgser [file join [file dirname $curFileName] lgser.exe]
+     set _need 0
+     if {![file exists $_lgser]} {
+         set _need 1
+     } elseif {[file mtime $curFileName] > [file mtime $_lgser]} {
+         set _need 1
+     }
+     if {$_need} { catch {exec $SLV/lgser.bat} }
+     }
+
+     catch {exec $SLV/nssls_run.bat}
 }
 
 if  { $::LINUXPLAT == 1 } {
@@ -95,10 +131,16 @@ puts "golg3: $::tolerance"
                  } elseif {$cond2 == 1} {
                   set cond2 0
                  }
-		  catch {destroy .conv}
-                  toplevel .conv
-                  wm title .conv  "Steady state results"
-		  
+                  if { $::LINUXPLAT == 0 } {
+                      catch {destroy .conv.waiting}
+                      wm title .conv "Steady state results"
+                      wm protocol .conv WM_DELETE_WINDOW {destroy .conv}
+                  } else {
+                      catch {destroy .conv}
+                      toplevel .conv
+                      wm title .conv "Steady state results"
+                  }
+
                   set conver 0
               if {($cond1 == 0) || (($cond1 > 0) && ($cond2 > 0))} {  label .conv.lab -width 50 -text "Steady state does not converges" -font "Times 14 bold"
                } else { set conver 1 ; label .conv.lab -width 50 -text "Steady state converges" -font "Times 14 bold"
@@ -179,15 +221,15 @@ global env
 
      if {$::tcl_platform(os) != "Linux"} {
         if {$MODE == "drift"} {
-           exec $SLV/lg4_exe <$lg4drift >lg4.out
+           catch {exec $SLV/lg4_exe <$lg4drift >lg4.out}
         } else {
-           exec $SLV/lg4_exe <lg4.inp >lg4.out
+           catch {exec $SLV/lg4_exe <lg4.inp >lg4.out}
         }
      } else {
         if {$MODE == "drift"} {
-           exec lg4_exe <$lg4drift >lg4.out
+           catch {exec lg4_exe <$lg4drift >lg4.out}
         } else {
-           exec lg4_exe <lg4.inp >lg4.out
+           catch {exec lg4_exe <lg4.inp >lg4.out}
         }
      }
 
@@ -206,12 +248,13 @@ global env
         catch {exec $SLV/lgser.bat}
      }
      if {$MODE == "drift"} {
-        exec proc/lg5 <$lg5drift >lg5.out
+        catch {exec proc/lg5 <$lg5drift >lg5.out}
      } else {
-        exec proc/lg5 <lg5.inp >lg5.out
+        catch {exec proc/lg5 <lg5.inp >lg5.out}
      }
 
 
+    catch {destroy $::_golg3_wait}
     catch {destroy .conv.frm}
     catch {destroy .conv.frm2}
 

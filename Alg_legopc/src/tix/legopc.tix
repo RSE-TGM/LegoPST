@@ -1,4 +1,20 @@
 
+# --- Splash screen: visible immediately while packages load ---
+wm withdraw .
+toplevel .splash
+wm overrideredirect .splash 1
+set _sw [winfo screenwidth  .]
+set _sh [winfo screenheight .]
+set _w 320; set _h 64
+wm geometry .splash ${_w}x${_h}+[expr {($_sw-$_w)/2}]+[expr {($_sh-$_h)/2}]
+frame  .splash.f -bg #003070 -bd 2 -relief solid
+pack   .splash.f -fill both -expand 1
+label  .splash.f.t -text "LegoPC  —  Loading..." \
+       -font {Helvetica 14 bold} -bg #003070 -fg white
+pack   .splash.f.t -fill both -expand 1
+update
+# --- end splash ---
+
 package require Tix
 
 source $env(LG_TIX)/checkopen.tcl
@@ -14,6 +30,59 @@ proc aprimodello { c c2 f4 modo } {
         open_simul $f4 $DIRMODEL/tasks.dat;
 ##        load_task $DIRMODEL $c4
     }
+}
+
+proc applyUserFromTom {tomfile} {
+    # Imposta LG_ENTRY e i path derivati in base al path del .tom cliccato.
+    # Il .tom deve stare in <LG_ENTRY>/models/<nome>/<nome>.tom
+    # (risale 3 livelli: nome/ -> models/ -> <LG_ENTRY>)
+    # Solo env() in memoria — NON scrive nel filesystem.
+    # Ritorna 1 se la struttura non e' riconoscibile (non fa nulla in quel caso).
+    global env pixmapPath helpPath
+
+    set newentry [file dirname [file dirname [file dirname $tomfile]]]
+    # Verifica che sia una directory utente LegoPC valida
+    if {![file exists [file join $newentry libgraph connect.dat]]} {
+        return 1
+    }
+    # Verifica che LG_LIBRARIES esista (necessario per checkImage)
+    if {![file isdirectory [file join $newentry libgraph libraries]]} {
+        return 1
+    }
+    # Aggiorna env() solo se diverso dall'attuale (evita lavoro inutile)
+    if {$env(LG_ENTRY) == $newentry} { return 0 }
+
+    set env(LG_ENTRY)      $newentry
+    set env(LG_LIBUT)      $newentry/libut
+    set env(LG_LIBGRAPH)   $newentry/libgraph
+    set env(LG_MODELS)     $newentry/models
+    set env(LG_SIMULATORS) $newentry/simulators
+    set env(LG_PIXMAPS)    $newentry/libgraph/pixmaps
+    set env(LG_FILESI5)    $newentry/libgraph/files_i5
+    set env(LG_HELP)       $newentry/libgraph/help
+    set env(LG_LIBRARIES)  $newentry/libgraph/libraries
+    set pixmapPath $env(LG_PIXMAPS)
+    set helpPath   $env(LG_HELP)
+    # Rileggi connect.dat del nuovo utente (connlist, extname, idconn, cvardef)
+    catch { source $env(LG_TIX)/read_con.tcl }
+    # Ricarica le immagini dei connettori dalla nuova pixmapPath
+    set _olddir [pwd]
+    catch {
+        cd $env(LG_PIXMAPS)
+        foreach _sc [glob -nocomplain {????_[news].ppm}] {
+            set _iname [file rootname $_sc]
+            catch {image delete $_iname}
+            image create photo $_iname -file [file join $env(LG_PIXMAPS) $_sc]
+        }
+        catch {image delete portActive}
+        image create photo portActive -file [file join $env(LG_PIXMAPS) actconn.ppm]
+    }
+    cd $_olddir
+    # Aggiorna titolo finestra
+    global envir
+    set envir "LegoPC-[file tail $newentry]"
+    catch { wm title . "$envir - $curFileName" }
+    return 0
 }
 
 proc  ImportF01 {c} {
@@ -559,12 +628,12 @@ proc itemEnter {c} {
 				after $ms $c delete infoitem
 			}
 			class {
-				set pisqu [file rootname [lindex [$c gettags current] [lsearch [$c gettags current] *.cls]]] 
+				set pisqu [file rootname [lindex [$c gettags current] [lsearch [$c gettags current] *.cls]]]
 				if {$pisqu == ""} {
                          set pisqu [$c itemcget current -image]
                         }
 				set tid [$c create text $x $y -text $pisqu -tags {infoitem}]
-				set lc [$c bbox $tid] 
+				set lc [$c bbox $tid]
 				set x1 [lindex $lc 0]
 				set y1 [lindex $lc 1]
 				set x2 [lindex $lc 2]
@@ -578,7 +647,7 @@ proc itemEnter {c} {
 				set hlpid [checkopen [file join $helpPath $classname.tch] r]
 				set tid [$c create text $x $y -text [read -nonewline $hlpid] \
 					-font helpFont -width 120 -tags {infoitem}]
-				set lc [$c bbox $tid] 
+				set lc [$c bbox $tid]
 				set x1 [lindex $lc 0]
 				set y1 [lindex $lc 1]
 				set x2 [lindex $lc 2]
@@ -1103,63 +1172,252 @@ proc finishJoin {c} {
 #
 
 
-proc plotPS {c} {
-	global env curFileName wsXsiz wsYsiz modalita
-	#overwrite pixmap image with bitmaps (yeck)
-#  trasformazione delle icone a colori in icone bianco/nero.( GUAG: perch�???)		
-#	foreach pitem [$c find withtag module] {
-#           	set modname [$c itemcget $pitem -image]
-#		set lc [$c bbox $pitem] 
-#		set x1 [lindex $lc 0]
-#		set y1 [lindex $lc 1]
-#		set x2 [lindex $lc 2]
-#		set y2 [lindex $lc 3]
-#		$c create bitmap $x1 $y1 -bitmap @[file join $env(LG_XBM) $modname.xbm] \
-#			-tags {tempPS} -anchor nw -background white
-#	}
-#
-#	foreach pitem [$c find withtag port] {
-#		set portname [$c itemcget $pitem -image]
-#		set lc [$c bbox $pitem] 
-#		set x1 [lindex $lc 0]
-#		set y1 [lindex $lc 1]
-#		set x2 [lindex $lc 2]
-#		set y2 [lindex $lc 3]
-#		$c create bitmap $x1 $y1 -bitmap @[file join $env(LG_PIXMAPS) $portname.xbm] \
-#			-tags {tempPS} -anchor nw -background white
-#	}
-#
-	set ruota [expr $wsXsiz > $wsYsiz]
-	puts $ruota
-	set psfile "[file rootname $curFileName].ps"
-	puts $psfile
-	set largh [expr $wsXsiz + 0]
-	set altez  [expr $wsYsiz + 0]
-#	set altez $wsYsiz 
-update
-#if {$modalita == 1} { tk_messageBox -icon info -type ok -message " sono in c"} else {tk_messageBox -icon info -type ok -message " sono in c2"}
-#tk_messageBox -icon info -type ok -message "$largh  $altez"
+proc _openFile {path} {
+    # Apre un file con il viewer disponibile (evita xdg-open su WSL)
+    global env
+    if {[info exists env(LG_PDFVIEWER)] && $env(LG_PDFVIEWER) != ""} {
+        catch {exec $env(LG_PDFVIEWER) $path &}
+        return
+    }
+    foreach viewer {evince okular zathura mupdf xpdf atril} {
+        if {![catch {set v [exec which $viewer]}]} {
+            catch {exec [string trim $v] $path &}
+            return
+        }
+    }
+    tk_messageBox -icon info -type ok \
+        -message "File creato:\n$path\n\nNessun PDF/PNG viewer trovato.\nInstallare con: sudo dnf install evince"
+}
 
-#	$c postscript -width $wsXsiz -height $wsXsiz -pagewidth 210m -pageheight 297m \
-#		 -colormode color -file $psfile
-	$c postscript  -width $largh -height $altez  \
-		 -pageanchor sw  -colormode color -file $psfile
-##	$c postscript   -width $largh -height $altez  -pagewidth 210m -pageheight 297m \
-##		 -pageanchor nw -pagey 800 -pagex 0 -colormode color -file $psfile
+proc findGhostscript {} {
+    # Su Linux cerca 'gs' nel PATH
+    if {![catch {set gs [exec which gs]} ]} {
+        set gs [string trim $gs]
+        if {[file exists $gs]} { return $gs }
+    }
+    # Fallback: percorsi comuni
+    foreach candidate {/usr/bin/gs /usr/local/bin/gs} {
+        if {[file exists $candidate]} { return $candidate }
+    }
+    return ""
+}
 
+# Calcola bounding box di tutti gli item (incluse immagini)
+proc canvasBboxAll {c} {
+    set cx1 1e9; set cy1 1e9; set cx2 -1e9; set cy2 -1e9
+    foreach item [$c find all] {
+        if {[$c type $item] == "image"} {
+            set coords [$c coords $item]
+            if {$coords == ""} continue
+            set img    [$c itemcget $item -image]
+            if {[catch {set iw [image width  $img]}]} continue
+            if {[catch {set ih [image height $img]}]} continue
+            set anchor [$c itemcget $item -anchor]
+            set x [lindex $coords 0]
+            set y [lindex $coords 1]
+            switch $anchor {
+                nw     { set x1 $x;                    set y1 $y                   }
+                n      { set x1 [expr {$x - $iw/2}];   set y1 $y                   }
+                ne     { set x1 [expr {$x - $iw}];     set y1 $y                   }
+                w      { set x1 $x;                    set y1 [expr {$y - $ih/2}]  }
+                e      { set x1 [expr {$x - $iw}];     set y1 [expr {$y - $ih/2}]  }
+                sw     { set x1 $x;                    set y1 [expr {$y - $ih}]    }
+                s      { set x1 [expr {$x - $iw/2}];   set y1 [expr {$y - $ih}]    }
+                se     { set x1 [expr {$x - $iw}];     set y1 [expr {$y - $ih}]    }
+                default { set x1 [expr {$x - $iw/2}];  set y1 [expr {$y - $ih/2}]  }
+            }
+            set x2 [expr {$x1 + $iw}]
+            set y2 [expr {$y1 + $ih}]
+        } else {
+            set bb [$c bbox $item]
+            if {$bb == ""} continue
+            set x1 [lindex $bb 0]; set y1 [lindex $bb 1]
+            set x2 [lindex $bb 2]; set y2 [lindex $bb 3]
+        }
+        if {$x1 < $cx1} { set cx1 $x1 }
+        if {$y1 < $cy1} { set cy1 $y1 }
+        if {$x2 > $cx2} { set cx2 $x2 }
+        if {$y2 > $cy2} { set cy2 $y2 }
+    }
+    if {$cx1 >= $cx2 || $cy1 >= $cy2} { return "" }
+    return [list $cx1 $cy1 $cx2 $cy2]
+}
 
+# Produce il PostScript ottimizzato (A4, portrait/landscape automatico)
+proc plotPS_internal {c psfile} {
+    update
+    set bb [canvasBboxAll $c]
+    if {$bb == ""} {
+        tk_messageBox -icon warning -type ok -message "Canvas vuoto, nessun file prodotto."
+        return ""
+    }
+    set cx1 [lindex $bb 0]; set cy1 [lindex $bb 1]
+    set cx2 [lindex $bb 2]; set cy2 [lindex $bb 3]
 
-#	$c postscript  -pagewidth 210m -pageheight 297m \
-#	$c postscript -colormode color -file $psfile
-#set mex "wsXsiz=$wsXsiz   wsYsiz=$wsYsiz "
-#tk_messageBox -icon info -type ok -message $mex
+    set margin 20
+    set cx1 [expr {$cx1 - $margin}]
+    set cy1 [expr {$cy1 - $margin}]
+    set cw  [expr {$cx2 - $cx1 + 2*$margin}]
+    set ch  [expr {$cy2 - $cy1 + 2*$margin}]
 
+    # A4 con margini 20mm: area utile portrait 481x728 pt, landscape 728x481 pt
+    set sx_p [expr {double(481) / $cw}]; set sy_p [expr {double(728) / $ch}]
+    if {$sx_p < $sy_p} { set s_port $sx_p } else { set s_port $sy_p }
+    set sx_l [expr {double(728) / $cw}]; set sy_l [expr {double(481) / $ch}]
+    if {$sx_l < $sy_l} { set s_land $sx_l } else { set s_land $sy_l }
 
-	#erase temporary PS items
-#	$c delete tempPS
-	set mex "Created postscript file: $psfile"
-	tk_messageBox -icon info -type ok -message $mex
+    if {$s_land > $s_port} { set rotate 1; set scale $s_land } \
+    else                   { set rotate 0; set scale $s_port }
 
+    set out_w [expr {int($cw * $scale)}]
+
+    # Includi il colore di sfondo della canvas nel PostScript
+    set _bgcol [$c cget -background]
+    set _bgrect [$c create rectangle $cx1 $cy1 \
+        [expr {$cx1 + $cw}] [expr {$cy1 + $ch}] \
+        -fill $_bgcol -outline {} -tags _ps_background]
+    $c lower _ps_background
+
+    $c postscript \
+        -x $cx1 -y $cy1 -width $cw -height $ch \
+        -pagewidth  ${out_w}p \
+        -pagex      297p \
+        -pagey      421p \
+        -pageanchor center \
+        -rotate     $rotate \
+        -colormode  color \
+        -file       $psfile
+
+    $c delete _ps_background
+    return $psfile
+}
+
+proc export_show_busy {msg} {
+    set w .busywin
+    catch {destroy $w}
+    toplevel $w
+    wm title $w "Please wait"
+    wm resizable $w 0 0
+    wm transient $w .
+    wm protocol $w WM_DELETE_WINDOW {}
+    label $w.l -text $msg -padx 20 -pady 10 -font "Helvetica 10 bold"
+    pack $w.l
+    catch {
+        ttk::progressbar $w.pb -mode indeterminate -length 260
+        pack $w.pb -padx 20 -pady {0 15}
+        $w.pb start 30
+    }
+    update idletasks
+    set px [expr {[winfo rootx .] + ([winfo width .] - [winfo width $w]) / 2}]
+    set py [expr {[winfo rooty .] + ([winfo height .] - [winfo height $w]) / 2}]
+    wm geometry $w "+${px}+${py}"
+    . configure -cursor watch
+    update
+    return $w
+}
+
+proc export_hide_busy {w} {
+    catch { $w.pb stop }
+    catch { destroy $w }
+    . configure -cursor ""
+}
+
+proc plotPDF {c} {
+    global env curFileName
+
+    set gs [findGhostscript]
+    if {$gs == ""} {
+        tk_messageBox -icon error -type ok \
+            -message "Ghostscript non trovato.\nInstallare Ghostscript: sudo apt install ghostscript"
+        return
+    }
+
+    set base    [file rootname $curFileName]
+    set psfile  [file join /tmp _legopc_export.ps]
+    set pdffile "${base}.pdf"
+
+    set bw [export_show_busy "Esportazione PDF in corso..."]
+    if {[plotPS_internal $c $psfile] == ""} { export_hide_busy $bw; return }
+
+    set rc [catch {exec $gs -dNOPAUSE -dBATCH -sDEVICE=pdfwrite \
+        "-sOutputFile=$pdffile" $psfile} err]
+    catch {file delete $psfile}
+    export_hide_busy $bw
+
+    if {$rc != 0} {
+        tk_messageBox -icon error -type ok \
+            -message "Errore Ghostscript:\n$err"
+        return
+    }
+
+    _openFile $pdffile
+    tk_messageBox -icon info -type ok -message "PDF creato: $pdffile"
+}
+
+proc plotPNG {c} {
+    global env curFileName
+
+    set gs [findGhostscript]
+    if {$gs == ""} {
+        tk_messageBox -icon error -type ok \
+            -message "Ghostscript non trovato.\nInstallare Ghostscript: sudo apt install ghostscript"
+        return
+    }
+
+    # Dialog scelta risoluzione
+    set w .png_dlg
+    if {[winfo exists $w]} { destroy $w }
+    toplevel $w
+    wm title $w "Export PNG"
+    wm resizable $w 0 0
+
+    set ::_png_dpi 150
+    frame $w.f
+    pack $w.f -padx 12 -pady 8
+    label $w.f.lbl -text "Risoluzione:" -anchor w
+    pack $w.f.lbl -anchor w
+    foreach {txt val} {"96 dpi  (schermo)" 96 "150 dpi (stampa normale)" 150 "300 dpi (alta qualita')" 300} {
+        radiobutton $w.f.r$val -text $txt -variable ::_png_dpi -value $val
+        pack $w.f.r$val -anchor w
+    }
+
+    frame $w.sep -height 2 -relief groove -bd 1
+    pack $w.sep -fill x -padx 8 -pady 4
+    frame $w.btns
+    pack $w.btns -pady 6
+
+    set ::_png_ok 0
+    button $w.btns.ok -text "OK" -width 10 -default active \
+        -command {set ::_png_ok 1; destroy .png_dlg}
+    button $w.btns.cancel -text "Cancel" -width 10 \
+        -command {destroy .png_dlg}
+    pack $w.btns.ok $w.btns.cancel -side left -padx 8
+    bind $w <Return> {set ::_png_ok 1; destroy .png_dlg}
+    bind $w <Escape> {destroy .png_dlg}
+
+    tkwait window $w
+    if {!$::_png_ok} { return }
+    set dpi $::_png_dpi
+
+    set base    [file rootname $curFileName]
+    set psfile  [file join /tmp _legopc_export.ps]
+    set pngfile "${base}.png"
+
+    set bw [export_show_busy "Esportazione PNG (${dpi} dpi) in corso..."]
+    if {[plotPS_internal $c $psfile] == ""} { export_hide_busy $bw; return }
+
+    set rc [catch {exec $gs -dNOPAUSE -dBATCH -sDEVICE=png16m \
+        -r$dpi "-sOutputFile=$pngfile" $psfile} err]
+    catch {file delete $psfile}
+    export_hide_busy $bw
+
+    if {$rc != 0} {
+        tk_messageBox -icon error -type ok -message "Errore Ghostscript:\n$err"
+        return
+    }
+
+    catch {exec $env(LG_ICOEDITOR) $pngfile &}
+    tk_messageBox -icon info -type ok -message "PNG creato (${dpi} dpi): $pngfile"
 }
 
 
@@ -1985,7 +2243,11 @@ set ::retcolor $buff_color
 #
 	set mndlg $c.testo_edit
 	catch {destroy $mndlg}
-	frame $mndlg -relief raised
+	toplevel $mndlg
+	wm title $mndlg "Modifica Remark"
+	wm transient $mndlg [winfo toplevel $c]
+	wm resizable $mndlg 0 0
+	wm withdraw $mndlg
 	
 	set mndlg_testo  $mndlg.testo
   frame $mndlg_testo
@@ -2086,9 +2348,13 @@ pack $mndlg_but -side bottom
 #	
 	
    $mndlg_testo.t insert end $vecchio_testo
-#	set wid [$c create window $xx $yy -window $mndlg]
-	set wid [$c create window $x $y -window $mndlg]
+	set sx [expr {[winfo rootx $c] + int($x - [$c canvasx 0])}]
+	set sy [expr {[winfo rooty $c] + int($y - [$c canvasy 0])}]
+	wm geometry $mndlg "+${sx}+${sy}"
+	wm deiconify $mndlg
+	raise $mndlg
 	focus $mndlg
+	grab set $mndlg
 
 	vwait mfontdone
         if { $ignora == 0 } {         	
@@ -2108,8 +2374,7 @@ set xfont_color "$::xfont $::retcolor"
 	set ::modified 1
         }
 	grab release $mndlg
-	$c delete $wid
-#set retcolor [tk_chooseColor]
+	destroy $mndlg
 }
 
 
@@ -2234,6 +2499,10 @@ scrollbar $f.hscroll -orient horiz -command "$c xview"
 grid $c -in $f -row 0 -column 0 -rowspan 1 -columnspan 1 -sticky news
 grid $f.vscroll -row 0 -column 1 -rowspan 1 -columnspan 1 -sticky news
 grid $f.hscroll -row 1 -column 0 -rowspan 1 -columnspan 1 -sticky news
+catch {
+	ttk::sizegrip $f.sizegrip
+	grid $f.sizegrip -row 1 -column 1 -sticky se
+}
 grid rowconfig $f 0 -weight 1 -minsize 0
 grid columnconfig $f 0 -weight 1 -minsize 0
 
@@ -2442,6 +2711,16 @@ bind $c <B1-ButtonRelease> {
     $pop add command -label "Rename" -under 0 -command "CambiaNome $c"
     $pop add command -label "Rotate module" -under 0 -command "itemRotate $c"
     $pop add command -label "Delete" -under 0 -command "itemDelete_new $c"
+    $pop add command -label "Bring to Front" -under 0 -command "itemBringToFront $c"
+    $pop add command -label "Send to Back"   -under 0 -command "itemSendToBack $c"
+    $pop add separator
+    if { $::LINUXPLAT == 1 } {
+        $pop add command -label "Backg Default"  -command {setBgColor topol default}
+        $pop add command -label "Backg Color..." -command {setBgColor topol custom}
+    } else {
+        set pop_bg_topol .menu.view.bgcolor.topol
+        $pop add cascade -label "Backg Color" -menu $pop_bg_topol
+    }
 
 #    set dove [$wlist subwidget listbox ]         { modifica_remark $c %x %y }
 
@@ -2456,73 +2735,83 @@ bind $c <B1-ButtonRelease> {
                      set ::currTid [lindex $::currTags 0]
                      set pop $c.pop
                      if {[lsearch [$c gettags $::currTid] link*] != -1} then {
-# è un link              
-                     itemStartDrag $c $::currTid_x $::currTid_y 
-                     $pop entryconfigure 1 -state disabled 	
-                     $pop entryconfigure 2 -state disabled 	
-                     $pop entryconfigure 3 -state disabled 	
-                     $pop entryconfigure 4 -state disabled 	
-                     $pop entryconfigure 5 -state disabled 	
-                     $pop entryconfigure 6 -state disabled 	
-                     $pop entryconfigure 7 -state disabled 	
+# è un link
+                     itemStartDrag $c $::currTid_x $::currTid_y
+                     $pop entryconfigure 1 -state disabled
+                     $pop entryconfigure 2 -state disabled
+                     $pop entryconfigure 3 -state disabled
+                     $pop entryconfigure 4 -state disabled
+                     $pop entryconfigure 5 -state disabled
+                     $pop entryconfigure 6 -state disabled
+                     $pop entryconfigure 7 -state disabled
                      $pop entryconfigure 8 -state normal -label "Delete link"
-                    } elseif { $::currTid == ""} then { 
+                     $pop entryconfigure 9 -state disabled
+                     $pop entryconfigure 10 -state disabled
+                    } elseif { $::currTid == ""} then {
 # è lo sfondo
-                     $pop entryconfigure 1 -state disabled 	
+                     $pop entryconfigure 1 -state disabled
                      if {[info exists ::currTidCopy] == 1} then {$pop entryconfigure 2 -state normal
-                          } else {$pop entryconfigure 2 -state disabled} 	
-                     $pop entryconfigure 3 -state disabled 	
-                     $pop entryconfigure 4 -state normal 	
-                     $pop entryconfigure 5 -state disabled 	
-                     $pop entryconfigure 6 -state disabled 	
+                          } else {$pop entryconfigure 2 -state disabled}
+                     $pop entryconfigure 3 -state disabled
+                     $pop entryconfigure 4 -state normal
+                     $pop entryconfigure 5 -state disabled
+                     $pop entryconfigure 6 -state disabled
                      $pop entryconfigure 7 -state disabled
                      $pop entryconfigure 8 -state disabled -label "Delete"
-                    } elseif {[lsearch -exact $::currTags  remarkdescr] != -1} then { 
+                     $pop entryconfigure 9 -state disabled
+                     $pop entryconfigure 10 -state disabled
+                    } elseif {[lsearch -exact $::currTags  remarkdescr] != -1} then {
 # è un testo
                      itemStartDrag $c $::currTid_x $::currTid_y
-                     $pop entryconfigure 1 -state normal 	
-                     $pop entryconfigure 2 -state disabled 	
-                     $pop entryconfigure 3 -state disabled 	
-                     $pop entryconfigure 4 -state disabled 	
-                     $pop entryconfigure 5 -state normal 	
-                     $pop entryconfigure 6 -state disabled 	
+                     $pop entryconfigure 1 -state normal
+                     $pop entryconfigure 2 -state disabled
+                     $pop entryconfigure 3 -state disabled
+                     $pop entryconfigure 4 -state disabled
+                     $pop entryconfigure 5 -state normal
+                     $pop entryconfigure 6 -state disabled
                      $pop entryconfigure 7 -state disabled
                      $pop entryconfigure 8 -state normal -label "Delete"
-                     
-                   } elseif {[lsearch -exact $::currTags  module] != -1} then { 
-# è un modulo                	
+                     $pop entryconfigure 9 -state disabled
+                     $pop entryconfigure 10 -state disabled
+
+                   } elseif {[lsearch -exact $::currTags  module] != -1} then {
+# è un modulo
                      itemStartDrag $c $::currTid_x $::currTid_y
-                     $pop entryconfigure 1 -state normal 	
-                     $pop entryconfigure 2 -state disabled 	
-                     $pop entryconfigure 3 -state normal 	
-                     $pop entryconfigure 4 -state disabled 	
+                     $pop entryconfigure 1 -state normal
+                     $pop entryconfigure 2 -state disabled
+                     $pop entryconfigure 3 -state normal
+                     $pop entryconfigure 4 -state disabled
                      if {$::mult_sel == 0} then {
-                        $pop entryconfigure 3 -state normal 	
-                        $pop entryconfigure 4 -state disabled 	
-                        $pop entryconfigure 5 -state disabled 	
+                        $pop entryconfigure 3 -state normal
+                        $pop entryconfigure 4 -state disabled
+                        $pop entryconfigure 5 -state disabled
                      	$pop entryconfigure 6 -state normal
                      	$pop entryconfigure 7 -state normal
                      	} else {
-                        $pop entryconfigure 3 -state disabled 	
-                        $pop entryconfigure 4 -state disabled 	
-                        $pop entryconfigure 5 -state disabled 	
-                     		$pop entryconfigure 6 -state disabled	
-                     		$pop entryconfigure 7 -state disabled	
+                        $pop entryconfigure 3 -state disabled
+                        $pop entryconfigure 4 -state disabled
+                        $pop entryconfigure 5 -state disabled
+                     		$pop entryconfigure 6 -state disabled
+                     		$pop entryconfigure 7 -state disabled
                       }
                      $pop entryconfigure 8 -state normal -label "Delete"
-                                     	
+                     $pop entryconfigure 9 -state normal
+                     $pop entryconfigure 10 -state normal
+
                 } else {
 # è una porta o qulcos'altro
-                     $pop entryconfigure 1 -state disabled 	
-                     $pop entryconfigure 2 -state normal 	
-                     $pop entryconfigure 3 -state disabled 	
-                     $pop entryconfigure 4 -state normal 	
-                     $pop entryconfigure 5 -state disabled 	
-                     $pop entryconfigure 6 -state disabled 	
+                     $pop entryconfigure 1 -state disabled
+                     $pop entryconfigure 2 -state normal
+                     $pop entryconfigure 3 -state disabled
+                     $pop entryconfigure 4 -state normal
+                     $pop entryconfigure 5 -state disabled
+                     $pop entryconfigure 6 -state disabled
                      $pop entryconfigure 7 -state disabled
                      $pop entryconfigure 8 -state disabled -label "Delete"
-                 	
-                	}        	
+                     $pop entryconfigure 9 -state disabled
+                     $pop entryconfigure 10 -state disabled
+
+                	}
 
                  }
 
@@ -2584,6 +2873,56 @@ if {[lsearch [$c gettags $::currTid] link*] != -1} {
 #
 #}
 #
+
+proc _zorder_find_modules {c taglist} {
+    # Dato un taglist restituisce gli item canvas che hanno sia il tag della lista
+    # che il tag "module" (i tag "idN" sono condivisi da moduli E porte).
+    set result {}
+    foreach tid $taglist {
+        foreach item [$c find withtag $tid] {
+            if {[lsearch -exact [$c gettags $item] module] >= 0} {
+                lappend result $item
+            }
+        }
+    }
+    return $result
+}
+
+proc itemBringToFront {c} {
+    global modified
+    set _candidates {}
+    if {[info exists ::select_list]} { set _candidates $::select_list }
+    set _modules [_zorder_find_modules $c $_candidates]
+    if {[llength $_modules] == 0 && [info exists ::currTid] && $::currTid != ""} {
+        set _modules [_zorder_find_modules $c [list $::currTid]]
+    }
+    foreach item $_modules {
+        if {[lsearch -exact [$c gettags $item] tiporeg] >= 0} {
+            tk_messageBox -message "Cannot change z-order of a regulator module (tiporeg):\nit must always be loaded first by the solver." -icon warning -type ok
+            return
+        }
+        $c raise $item
+        set modified 1
+    }
+}
+
+proc itemSendToBack {c} {
+    global modified
+    set _candidates {}
+    if {[info exists ::select_list]} { set _candidates $::select_list }
+    set _modules [_zorder_find_modules $c $_candidates]
+    if {[llength $_modules] == 0 && [info exists ::currTid] && $::currTid != ""} {
+        set _modules [_zorder_find_modules $c [list $::currTid]]
+    }
+    foreach item $_modules {
+        if {[lsearch -exact [$c gettags $item] tiporeg] >= 0} {
+            tk_messageBox -message "Cannot change z-order of a regulator module (tiporeg):\nit must always be loaded first by the solver." -icon warning -type ok
+            return
+        }
+        $c lower $item
+        set modified 1
+    }
+}
 
 proc IncollaItem {c} {
 	
@@ -2858,9 +3197,9 @@ set c2 $f.canDAT
   $nn2.calc_trans config -image $compo1
 
   if  { $::tcl_platform(os) != "Linux" } {
-  button $nn2.watch -text "Plot Trends" -state normal -command { watchtrends 0 "lgsincro_temp.f22"}
+  button $nn2.watch -text "HMI & Plots" -state normal -command { watchtrends 0 "lgsincro_temp.f22"}
   } else {
-  button $nn2.watch -text "Plot trends" -state normal -command { watchtrends 1 "f22circ"}
+  button $nn2.watch -text "HMI & Plots" -state normal -command { watchtrends 1 "f22circ"}
   }
 
 #  button $nn2.watch -text "Watch trends" -state normal -command {watchtrends 0 }
@@ -2926,6 +3265,10 @@ grid $c2 -in $f -row 0 -column 0 -rowspan 1 -columnspan 1 -sticky news
 
 grid $f.vscroll -row 0 -column 1 -rowspan 1 -columnspan 1 -sticky news
 grid $f.hscroll -row 1 -column 0 -rowspan 1 -columnspan 1 -sticky news
+catch {
+	ttk::sizegrip $f.sizegrip
+	grid $f.sizegrip -row 1 -column 1 -sticky se
+}
 
 grid $nn2 -row 0 -column 2 -rowspan 1 -columnspan 1 -sticky nw
 grid $nn2.label1 -row 1 -column 2 -rowspan 1 -columnspan 1 -pady 1m 
@@ -3033,6 +3376,26 @@ bind $c2 <Control-Button-5> {
         doZoom %W [lindex $_zlevels $_idx]
     }
 }
+
+set pop2 $c2.pop
+menu $pop2 -activebackground darkblue -activeforeground white -tearoff 0
+if { $::LINUXPLAT == 1 } {
+    $pop2 add command -label "Backg Default"  -command {setBgColor dat default}
+    $pop2 add command -label "Backg Color..." -command {setBgColor dat custom}
+} else {
+    $pop2 add cascade -label "Backg Color" -menu .menu.view.bgcolor.dat
+}
+# Mostra il popup solo se il click NON è su un item infoitemname (casella animazione).
+proc c2_popup_if_background {pop W X Y x y} {
+    set cx [$W canvasx $x]
+    set cy [$W canvasy $y]
+    set hits [$W find overlapping $cx $cy $cx $cy]
+    foreach h $hits {
+        if {[lsearch [$W gettags $h] infoitemname] >= 0} { return }
+    }
+    tk_popup $pop $X $Y
+}
+bind $c2 <ButtonRelease-3> "c2_popup_if_background $pop2 %W %X %Y %x %y"
 
 return $c2
 
@@ -3170,25 +3533,36 @@ set mod 4
 	if { $mod == 4 } {
 
           if  { $::LINUXPLAT == 1 } {
-            puts "ShowNamesfilt: eccomi 1 mod=$mod"	
-              set lgsincropid 1
+            anima chiudi qq
+            set sked_running 0
+            catch {
+                set psout [exec ps -A -o comm]
+                foreach _ln [split $psout "\n"] {
+                    if { [string trim $_ln] == "net_sked" } { set sked_running 1; break }
+                }
+            }
+            if { $sked_running == 1 } {
+                anima init qq
+                anima_aggiorna $c2 1
+            } else {
+                anima_aggiorna $c2 3
+            }
           }
 
           if  { $::LINUXPLAT == 0 } {
-# per window
-#se si vuole togliere il blocco sulla assenza di lgsincro, scommetare la successiva...
               if  { $lgsincropid == -1 } { set lgsincropid 1 }
+              if { $lgsincropid != -1 } {
+                  if { [ esiste_processo $lgsincropid ] == 1  } {
+                      anima chiudi qq
+                      anima init qq
+                      anima_aggiorna $c2 1
+                  } else {
+                      anima chiudi qq
+                      anima_aggiorna $c2 3
+                  }
+              }
           }
 
-# metto in animazione lo schema con i valori del transitorio
-    	if { $lgsincropid != -1 } {
-puts "ShowNamesfilt: eccomi  2 mod=$mod"
-          if { [ esiste_processo $lgsincropid ] == 1  } { 
-### GUAG commento per anestetizzare la funzione
-		anima init qq
-		anima_aggiorna $c2 1 
-           } 	 
-      	}
 	} else {
 		anima chiudi qq
 	    ShowNames $c $mod
@@ -3556,7 +3930,116 @@ proc CreateBanner {} {
    pack .relinfo.frame .relinfo.but -side top -pady 1m
 }
 		   
-# Includo, per il main di legopc.tix, varie proc -----------------------------------------------
+# ==============================================================================
+# Preferenze utente — persistenza colori canvas e tool editor/browser
+# ==============================================================================
+
+proc prefsFile {} {
+    global env
+    # LG_ENTRY e' la directory utente (non sovrascritta dall'installer)
+    return [file join $env(LG_ENTRY) legopc_prefs.tcl]
+}
+
+proc savePrefs {} {
+    global env
+    set f [open [prefsFile] w]
+    puts $f "# LegoPC user preferences — saved automatically"
+    puts $f "set ::bgColorTopol {$::bgColorTopol}"
+    puts $f "set ::bgColorDat   {$::bgColorDat}"
+    puts $f "set ::bgColorTask  {$::bgColorTask}"
+    puts $f "set ::recentColors [list $::recentColors]"
+    puts $f "set ::pref_texteditor {$env(LG_TEXTEDITOR)}"
+    puts $f "set ::pref_browser    {$env(LG_BROWSER)}"
+    if {[info exists env(LG_ICOEDITOR)]} {
+        puts $f "set ::pref_icoeditor  {$env(LG_ICOEDITOR)}"
+    }
+    if {[info exists env(LG_PDFVIEWER)]} {
+        puts $f "set ::pref_pdfviewer  {$env(LG_PDFVIEWER)}"
+    }
+    close $f
+}
+
+proc loadPrefs {} {
+    global env
+    set pf [prefsFile]
+    if {[file exists $pf]} {
+        catch {source $pf}
+        # Applica le preferenze editor/browser/icoeditor/pdfviewer se salvate
+        if {[info exists ::pref_texteditor] && [string length $::pref_texteditor] > 0} {
+            set env(LG_TEXTEDITOR) $::pref_texteditor
+        }
+        if {[info exists ::pref_browser] && [string length $::pref_browser] > 0} {
+            set env(LG_BROWSER) $::pref_browser
+        }
+        if {[info exists ::pref_icoeditor] && [string length $::pref_icoeditor] > 0} {
+            set env(LG_ICOEDITOR) $::pref_icoeditor
+        }
+        if {[info exists ::pref_pdfviewer] && [string length $::pref_pdfviewer] > 0} {
+            set env(LG_PDFVIEWER) $::pref_pdfviewer
+        }
+    }
+}
+
+proc addRecentColor { color } {
+    # Rimuove duplicati, inserisce in cima, mantiene max 8
+    set idx [lsearch -exact $::recentColors $color]
+    if {$idx >= 0} { set ::recentColors [lreplace $::recentColors $idx $idx] }
+    set ::recentColors [linsert $::recentColors 0 $color]
+    if {[llength $::recentColors] > 8} {
+        set ::recentColors [lrange $::recentColors 0 7]
+    }
+}
+
+proc rebuildRecentMenus {} {
+    # I colori recenti sono salvati in ::recentColors ma non sono mostrati nel popup.
+}
+
+proc applyBgColor { tab color } {
+    if {$tab == "topol"} {
+        set ::bgColorTopol $color
+        catch { $::cglob     configure -bg $color }
+        catch { $::model_img configure -bg $color }
+    } elseif {$tab == "dat"} {
+        set ::bgColorDat $color
+        catch { $::c2glob   configure -bg $color }
+        catch { $::data_img configure -bg $color }
+    }
+    savePrefs
+}
+
+proc setBgColor { tab mode } {
+    # mode = "default" | "custom"
+    if {$mode == "default"} {
+        if {$tab == "topol"} {
+            set color $::bgDefaultTopol
+        } else {
+            set color $::bgDefaultDat
+        }
+    } else {
+        if {$tab == "topol"} {
+            set init $::bgColorTopol
+        } else {
+            set init $::bgColorDat
+        }
+        catch {foreach {_r _g _b} [winfo rgb . $init] {}; set init [format "#%02x%02x%02x" [expr {$_r>>8}] [expr {$_g>>8}] [expr {$_b>>8}]]}
+        set color [tk_chooseColor -initialcolor $init -title "Background color" -parent .]
+        if {$color == ""} return
+        addRecentColor $color
+        rebuildRecentMenus
+    }
+    applyBgColor $tab $color
+}
+
+proc lanciasincviewGui {} {
+    global env
+    set comm1 [info nameofexecutable]
+    set comm2 "$env(LG_TIX)/sincviewGui.tcl"
+    exec $comm1 -f $comm2 &
+}
+
+# ==============================================================================
+# Includo, per il main di legopc.tix, varie proc
+# ==============================================================================
 source $env(LG_TIX)/golg3_v2.tcl
 source $env(LG_TIX)/simul_v2.tix
 
@@ -3567,7 +4050,8 @@ source $env(LG_TIX)/fileio.tcl
 source $env(LG_TIX)/rotate.tcl
 source $env(LG_TIX)/legodat_v2.tix
 source $env(LG_TIX)/openhelp.tcl
-# Fine nel  main di legopc.tix ----------------------------------------------------------
+source $env(LG_TIX)/settings.tcl
+# Fine inclusi del  main di legopc.tix ----------------------------------------
 
 proc raisetopol { c } {
 	   	global showon  curFileName
@@ -3600,10 +4084,10 @@ proc raisetopol { c } {
 		} else {
 		.menu.view  entryconfigure 3 -state normal
                }		 
-		.menu.view  entryconfigure 4 -state normal 
-		.menu.view  entryconfigure 5 -state normal 
-		.menu.util  entryconfigure 5 -state normal 
-		.menu.util  entryconfigure 6 -state normal 
+		.menu.view  entryconfigure 4 -state normal
+		.menu.view  entryconfigure 5 -state normal
+		.menu.util  entryconfigure 5 -state disabled
+		.menu.util  entryconfigure 6 -state disabled
 		$model_img configure -showbackground 1
 		$data_img configure -showbackground 0
 		$task_img configure -showbackground 0
@@ -3650,10 +4134,10 @@ proc raisedata { c c2 } {
 		} else {
 		.menu.view  entryconfigure 3 -state normal
                }		 
-		.menu.view  entryconfigure 4 -state normal 
-		.menu.view  entryconfigure 5 -state normal 
-		.menu.util  entryconfigure 5 -state disabled 
-		.menu.util  entryconfigure 6 -state disabled 
+		.menu.view  entryconfigure 4 -state normal
+		.menu.view  entryconfigure 5 -state normal
+		.menu.util  entryconfigure 5 -state normal
+		.menu.util  entryconfigure 6 -state normal
 		$model_img configure -showbackground 0
 		$data_img configure -showbackground 1
 		$task_img configure -showbackground 0
@@ -3724,6 +4208,16 @@ proc createtask { f c c2} {
 	set modalita 0
     set oldeimage ""
     set curTool none
+
+# Colori canvas di default e variabili preferenze
+    set ::bgDefaultTopol azure2
+    set ::bgDefaultDat   MistyRose1
+    set ::bgDefaultTask  gray99
+    set ::bgColorTopol   $::bgDefaultTopol
+    set ::bgColorDat     $::bgDefaultDat
+    set ::bgColorTask    $::bgDefaultTask
+    set ::recentColors   {}
+    loadPrefs
     set progNumb 0
     set progName "name"
     set palId 0
@@ -3891,18 +4385,27 @@ proc createtask { f c c2} {
     set f2 [$w.nb subwidget data_ass]
     set c2 [ createcanvaDAT $f2 ]
 
-set ::cglob $c
+set ::cglob  $c
+set ::c2glob $c2
+set ::c4glob "QQ"
 
 #    set f3 [$w.nb subwidget simul]
-#    createsimul $f3 
+#    createsimul $f3
 #tk_messageBox -message "eccomi" -type ok -icon error
 if  { $::LINUXNOMATLAB != 1 } {
    set f4 [$w.nb subwidget task_conf]
    set c4 [createtask $f4 $c $c2 ]
+   set ::c4glob $c4
 } else {
 # metto dei valori dummy che comunque non verranno mai usati
  set f4 "QQ"
  set c4 "QQ"
+}
+
+# Applica colori canvas dopo che il notebook e' stato mappato (loadPrefs li ha caricati)
+after 200 {
+    applyBgColor topol $::bgColorTopol
+    applyBgColor dat   $::bgColorDat
 }
 
 #
@@ -3937,7 +4440,14 @@ if  { $::LINUXNOMATLAB != 1 } {
     #$m add command -label "Open..." -command "topRead $c {}"
 ###    $m add command -label "Open Model..." -command { set ret11 0 ; set ret11 [ apri_modello $c $c2 0]; if { $ret11 == 2 } { return }; ShowNamesfilt $c $c2 $showon; open_simul $f4 $DIRMODEL/tasks.dat; load_task $DIRMODEL $c4 }
 
-$m add command -label "Open Model..." -command { aprimodello $c $c2 $f4 0 }
+$m add command -label "Open Model..." -command {
+    if {[catch {set _page [.indice.nb raised]}] || $_page ne "model_topol"} {
+        tk_messageBox -icon warning -type ok -title "Open Model" \
+            -message "Per aprire un nuovo modello passare prima al tab \"Model Topology\"."
+        return
+    }
+    aprimodello $c $c2 $f4 0
+}
 
 #    $m add command -label "Open Model..." -command { 
 #    	                        set ret11 0 
@@ -3969,8 +4479,11 @@ if { $::LINUXPLAT == 0 } {
     set modalita 1
     global modalita
     }
-    $m add command -label "Postscript" -command "if { $modalita == 1} {plotPS $c2 } else { plotPS $c2 } "
-     
+    $m add cascade -label "Export..." -menu $m.export
+    menu $m.export -tearoff 0 -activebackground darkblue -activeforeground white
+    $m.export add command -label "PDF"    -command {if {$modalita == 1} {plotPDF $::cglob} else {plotPDF $::c2glob}}
+    $m.export add command -label "PNG..." -command {if {$modalita == 1} {plotPNG $::cglob} else {plotPNG $::c2glob}}
+
 #    $m add separator
 #    $m add command -label "Duplicate Model" -command "DupModel $c $c2 $c4"
     $m add separator
@@ -3980,12 +4493,14 @@ if { $::LINUXPLAT == 0 } {
 ##
 } else {
     $m add command -label "Import f01" -command "ImportF01 $c "
-}	
+}
     $m add separator
-    $m add command -label "Exit" -command "WarnYou exit" 
+    $m add command -label "Settings..." -command "lancia_settings"
+    $m add separator
+    $m add command -label "Exit" -command "WarnYou exit"
 
 #    $m add command -label "Quit" -command "WarnYou quit"
-    
+
     set m .menu.lib
     menu $m -tearoff 0 -activebackground darkblue -activeforeground white
     .menu add cascade -label "Library" -menu $m -underline 0
@@ -4020,10 +4535,11 @@ if { $::LINUXPLAT != 0 } {
 #    	exec $env(LG_BROWSER) $DIRMODEL
 #    	}
     
-    $m add separator    
+    $m add separator
     $m add radio -label "Show OFF" -variable showon -value 1 -command "ShowNamesfilt $c $c2 1"
     $m add radio -label "Show Names" -variable showon -value 2 -command "ShowNamesfilt $c $c2 1; ShowNamesfilt $c $c2 2"
     $m add radio -label "Show Classes" -variable showon -value 3 -command "ShowNamesfilt $c $c2 1; ShowNamesfilt $c $c2 3"
+    $m add command -label "Show Connections..." -command "viewConn_dlg $c $c2 $::c4glob"
     $m add radio -label "Show Value" -variable showon -value 4 -command "ShowNamesfilt $c $c2 1; ShowNamesfilt $c $c2 4"
     
 
@@ -4046,6 +4562,19 @@ set ::stileanim_prec $::stileanim
     $mzoom add command -label " 75%"  -command {doZoom [activeCanvas] 0.75}
     $mzoom add command -label " 50%"  -command {doZoom [activeCanvas] 0.5}
     $mzoom add command -label " 25%"  -command {doZoom [activeCanvas] 0.25}
+
+    # Submenus Background Color: solo su Windows (su Linux le voci sono dirette nel popup)
+    if { $::LINUXPLAT == 0 } {
+        menu .menu.view.bgcolor -tearoff 0
+        set pop_bg_topol .menu.view.bgcolor.topol
+        menu $pop_bg_topol -tearoff 0 -activebackground darkblue -activeforeground white
+        $pop_bg_topol add command -label "Default"   -command {setBgColor topol default}
+        $pop_bg_topol add command -label "Custom..." -command {setBgColor topol custom}
+        set pop_bg_dat .menu.view.bgcolor.dat
+        menu $pop_bg_dat -tearoff 0 -activebackground darkblue -activeforeground white
+        $pop_bg_dat add command -label "Default"   -command {setBgColor dat default}
+        $pop_bg_dat add command -label "Custom..." -command {setBgColor dat custom}
+    }
 
     set m .menu.util
     menu $m -tearoff 0 -activebackground darkblue -activeforeground white
@@ -4087,17 +4616,25 @@ set ::stileanim_prec $::stileanim
   } else {
     $m add command -label "Steady State Options" -command ssopt_linux
     $m add command -label "f01totom" -command "exec [info nameofexecutable] -f $env(LG_TIX)/f01totom.tcl &"
-        $m add command -label "Xterm" -command {
+    $m add command -label "SincView" -command lanciasincviewGui
+    $m add command -label "Xterm" -command {
     	global curFileName DIRMODEL
-#    	tk_messageBox -message "curFileName=$curFileName\n DIRMODEL=$DIRMODEL"
-#    	exec $env(LG_BROWSER) [pwd]
-    	exec xterm &
-}  
+#    	exec xterm &
+    	set _xt [expr {[info exists env(LG_XTERM)] && $env(LG_XTERM) ne "" ? $env(LG_XTERM) : "xterm"}]; exec $_xt &
+    }
+    $m add command -label "Build FMU" -command {
+    	global DIRMODEL
+    	exec xterm -title "Build FMU" -e "$env(LEGOROOT)/Alg_rt/lg_fmu/scripts/dolgfmu.sh $DIRMODEL; echo; echo Premi invio per chiudere; read x" &
+    }
+    $m add command -label "Build FMU (bundle)" -command {
+    	global DIRMODEL
+    	exec xterm -title "Build FMU bundle" -e "$env(LEGOROOT)/Alg_rt/lg_fmu/scripts/dolgfmu.sh -b $DIRMODEL; echo; echo Premi invio per chiudere; read x" &
+    }
 
     set m .menu.grafics_ut
     menu $m -tearoff 0 -activebackground darkblue -activeforeground white
     .menu add cascade -label "Graf.Tools" -menu $m -underline 0 -activebackground darkblue -activeforeground white
-    $m add command -label "Plot trends" -command {watchtrends 1 "f22circ"}
+    $m add command -label "HMI & Plot" -command {watchtrends 1 "f22circ"}
     $m add command -label "Graphics" -command {exec $env(LEGORT_BIN)/graphics &}
   }
 
@@ -4133,11 +4670,15 @@ if  { $::LINUXNOMATLAB != 1 } {$w.nb pageconfigure task_conf -raisecmd { raiseta
     #auto load attempt (if model name provided)
     if {$argc == 1} {
     set curFileName [file tail $argv]
-    
-#tk_messageBox -message "legopc.tix: curFileName=$curFileName" 
+    # Se argv e' un path assoluto a un .tom, prova a impostare LG_ENTRY automaticamente
+    if {[string match "*.tom" $argv] && [file isfile $argv]} {
+        applyUserFromTom [file normalize $argv]
+    }
+
+#tk_messageBox -message "legopc.tix: curFileName=$curFileName"
         aprimodello $c $c2 $f4 1
 
-#    apri_modello $c $c2 1 
+#    apri_modello $c $c2 1
 #    	topRead $c $argv
     	if {$curFileName == "untitled"} {
     		set messaggio "Model $argv not found! No model loaded..."
@@ -4172,6 +4713,14 @@ set ::canv3 $c4
 #}
 #
 set ::line_anim 0
+
+# Mostra la finestra principale e chiude lo splash
+update idletasks
+set _mw [winfo reqwidth  .]
+set _mh [winfo reqheight .]
+wm geometry . "+[expr {max(0,($_sw-$_mw)/2)}]+[expr {max(0,($_sh-$_mh)/2)}]"
+catch {destroy .splash}
+wm deiconify .
 
 
 
