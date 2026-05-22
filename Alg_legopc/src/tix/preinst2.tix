@@ -37,7 +37,7 @@ wm title .libnew "Library name selection"
 
 
 proc new_instance {lista_dei_moduli mod} {
-global env instance instance2 stato_second_phase selected_instance lllibbb commento image2a
+global env instance instance2 inst_label stato_second_phase selected_instance lllibbb commento image2a
 set numeri {}
 set stato_second_phase disabled
 set i 0
@@ -56,8 +56,9 @@ if { $nome_filexxxx != {} } {
 		regexp {([0-9]+$)} $local_var num
 	}
 }
-set instance ${mod}_$i.pi3
+set instance  ${mod}_$i.pi3
 set instance2 ${mod}_$i
+set inst_label $instance2
 set lllibbb {}
 set commento {}
 catch {image delete image2a}
@@ -118,49 +119,51 @@ proc find_sub_dir {} {
 return $dir1;
 }
 
-proc show_instance {selected_instance} {
-global commento lllibbb instance instance2 models_list percorso percorso_path
-global env image2a path_list stato_second_phase
-#non possono esistere nomi di moduli con lo stesso nome anche se in cartelle differenti
-####tk_messageBox -icon info -type ok -title Warning -parent . -message $selected_instance
-if { $selected_instance == {}} { return}
-foreach k $percorso_path {
-	foreach kk $models_list($k) {
-		set compare $selected_instance.pi3
-		if {$compare == [file tail $kk]} {
-			set lllibbb [file tail $k]
-			set percorso $k
-		}
+proc show_instance {selected_label} {
+global commento lllibbb instance instance2 percorso
+global env image2a inst_info stato_second_phase
+
+if { $selected_label == {}} { return }
+
+if {![info exists inst_info($selected_label)]} {
+	# nuova istanza non ancora nel dict (es. dopo new_instance): aggiorna solo i bottoni
+	if {$lllibbb != {} && $instance2 != {} } {
+		.tmg.btn1 configure -state normal
+		.tmg.btn3 configure -state normal
+	} else {
+		.tmg.btn1 configure -state disabled
+		.tmg.btn3 configure -state disabled
 	}
+	return
 }
 
-if { $lllibbb != {} } {
-	set percorso [join [split $env(LG_LIBRARIES)/$lllibbb \\ ] / ]
-	set lllibbb [lindex [split $percorso / ] end ]
-	set FILE $path_list(${selected_instance}.pi3)/${selected_instance}.pi3
-	set instance2 $selected_instance
-	set instance ${selected_instance}.pi3
-	if [file exists $FILE] {
-		set F [checkopen $FILE r]
-		for {set i 1} {$i<=3} {incr i} {
-			gets $F line
-		}
-		close $F
-		set commento $line
+set info      $inst_info($selected_label)
+set instance2 [lindex $info 0]
+set libpath   [lindex $info 1]
+set lllibbb   [file tail $libpath]
+set percorso  [join [split $libpath \\] /]
+set instance  ${instance2}.pi3
+set FILE      $percorso/${instance2}.pi3
+
+if [file exists $FILE] {
+	set F [checkopen $FILE r]
+	for {set i 1} {$i<=3} {incr i} {
+		gets $F line
 	}
-        set FILEGIF [file rootname $FILE]n.gif
-	if { ![file exists $FILEGIF]} {
-		tk_messageBox -message "Icon ->$selected_instance non-existent"
-		catch {image delete image2a}
-		image create photo image2a
-		image2a configure -file $env(LG_PREINST)/black.gif
-	} else {
-		catch {image delete image2a}
-		image create photo image2a
-		image2a configure -file $FILEGIF
-	}
-	set stato_second_phase normal
+	close $F
+	set commento $line
 }
+
+set FILEGIF [file rootname $FILE]n.gif
+catch {image delete image2a}
+image create photo image2a
+if { ![file exists $FILEGIF]} {
+	tk_messageBox -message "Icon ->$instance2 non-existent"
+	image2a configure -file $env(LG_PREINST)/black.gif
+} else {
+	image2a configure -file $FILEGIF
+}
+set stato_second_phase normal
 
 if {$lllibbb != {} && $instance2 != {} } {
 	.tmg.btn1 configure -state normal
@@ -177,8 +180,8 @@ proc timing {} {
 
 package require Tix 
 
-global modulo env path_list percorso_path percorso MODELNAME commento 
-global instance instance2 FILE lllibbb stato_second_phase models_list stato_save
+global modulo env path_list percorso_path percorso MODELNAME commento
+global instance instance2 inst_label inst_info FILE lllibbb stato_second_phase models_list stato_save
 
 global image2a models_list_file
 global direlib
@@ -218,46 +221,41 @@ set path_list(0) {}
 if {![info exists path_list(0)]} {
 	set path_list(0) 1
 }
+array unset inst_info
 
-tixComboBox .tmg.r.h -browsecmd show_instance -variable instance2 -editable false -bg white -options {font "Courier 12" }
-
+tixComboBox .tmg.r.h -browsecmd show_instance -variable inst_label -editable false -bg white -options {font "Courier 12" }
 
 foreach xp $dr {
 	set models_list_tmp [glob -nocomplain $xp/$xxxx*.pi3]
-	if {$models_list_tmp!={}} {
+	if {$models_list_tmp != {}} {
 		lappend percorso_path $xp
 		set models_list($xp) $models_list_tmp
 		foreach fx $models_list_tmp {
 			set nome_file [file tail $fx]
-			#set senza [file rootname $nome_file]
 			lappend models_list_file $fx
 			set path_list($nome_file) $xp
+			set instname [file rootname $nome_file]
+			set libname  [file tail $xp]
+			set label    "$instname \[$libname\]"
+			set inst_info($label) [list $instname $xp]
 		}
 	}
 	set models_list_tmp {}
 }
-set file_listxc {}
-set new_models_list_file {}
-foreach civ $models_list_file {
-	lappend file_listxc [file tail $civ]
-}
-set new_models_list_file [lsort -increasing -dictionary $file_listxc]
 
-####tk_messageBox -icon info -type ok -title Warning -parent . -message $new_models_list_file
-####tk_messageBox -icon info -type ok -title Warning -parent . -message $xxxx
+set display_labels_sorted [lsort -increasing -dictionary [array names inst_info]]
 
-foreach civ $new_models_list_file {
-	.tmg.r.h insert end [file rootname $civ]
-	
+foreach lbl $display_labels_sorted {
+	.tmg.r.h insert end $lbl
 }
 
 
 
 
 
-.tmg.r.h subwidget entry configure -width 7 
+.tmg.r.h subwidget entry configure -width 22
 .tmg.r.h subwidget listbox configure -height 4
-.tmg.r.h subwidget listbox configure -width 7
+.tmg.r.h subwidget listbox configure -width 22
 .tmg.r.h subwidget listbox configure -bg white
 
 if {$instance == {} } {
@@ -334,8 +332,10 @@ pack .tmg.btn1 .tmg.btn3 .tmg.btn4 .tmg.btn_del .tmg.btn2 -padx 5m -pady 5m -sid
 #pack .tmg.btn1 .tmg.btn3 .tmg.btn4  .tmg.btn2 -padx 5m -pady 5m -side left
 
 #selezione e visualizzazione del primo elemento della lista del combobox
-set instance2 [ file rootname [ lindex $new_models_list_file 0] ]
-show_instance $instance2
+if {[llength $display_labels_sorted] > 0} {
+	set inst_label [lindex $display_labels_sorted 0]
+	show_instance $inst_label
+}
 
 }
  
@@ -374,7 +374,7 @@ return
  
  
 proc save_as {lista_dei_moduli mod} {
-global instance env  lllibbb models_list_file path_list
+global instance env lllibbb models_list_file path_list inst_info inst_label
 
 
 set old_instance $instance
@@ -463,10 +463,13 @@ sostituisci_in_file $path_list($old_instance)/$old_tcl $env(LG_LIBRARIES)/$liber
 
 
 	set lllibbb $liberr
-	.tmg.r.h insert end [file rootname $instance]
-	set PATH [join [split $env(LG_LIBRARIES)    \\ ] / ]
+	set PATH [join [split $env(LG_LIBRARIES) \\] /]
 	set models_list_file [concat $models_list_file $PATH/$liberr/$instance]
 	set path_list($instance) $PATH/$liberr
+	set new_label "$base_new \[$liberr\]"
+	set inst_info($new_label) [list $base_new $PATH/$liberr]
+	set inst_label $new_label
+	.tmg.r.h insert end $new_label
 }
 }
 
@@ -689,44 +692,42 @@ proc remove_instance {instance lib} {
 }
 
 proc refresh_listbox {} {
-global direlib modulo instance2
+global direlib modulo instance2 inst_label inst_info path_list models_list_file percorso_path models_list
 
 set xxxx [string tolower $modulo]
+array unset inst_info
+set models_list_file {}
+set percorso_path {}
+
 foreach xp $direlib {
 	set models_list_tmp [glob -nocomplain $xp/$xxxx*.pi3]
-	if {$models_list_tmp!={}} {
+	if {$models_list_tmp != {}} {
 		lappend percorso_path $xp
 		set models_list($xp) $models_list_tmp
 		foreach fx $models_list_tmp {
 			set nome_file [file tail $fx]
-			#set senza [file rootname $nome_file]
 			lappend models_list_file $fx
 			set path_list($nome_file) $xp
+			set instname [file rootname $nome_file]
+			set libname  [file tail $xp]
+			set label    "$instname \[$libname\]"
+			set inst_info($label) [list $instname $xp]
 		}
 	}
 	set models_list_tmp {}
 }
-set file_listxc {}
-set new_models_list_file {}
-foreach civ $models_list_file {
-	lappend file_listxc [file tail $civ]
+
+set display_labels_sorted [lsort -increasing -dictionary [array names inst_info]]
+
+.tmg.r.h subwidget listbox delete 0 end
+
+foreach lbl $display_labels_sorted {
+	.tmg.r.h insert end $lbl
 }
-set new_models_list_file [lsort -increasing $file_listxc]
 
-#tk_messageBox -icon info -type ok -title Warning -parent . -message $new_models_list_file
-
-.tmg.r.h subwidget listbox  delete 0 end
-
-foreach civ $new_models_list_file {
-
-	.tmg.r.h insert end [file rootname $civ]
-
+if {[llength $display_labels_sorted] > 0} {
+	set inst_label [lindex $display_labels_sorted 0]
+	show_instance $inst_label
 }
-#tk_messageBox -icon info -type ok -title Warning -parent . -message $instance2
-
-.tmg.r.h pick 1
-#tk_messageBox -icon info -type ok -title Warning -parent . -message $instance2
-
-show_instance $instance2
 
 }
