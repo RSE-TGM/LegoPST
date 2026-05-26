@@ -47,14 +47,11 @@ foreach local_var $lista_dei_moduli {
 }
 
 if { $nome_filexxxx != {} } {
-	set sorted_list [lsort -increasing -dictionary $nome_filexxxx]
-	set local_var [lindex $sorted_list $i]
-	regexp {([0-9]+$)} $local_var num
-	while { $i == $num } {
-		incr i
-		set local_var [lindex $sorted_list $i]
-		regexp {([0-9]+$)} $local_var num
+	set maxnum -1
+	foreach name $nome_filexxxx {
+		if {[regexp {([0-9]+)$} $name -> n] && $n > $maxnum} { set maxnum $n }
 	}
+	set i [expr {$maxnum + 1}]
 }
 set instance  ${mod}_$i.pi3
 set instance2 ${mod}_$i
@@ -386,14 +383,11 @@ foreach local_var $lista_dei_moduli {
 }
 
 if { $nome_filexxxx != {} } {
-	set sorted_list [lsort -increasing -dictionary $nome_filexxxx]
-	set local_var [lindex $sorted_list $i]
-	regexp {([0-9]+$)} $local_var num
-	while { $i == $num } {
-		incr i
-		set local_var [lindex $sorted_list $i]
-		regexp {([0-9]+$)} $local_var num
+	set maxnum -1
+	foreach name $nome_filexxxx {
+		if {[regexp {([0-9]+)$} $name -> n] && $n > $maxnum} { set maxnum $n }
 	}
+	set i [expr {$maxnum + 1}]
 }
 set num_new $i
 set base_new ${mod}_$num_new
