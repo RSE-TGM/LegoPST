@@ -2027,6 +2027,8 @@ int main(int argc, char **argv)
   strncpy(i5path_bounded, I5PATH ? I5PATH : "", sizeof(i5path_bounded) - 1);
   i5path_bounded[sizeof(i5path_bounded) - 1] = '\0';
 
+  char *lg_libraries = getenv("LG_LIBRARIES");
+
   for (m = 0; m < modnum; m++)
   {
     sprintf(tempstr, "%s", modlist[m]->modname);
@@ -2037,7 +2039,7 @@ int main(int argc, char **argv)
     if (flat_mode)
       snprintf(i5fname, sizeof(i5fname), "%s/%.*s.i5", i5path_bounded, MODNAMENCH, tempstr);
     else
-      snprintf(i5fname, sizeof(i5fname), "%s/%.*s.i5", modlist[m]->modlibpath, MODNAMENCH, tempstr);
+      snprintf(i5fname, sizeof(i5fname), "%s/%s/%.*s.i5", lg_libraries ? lg_libraries : ".", modlist[m]->modlibpath, MODNAMENCH, tempstr);
 
     /*printf("opening file %s\n", i5fname);*/
     if ((fpI5 = fopen(i5fname, "r")) == NULL)

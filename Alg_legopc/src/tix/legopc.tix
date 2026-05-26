@@ -2580,13 +2580,26 @@ $c bind module <3> {
 #                     set ::currTid_x [$c canvasx %x]
 #                     set ::currTid_y [$c canvasy %y]
                     }
-$c bind connection <3> { 
+$c bind connection <3> {
 	             set ::currTags [$c gettags current];
 #	             tk_messageBox -message $::currTags
                      set ::currTid [lindex $::currTags 0]
 # lo faccio gia in $c bind <3> ...
 #                     set ::currTid_x [$c canvasx %x]
 #                     set ::currTid_y [$c canvasy %y]
+                    }
+
+$c bind connection <1> {
+                     set ::inib_sel 1
+                     set ::currTags [$c gettags current]
+                     set ::currTid [lindex $::currTags 0]
+                     set ::currTid_x [$c canvasx %x]
+                     set ::currTid_y [$c canvasy %y]
+                     itemStartDrag $c %x %y
+                    }
+
+$c bind connection <B1-ButtonRelease> {
+                     set ::inib_sel 0
                     }
 
 # $c bind module <Any-Enter> "itemEnter $c"

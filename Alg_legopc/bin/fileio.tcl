@@ -107,25 +107,12 @@ proc writeFiles {c curFileName envir} {
 	   global wsXsiz wsYsiz
 	   global modified
 	   global connlist extname idconn clines cvardef
+	   global env
 
  	   wm title . "$envir - $curFileName"
-#tk_messageBox -icon error -message "writeFiles: modified $modified"	
-if {$modified == 0 } { return 0}   
-#tk_messageBox -icon error -message "writeFiles: dopo modified"	
-	   if { [catch {open $curFileName w} fileid]} {
-		tk_messageBox -icon error -message "Can not open file $curFileName for writing"
-		return 1
-	   }
-	   puts $fileid "# this file created with LEGOPHI rel. 0.2"
 
-   	   # write canvas size
-	   set attdim [$c cget -scrollregion]
-	   set wsXsiz [lindex $attdim 2]
-	   set wsYsiz [lindex $attdim 3]
-# puts "writeFiles: $wsXsiz $wsYsiz"
-	   puts $fileid "$wsXsiz $wsYsiz"
-
-         set nelem 0
+	   # costruisce la lista dei moduli (serve sia per .tom che per .top)
+	   set nelem 0
 # trovo i moduli di tipo regol e li metto in cima alla lista ...
 	   foreach item [$c find withtag tiporeg] {
             set blo_ite($nelem) $item
@@ -158,14 +145,26 @@ puts "writeFiles: $item è un MODULO nelem=$nelem  blo_nam=$blo_nam($nelem)"
 #            }
 #         }
 
+	   # scrive .tom solo se il modello è stato modificato
+	   if {$modified != 0} {
+	   if { [catch {open $curFileName w} fileid]} {
+		tk_messageBox -icon error -message "Can not open file $curFileName for writing"
+		return 1
+	   }
+	   puts $fileid "# this file created with LEGOPHI rel. 0.2"
+	   set attdim [$c cget -scrollregion]
+	   set wsXsiz [lindex $attdim 2]
+	   set wsYsiz [lindex $attdim 3]
+	   puts $fileid "$wsXsiz $wsYsiz"
+
 	   # first module pass
 	   for {set i 0} {$i < $nelem} {incr i} {
             set item $blo_ite($i)
-            # mantiene la compatibilit�con i moduli preistanziati senza orientamento
+            # mantiene la compatibilità con i moduli preistanziati senza orientamento
             if {[file rootname [lindex [$c gettags $item] [lsearch [$c gettags $item] *.ori]]] == ""} {
              puts $fileid [$c itemcget $item -image]
              puts $fileid "n"
-            } else {    
+            } else {
 		 puts $fileid [file rootname [lindex [$c gettags $item] [lsearch [$c gettags $item] *.cls]]]
              puts $fileid [file rootname [lindex [$c gettags $item] [lsearch [$c gettags $item] *.ori]]]
 		}
@@ -222,6 +221,7 @@ puts "writeFiles: $item è un MODULO nelem=$nelem  blo_nam=$blo_nam($nelem)"
 	   puts $fileid "****"
 
 	   close $fileid
+	   } ;# end if modified != 0
 
 	   #save also ".top" file, used to build F01
 
@@ -246,7 +246,7 @@ puts "writeFiles: $item è un MODULO nelem=$nelem  blo_nam=$blo_nam($nelem)"
 		if {[info exists env(LG_FILESI5)] && [file isdirectory $env(LG_FILESI5)]} {
 		    puts $fileid ""
 		} else {
-		    puts $fileid [file rootname [lindex [$c gettags $item] [lsearch [$c gettags $item] *.lpath]]]
+		    puts $fileid [file tail [file rootname [lindex [$c gettags $item] [lsearch [$c gettags $item] *.lpath]]]]
 		}
 	    }
 	   }

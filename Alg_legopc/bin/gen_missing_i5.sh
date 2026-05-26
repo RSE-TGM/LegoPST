@@ -12,6 +12,9 @@
 
 set -euo pipefail
 
+# Librerie da ignorare (moduli grafici/annotazioni senza interfaccia matematica)
+SKIP_LIBS="remark"
+
 if [[ -z "${LG_LIBRARIES:-}" || -z "${LG_TOOLS:-}" ]]; then
     echo "ERRORE: LG_LIBRARIES e/o LG_TOOLS non definiti."
     echo "Eseguire prima: source .profile_legoroot"
@@ -28,13 +31,21 @@ trap "rm -rf $tmpdir" EXIT
 
 ok=0
 skip=0
+skip_lib=0
 fail=0
 
 for pi4 in "$LG_LIBRARIES"/*/*.pi4; do
     [[ -f "$pi4" ]] || continue
     libdir=$(dirname "$pi4")
+    libname=$(basename "$libdir")
     base=$(basename "${pi4%.pi4}")
     i5target="$libdir/${base}.i5"
+
+    if [[ " $SKIP_LIBS " == *" $libname "* ]]; then
+        echo "  SKIP  $base  (libreria $libname esclusa)"
+        (( skip_lib++ )) || true
+        continue
+    fi
 
     if [[ -f "$i5target" ]]; then
         echo "  SKIP  $base  (${i5target##*/LG_LIBRARIES/} già presente)"
@@ -42,8 +53,9 @@ for pi4 in "$LG_LIBRARIES"/*/*.pi4; do
         continue
     fi
 
-    echo -n "  GEN   $base  → $(basename $libdir)/ ... "
-    if ( cd "$tmpdir" && "$LG_TOOLS/i32i5" "$pi4" ) 2>/tmp/i32i5_err; then
+    echo -n "  GEN   $base  → $libname/ ... "
+    ( cd "$tmpdir" && "$LG_TOOLS/i32i5" "$pi4" ) 2>/tmp/i32i5_err || true
+    if [[ -f "$tmpdir/${base}.i5" ]]; then
         mv "$tmpdir/${base}.i5" "$i5target"
         echo "OK"
         (( ok++ )) || true
@@ -56,6 +68,7 @@ done
 
 echo ""
 echo "=== gen_missing_i5: riepilogo ==="
-echo "  Generati : $ok"
-echo "  Già presenti (skip): $skip"
-echo "  Errori   : $fail"
+echo "  Generati          : $ok"
+echo "  Già presenti      : $skip"
+echo "  Librerie escluse  : $skip_lib"
+echo "  Errori            : $fail"
