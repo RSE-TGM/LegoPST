@@ -2315,7 +2315,10 @@ set ::retcolor $buff_color
 # bottone colori
 set ::mndlg_font_color $mndlg_font.color
 #	button $mndlg_font_color -text Color -command "set ::retcolor [tk_chooseColor]; $mndlg_testo_t configure  -font $::xfont -fg $::retcolor"
-	button $::mndlg_font_color -text Color -command {set ::retcolor [tk_chooseColor]; if {$::retcolor != ""} {$::mndlg_font_color configure  -background $::retcolor}}
+	button $::mndlg_font_color -text Color -command {
+		set _c [chooseColorDialog $::retcolor "Colore testo" .]
+		if {$_c ne ""} { set ::retcolor $_c; $::mndlg_font_color configure -background $_c }
+	}
 
 
 
@@ -3993,6 +3996,138 @@ proc loadPrefs {} {
     }
 }
 
+# ── Colour palette dialog ─────────────────────────────────────────────────
+namespace eval ::cpick { variable result ""; variable done 0 }
+
+proc cpick_swatch_click {color} {
+    set ::cpick::result $color
+    catch { .colordlg.prev configure -bg $color }
+}
+
+proc cpick_swatch_hover {color} {
+    catch { .colordlg.prev configure -bg $color }
+}
+
+proc cpick_swatch_leave {} {
+    catch { .colordlg.prev configure -bg $::cpick::result }
+}
+
+proc chooseColorDialog {initcolor title parent} {
+    set dlg .colordlg
+    catch {destroy $dlg}
+    toplevel $dlg
+    wm title $dlg $title
+    wm transient $dlg $parent
+    wm resizable $dlg 0 0
+
+    # normalizza initcolor → #rrggbb
+    if {[catch {set _rgb [winfo rgb . $initcolor]}]} { set initcolor white; set _rgb {65535 65535 65535} }
+    set hexinit [format "#%02x%02x%02x" \
+        [expr {[lindex $_rgb 0]>>8}] [expr {[lindex $_rgb 1]>>8}] [expr {[lindex $_rgb 2]>>8}]]
+    set ::cpick::result $hexinit
+    set ::cpick::done   0
+
+    # palette: 5 righe × 8 colonne
+    set palette {
+        white    #f0f0f0  #d0d0d0  #a0a0a0  #707070  #404040  #202020  black
+        #ffeeee  #ffbbbb  #ff7777  red      #cc0000  #880000  #ffcc88  orange
+        #ffffcc  yellow   #cccc00  #888800  #ccffcc  #88dd88  #00bb00  green
+        #ccffff  cyan     #00bbbb  #006666  #cce8ff  #8899ff  blue     #0000bb
+        #eeccff  #bb88ff  #8800cc  magenta  #cc00cc  #880044  #ffccee  #ff88aa
+    }
+
+    # ── Recenti ──
+    if {[llength $::recentColors] > 0} {
+        frame $dlg.rec
+        label $dlg.rec.lbl -text "Recenti:" -width 9 -anchor w -font {Courier 9}
+        pack  $dlg.rec.lbl -side left -padx {8 4}
+        set idx 0
+        foreach rc $::recentColors {
+            if {[catch {winfo rgb . $rc}]} continue
+            frame $dlg.rec.s$idx -bg $rc -width 22 -height 22 -relief raised -bd 1 -cursor hand2
+            pack  $dlg.rec.s$idx -side left -padx 1
+            bind  $dlg.rec.s$idx <Button-1> [list cpick_swatch_click $rc]
+            bind  $dlg.rec.s$idx <Enter>    [list cpick_swatch_hover  $rc]
+            bind  $dlg.rec.s$idx <Leave>    cpick_swatch_leave
+            incr idx
+        }
+        pack $dlg.rec -fill x -pady {6 0} -padx 4
+        frame $dlg.sep0 -height 1 -bg #aaaaaa
+        pack  $dlg.sep0 -fill x -padx 6 -pady 4
+    }
+
+    # ── Griglia palette ──
+    frame $dlg.pal
+    set col 0; set row 0; set n 0
+    foreach c $palette {
+        if {[catch {set _r2 [winfo rgb . $c]}]} {
+            incr col; if {$col >= 8} {set col 0; incr row}; incr n; continue
+        }
+        set hex [format "#%02x%02x%02x" \
+            [expr {[lindex $_r2 0]>>8}] [expr {[lindex $_r2 1]>>8}] [expr {[lindex $_r2 2]>>8}]]
+        frame $dlg.pal.s$n -bg $hex -width 28 -height 28 -relief raised -bd 1 -cursor hand2
+        grid  $dlg.pal.s$n -row $row -column $col -padx 1 -pady 1
+        bind  $dlg.pal.s$n <Button-1> [list cpick_swatch_click $hex]
+        bind  $dlg.pal.s$n <Enter>    [list cpick_swatch_hover  $hex]
+        bind  $dlg.pal.s$n <Leave>    cpick_swatch_leave
+        incr col; if {$col >= 8} {set col 0; incr row}; incr n
+    }
+    pack $dlg.pal -padx 8 -pady 2
+
+    # ── Anteprima + hex + Altro ──
+    frame $dlg.sep1 -height 1 -bg #aaaaaa
+    pack  $dlg.sep1 -fill x -padx 6 -pady 4
+    frame $dlg.hex
+    label $dlg.hex.lbl  -text "Hex:" -font {Courier 10}
+    entry $dlg.hex.e    -textvariable ::cpick::result -width 10 -font {Courier 10}
+    frame $dlg.prev     -bg $hexinit -width 40 -height 28 -relief sunken -bd 2
+    button $dlg.hex.btn -text "Altro..." -command {
+        set _c [tk_chooseColor -initialcolor $::cpick::result \
+                    -parent .colordlg -title "Colore personalizzato"]
+        if {$_c ne ""} { cpick_swatch_click $_c }
+    }
+    bind $dlg.hex.e <KeyRelease> { catch { .colordlg.prev configure -bg $::cpick::result } }
+    bind $dlg.hex.e <Return>     { catch { .colordlg.prev configure -bg $::cpick::result } }
+    pack $dlg.hex.lbl -side left -padx {8 2}
+    pack $dlg.hex.e   -side left -padx 2
+    pack $dlg.prev    -side left -padx 8
+    pack $dlg.hex.btn -side left -padx 4
+    pack $dlg.hex -fill x -pady 4
+
+    # ── OK / Annulla ──
+    frame $dlg.btn
+    button $dlg.btn.ok  -text OK      -width 8 -default active \
+        -command { set ::cpick::done 1 }
+    button $dlg.btn.can -text Annulla -width 8 \
+        -command { set ::cpick::result ""; set ::cpick::done 1 }
+    pack $dlg.btn.ok $dlg.btn.can -side left -padx 6
+    pack $dlg.btn -pady 8
+
+    bind $dlg <Return> { catch { .colordlg.btn.ok  invoke } }
+    bind $dlg <Escape> { catch { .colordlg.btn.can invoke } }
+
+    # posiziona vicino al parent
+    update idletasks
+    set dw  [winfo reqwidth  $dlg]
+    set dh  [winfo reqheight $dlg]
+    set px  [winfo rootx $parent]
+    set py  [winfo rooty $parent]
+    set ph  [winfo height $parent]
+    set scw [winfo screenwidth  .]
+    set sch [winfo screenheight .]
+    set x   [expr {max(0, min($px + 60, $scw - $dw - 10))}]
+    set y   [expr {max(0, min($py + ($ph - $dh)/2, $sch - $dh - 10))}]
+    wm geometry $dlg "+${x}+${y}"
+
+    grab $dlg
+    focus $dlg.btn.ok
+    vwait ::cpick::done
+    grab release $dlg
+    destroy $dlg
+    return $::cpick::result
+}
+# ──────────────────────────────────────────────────────────────────────────
+
 proc addRecentColor { color } {
     # Rimuove duplicati, inserisce in cima, mantiene max 8
     set idx [lsearch -exact $::recentColors $color]
@@ -4035,7 +4170,7 @@ proc setBgColor { tab mode } {
             set init $::bgColorDat
         }
         catch {foreach {_r _g _b} [winfo rgb . $init] {}; set init [format "#%02x%02x%02x" [expr {$_r>>8}] [expr {$_g>>8}] [expr {$_b>>8}]]}
-        set color [tk_chooseColor -initialcolor $init -title "Background color" -parent .]
+        set color [chooseColorDialog $init "Colore sfondo" .]
         if {$color == ""} return
         addRecentColor $color
         rebuildRecentMenus
