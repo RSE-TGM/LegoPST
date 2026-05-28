@@ -171,42 +171,43 @@ Fedora 41 running into a :
 - Windows WSL 2
 ```bash
 # Fedora 41 dependencies
+
 sudo dnf update -y && \
-sudo dnf install -y \
-        git \
-        gcc gfortran make \
-        fastfetch \
-        xterm xclock xhost xauth \
-        hostname \
-        glibc-langpack-en \
-        libX11-devel \
-        motif-devel \
-        sqlite-devel \
-        libbsd-devel \
-        tcl tk tix \
-        ncurses-devel \
-        leafpad \
-        gdbm-devel \
-        ksh \
-        which \
-        sudo \
-        ps \
-        passwd \
-        cpio \
-        shadow-utils \
-        xdg-open \
-        ghostscript \
-        gimp \
-        evince \
-        unix2dos \
-        xorg-x11-fonts-misc xorg-x11-fonts-100dpi xorg-x11-fonts-75dpi libXcursor \ 
-        adwaita-cursor-theme && \
+sudo dnf install -y --setopt=install_weak_deps=False \
+    git \
+    gcc gfortran make \
+    fastfetch \
+    xterm xclock xhost xauth \
+    hostname \
+    glibc-langpack-en \
+    libX11-devel \
+    libXmu-devel \
+    libXext-devel \
+    libXi-devel \
+    freeglut-devel \
+    motif-devel \
+    sqlite-devel \
+    libbsd-devel \
+    tcl tk tix \
+    ncurses-devel \
+    mousepad \
+    gdbm-devel \
+    ksh \
+    which \
+    procps-ng \
+    cpio \
+    xdg-open \
+    ghostscript \
+    drawing \
+    evince \
+    falkon \
+    unix2dos \
+    xorg-x11-fonts-misc \
+    xorg-x11-fonts-100dpi \
+    xorg-x11-fonts-75dpi \
+    libXcursor \
+    adwaita-cursor-theme && \
 sudo dnf clean all
-sudo dnf update
-sudo dnf install libmrm4 tcl tk tix libmotif-dev
-sudo dnf install libxmu-dev freeglut3-dev libxext-dev libxi-dev
-sudo dnf install libbsd-dev libsqlite3-dev libgdbm-compat-dev
-sudo dnf install gcc gfortran make
 
 
 ```

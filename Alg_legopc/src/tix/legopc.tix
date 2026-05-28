@@ -1113,6 +1113,14 @@ proc itemAdd {c x y} {
       set GIForient "n"
       set idclass $curTool
 	source [file join $curLibPath $curTool.tcl]
+	# Se l'utente cancella l'inserimento (Escape), progName sarà vuoto
+	if {$progName eq ""} {
+		# Cancella il modulo e tutte le porte associate (taggati con id$mymodId)
+		if {[info exists mymodId]} {
+			$c delete id$mymodId
+		}
+		return
+	}
 	set modified 1
 	set needbuild 1
 #tk_messageBox -message "4 $progNumb\n $curLibPath \n $curTool"
@@ -1432,12 +1440,16 @@ proc inputModName {c x y} {
 	entry $mndlg.mname -relief sunken -width 4 -font entryFont -textvariable enval
 	label $mndlg.askl -text "insert name (4 char)"
 	pack $mndlg.askl $mndlg.mname -side top
-	button $mndlg.dismiss -text Accept -command "set mnamedone 1"
-	pack $mndlg.dismiss -side bottom
+	frame $mndlg.buttons
+	button $mndlg.buttons.accept -text Accept -command "set mnamedone 1"
+	button $mndlg.buttons.cancel -text Cancel -command "set mnamedone 2"
+	pack $mndlg.buttons.accept $mndlg.buttons.cancel -side left -padx 4
+	pack $mndlg.buttons -side bottom -pady 4
 	set wid [$c create window $x $y -window $mndlg]
 	focus $mndlg.mname
 	$mndlg.mname selection range 0 3
 	bind $mndlg.mname <Return> "set mnamedone 1"
+	bind $mndlg.mname <Escape> "set mnamedone 2"
 
 #	grab $mndlg
 #bell
@@ -1457,6 +1469,12 @@ proc inputModName {c x y} {
         set ok1 1
 	while { $ok1 } {
 	vwait mnamedone
+	   if {$mnamedone == 2} {
+	   	set progName ""
+	   	set ok1 0
+	   	catch {grab release $mndlg}
+	   	$c delete $wid
+	   } else {
 	   if {[string length $enval] > 4} {set enval [string range $enval 0 3]}
 	   if {[string length $enval] < 4} {set enval [string range ${enval}____ 0 3]}
 	   set progName [string toupper $enval]
@@ -1467,6 +1485,7 @@ proc inputModName {c x y} {
 	   set ok1 0
 	   grab release $mndlg
 	   $c delete $wid
+	   }
 	   }
 	}
 #--- fine  nuovo
@@ -1517,7 +1536,18 @@ proc createPal {} {
 	bind $pal0 <1> "set curLibPath \"$dirname\""
 	set curLibPath $dirname
 
-tixScrolledWindow $pal0.canv 
+	# Riga di status in cima
+	frame $pal0.status -relief sunken -bd 1
+	pack $pal0.status -side top -fill x -padx 10 -pady 4
+	text $pal0.status.info -height 2 -relief flat -bd 0 -font {Arial 9} -wrap word -bg [$pal0 cget -bg]
+	$pal0.status.info tag configure left -justify left
+	$pal0.status.info tag configure right -justify right
+	$pal0.status.info insert end "Select a module" left
+	$pal0.status.info insert end "\nCtrl+Left to add" right
+	$pal0.status.info configure -state disabled
+	pack $pal0.status.info -side left -fill both -expand yes -padx 4 -pady 2
+
+tixScrolledWindow $pal0.canv
 pack $pal0.canv -expand yes -fill both -padx 10 -pady 10 -side left
 set pal [$pal0.canv subwidget window]
 
@@ -1543,6 +1573,24 @@ set pal [$pal0.canv subwidget window]
 		$pal.$modnoext config -image $compo1
 #--------
 		 grid $pal.$modnoext -in $pal -row $row -column $column -sticky news
+
+		 bind $pal.$modnoext <Button-1> {
+			set window_name [lindex [split %W .] end]
+			set descr ""
+			if [file exists $env(LG_HELP)/$window_name.tch ] {
+				set idf [open $env(LG_HELP)/$window_name.tch r]
+				gets $idf
+				set descr [gets $idf]
+				close $idf
+			}
+			set pal_window [winfo toplevel %W]
+			set txt_widget $pal_window.status.info
+			$txt_widget configure -state normal
+			$txt_widget delete 1.0 end
+			$txt_widget insert end "$window_name - $descr" left
+			$txt_widget insert end "\nCtrl+Left to add" right
+			$txt_widget configure -state disabled
+		 }
 
 		 bind $pal.$modnoext <Button-3> {
 			set window_name [lindex [split %W .] end]
@@ -1580,6 +1628,24 @@ set pal [$pal0.canv subwidget window]
              image create photo $modnoext -file $modnoext.gif
              radiobutton $pal.$modnoext -image $modnoext -indicatoron 0 -variable curTool -value $modnoext
 		 grid $pal.$modnoext -in $pal -row $row -column $column -sticky news
+
+		 bind $pal.$modnoext <Button-1> {
+			set window_name [lindex [split %W .] end]
+			set descr ""
+			if [file exists $env(LG_HELP)/$window_name.tch ] {
+				set idf [open $env(LG_HELP)/$window_name.tch r]
+				gets $idf
+				set descr [gets $idf]
+				close $idf
+			}
+			set pal_window [winfo toplevel %W]
+			set txt_widget $pal_window.status.info
+			$txt_widget configure -state normal
+			$txt_widget delete 1.0 end
+			$txt_widget insert end "$window_name - $descr" left
+			$txt_widget insert end "\nCtrl+Left to add" right
+			$txt_widget configure -state disabled
+		 }
 
 		 bind $pal.$modnoext <Button-3> {
 			set window_name [lindex [split %W .] end]
