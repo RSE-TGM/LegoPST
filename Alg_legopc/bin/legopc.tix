@@ -3972,6 +3972,9 @@ proc savePrefs {} {
     if {[info exists env(LG_PDFVIEWER)]} {
         puts $f "set ::pref_pdfviewer  {$env(LG_PDFVIEWER)}"
     }
+    if {[info exists env(LG_XTERM)]} {
+        puts $f "set ::pref_xterm      {$env(LG_XTERM)}"
+    }
     close $f
 }
 
@@ -3992,6 +3995,9 @@ proc loadPrefs {} {
         }
         if {[info exists ::pref_pdfviewer] && [string length $::pref_pdfviewer] > 0} {
             set env(LG_PDFVIEWER) $::pref_pdfviewer
+        }
+        if {[info exists ::pref_xterm] && [string length $::pref_xterm] > 0} {
+            set env(LG_XTERM) $::pref_xterm
         }
     }
 }
