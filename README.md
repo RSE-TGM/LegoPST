@@ -64,8 +64,10 @@ sudo apt-get update
 sudo apt-get install docker-ce docker-ce-cli containerd.io
 
 # Fedora/RHEL
-sudo dnf update
-sudo dnf install docker-ce docker-ce-cli containerd.io
+sudo dnf install -y dnf-plugins-core
+sudo dnf config-manager addrepo \
+  --from-repofile=https://download.docker.com/linux/fedora/docker-ce.repo
+sudo dnf install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
 
 # Start Docker service
 sudo systemctl enable --now docker
@@ -90,9 +92,10 @@ sudo dnf config-manager --add-repo https://download.docker.com/linux/fedora/dock
 sudo dnf install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 
 # For WSL: Activate systemd
-# Edit /etc/wsl.conf and add:
-#   [boot]
-#   systemd=true
+sudo bash -c 'cat >> /etc/wsl.conf << EOF
+[boot]
+systemd=true
+EOF'
 # Then restart WSL: wsl --shutdown
 
 sudo systemctl enable --now docker
