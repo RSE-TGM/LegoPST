@@ -40,6 +40,8 @@ CPP=cpp
 #       %date_created:  %
 #
 all:
+	mkdir -p macro_topol_obj
+	mkdir -p macro_dati_obj
 	$(MAKE) -f mkMacroTopol.mk
 	$(MAKE) -f mkMacroDati.mk
 	$(MAKE) -f mkMacro.mk
