@@ -4294,7 +4294,12 @@ proc raisetopol { c } {
 # 8 è separator 
 		.menu.file entryconfigure 9 -state normal 
 # 10 è separator 
-		.menu.file entryconfigure 11 -state normal 
+		# Export as: abilitato solo se e' aperto un modello (.tom)
+		if {$curFileName ne "untitled" && $curFileName ne "" && $curFileName ne "-"} {
+			.menu.file entryconfigure 11 -state normal
+		} else {
+			.menu.file entryconfigure 11 -state disabled
+		}
 		.menu.lib  entryconfigure 0 -state normal 
 		.menu.lib  entryconfigure 1 -state normal 
 		.menu.view  entryconfigure 0 -state normal 
@@ -4344,7 +4349,12 @@ proc raisedata { c c2 } {
 		.menu.file entryconfigure 6 -state disabled
 		.menu.file entryconfigure 7 -state normal 
 		.menu.file entryconfigure 9 -state disabled 
-		.menu.file entryconfigure 11 -state normal 
+		# Export as: abilitato solo se e' aperto un modello (.tom)
+		if {$curFileName ne "untitled" && $curFileName ne "" && $curFileName ne "-"} {
+			.menu.file entryconfigure 11 -state normal
+		} else {
+			.menu.file entryconfigure 11 -state disabled
+		}
 		.menu.lib  entryconfigure 0 -state disabled 
 		.menu.lib  entryconfigure 1 -state disabled 
 		.menu.view  entryconfigure 0 -state disabled 
@@ -4699,10 +4709,16 @@ if { $::LINUXPLAT == 0 } {
     set modalita 1
     global modalita
     }
-    $m add cascade -label "Export..." -menu $m.export
+    $m add cascade -label "Export as" -menu $m.export
     menu $m.export -tearoff 0 -activebackground darkblue -activeforeground white
     $m.export add command -label "PDF"    -command {if {$modalita == 1} {plotPDF $::cglob} else {plotPDF $::c2glob}}
-    $m.export add command -label "PNG..." -command {if {$modalita == 1} {plotPNG $::cglob} else {plotPNG $::c2glob}}
+    $m.export add command -label "PNG" -command {if {$modalita == 1} {plotPNG $::cglob} else {plotPNG $::c2glob}}
+    $m.export add command -label "FMU" -command {
+    	global DIRMODEL
+    	exec xterm -title "Build FMU bundle" -e "$env(LEGOROOT)/Alg_rt/lg_fmu/scripts/dolgfmu.sh -b $DIRMODEL; echo; echo Premi invio per chiudere; read x" &
+    }
+    # All'avvio nessun modello e' aperto: Export as disabilitato finche' non si apre un .tom
+    $m entryconfigure "Export as" -state disabled
 
 #    $m add separator
 #    $m add command -label "Duplicate Model" -command "DupModel $c $c2 $c4"
@@ -4842,14 +4858,7 @@ set ::stileanim_prec $::stileanim
 #    	exec xterm &
     	set _xt [expr {[info exists env(LG_XTERM)] && $env(LG_XTERM) ne "" ? $env(LG_XTERM) : "xterm"}]; exec $_xt &
     }
-    $m add command -label "Build FMU" -command {
-    	global DIRMODEL
-    	exec xterm -title "Build FMU" -e "$env(LEGOROOT)/Alg_rt/lg_fmu/scripts/dolgfmu.sh $DIRMODEL; echo; echo Premi invio per chiudere; read x" &
-    }
-    $m add command -label "Build FMU (bundle)" -command {
-    	global DIRMODEL
-    	exec xterm -title "Build FMU bundle" -e "$env(LEGOROOT)/Alg_rt/lg_fmu/scripts/dolgfmu.sh -b $DIRMODEL; echo; echo Premi invio per chiudere; read x" &
-    }
+# Voci "Build FMU" e "Build FMU (bundle)" spostate in File -> Export as -> FMU
 
     set m .menu.grafics_ut
     menu $m -tearoff 0 -activebackground darkblue -activeforeground white
