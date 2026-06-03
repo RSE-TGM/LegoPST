@@ -231,7 +231,7 @@ echo "source $LEGOROOT/.profile_legoroot " >> $HOME/.bashrc
 
 ```
 
-#### Environment Configuration and Critical libgdbm.so post-installation 
+#### Environment Configuration
 
 ```bash
 # Edit .profile_legoroot with correct path
@@ -241,15 +241,18 @@ export LEGOROOT=/home/user/LegoPST
 # Add to .bashrc
 echo "source $LEGOROOT/.profile_legoroot" >> ~/.bashrc
 
-# Critical Prerequisite: libgdbm.so.2
-#The LegoPST control configurator tool, config, has a critical dependency on the dbmftc2 utility. 
-#This utility, in turn, requires a specific and obsolete version of the GDBM library: libgdbm.so.2. 
-#To install this required dependency, execute the following script:
-sudo sh $LEGOROOT/gdbm-install/install.sh
-
-
 # Restart shell session
 ```
+
+> **Note (obsolete prerequisite):** earlier versions required manually
+> installing the legacy `libgdbm.so.2` (via `gdbm-install/install.sh`)
+> to run `dbmftc2` from the `config` tool. This is **no longer needed**:
+> the dbutil/pagmod tools are linked against the modern system gdbm
+> (`-lgdbm_compat -lgdbm` → `libgdbm.so.6`), and the `CAI_VAR_DB` database
+> is created and read by the same modern library at runtime. Just install
+> the development package (`gdbm-devel` on Fedora, `libgdbm-compat-dev` on
+> Debian/Ubuntu) and recompile from source. The old library is only needed
+> if you import a pre-compiled binary linked against `libgdbm.so.2`.
 The system automatically detects:
 - **LEGOROOT**: Project root path
 - **Platform**: 32/64-bit Linux detection
