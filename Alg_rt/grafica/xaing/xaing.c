@@ -235,6 +235,37 @@ void load_font (XFontStruct **,int);
 
 
 
+/* ==========================================================================
+ * xaing - parametri di chiamata
+ * ==========================================================================
+ *
+ *   xaing <tipo_aing> [<dir_context> <file_context>]
+ *
+ * Argomenti posizionali:
+ *   argv[1]  tipo_aing (atoi)  OBBLIGATORIO. Modalita' di funzionamento:
+ *              1 = lato SCHEDULATORE : dbpunti da SHM (DB_PUNTI_SHARED),
+ *                  versione_mmi=0. E' la modalita' lanciata dal monitor
+ *                  (net_simula/.../processi.c: argv[1]="1", senza argv[2..3]).
+ *              2 = lato LEGOGRAF/MMI : esegue chdir(argv[2]),
+ *                  nome_file_context=argv[3], dbpunti interno (DB_PUNTI_INT),
+ *                  versione_mmi=1.
+ *              altro = lato legograf: DB_PUNTI_INT, versione_mmi=0.
+ *   argv[2]  (solo tipo_aing==2) directory di lavoro -> chdir()
+ *   argv[3]  (solo tipo_aing==2) nome del file di contesto -> nome_file_context
+ *
+ * Variabili d'ambiente richieste:
+ *   SHR_USR_KEY  chiave SHM utente (indispensabile, letta con atoi).
+ *   DISPLAY      display X11.
+ *   SHR_TAV_KEY, LEGORT_BIN, HOME, DEBUG, LD_LIBRARY_PATH (impostate dal lanciatore).
+ *
+ * Gli argomenti residui (&argc, argv) sono passati a XtAppInitialize, quindi
+ * sono accettate anche le opzioni standard X Toolkit (-display, -geometry, ...).
+ *
+ * Esempi:
+ *   xaing 1
+ *   xaing 2 /percorso/dir/modello nome_contesto
+ * ==========================================================================
+ */
 int main (argc, argv)
 unsigned int    argc;	/* Command line argument count. */
 char   *argv[];		/* Pointers to command line args. */

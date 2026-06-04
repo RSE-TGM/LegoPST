@@ -6,6 +6,7 @@ set ::anima_sim_path "locpath - click to change"
 # sourciato sia da draw2gr.tcl che da legopc.tix — in quest'ultimo caso
 # le proc anim_* di draw2gr.tcl non sono disponibili).
 if {![info exists ::anim_remap]} { array set ::anim_remap {} }
+if {![info exists ::anim_mode]}  { array set ::anim_mode {} }
 if {![info exists ::anim_selected_item]} { set ::anim_selected_item -1 }
 
 # Carica il file .remap associato al modello corrente.
@@ -14,6 +15,7 @@ if {![info exists ::anim_selected_item]} { set ::anim_selected_item -1 }
 proc anim_load_remap {} {
     global curFileName tipVarMod
     array unset ::anim_remap
+    array unset ::anim_mode
     if {![info exists curFileName]} return
     set fname "[file rootname $curFileName].remap"
     if {![file exists $fname]} return
@@ -33,7 +35,16 @@ proc anim_load_remap {} {
             set eqpos [string first "=" $line]
             if {$eqpos < 1} continue
             set inst [string trim [string range $line 0 [expr $eqpos-1]]]
-            set var  [string trim [string range $line [expr $eqpos+1] end]]
+            set rhs  [string trim [string range $line [expr $eqpos+1] end]]
+            # Token opzionale ";L" (solo elementi freeval): modalità tag+valore
+            set mode ""
+            set semipos [string first ";" $rhs]
+            if {$semipos >= 0} {
+                set mode [string trim [string range $rhs [expr $semipos+1] end]]
+                set var  [string trim [string range $rhs 0 [expr $semipos-1]]]
+            } else {
+                set var $rhs
+            }
             if {[string equal $inst ""] || [string equal $var ""]} continue
             if {$can_validate && ![info exists tipVarMod($var)]} {
                 # variabile non più nel modello → riga obsoleta, salta
@@ -41,6 +52,7 @@ proc anim_load_remap {} {
                 continue
             }
             set ::anim_remap($inst) $var
+            if {$mode ne ""} { set ::anim_mode($inst) $mode }
         }
         close $fid
     }
@@ -60,7 +72,12 @@ proc anim_save_remap {} {
         set fid [open $fname w]
         puts $fid "# LegoPC animation remap - generato automaticamente"
         foreach inst [lsort [array names ::anim_remap]] {
-            puts $fid "$inst=$::anim_remap($inst)"
+            set line "$inst=$::anim_remap($inst)"
+            # token modalità tag+valore (solo elementi freeval @val_0)
+            if {[info exists ::anim_mode($inst)] && $::anim_mode($inst) ne ""} {
+                append line ";$::anim_mode($inst)"
+            }
+            puts $fid $line
         }
         close $fid
     }
@@ -206,6 +223,12 @@ foreach item [$c find withtag module] {
 #GUAG - nov 2007 - continuare qui per variabile di anim nuove,,,
         set tags_curr [$c gettags $item]
 #puts "anima_aggiorna:  elemento attuale  ---------> $item ---------> $tags_curr"
+        # --- Elemento valore libero (@val_0): gestione dedicata ---
+        if {[lsearch -exact $tags_curr  freeval] != -1} {
+            anima_freeval_field $c $item $x $y $scaledFont $baseFont 1
+            incr nelem
+            continue
+        }
         set is_remark 0
         if {[lsearch -exact $tags_curr  remarkdescr] != -1} {
 # è un remark...
@@ -286,6 +309,7 @@ if { $mod == 2 } {
            # Il tag *.nome_anim viene aggiornato da anim_apply_remap al volo:
            # leggiamo sempre il valore corrente (include eventuali remap).
            set pisqu [file rootname [lindex $tags_curr [lsearch $tags_curr *.nome_anim]]]
+           set varname $pisqu
 #identificatore del campo su cui si scriverà il valore...
 		   set pisqu_tid [file rootname [lindex $tags_curr [lsearch $tags_curr *.visual]]]
 #chiedo al server lego il valore con il nome ( pisqu )
@@ -296,6 +320,14 @@ if { $mod == 2 } {
 
 #aggiorno il campo...
            set testo "[lindex $pisqu 0] [lindex $pisqu 1]"
+
+           # freeval in modalità etichetta: anteponi il nome variabile
+           if {[lsearch -exact $tags_curr  freeval] != -1} {
+               set inst_name [file rootname [lindex $tags_curr [lsearch $tags_curr *.name]]]
+               if {[info exists ::anim_mode($inst_name)] && $::anim_mode($inst_name) eq "L"} {
+                   set testo "$varname $testo"
+               }
+           }
 
 		   $c itemconfigure $pisqu_tid -text $testo
 		   $c raise $pisqu_tid
@@ -319,6 +351,12 @@ anim_load_remap
 #in basso a destra
 		set y [expr [lindex $lc 3] + 6]
         set tags_curr [$c gettags $item]
+        # --- Elemento valore libero (@val_0): gestione dedicata (statico F14) ---
+        if {[lsearch -exact $tags_curr  freeval] != -1} {
+            anima_freeval_field $c $item $x $y $scaledFont $baseFont 0
+            incr nelem
+            continue
+        }
         set is_remark 0
         if {[lsearch -exact $tags_curr  remarkdescr] != -1} {
 # è un remark...
@@ -384,6 +422,176 @@ anim_load_remap
 }
 
 
+}
+
+# ==========================================================================
+# Elementi "valore libero" @val_0 (tag freeval)
+# ==========================================================================
+#
+# Crea/aggiorna il campo animato di un elemento freeval.
+#  live = 1 : valore letto dalla pipe (simulazione attiva, modi 1/2)
+#  live = 0 : valore statico letto da matrVf14 (modo F14, modo 3)
+# La variabile è presa esclusivamente dal file .remap (per nome istanza);
+# se non assegnata mostra il placeholder "--?--" e resta comunque cliccabile.
+proc anima_freeval_field { c item x y scaledFont baseFont live } {
+    global matrVf14
+
+    # rimuovi un eventuale overlay precedente di questo item (idempotente)
+    catch { $c delete fvov$item }
+
+    set tags_curr [$c gettags $item]
+    set inst_name [file rootname [lindex $tags_curr [lsearch $tags_curr *.name]]]
+    set var [anim_get_var $inst_name ""]
+
+    # ripulisci tag di animazione precedenti
+    set old_na [lsearch $tags_curr *.nome_anim]
+    if {$old_na >= 0} { $c dtag $item [lindex $tags_curr $old_na] }
+    set old_vi [lsearch $tags_curr *.visual]
+    if {$old_vi >= 0} { $c dtag $item [lindex $tags_curr $old_vi] }
+    $c dtag $item da_animare
+
+    if {$var eq ""} {
+        set testo "--?--"
+    } else {
+        $c addtag $var.nome_anim withtag $item
+        $c addtag da_animare withtag $item
+        if {$live} {
+            set variab_inv $var\n
+            anima leggi $variab_inv
+            if {[regexp -nocase {^ERRORE} $::line_anim] == 1} {
+                set valtxt "--?--"
+            } else {
+                set valtxt "[lindex $::line_anim 0] [lindex $::line_anim 1]"
+            }
+        } else {
+            if {[catch { set valore14 $matrVf14($var,valu) } errmsg]} {
+                set valore14 $errmsg
+            }
+            set valtxt "$valore14 [ret_umis $var]"
+        }
+        if {[info exists ::anim_mode($inst_name)] && $::anim_mode($inst_name) eq "L"} {
+            set testo "$var $valtxt"
+        } else {
+            set testo $valtxt
+        }
+    }
+
+    # Posiziona il campo valore SOPRA il placeholder dell'elemento, così da
+    # nasconderlo. Stile come i blocchi: niente bordo, giallo in simulazione
+    # (live), azzurro nella visualizzazione dei valori di stazionario (statico).
+    set bb_base [$c bbox $item]
+    set cx [expr {([lindex $bb_base 0]+[lindex $bb_base 2])/2.0}]
+    set cy [expr {([lindex $bb_base 1]+[lindex $bb_base 3])/2.0}]
+
+    set tid [$c create text $cx $cy -text $testo -font $scaledFont \
+                 -tags [list infoitemname fvov$item]]
+    set ::origFontOf($c,$tid) $baseFont
+    $c addtag $tid.visual withtag $item
+
+    # rettangolo opaco senza bordo, dimensionato sull'unione (placeholder + valore)
+    set tb [$c bbox $tid]
+    set x1 [expr {min([lindex $bb_base 0],[lindex $tb 0]) - 1}]
+    set y1 [expr {min([lindex $bb_base 1],[lindex $tb 1]) - 1}]
+    set x2 [expr {max([lindex $bb_base 2],[lindex $tb 2]) + 1}]
+    set y2 [expr {max([lindex $bb_base 3],[lindex $tb 3]) + 1}]
+    set boxfill [expr {$live ? "yellow" : "cyan"}]
+    set rect [$c create rectangle $x1 $y1 $x2 $y2 \
+                  -fill $boxfill -outline "" \
+                  -tags [list infoitemname fvov$item]]
+
+    # doppio-click: (ri)definisce la variabile da animare - sempre attivo
+    $c bind $rect <Double-1> "anim_freeval_dialog $c $item"
+    $c bind $tid  <Double-1> "anim_freeval_dialog $c $item"
+
+    # balloon (tasto destro): nome variabile o avviso se non assegnata
+    set ball [expr {$var eq "" ? "(doppio-click per assegnare)" : $var}]
+    $c bind $rect <ButtonPress-3>   "anim_show_balloon %X %Y {$ball} {$ball}"
+    $c bind $rect <ButtonRelease-3> "anim_hide_balloon"
+    $c bind $tid  <ButtonPress-3>   "anim_show_balloon %X %Y {$ball} {$ball}"
+    $c bind $tid  <ButtonRelease-3> "anim_hide_balloon"
+
+    # layering: placeholder < rettangolo opaco < testo valore
+    $c raise $rect
+    $c raise $tid
+}
+
+# Dialogo doppio-click: chiede la variabile da animare + modalità etichetta.
+proc anim_freeval_dialog { c item } {
+    set tags_curr [$c gettags $item]
+    set inst_name [file rootname [lindex $tags_curr [lsearch $tags_curr *.name]]]
+    set ::freeval_var  [anim_get_var $inst_name ""]
+    set ::freeval_mode [expr {[info exists ::anim_mode($inst_name)] && \
+                              $::anim_mode($inst_name) eq "L" ? 1 : 0}]
+
+    set w .freeval_dlg
+    catch {destroy $w}
+    toplevel $w
+    wm title $w "Variabile da animare"
+    catch { wm transient $w [winfo toplevel $c] }
+    wm resizable $w 0 0
+
+    frame $w.f
+    pack $w.f -padx 12 -pady 10 -fill x
+    label $w.f.l -text "Nome variabile:" -anchor w
+    entry $w.f.e -textvariable ::freeval_var -width 16
+    grid $w.f.l -row 0 -column 0 -sticky w -pady 3
+    grid $w.f.e -row 0 -column 1 -sticky ew -pady 3 -padx 4
+    checkbutton $w.f.cb -text "Mostra nome variabile (etichetta)" \
+        -variable ::freeval_mode -anchor w
+    grid $w.f.cb -row 1 -column 0 -columnspan 2 -sticky w -pady 4
+
+    frame $w.btn
+    pack $w.btn -pady 8
+    button $w.btn.ok  -text OK      -width 8 -default active \
+        -command "anim_freeval_apply $c $item $w"
+    button $w.btn.can -text Annulla -width 8 -command "destroy $w"
+    pack $w.btn.ok $w.btn.can -side left -padx 6
+
+    bind $w <Return> "anim_freeval_apply $c $item $w"
+    bind $w <Escape> "destroy $w"
+    focus $w.f.e
+    $w.f.e selection range 0 end
+    catch { grab $w }
+}
+
+# Applica la variabile scelta: valida contro il modello, salva nel .remap,
+# aggiorna immediatamente il campo.
+proc anim_freeval_apply { c item w } {
+    global tipVarMod
+    set var [string toupper [string trim $::freeval_var]]
+    if {$var eq ""} {
+        tk_messageBox -parent $w -icon warning -type ok \
+            -message "Inserire un nome di variabile."
+        return
+    }
+    if {![info exists tipVarMod($var)]} {
+        tk_messageBox -parent $w -icon error -type ok \
+            -message "Variabile '$var' non presente nel modello."
+        return
+    }
+
+    set tags_curr [$c gettags $item]
+    set inst_name [file rootname [lindex $tags_curr [lsearch $tags_curr *.name]]]
+    set ::anim_remap($inst_name) $var
+    if {$::freeval_mode} {
+        set ::anim_mode($inst_name) "L"
+    } else {
+        catch {unset ::anim_mode($inst_name)}
+    }
+    catch { anim_save_remap }
+    catch { grab release $w }
+    catch { destroy $w }
+
+    # refresh immediato del campo
+    set lc [$c bbox $item]
+    set x [expr ([lindex $lc 0]+[lindex $lc 2])/2]
+    set y [expr [lindex $lc 3] + 6]
+    set baseFont {Helvetica 8}
+    set zl [expr {[info exists ::zoomLevelOf($c)] ? $::zoomLevelOf($c) : 1.0}]
+    set ssz [expr {int(round(8 * $zl))}]
+    if {$ssz < 1} { set ssz 1 }
+    set live [expr {[info exists ::pipeon] && $::pipeon ? 1 : 0}]
+    anima_freeval_field $c $item $x $y [list Helvetica $ssz] $baseFont $live
 }
 
 proc ret_umis { nome } {

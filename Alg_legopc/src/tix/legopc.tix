@@ -2284,7 +2284,13 @@ set y $::currTid_y
 	set mylist [$c gettags $::currTid]
 #se non è una remark esco
         if {[lsearch -exact $mylist  remarkdescr] == -1} { return }
-#è un remark, procedo	
+#se è un elemento valore-libero @val_0 non ha testo statico modificabile
+        if {[lsearch -exact $mylist  freeval] != -1} {
+            tk_messageBox -icon info -type ok -title "Valore libero" \
+                -message "Questo elemento non ha testo statico.\nIn modalità View -> Show Value, fai doppio-click sul campo per assegnare la variabile da animare."
+            return
+        }
+#è un remark, procedo
 	set mytag [lindex $mylist [lsearch $mylist id* ]]
 	set fontbuff [leggi_font $c $mytag 1 "qq"]
 
@@ -2789,6 +2795,7 @@ bind $c <B1-ButtonRelease> {
     $pop add command -label "Paste" -under 0 -command "IncollaItem $c"                                    
     $pop add command -label "Help" -under 0 -command "loadHelp $c"
     $pop add command -label "Add Text" -under 0 -command "AddRemark $c"
+    $pop add command -label "Add Display" -under 4 -command "AddDisplay $c"
     $pop add command -label "Modify Text" -under 0 -command "modifica_remark $c"
     $pop add command -label "Rename" -under 0 -command "CambiaNome $c"
     $pop add command -label "Rotate module" -under 0 -command "itemRotate $c"
@@ -2826,9 +2833,27 @@ bind $c <B1-ButtonRelease> {
                      $pop entryconfigure 5 -state disabled
                      $pop entryconfigure 6 -state disabled
                      $pop entryconfigure 7 -state disabled
-                     $pop entryconfigure 8 -state normal -label "Delete link"
-                     $pop entryconfigure 9 -state disabled
+                     $pop entryconfigure 8 -state disabled
+                     $pop entryconfigure 9 -state normal -label "Delete link"
                      $pop entryconfigure 10 -state disabled
+                     $pop entryconfigure 11 -state disabled
+                    } elseif {[lsearch -exact $::currTags selectitem] != -1} then {
+# è il rettangolo di selezione di un elemento selezionato (es. appena incollato):
+# il click destro sul bordo cadrebbe altrimenti nel ramo "else" con Copy disabilitato.
+# Lo tratto come contesto "selezione": Copy copia la selezione (mult_sel=1), Paste/Delete attivi.
+                     set ::mult_sel 1
+                     $pop entryconfigure 1 -state normal
+                     if {[info exists ::currTidCopy] == 1} then {$pop entryconfigure 2 -state normal
+                          } else {$pop entryconfigure 2 -state disabled}
+                     $pop entryconfigure 3 -state disabled
+                     $pop entryconfigure 4 -state disabled
+                     $pop entryconfigure 5 -state disabled
+                     $pop entryconfigure 6 -state disabled
+                     $pop entryconfigure 7 -state disabled
+                     $pop entryconfigure 8 -state disabled
+                     $pop entryconfigure 9 -state normal -label "Delete"
+                     $pop entryconfigure 10 -state normal
+                     $pop entryconfigure 11 -state normal
                     } elseif { $::currTid == ""} then {
 # è lo sfondo
                      $pop entryconfigure 1 -state disabled
@@ -2836,12 +2861,13 @@ bind $c <B1-ButtonRelease> {
                           } else {$pop entryconfigure 2 -state disabled}
                      $pop entryconfigure 3 -state disabled
                      $pop entryconfigure 4 -state normal
-                     $pop entryconfigure 5 -state disabled
+                     $pop entryconfigure 5 -state normal
                      $pop entryconfigure 6 -state disabled
                      $pop entryconfigure 7 -state disabled
-                     $pop entryconfigure 8 -state disabled -label "Delete"
-                     $pop entryconfigure 9 -state disabled
+                     $pop entryconfigure 8 -state disabled
+                     $pop entryconfigure 9 -state disabled -label "Delete"
                      $pop entryconfigure 10 -state disabled
+                     $pop entryconfigure 11 -state disabled
                     } elseif {[lsearch -exact $::currTags  remarkdescr] != -1} then {
 # è un testo
                      itemStartDrag $c $::currTid_x $::currTid_y
@@ -2849,12 +2875,13 @@ bind $c <B1-ButtonRelease> {
                      $pop entryconfigure 2 -state disabled
                      $pop entryconfigure 3 -state disabled
                      $pop entryconfigure 4 -state disabled
-                     $pop entryconfigure 5 -state normal
-                     $pop entryconfigure 6 -state disabled
+                     $pop entryconfigure 5 -state disabled
+                     $pop entryconfigure 6 -state normal
                      $pop entryconfigure 7 -state disabled
-                     $pop entryconfigure 8 -state normal -label "Delete"
-                     $pop entryconfigure 9 -state disabled
+                     $pop entryconfigure 8 -state disabled
+                     $pop entryconfigure 9 -state normal -label "Delete"
                      $pop entryconfigure 10 -state disabled
+                     $pop entryconfigure 11 -state disabled
 
                    } elseif {[lsearch -exact $::currTags  module] != -1} then {
 # è un modulo
@@ -2863,22 +2890,25 @@ bind $c <B1-ButtonRelease> {
                      $pop entryconfigure 2 -state disabled
                      $pop entryconfigure 3 -state normal
                      $pop entryconfigure 4 -state disabled
+                     $pop entryconfigure 5 -state disabled
                      if {$::mult_sel == 0} then {
                         $pop entryconfigure 3 -state normal
                         $pop entryconfigure 4 -state disabled
                         $pop entryconfigure 5 -state disabled
-                     	$pop entryconfigure 6 -state normal
+                        $pop entryconfigure 6 -state disabled
                      	$pop entryconfigure 7 -state normal
+                     	$pop entryconfigure 8 -state normal
                      	} else {
                         $pop entryconfigure 3 -state disabled
                         $pop entryconfigure 4 -state disabled
                         $pop entryconfigure 5 -state disabled
                      		$pop entryconfigure 6 -state disabled
                      		$pop entryconfigure 7 -state disabled
+                     		$pop entryconfigure 8 -state disabled
                       }
-                     $pop entryconfigure 8 -state normal -label "Delete"
-                     $pop entryconfigure 9 -state normal
+                     $pop entryconfigure 9 -state normal -label "Delete"
                      $pop entryconfigure 10 -state normal
+                     $pop entryconfigure 11 -state normal
 
                 } else {
 # è una porta o qulcos'altro
@@ -2886,12 +2916,13 @@ bind $c <B1-ButtonRelease> {
                      $pop entryconfigure 2 -state normal
                      $pop entryconfigure 3 -state disabled
                      $pop entryconfigure 4 -state normal
-                     $pop entryconfigure 5 -state disabled
+                     $pop entryconfigure 5 -state normal
                      $pop entryconfigure 6 -state disabled
                      $pop entryconfigure 7 -state disabled
-                     $pop entryconfigure 8 -state disabled -label "Delete"
-                     $pop entryconfigure 9 -state disabled
+                     $pop entryconfigure 8 -state disabled
+                     $pop entryconfigure 9 -state disabled -label "Delete"
                      $pop entryconfigure 10 -state disabled
+                     $pop entryconfigure 11 -state disabled
 
                 	}
 
@@ -3084,9 +3115,12 @@ set curname [file rootname [lindex [$c gettags $mytid] [lsearch [$c gettags $myt
 		set xfont_color [leggi_font $c $mytid 1 "qq"]
 		set xfont "[lindex $xfont_color 0] [lindex $xfont_color 1]"
 		set colore [lindex $xfont_color 2]
+# colore vuoto -> nero. -fill "" rende il testo invisibile e con bbox VUOTO,
+# il che fa fallire itemStartDrag_mult_all ("bad screen distance") dopo il paste.
+		if {$colore == ""} {set colore "black"}
 #debug tk_messageBox -message "IncollaItem: testo_attuale=$testo_attuale\n xfont_color=$xfont_color\n xfont=$xfont colore=$colore"
 #salvo lre impostzioni di font e colore per il nuovo oggetto nella memoria della canvas...
-                leggi_font $c $mymod_paste 2 $xfont_color 
+                leggi_font $c $mymod_paste 2 $xfont_color
                 $c itemconfigure $mymod_paste -text $testo_attuale -font $xfont -fill $colore
          }
    set needbuild 1
@@ -3181,6 +3215,28 @@ if {[string length $enval] > 4} {set enval [string range $enval 0 3]}
 if {[string length $enval] < 4} {set enval [string range ${enval}____ 0 3]}
 set prnum [string toupper $enval]
 #tk_messageBox -message "IncollaItem: $::currTags\n lpath=$lpath ctool=$ctool ori=$ori\n progNumb=$progNumb\n prnum=$prnum"
+
+set curname "?"
+itemAddFromfile $c $x $y $ctool $lpath $prnum $ori $curname
+
+}
+
+# Scorciatoia per inserire un display dinamico (elemento valore-libero @val_0
+# della libreria remark): identica ad AddRemark ma con ctool @val_0.
+proc AddDisplay {c} {
+
+global progNumb env
+set lpath $env(LG_LIBRARIES)/remark
+set ctool "@val_0"
+set ori n
+
+set x $::currTid_x
+set y $::currTid_y
+
+set enval $progNumb
+if {[string length $enval] > 4} {set enval [string range $enval 0 3]}
+if {[string length $enval] < 4} {set enval [string range ${enval}____ 0 3]}
+set prnum [string toupper $enval]
 
 set curname "?"
 itemAddFromfile $c $x $y $ctool $lpath $prnum $ori $curname
