@@ -368,6 +368,7 @@ proc loadVariables {mod} {
 	global blocModu blocBloc blocDesc blocNvar blocVars
 	global numVars nomeVars tipoVars descVars valuVars weightvars
 	global tipVarMod numeVblo listVblo matrVblo
+	global numVarsINDIP nomeVarsINDIP
 
 	if {$numBlo <= 0} {
 		set messaggio "F01 file not loaded... make it first, please!"
@@ -387,6 +388,11 @@ proc loadVariables {mod} {
 	}
 
 	set numVars $blocNvar($mod)
+	# numVarsINDIP/nomeVarsINDIP: variabili di ingresso INDIPENDENTI del blocco
+	# (perturbabili in Command Mode di draw2gr). Sono quelle con tipo "IN" e
+	# descrizione non commentata con '#' (stessa condizione con cui read_f01
+	# costruisce la lista listVblo(IN) -- vedi proc di caricamento F01).
+	set numVarsINDIP 0
 	for {set i 0} {$i < $numVars} {incr i} {
 		set nomeVars($i) $blocVars($mod,$i,nome)
 		set tipoVars($i) $blocVars($mod,$i,tipo)
@@ -395,6 +401,11 @@ proc loadVariables {mod} {
 		set tip $tipVarMod($nom)
 		set valuVars($i) [string trim $matrVblo($nom,$tip,valu)]
             set weightvars($i) $matrVblo($nom,$tip,code)
+		if { $blocVars($mod,$i,tipo) == "IN" && \
+		     [string range $blocVars($mod,$i,desc) 0 0] != "#" } {
+			set nomeVarsINDIP($numVarsINDIP) $nom
+			incr numVarsINDIP
+		}
 	}
 
 	return 0

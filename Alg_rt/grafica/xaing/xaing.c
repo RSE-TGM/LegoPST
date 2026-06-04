@@ -37,6 +37,9 @@ static char SccsID[] = "@(#)xaing.c	1.17\t6/18/96";
 # include <sys/shm.h>
 # include <sys/sem.h>
 # include <sys/msg.h>
+# include <sys/stat.h>
+# include <dirent.h>
+# include <fcntl.h>
 #endif
 #if defined VMS
 # include "vmsipc.h"
@@ -249,8 +252,14 @@ void load_font (XFontStruct **,int);
  *              2 = lato LEGOGRAF/MMI : esegue chdir(argv[2]),
  *                  nome_file_context=argv[3], dbpunti interno (DB_PUNTI_INT),
  *                  versione_mmi=1.
+ *              3 = modalita' "send" (solo Linux/UNIX, draw2gr Command Mode):
+ *                  NON apre finestre X. Aggancia la coda messaggi aing,
+ *                  lancia il pannello xaing (tipo_aing=1) se assente e invia
+ *                  una RICHIESTA_AING per la variabile argv[2], poi esce.
+ *                  Uso: xaing 3 <nome_variabile>
  *              altro = lato legograf: DB_PUNTI_INT, versione_mmi=0.
- *   argv[2]  (solo tipo_aing==2) directory di lavoro -> chdir()
+ *   argv[2]  (tipo_aing==2) directory di lavoro -> chdir()
+ *            (tipo_aing==3) nome della variabile da perturbare
  *   argv[3]  (solo tipo_aing==2) nome del file di contesto -> nome_file_context
  *
  * Variabili d'ambiente richieste:
@@ -266,6 +275,109 @@ void load_font (XFontStruct **,int);
  *   xaing 2 /percorso/dir/modello nome_contesto
  * ==========================================================================
  */
+#if defined UNIX
+/* ----------------------------------------------------------------------
+ * Supporto alla modalita' "send" (tipo_aing==3) usata dal Command Mode di
+ * draw2gr su Linux. Permette a draw2gr (Tcl) di chiedere una perturbazione
+ * su una variabile inviando una RICHIESTA_AING al pannello xaing, lanciando
+ * il pannello se non e' gia' attivo.
+ * ---------------------------------------------------------------------- */
+
+/* Ritorna 1 se esiste un altro processo "xaing" che NON e' una invocazione
+ * "send" (cioe' con argv[1] diverso da "3"): e' il pannello gia' attivo. */
+static int xaing_panel_attivo (void)
+{
+    DIR           *d;
+    struct dirent *de;
+    pid_t          me = getpid ();
+    int            found = 0;
+
+    d = opendir ("/proc");
+    if (d == NULL)
+	return 0;
+    while ((de = readdir (d)) != NULL)
+    {
+	long  pid;
+	char *end;
+	char  path[64];
+	char  buf[1024];
+	int   fd, n, i, nargs;
+	char *args[8];
+	char *base;
+
+	pid = strtol (de->d_name, &end, 10);
+	if (*end != '\0' || pid <= 0)
+	    continue;			/* voce /proc non numerica */
+	if ((pid_t) pid == me)
+	    continue;			/* me stesso */
+
+	snprintf (path, sizeof (path), "/proc/%ld/cmdline", pid);
+	fd = open (path, O_RDONLY);
+	if (fd < 0)
+	    continue;
+	n = read (fd, buf, sizeof (buf) - 1);
+	close (fd);
+	if (n <= 0)
+	    continue;
+	buf[n] = '\0';
+
+	/* cmdline = sequenza di stringhe NUL-terminate */
+	nargs = 0;
+	for (i = 0; i < n && nargs < 8;)
+	{
+	    args[nargs++] = &buf[i];
+	    while (i < n && buf[i] != '\0')
+		i++;
+	    i++;			/* salta il NUL */
+	}
+	if (nargs == 0)
+	    continue;
+
+	base = strrchr (args[0], '/');
+	base = base ? base + 1 : args[0];
+	if (strcmp (base, "xaing") != 0)
+	    continue;			/* non e' xaing */
+	if (nargs >= 2 && strcmp (args[1], "3") == 0)
+	    continue;			/* e' una invocazione send, non il pannello */
+	found = 1;
+	break;
+    }
+    closedir (d);
+    return found;
+}
+
+/* Lancia il pannello xaing (lato scheduler, tipo_aing=1) ereditando
+ * l'ambiente corrente (SHR_USR_KEY, DISPLAY, LEGORT_BIN, ...). */
+static void lancia_pannello_xaing (void)
+{
+    char   prog[FILENAME_MAX + 16];
+    char  *bin = (char *) getenv ("LEGORT_BIN");
+    pid_t  pid;
+
+    if (bin == NULL)
+    {
+	fprintf (stderr, "xaing 3: LEGORT_BIN non definita\n");
+	return;
+    }
+    snprintf (prog, sizeof (prog), "%s/xaing", bin);
+
+    pid = fork ();
+    if (pid < 0)
+    {
+	perror ("fork pannello xaing");
+	return;
+    }
+    if (pid == 0)
+    {
+	execl (prog, "xaing", "1", (char *) NULL);
+	perror ("execl pannello xaing");
+	_exit (127);
+    }
+    /* padre: breve attesa per dare tempo al pannello di comparire */
+    sleep (1);
+}
+#endif /* UNIX */
+
 int main (argc, argv)
 unsigned int    argc;	/* Command line argument count. */
 char   *argv[];		/* Pointers to command line args. */
@@ -306,6 +418,51 @@ SIMULATOR *sim;
     		nome_file_context=argv[3];
 		}
 
+
+#if defined UNIX
+    /* ------------------------------------------------------------------ *
+     * tipo_aing == 3 : modalita' "send" (Linux, draw2gr Command Mode).    *
+     * Non apre alcuna finestra X: (1) aggancia la coda messaggi aing,     *
+     * (2) lancia il pannello xaing se non gia' attivo, (3) invia la       *
+     * RICHIESTA_AING per la variabile passata su argv[2], poi termina.    *
+     *   xaing 3 <nome_variabile>                                          *
+     * ------------------------------------------------------------------ */
+    if (tipo_aing == 3)
+    {
+	char *kp;
+	int   shr_usr_key3;
+
+	if (argc < 3 || argv[2] == NULL || argv[2][0] == '\0')
+	{
+	    fprintf (stderr, "xaing 3: nome variabile mancante\n");
+	    exit (1);
+	}
+	kp = (char *) getenv ("SHR_USR_KEY");
+	if (kp == NULL)
+	{
+	    fprintf (stderr, "xaing 3: SHR_USR_KEY non definita\n");
+	    exit (1);
+	}
+	shr_usr_key3 = atoi (kp);
+
+	/* aggancia la famiglia di code messaggi -> id_msg_aing */
+	msg_create_fam (shr_usr_key3, 0);
+
+	/* lancia il pannello xaing se non gia' in esecuzione */
+	if (!xaing_panel_attivo ())
+	    lancia_pannello_xaing ();
+
+	/* invia la richiesta di perturbazione per la variabile */
+	memset (&richiesta_aing, 0, sizeof (richiesta_aing));
+	strncpy (richiesta_aing.nome_variabile, argv[2], MAX_LUN_NOME_VAR - 1);
+	richiesta_aing.nome_variabile[MAX_LUN_NOME_VAR - 1] = '\0';
+	richiesta_aing.mtype = RIC_AING;
+	msg_snd (id_msg_aing, &richiesta_aing,
+		 sizeof (RICHIESTA_AING) - sizeof (long), IPC_NOWAIT);
+
+	exit (0);
+    }
+#endif /* UNIX */
 
 /*
         si alloca l'area shared

@@ -276,6 +276,44 @@ if {$::modegrafpert == "Plot"} {
 
 
 
+# ----------------------------------------------------------------------
+# Command Mode (Linux): perturbazione real-time tramite xaing
+# ----------------------------------------------------------------------
+# Su Linux l'analogo del servizio lgsincro di Windows e' la catena
+#   xaing (modalita' send) -> msg RIC_AING -> pannello xaing -> g_perturba
+# che opera sul runtime real-time net_simula (scheduler net_sked).
+
+# Ritorna 1 se e' disponibile un contesto in cui ha senso perturbare
+# (scheduler net_sked attivo). Il path FMU/lgser verra' aggiunto in seguito.
+proc d2g_cmdmode_available {} {
+    set running 0
+    catch {
+        set psout [exec ps -A -o comm]
+        foreach _ln [split $psout "\n"] {
+            if { [string trim $_ln] == "net_sked" } { set running 1; break }
+        }
+    }
+    return $running
+}
+
+# Invia a xaing (tipo_aing=3, modalita' send) la richiesta di perturbazione
+# per la variabile $name. xaing lancia il proprio pannello se assente e
+# mostra il dialogo nativo per valore/tipo perturbazione, applicando la
+# perturbazione via g_perturba.
+proc d2g_send_aing {name} {
+    global env
+    set xaing [file join $env(LEGORT_BIN) xaing]
+    if { ![file executable $xaing] } {
+        tk_messageBox -icon error -type ok \
+            -message "xaing non trovato in LEGORT_BIN:\n$xaing"
+        return
+    }
+    if { [catch { exec $xaing 3 $name & } err] } {
+        tk_messageBox -icon error -type ok \
+            -message "Invio perturbazione fallito per $name:\n$err"
+    }
+}
+
 proc selVars {} {
      global env
      global rvar evar1 evar2 evar3 evar4
@@ -334,6 +372,29 @@ proc selVars {} {
      } else {
      button .varch.butt.ok -text "Show" -command { ShowGraf_lin 1 $evar1 $evar2 $evar3 $evar4 }
      button .varch.butt.oknew -text "Show New" -command { ShowGraf_lin 0 $evar1 $evar2 $evar3 $evar4 }
+
+	button .varch.buttMode.mode   -background green  \
+	   -text $textbut -textvariable textbut -font "Courier 12" \
+	   -command    {
+	          if { $::modegrafpert == "Plot" } {
+	                if { [d2g_cmdmode_available] } {
+	                        set ::modegrafpert "Command"
+	                        .varch.buttMode.mode configure -background red
+	                        set textbut "$::modegrafpert Mode"
+	                        showIt $::lastmod
+	                } else {
+	                        tk_messageBox -icon info -type ok \
+	                          -message "Command Mode richiede una simulazione attiva (net_sked)."
+	                        return
+	                }
+	          } else {
+	                set ::modegrafpert "Plot"
+	                .varch.buttMode.mode configure -background green
+	                set textbut "$::modegrafpert    Mode"
+	                showIt $::lastmod
+	          }
+	    }
+	 set_balloon .varch.buttMode.mode "Switch to Command Mode to send perturbations (xaing)"
      }
 
 
@@ -365,6 +426,7 @@ proc selVars {} {
 	 pack  .varch.buttMode.mode -side right -padx 0m -expand 1
 	 } else {
      pack  .varch.butt.ok .varch.butt.oknew  .varch.butt.clear  -side left -padx 4m -pady 1m -fill x -expand 1
+	 pack  .varch.buttMode.mode -side right -padx 0m -expand 1
 	 }
 
 
@@ -397,8 +459,12 @@ proc setSlot {name} {
 		if { $rvar == 5 } {set rvar 1 }
 	} else {
 	# invio la variabile da perturbare
-		set evar1{rvar} $name
-		catch {exec $::comandoAccShM $name }
+		if { $::LINUXPLAT == 1 } {
+			d2g_send_aing $name
+		} else {
+			set evar1{rvar} $name
+			catch {exec $::comandoAccShM $name }
+		}
 	}
 
 }
