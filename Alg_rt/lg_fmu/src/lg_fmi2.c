@@ -603,6 +603,46 @@ static int attach_or_launch(lg_fmi2_instance *inst)
     return -1;
 }
 
+/* Apertura opzionale della HMI interattiva draw2gr (Command Mode), analogo
+ * Linux di open_hmi del FMU Windows. Attivata dalla env LG_FMU_OPEN_HMI
+ * (qualsiasi valore non vuoto e diverso da "0"), tipicamente impostata da
+ * run_fmu --hmi. Solo in bundle mode, dove esiste run_draw2gr.sh con il
+ * runtime Tcl/Tk/Tix self-contained. La HMI gira in BACKGROUND ed eredita
+ * SHR_USR_KEY/DISPLAY dal processo FMU, agganciandosi allo stesso net_sked. */
+static void maybe_open_hmi(lg_fmi2_instance *inst)
+{
+    const char *flag = getenv("LG_FMU_OPEN_HMI");
+    if (!flag || flag[0] == '\0' || (flag[0] == '0' && flag[1] == '\0'))
+        return;
+    if (!inst->bundle_mode) {
+        lg_log(inst, fmi2OK, "logAll",
+               "LG_FMU_OPEN_HMI ignorato: run_draw2gr.sh disponibile solo in bundle mode");
+        return;
+    }
+    if (!getenv("DISPLAY")) {
+        lg_log(inst, fmi2Warning, "logStatusWarning",
+               "LG_FMU_OPEN_HMI: DISPLAY non impostato, HMI non aperta");
+        return;
+    }
+    char script[LG_FMI2_PATH_MAX];
+    snprintf(script, sizeof(script), "%s/run_draw2gr.sh", inst->legoroot_path);
+    struct stat st;
+    if (stat(script, &st) != 0) {
+        lg_log(inst, fmi2Warning, "logStatusWarning",
+               "LG_FMU_OPEN_HMI: %s non trovato", script);
+        return;
+    }
+    /* Nessun argomento: run_draw2gr.sh auto-trova l'unica task sotto task/.
+     * '&' => background: la HMI e' un'app GUI long-running, non deve bloccare
+     * fmi2Instantiate. */
+    char cmd[LG_FMI2_PATH_MAX + 64];
+    snprintf(cmd, sizeof(cmd), "bash \"%s\" >/dev/null 2>&1 &", script);
+    if (getenv("LG_FMU_DEBUG"))
+        fprintf(stderr, "[lg_fmu DBG] open_hmi: %s\n", cmd);
+    lg_log(inst, fmi2OK, "logAll", "open_hmi: %s", cmd);
+    system(cmd);
+}
+
 
 /* ====================================================================
  * Inquire version / debug logging
@@ -712,6 +752,10 @@ FMI2_Export fmi2Component fmi2Instantiate(fmi2String instanceName,
     lg_log(inst, fmi2OK, "logAll",
            "Instantiate ok: %d variabili (%d in, %d out), dt_sked=%.3f",
            inst->n_unique, inst->n_inputs, inst->n_outputs, inst->dt_sked);
+
+    /* HMI interattiva opzionale (Command Mode) se richiesta via LG_FMU_OPEN_HMI. */
+    maybe_open_hmi(inst);
+
     return (fmi2Component)inst;
 }
 

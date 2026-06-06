@@ -20,8 +20,14 @@
 #   -V, --validate         lancia fmpy.validation e poi esce
 #   -t, --stop-time T      tempo finale [s] (default: 30)
 #   -d, --step-size DT     passo comunicazione [s] (default: dal modelDescription)
+#   -r, --realtime K       pacing a tempo reale (coeff. velocita'): K=1 reale,
+#                          K>1 accelerato (2=2x), K<1 rallentato (0.5=2x lento),
+#                          0/assente = batch (default). Per perturbare live.
 #   -s, --set VAR=VAL      valore iniziale (ripetibile)
 #   -o, --csv FILE         output CSV (default: results.csv accanto alla FMU)
+#   --hmi                  apre la HMI interattiva draw2gr (Command Mode) a
+#                          inizio simulazione: la FMU lancia run_draw2gr.sh con
+#                          la SHR_USR_KEY corretta. Richiede -b (bundle) e DISPLAY.
 #   -h, --help
 #
 # Variabili d'ambiente:
@@ -32,13 +38,30 @@
 # Exit code:
 #   0 ok, 1 args, 2 fmu non trovata, 3 fmpy non disponibile, 4 simulate fallito
 #
-# Note: la FMU Linux NON e' self-contained (P7 lo risolvera'). Questo wrapper
-# richiede che sulla macchina sia installato LegoPST e che la sim possa essere
-# avviata (la FMU stessa lo fa via attach_or_launch).
+# Note: la variante bundle (-b) e' self-contained (include runtime LegoPST +
+# HMI). La variante base richiede LegoPST installato. La sim viene avviata
+# dalla FMU stessa (attach_or_launch).
+#
+# Esempi:
+#   # ispeziona metadati e variabili della FMU bundle di una task
+#   run_fmu.sh -b -i /home/antonio/legocad/collet
+#
+#   # simulazione batch (default, piu' veloce possibile), CSV accanto alla FMU
+#   run_fmu.sh -b -t 30 /home/antonio/legocad/collet
+#
+#   # perturbazione LIVE: HMI draw2gr (Command Mode) + tempo reale, 180 s.
+#   # In draw2gr: Mode->Command (rosso), click su una IN libera, gradino in xaing.
+#   run_fmu.sh -b --hmi -r 1 -t 180 /home/antonio/legocad/collet
+#
+#   # accelerata 2x con valore iniziale forzato su un ingresso
+#   run_fmu.sh -b -r 2 -s ALZAVING=0.3 -t 120 /home/antonio/legocad/collet
+#
+#   # task grande/lenta: alza il timeout per ogni passo dello scheduler
+#   LG_FMU_STEP_TIMEOUT_S=120 run_fmu.sh -b -t 60 /home/antonio/legocad/TCon-r1
 
 set -u
 
-usage() { sed -n '2,28p' "$0" | sed 's/^# \{0,1\}//'; exit 0; }
+usage() { sed -n '2,60p' "$0" | sed 's/^# \{0,1\}//'; exit 0; }
 
 # ---- LEGOROOT + profile -------------------------------------------------
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -71,6 +94,8 @@ fi
 MODE="simulate"
 STOP_TIME="30"
 STEP_SIZE=""
+REALTIME="0"
+OPEN_HMI=0
 CSV_FILE=""
 SET_KV=()
 TARGET=""
@@ -84,6 +109,8 @@ while [ $# -gt 0 ]; do
         -V|--validate)    MODE="validate"; shift ;;
         -t|--stop-time)   STOP_TIME="$2"; shift 2 ;;
         -d|--step-size)   STEP_SIZE="$2"; shift 2 ;;
+        -r|--realtime)    REALTIME="$2"; shift 2 ;;
+        --hmi)            OPEN_HMI=1; shift ;;
         -s|--set)         SET_KV+=("$2"); shift 2 ;;
         -o|--csv)         CSV_FILE="$2"; shift 2 ;;
         -*)               echo "ERR: opzione sconosciuta: $1" >&2; exit 1 ;;
@@ -147,8 +174,17 @@ export RF_FMU="$FMU"
 export RF_MODE="$MODE"
 export RF_STOP="$STOP_TIME"
 export RF_STEP="$STEP_SIZE"
+export RF_REALTIME="$REALTIME"
 export RF_CSV="$CSV_FILE"
 export RF_SET="${SET_KV[*]:-}"
+
+# open_hmi: la FMU (lg_fmi2.c::maybe_open_hmi) legge LG_FMU_OPEN_HMI dall'env e,
+# in bundle mode, lancia run_draw2gr.sh con la SHR_USR_KEY corretta.
+export LG_FMU_OPEN_HMI="$OPEN_HMI"
+if [ "$OPEN_HMI" = 1 ]; then
+    [ "$BUNDLE" = 1 ] || echo "[run_fmu] AVVISO: --hmi richiede -b (bundle); sara' ignorato" >&2
+    [ -n "${DISPLAY:-}" ] || echo "[run_fmu] AVVISO: --hmi senza DISPLAY: la HMI non si aprira'" >&2
+fi
 
 "$PYBIN" - <<'PYEOF'
 import os, sys, csv
@@ -158,8 +194,27 @@ mode      = os.environ["RF_MODE"]
 stop_time = float(os.environ["RF_STOP"])
 step_size = os.environ["RF_STEP"]
 step_size = float(step_size) if step_size else None
+realtime  = float(os.environ.get("RF_REALTIME", "0") or "0")
 csv_file  = os.environ["RF_CSV"]
 set_raw   = os.environ["RF_SET"].strip()
+
+# Pacing a tempo reale: callback chiamato da fmpy dopo ogni step di
+# comunicazione. Ancora lo scheduling al primo step e dorme finche' il wall
+# clock non raggiunge (t_sim - t0)/coeff. coeff>1 accelera, <1 rallenta.
+import time as _wt
+_pace = {}
+def _step_finished(t_sim, recorder):
+    if realtime > 0:
+        now = _wt.perf_counter()
+        if "w0" not in _pace:
+            _pace["w0"] = now
+            _pace["s0"] = t_sim
+        else:
+            target = _pace["w0"] + (t_sim - _pace["s0"]) / realtime
+            d = target - now
+            if d > 0:
+                _wt.sleep(d)
+    return True
 
 start_values = {}
 if set_raw:
@@ -220,12 +275,16 @@ print(f"\n[simulate] stop_time={stop_time}s step={step_size}s start_values={star
 # Usiamo la dir gia' estratta invece di passare il .fmu (evita extract
 # duplicato in /tmp/fmpy_*; serve anche su Python 3.13 dove fmpy.fmi2
 # rifiuta path relativi via pathlib.as_uri()).
+if realtime > 0:
+    print(f"[simulate] pacing tempo reale: coeff={realtime} "
+          f"({'reale' if realtime==1 else (str(realtime)+'x')})")
 result = simulate_fmu(
     unzip_dir,
     stop_time=stop_time,
     step_size=step_size,
     start_values=start_values,
     output=[v.name for v in outputs] or None,
+    step_finished=(_step_finished if realtime > 0 else None),
 )
 
 # Dump CSV

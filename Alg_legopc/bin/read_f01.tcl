@@ -21,7 +21,14 @@ proc loadF01 {c showres} {
 	}
 	
 	if {$ok && $envir != "Edit_Simul" } {
-		if  { $::tcl_platform(os) == "Linux" } {
+		if {[info exists env(LG_FMU_BUNDLE)]} {
+			# HMI del bundle FMU: f01.dat/f14.dat sono gia' presenti nella
+			# task e coerenti col .tom; la toolchain di build (cad_crealg1)
+			# NON e' nel bundle. Si salta la ricostruzione e si legge il
+			# f01.dat esistente. Senza questo, cad_crealg1 fallirebbe ->
+			# ok=0 -> "$c delete all" cancella lo schema gia' disegnato.
+			set lg1_error 0
+		} elseif  { $::tcl_platform(os) == "Linux" } {
          		set comm1 [file join $env(LEGO_BIN) cad_crealg1 ]
 	 		set comm2 "P"
 		set lg1_error [catch {exec $comm1 $comm2} result]

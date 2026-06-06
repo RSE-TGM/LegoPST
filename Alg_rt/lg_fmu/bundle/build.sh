@@ -170,7 +170,10 @@ if [[ $BUNDLE -eq 1 ]]; then
     # TIMEOUT_AUS*10 = 1350s. Senza net_prepf22 nel PATH, sked_start blocca
     # ~22 minuti prima di proseguire e la sim non arriva mai a STATO_FREEZE
     # entro il timeout della FMU.
-    for b in dispatcher net_sked killsim net_prepf22; do
+    # xaing: pannello Motif di perturbazione real-time, usato dal Command Mode
+    # di draw2gr (xaing 3 = send, xaing 1 = pannello). Le sue dipendenze Motif/X
+    # coincidono con quelle di graphics (gia' raccolte nel giro ldd sotto).
+    for b in dispatcher net_sked killsim net_prepf22 xaing; do
         cp -p "$LEGOROOT_ABS/Alg_rt/bin/$b" "$BD/Alg_rt/bin/" \
             || { echo "ERR: $b non trovato in $LEGOROOT_ABS/Alg_rt/bin" >&2; exit 4; }
     done
@@ -200,6 +203,76 @@ if [[ $BUNDLE -eq 1 ]]; then
         cp -p "$HOME/defaults/uni_misc.dat" "$BD/home_stub/defaults/"
     else
         echo "AVVISO: $HOME/defaults/uni_misc.dat non trovato, graphics partira' senza unita' di misura" >&2
+    fi
+
+    # ---- draw2gr HMI interattiva (Command Mode) ------------------------
+    # Per il Command Mode (perturbazione real-time via xaing) serve la HMI
+    # cliccabile draw2gr, che NON e' l'ufficio plot 'graphics'. Va impacchettato
+    # l'intero stack: script Tcl + runtime Tcl/Tk/Tix (wish) + risorse grafiche.
+    echo "  + draw2gr HMI (Command Mode) + runtime Tcl/Tk/Tix"
+
+    # (a) script Tcl di draw2gr (LG_TIX). draw2gr.tcl sorgia esattamente questi 9.
+    mkdir -p "$BD/Alg_legopc/bin"
+    for s in draw2gr.tcl checkopen.tcl balloon.tcl read_con.tcl read_f01.tcl \
+             fileio.tcl itemjoin.tcl read_f14.tcl viewmgr.tcl animate.tcl; do
+        cp -p "$LEGOROOT_ABS/Alg_legopc/bin/$s" "$BD/Alg_legopc/bin/" \
+            || { echo "ERR: script tix $s non trovato in $LEGOROOT_ABS/Alg_legopc/bin" >&2; exit 4; }
+    done
+
+    # (b) runtime Tcl/Tk/Tix: interprete wish + alberi script + lib .so.
+    #     Path risolti per introspezione cosi' regge cambi di distro/percorsi.
+    WISH_BIN="$(readlink -f "$(command -v wish8.6 || command -v wish)" 2>/dev/null || true)"
+    [[ -x "$WISH_BIN" ]] || { echo "ERR: wish (Tcl/Tk/Tix) non trovato sul build host" >&2; exit 4; }
+    TCL_LIB_DIR="$(echo 'puts [info library]' | tclsh 2>/dev/null)"   # es. /usr/share/tcl8.6
+    TK_LIB_DIR=""
+    for d in "${TCL_LIB_DIR%/*}/tk8.6" /usr/share/tk8.6 /usr/lib64/tk8.6 /usr/lib/tk8.6; do
+        [[ -d "$d" ]] && { TK_LIB_DIR="$d"; break; }
+    done
+    TIX_LIB_DIR=""
+    for d in /usr/lib64/tcl8.6/Tix8.4.3 /usr/lib/tcl8.6/Tix8.4.3 /usr/share/tcltk/Tix8.4.3; do
+        [[ -d "$d" ]] && { TIX_LIB_DIR="$d"; break; }
+    done
+    [[ -n "$TCL_LIB_DIR" && -n "$TK_LIB_DIR" && -n "$TIX_LIB_DIR" ]] \
+        || { echo "ERR: runtime Tcl/Tk/Tix incompleto (tcl=$TCL_LIB_DIR tk=$TK_LIB_DIR tix=$TIX_LIB_DIR)" >&2; exit 4; }
+
+    mkdir -p "$BD/tclbin" "$BD/tcllib"
+    cp -p "$WISH_BIN"     "$BD/tclbin/wish"
+    cp -a "$TCL_LIB_DIR"  "$BD/tcllib/tcl8.6"
+    cp -a "$TK_LIB_DIR"   "$BD/tcllib/tk8.6"
+    cp -a "$TIX_LIB_DIR"  "$BD/tcllib/Tix8.4.3"
+    # Tix8.4.3/libTix.so e' tipicamente un SYMLINK a ../libTix.so: cp -a lo
+    # preserva ma nel bundle il target non esiste -> il `load` del pkgIndex
+    # fallisce ("cannot open shared object"). Sostituiamo col file REALE
+    # (dereferenziato) sia nel pkg dir (load via pkgIndex) sia in lib/ (per
+    # LD_LIBRARY_PATH degli altri binari).
+    REAL_TIX_SO="$(readlink -f "$TIX_LIB_DIR/libTix.so" 2>/dev/null || true)"
+    [[ -f "$REAL_TIX_SO" ]] || REAL_TIX_SO="${TIX_LIB_DIR%/*}/libTix.so"
+    [[ -f "$REAL_TIX_SO" ]] || { echo "ERR: libTix.so reale non trovato (da $TIX_LIB_DIR)" >&2; exit 4; }
+    # --remove-destination: la dest (copiata da cp -a) e' un symlink DANGLING
+    # (-> ../libTix.so inesistente nel bundle); senza, cp rifiuta "not writing
+    # through dangling symlink". Va rimosso il link e scritto il file reale.
+    cp -p -L --remove-destination "$REAL_TIX_SO" "$BD/tcllib/Tix8.4.3/libTix.so"
+    cp -p -L --remove-destination "$REAL_TIX_SO" "$BD/lib/libTix.so"
+    # libtcl8.6/libtk8.6 e le X-lib di wish sono raccolte dal giro ldd (wish e'
+    # aggiunto alla lista sotto).
+
+    # (c) risorse grafiche del modello (LG_LIBGRAPH): pixmaps, help, libraries.
+    LG_LIBGRAPH_SRC="${LG_LIBGRAPH:-$HOME/legocad/libgraph}"
+    mkdir -p "$BD/legocad/libgraph"
+    for r in pixmaps help libraries; do
+        if [[ -d "$LG_LIBGRAPH_SRC/$r" ]]; then
+            cp -a "$LG_LIBGRAPH_SRC/$r" "$BD/legocad/libgraph/"
+        else
+            echo "AVVISO: $LG_LIBGRAPH_SRC/$r non trovato, draw2gr potrebbe non disegnare i moduli" >&2
+        fi
+    done
+    # connect.dat: database connessioni letto da read_con.tcl. Se manca, read_con
+    # chiama switchuser (proc di legopc.tix, NON presente nel bundle) -> errore
+    # "invalid command name switchuser". Va quindi incluso.
+    if [[ -f "$LG_LIBGRAPH_SRC/connect.dat" ]]; then
+        cp -p "$LG_LIBGRAPH_SRC/connect.dat" "$BD/legocad/libgraph/"
+    else
+        echo "AVVISO: $LG_LIBGRAPH_SRC/connect.dat non trovato (read_con fallira')" >&2
     fi
 
     # Profile + Alg_env (eseguiti con LEGOROOT=<bundle> a runtime)
@@ -235,6 +308,7 @@ if [[ $BUNDLE -eq 1 ]]; then
     SO_LIST="$(mktemp)"
     for b in "$BD/Alg_rt/bin/"* "$BD/lego_big/bin/initav" \
              "$BD/Alg_rt/lg_fmu/tools/probe_init" \
+             "$BD/tclbin/wish" \
              "$BD/task/$TASK_NAME/proc/lg5sk" \
              "$LG_FMU_DIR/src/LegoCliSINC.so"; do
         [[ -f "$b" ]] && ldd "$b" 2>/dev/null
@@ -278,11 +352,14 @@ LAUNCH
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 chmod +x "$SCRIPT_DIR/launch_sim.sh" \
          "$SCRIPT_DIR/run_graphics.sh" \
+         "$SCRIPT_DIR/run_draw2gr.sh" \
          "$SCRIPT_DIR/Alg_rt/bin/dispatcher" \
          "$SCRIPT_DIR/Alg_rt/bin/net_sked" \
          "$SCRIPT_DIR/Alg_rt/bin/killsim" \
          "$SCRIPT_DIR/Alg_rt/bin/net_prepf22" \
          "$SCRIPT_DIR/Alg_rt/bin/graphics" \
+         "$SCRIPT_DIR/Alg_rt/bin/xaing" \
+         "$SCRIPT_DIR/tclbin/wish" \
          "$SCRIPT_DIR/Alg_rt/lg_fmu/scripts/net_startup_headless.sh" \
          "$SCRIPT_DIR/Alg_rt/lg_fmu/tools/probe_init" \
          "$SCRIPT_DIR/lego_big/bin/initav" 2>/dev/null || true
@@ -342,6 +419,70 @@ echo "[run_graphics] $F22BASE"
 exec "$GRAPHICS_BIN" "$F22BASE"
 GRAFICS
     chmod 0755 "$BD/run_graphics.sh"
+
+    # run_draw2gr.sh: apre la HMI interattiva draw2gr (schema cliccabile +
+    # Command Mode). A differenza di run_graphics.sh (solo plot), questa serve
+    # per perturbare gli ingressi in tempo reale via xaing. Richiede DISPLAY e
+    # una sim attiva (net_sked) con la stessa SHR_USR_KEY del processo chiamante.
+    cat > "$BD/run_draw2gr.sh" <<'DRAW2GR'
+#!/usr/bin/env bash
+#
+# run_draw2gr.sh — HMI interattiva draw2gr (schema + Command Mode) del bundle.
+#
+# Uso:
+#   SHR_USR_KEY=<key> run_draw2gr.sh [<task_dir>]
+#
+# Richiede: DISPLAY (X11) e una simulazione net_sked attiva con la stessa
+# SHR_USR_KEY (la stessa a cui e' attaccata la FMU). In Command Mode il click
+# su una variabile lancia 'xaing 3' che invia la perturbazione a net_sked.
+set -u
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+export LEGOROOT="$SCRIPT_DIR"
+export LD_LIBRARY_PATH="$SCRIPT_DIR/lib:${LD_LIBRARY_PATH:-}"
+
+# runtime Tcl/Tk/Tix self-contained
+export TCL_LIBRARY="$SCRIPT_DIR/tcllib/tcl8.6"
+export TK_LIBRARY="$SCRIPT_DIR/tcllib/tk8.6"
+export TCLLIBPATH="$SCRIPT_DIR/tcllib"          # wish trova Tix8.4.3 qui
+WISH="$SCRIPT_DIR/tclbin/wish"
+
+# env LegoPC richieste da draw2gr.tcl e dagli script sorgia
+export LEGORT_BIN="$SCRIPT_DIR/Alg_rt/bin"      # xaing, graphics
+export LG_ENTRY="$SCRIPT_DIR/legocad"
+export LG_BIN="$SCRIPT_DIR/Alg_legopc/bin"
+export LG_TIX="$LG_BIN"
+export LG_GRAF="$SCRIPT_DIR/Alg_rt/bin"
+export LG_LIBGRAPH="$LG_ENTRY/libgraph"
+export LG_PIXMAPS="$LG_LIBGRAPH/pixmaps"
+export LG_HELP="$LG_LIBGRAPH/help"
+export LG_LIBRARIES="$LG_LIBGRAPH/libraries"
+export LEGORT_UID="$SCRIPT_DIR/Alg_rt/uid/"
+# graphics (lanciato da draw2gr su "Show") cerca uni_misc.dat in $HOME/defaults:
+# puntiamo HOME allo stub del bundle. draw2gr non usa HOME, quindi e' sicuro.
+export HOME="$SCRIPT_DIR/home_stub"
+export PATH="$SCRIPT_DIR/Alg_rt/bin:$SCRIPT_DIR/tclbin:$PATH"
+# Segnala a read_f01.tcl (loadF01) di NON ricostruire f01/f14 con cad_crealg1
+# (non presente nel bundle): f01.dat/f14.dat esistenti vengono letti direttamente.
+export LG_FMU_BUNDLE=1
+
+[[ -x "$WISH" ]] || { echo "ERR: $WISH non trovato/eseguibile" >&2; exit 1; }
+[[ -n "${DISPLAY:-}" ]]      || { echo "ERR: DISPLAY non impostato (serve X11)" >&2; exit 1; }
+[[ -n "${SHR_USR_KEY:-}" ]]  || { echo "ERR: SHR_USR_KEY non impostata (sim non attiva?)" >&2; exit 1; }
+
+# cwd = task dir: draw2gr usa [pwd] per .tom / f01 / f14 / f22
+if [[ $# -ge 1 && -d "$1" ]]; then
+    cd "$1"; shift
+else
+    TASKDIR=$(find "$SCRIPT_DIR/task" -maxdepth 1 -mindepth 1 -type d 2>/dev/null | head -1)
+    [[ -n "$TASKDIR" ]] && cd "$TASKDIR"
+fi
+
+# draw2gr.tcl argv: [0]=0(grafics)/1(graphics)  [1]=base f22 SENZA .dat
+# (graphics apre <base>.dat: passare "f22circ.dat" gli farebbe cercare
+# "f22circ.dat.dat" e non aprirebbe nulla).
+exec "$WISH" -f "$LG_TIX/draw2gr.tcl" 1 f22circ "$@"
+DRAW2GR
+    chmod 0755 "$BD/run_draw2gr.sh"
 
     # Sommario bundle
     BUNDLE_SIZE=$(du -sh "$BD" | cut -f1)

@@ -55,6 +55,7 @@ Il file `.fmu` è uno standard FMI 2.0 e può essere caricato da qualunque maste
 | `fmpy.simulate_fmu` (Python diretto) | base, bundle | `pip install fmpy` (Python ≥ 3.8) | scripting, integrazione test, debug fine-grained con `LG_FMU_DEBUG=1` | ✅ supportato |
 | Container Linux pulito (`docker run python:3.11-slim` + fmpy) | **solo bundle** | `pip install fmpy` nel container | deployment, CI esterna, demo | ✅ validato 2026-05-02 |
 | `test_fmu_docker` (wrapper bash su docker + fmpy) | **solo bundle** | Docker installato e avviato; `DISPLAY` per grafica post-sim | smoke test parallelo di più FMU in container isolato ed effimero | ✅ supportato |
+| `test_selfcontained_docker.sh` (wrapper bash su docker) | **solo bundle** | Docker installato e avviato (no DISPLAY) | prova batch/headless di self-containment in container pulito; multi-distro (`-i`) | ✅ validato 2026-06-06 (Debian 13) |
 | Simulink R2023a (Linux master) | base, bundle | Simulink Linux + FMI Toolbox | integrazione modelli misti | ⏸ non testato (utente usa Simulink Windows) |
 | Simulink R2023a (Windows host) | nessuna | — | — | ❌ serve FMU Windows separata, non Linux |
 | OpenModelica | base, bundle | `dnf/apt install openmodelica` | validazione cross-tool open-source | ⏸ non testato (non installato) |
@@ -145,8 +146,37 @@ Opzioni:
 - `-b`, `--bundle`: usa la variante bundle (`legoclix_<task>_bundle.fmu`)
 - `--stop-time T` (default 30 s)
 - `--step-size DT` (default da modelDescription.xml)
+- `-r`, `--realtime K`: pacing a tempo reale (coefficiente di velocità). `K=1`
+  tempo reale (1 s sim = 1 s wall), `K>1` accelerato (`2` = 2x più veloce del
+  reale), `K<1` rallentato (`0.5` = 2x più lento), `0`/assente = batch (default,
+  più veloce possibile). Utile per **perturbare interattivamente** (Command Mode
+  della HMI `run_draw2gr.sh`) mentre la simulazione avanza.
 - `--set VAR=VAL` (ripetibile, override input)
 - `--csv FILE` (default `<fmu_dir>/results.csv`)
+
+```bash
+# esempio: collet a tempo reale per 60 s, perturbabile live dalla HMI
+run_fmu -b -r 1 --stop-time 60 /home/antonio/legocad/collet
+```
+
+### HMI interattiva e Command Mode con `run_draw2gr.sh`
+
+Oltre al viewer di plot (`run_graphics.sh`), il bundle include la HMI **interattiva**
+`draw2gr` (schema cliccabile) con il **Command Mode**: permette di **perturbare gli
+ingressi in tempo reale** durante la simulazione. Il wrapper `run_draw2gr.sh` imposta
+l'ambiente (runtime Tcl/Tk/Tix self-contained, `LG_*`, `xaing`) e va lanciato con la
+**stessa `SHR_USR_KEY`** della simulazione attiva.
+
+```bash
+cd /home/antonio/legocad/collet/legoclix_collet_bundle/resources/bundle
+SHR_USR_KEY=<chiave_sim> DISPLAY=:0 ./run_draw2gr.sh
+```
+
+Nel pannello: il tasto a destra commuta **Plot ↔ Command**; in Command Mode il click
+su un blocco elenca i suoi ingressi indipendenti e il click su una variabile apre il
+pannello `xaing` per inviare la perturbazione (gradino/rampa/impulso). Per vedere
+l'effetto in diretta, esegui la simulazione con il pacing a tempo reale
+(`run_fmu -r 1`). Requisiti: `DISPLAY` (X11) e una simulazione `net_sked` attiva.
 
 ### Visualizzare i grafici di simulazione con `run_graphics.sh`
 
@@ -242,6 +272,32 @@ Per target con glibc < 2.38 servirebbe rebuild dei binari LegoPST in un containe
 - Multi-istanza (uid≠0, sim non viva): la FMU sceglie automaticamente uno degli 8 slot `uid*10000 + slot*1100` (slot 1..8) disponibili. Lo slot 0 (= `uid*10000`) è riservato alla sessione LegoPST normale dell'utente: aprendo il banco operatore mentre una FMU gira, le SHM non collidono. Limite: max 8 FMU concorrenti per uid. In co-simulazione tramite `lg_cosim.py`, il probe degli slot è fatto lato Python (con `ID_SHM_VAR=5`) anziché dentro `lg_fmi2.c` (che usa `ID_SHM_SIM=0`, mai creato in headless → tutti i slot sembrano liberi → colliderebbero); `lg_cosim.py` pre-assegna `SHR_USR_KEY` via `ctypes.setenv` prima di ogni `fmi2Instantiate`.
 - Co-simulazione e `killsim`: su Linux `killsim` cancella **tutte** le SHM dell'utente (non solo il proprio slot). In co-simulazione, il `killsim` chiamato da `net_startup_headless.sh` di ogni FMU distruggerebbe le SHM delle FMU già avviate. `lg_cosim.py` setta `LG_COSIM_NO_KILLSIM=1` nell'environment C prima dell'instantiate, e `net_startup_headless.sh` (sia quello installato in `Alg_rt/bin/` sia quelli estratti dai bundle, patchati on-the-fly da `_patch_killsim_guard()`) salta il `killsim` quando questa variabile è impostata.
 - `net_startup_headless.sh` ha shebang `bash` (non `sh`): in debian/ubuntu `/bin/sh = dash` non digerisce i costrutti bash di `.profile_legoroot` (`set -o emacs`, `[[ ]]`).
+
+### Prova di self-containment scriptata: `test_selfcontained_docker.sh`
+
+Lo `docker run` manuale qui sopra è incapsulato in
+[`scripts/test_selfcontained_docker.sh`](scripts/test_selfcontained_docker.sh):
+versione **batch e headless** (niente X11/grafica, a differenza di
+`test_fmu_docker`), pensata per CI e verifica di portabilità. Monta solo il
+`.fmu` (read-only) in un container effimero pulito, garantisce `pip`/`fmpy` (apt
+su debian/ubuntu, dnf su fedora) ed esegue `extract` + `simulate`, stampando
+distro/glibc, l'assenza di LegoPST e i valori a `t0`/`tN`.
+
+```bash
+# bundle nella cwd, default python:3.11-slim, 15 s
+test_selfcontained_docker.sh
+
+# bundle esplicito, output pulito (filtra il rumore 'GUAG' del dispatcher)
+test_selfcontained_docker.sh -q /home/antonio/legocad/collet/legoclix_collet_bundle.fmu
+
+# stessa prova su Fedora 41 (lo script installa pip via dnf da solo)
+test_selfcontained_docker.sh -i fedora:41 -t 30 /home/antonio/legocad/collet
+```
+
+Opzioni: `-i/--image IMG`, `-t/--stop-time T`, `-q/--quiet`, `-k/--keep`
+(non rimuove il container, per ispezione), `-h`. Risolve il `.fmu` come
+`run_fmu.sh` (file, task dir, o primo `*_bundle.fmu` nella cwd). Exit 0 =
+self-containment OK. Validato 2026-06-06 su Debian 13 (16 sample).
 
 ### Testare una o più FMU bundle in container con `test_fmu_docker`
 

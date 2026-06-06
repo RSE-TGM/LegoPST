@@ -126,7 +126,12 @@ TIME_BACK_T=120.0
 # --- Lancio dispatcher + net_sked in background -----------------------
 # Stdout/err ridiretti a file nel cwd; setsid stacca dal controlling tty
 # cosi' i processi sopravvivono se la FMU/host muore senza Terminate.
-LOG_DIR="$1"
+# NB: a questo punto siamo gia' in `cd "$1"` (riga 73), quindi il cwd E' la
+# task dir. Usiamo $PWD (assoluto) e non "$1": se il chiamante passa un path
+# RELATIVO (es. launch_sim.sh task/collet), "$1" qui sarebbe relativo al cwd
+# gia' cambiato -> il redirect "task/collet/...log" fallirebbe e dispatcher/
+# net_sked non partirebbero. $PWD e' robusto sia per path assoluti che relativi.
+LOG_DIR="$PWD"
 exec </dev/null
 nohup dispatcher \
     -num_snap $SNAP_S \
