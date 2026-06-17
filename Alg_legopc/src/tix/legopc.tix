@@ -1128,7 +1128,14 @@ proc itemAdd {c x y} {
 }
 
 proc itemAddFromfile {c x y ctool libp prnum ori curname} {
-global progNumb
+# modified/needbuild devono essere GLOBALI: il "set modified 1" in fondo
+# segnala il modello come modificato. Senza questa dichiarazione restavano
+# locali e il flag non veniva alzato -> Save Model (che scrive il .tom solo
+# se modified!=0) era un no-op e il cambio tab ricaricava dal disco perdendo
+# l'elemento. Si manifestava sui display @val_0 (aggiunti via AddDisplay senza
+# editing successivo che alzasse il flag per altra via); colpiva latentemente
+# anche Add Text e il paste (IncollaItem).
+global progNumb modified needbuild
 	set ff_progNumb $prnum
 	set fromfile "yes"
 	set GIForient $ori
