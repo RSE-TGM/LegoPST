@@ -11,3 +11,20 @@ Config*XmList.fontList: -adobe-courier-bold-r-normal--14-*
 Config*fontList:        -adobe-helvetica-bold-r-normal--14-*
 *fontList:  -adobe-helvetica-bold-r-normal--14-*
 
+! --- Copia/incolla testo con Ctrl+C / Ctrl+X / Ctrl+V --------------------
+! XmText/XmTextField hanno gia' le azioni copy/cut/paste-clipboard(), ma
+! legate ai virtual key osfCopy/osfCut/osfPaste; su questa Motif (2.3.8) tali
+! virtual key sono UNBOUND -> di default niente copia/incolla da tastiera,
+! solo la primary selection col mouse (evidenzia + tasto centrale). Questi
+! #override legano Ctrl+C/X/V DIRETTAMENTE ai tasti fisici, senza toccare gli
+! altri binding. Azioni built-in: nessuna ricompilazione necessaria.
+! Dettagli e uso: Alg_mmi/config/COPIA_INCOLLA.md
+Config*XmText.translations: #override \n\
+	Ctrl<Key>c: copy-clipboard()\n\
+	Ctrl<Key>x: cut-clipboard()\n\
+	Ctrl<Key>v: paste-clipboard()
+Config*XmTextField.translations: #override \n\
+	Ctrl<Key>c: copy-clipboard()\n\
+	Ctrl<Key>x: cut-clipboard()\n\
+	Ctrl<Key>v: paste-clipboard()
+
