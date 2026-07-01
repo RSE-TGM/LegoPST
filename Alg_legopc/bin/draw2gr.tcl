@@ -656,6 +656,25 @@ $mzoom add command -label " 50%"  -command {doZoom $::canv1 0.5}
 $mzoom add command -label " 25%"  -command {doZoom $::canv1 0.25}
 ##############
 
+# Set Sim path: sceglie la directory del simulatore verso cui viewval fa `cd`
+# (animate.tcl:133) prima di leggere le variabili dalla Shared Memory per
+# animare lo schema. Replica la voce omonima del tab "Data Assignment &
+# Simulation" di legopc.tix: ::anima_sim_path e' condivisa via animate.tcl,
+# la label dell'unica voce mostra il path corrente e il click apre
+# tk_chooseDirectory aggiornandola.
+# NB: animate.tcl (che definisce ::anima_sim_path) e' sorgiato piu' sotto,
+# mentre questo menu si costruisce prima: inizializziamo la variabile qui col
+# medesimo default se assente, per evitare "no such variable".
+if {![info exists ::anima_sim_path]} { set ::anima_sim_path "locpath - click to change" }
+if { $::LINUXPLAT == 1 } {
+    set d2g_simpath .menu.vmgr.simpath
+    menu $d2g_simpath -tearoff 0 -activebackground darkblue -activeforeground white
+    $m add cascade -label "Set Sim path" -menu $d2g_simpath -underline 0
+    $d2g_simpath add command -label [set ::anima_sim_path] -command {
+        set ::anima_sim_path [tk_chooseDirectory -initialdir $::anima_sim_path -title "Choose simulator path"]
+        .menu.vmgr.simpath entryconfigure 0 -label [set ::anima_sim_path]
+    }
+}
 
 
 #
