@@ -709,7 +709,13 @@ $mzoom add command -label " 25%"  -command {doZoom $::canv1 0.25}
 # NB: animate.tcl (che definisce ::anima_sim_path) e' sorgiato piu' sotto,
 # mentre questo menu si costruisce prima: inizializziamo la variabile qui col
 # medesimo default se assente, per evitare "no such variable".
-if {![info exists ::anima_sim_path]} { set ::anima_sim_path "locpath - click to change" }
+if {![info exists ::anima_sim_path]} {
+    if {[info exists ::env(LG_SIM_PATH)] && $::env(LG_SIM_PATH) ne "" && [file isdirectory $::env(LG_SIM_PATH)]} {
+        set ::anima_sim_path $::env(LG_SIM_PATH)
+    } else {
+        set ::anima_sim_path "locpath - click to change"
+    }
+}
 if { $::LINUXPLAT == 1 } {
     set d2g_simpath .menu.vmgr.simpath
     menu $d2g_simpath -tearoff 0 -activebackground darkblue -activeforeground white

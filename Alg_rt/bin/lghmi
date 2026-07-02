@@ -1,0 +1,68 @@
+#!/usr/bin/env bash
+#
+# lghmi - selettore grafico delle task LegoPST che lancia la HMI draw2gr.
+#
+# Apre una finestra con l'elenco delle task in $LG_TASKROOT (default
+# $HOME/legocad) - le sottodir con almeno un *.tom. Scegliendo una task viene
+# lanciata, in un processo indipendente, la HMI:
+#     cd <task> ; wish $LG_TIX/draw2gr.tcl 1 f22circ
+# Il selettore resta aperto; "Quit" chiude solo il selettore (le HMI restano).
+#
+# Uso:   lghmi [-loc]
+#   -loc, --loc   pre-imposta il "Set Sim path" (menu View) delle HMI lanciate
+#                 alla directory CORRENTE da cui lanci lghmi (via LG_SIM_PATH):
+#                 utile se lanci lghmi dalla dir della simulazione in corso,
+#                 cosi' animazione/Plot/Command puntano subito a quella sim
+#                 senza dover fare Set Sim path a mano in ogni HMI.
+#   Variabili d'ambiente:
+#     LG_TASKROOT   directory delle task (default: $HOME/legocad)
+#     LG_SIM_PATH   dir sim preimpostata per Set Sim path (la setta -loc)
+#     LG_TIX        dir di draw2gr.tcl/lghmi.tcl (dal profilo LegoPST)
+#
+set -u
+
+# cwd di lancio: catturata SUBITO, prima di ogni source/cd (serve a -loc).
+LOC_DIR="$PWD"
+
+# ---- arg parsing --------------------------------------------------------
+LOC=0
+WISH_ARGS=()
+for a in "$@"; do
+    case "$a" in
+        -loc|--loc) LOC=1 ;;
+        -h|--help)  sed -n '3,21p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+        *)          WISH_ARGS+=("$a") ;;
+    esac
+done
+
+# Sorgia il profilo LegoPST se l'ambiente non e' gia' impostato (LG_TIX).
+if [ -z "${LG_TIX:-}" ]; then
+    SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"          # .../Alg_rt/bin
+    : "${LEGOROOT:=$(cd "$SCRIPT_DIR/../.." && pwd)}"    # -> LEGOROOT
+    export LEGOROOT
+    set +u
+    # Passa "$LEGOROOT" come $1: senza argomenti il profilo EREDITEREBBE i
+    # parametri posizionali dell'helper (es. -loc) e farebbe `export LEGOROOT=$1`
+    # = LEGOROOT=-loc, rompendo tutti i path (LG_TIX vuoto). Stesso pattern di
+    # run_fmu.sh.
+    . "$LEGOROOT/.profile_legoroot" "$LEGOROOT" >/dev/null 2>&1 || true
+    set -u
+fi
+
+if [ -z "${LG_TIX:-}" ] || [ ! -f "$LG_TIX/lghmi.tcl" ]; then
+    echo "lghmi: LG_TIX non definito o lghmi.tcl assente (profilo LegoPST non sorgiato?)." >&2
+    echo "       LG_TIX='${LG_TIX:-}'" >&2
+    exit 1
+fi
+
+if ! command -v wish >/dev/null 2>&1; then
+    echo "lghmi: 'wish' (Tcl/Tk) non trovato nel PATH." >&2
+    exit 1
+fi
+
+# -loc: pre-imposta il Set Sim path delle HMI alla dir di lancio.
+if [ "$LOC" -eq 1 ]; then
+    export LG_SIM_PATH="$LOC_DIR"
+fi
+
+exec wish "$LG_TIX/lghmi.tcl" ${WISH_ARGS[@]+"${WISH_ARGS[@]}"}

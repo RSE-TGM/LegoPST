@@ -1,6 +1,14 @@
 set ::indicatore_after 0
 set ::pipeon 0
-set ::anima_sim_path "locpath - click to change"
+## ::anima_sim_path = dir della simulazione usata da viewval/graphics/xaing.
+## Se LG_SIM_PATH e' impostata e punta a una dir valida (es. da `lghmi -loc`,
+## che vi mette la cwd di lancio) la si usa come default -> evita il
+## "Set Sim path" manuale nel menu View.
+if {[info exists ::env(LG_SIM_PATH)] && $::env(LG_SIM_PATH) ne "" && [file isdirectory $::env(LG_SIM_PATH)]} {
+    set ::anima_sim_path $::env(LG_SIM_PATH)
+} else {
+    set ::anima_sim_path "locpath - click to change"
+}
 
 # Inizializza strutture remap se non già definite (animate.tcl può essere
 # sourciato sia da draw2gr.tcl che da legopc.tix — in quest'ultimo caso
