@@ -7,6 +7,28 @@ source $env(LG_TIX)/checkopen.tcl
 
 source $env(LG_TIX)/balloon.tcl
 
+# --- Directory della simulazione per Plot Mode e Command Mode ------------
+# "Set Sim path" (menu View) imposta ::anima_sim_path = dir della simulazione
+# in corso. animate.tcl fa gia' `cd` li' prima di viewval, cosi' l'animazione
+# legge i file/valori giusti (e poi ripristina la cwd). Sia graphics (Plot) sia
+# xaing (Command) vanno lanciati nella dir della simulazione:
+#   - graphics: legge il file f22; ATTENZIONE f22name e' ASSOLUTO e ancorato
+#     alla cwd di avvio (riga ~603), quindi ShowGraf_lin oltre al cd ripunta
+#     esplicitamente args(0) a <simdir>/<basename f22>;
+#   - xaing (pannello, via costruisci_var): legge "variabili.rtf" dalla CWD,
+#     necessario anche per agganciare la SHM ([error shared-memory not attached]
+#     se assente -> il pannello muore).
+# Senza questo, con "Set Sim path" attivo: grafico sbagliato/crash / pannello
+# xaing che non compare. d2g_sim_dir ritorna quella dir se valida, altrimenti ""
+# (si resta nella cwd corrente).
+proc d2g_sim_dir {} {
+    if { [info exists ::anima_sim_path] && $::anima_sim_path ne "" \
+         && $::anima_sim_path != 0 && [file isdirectory $::anima_sim_path] } {
+        return $::anima_sim_path
+    }
+    return ""
+}
+
 proc ShowGraf { kill evar1 evar2 evar3 evar4} {
 	global env argc argv grafpid f22name refr  args
 
@@ -105,7 +127,18 @@ proc ShowGraf_lin { kill evar1 evar2 evar3 evar4 } {
 	}
 #tk_messageBox -message  "draw2fgr: f22name:$f22name args0-->$args(0) args1-->$args(1)" -type ok
 
-
+	# f22name arriva ASSOLUTO, ancorato alla cwd di AVVIO di draw2gr (riga ~603):
+	# graphics leggerebbe quindi il f22 della dir di avvio, non della simulazione
+	# scelta con "Set Sim path". Quando il sim path e' impostato ripuntiamo il
+	# file f22 (args(0)) alla sua dir (stesso basename) e ci spostiamo li' con cd
+	# (come animate.tcl con viewval), cosi' f22 e cwd restano coerenti; altrimenti
+	# graphics legge un f22 sbagliato -> variabile assente / crash.
+	set d2g_olddir [pwd]
+	set d2g_simdir [d2g_sim_dir]
+	if { $d2g_simdir ne "" } {
+		set args(0) [file join $d2g_simdir [file tail $f22name]]
+		catch { cd $d2g_simdir }
+	}
 
 	switch [expr $i - 1] {
  		1 {set grafpid [exec $command $args(0) $args(1) & ] }
@@ -115,6 +148,7 @@ proc ShowGraf_lin { kill evar1 evar2 evar3 evar4 } {
  		5 {set grafpid [exec $command $args(0) $args(1) $args(2) $args(3) $args(4) $args(5) & ] } \
  		default {tk_messageBox -message "Choose at least one variable!"}
 	}
+	catch { cd $d2g_olddir }
 #tk_messageBox -message 	$grafpid -type ok
 }
 
@@ -308,10 +342,20 @@ proc d2g_send_aing {name} {
             -message "xaing non trovato in LEGORT_BIN:\n$xaing"
         return
     }
+    # Il pannello xaing (xaing 1, forkato da xaing 3) legge "variabili.rtf" dalla
+    # CWD e aggancia la SHM in base a quel modello: va quindi lanciato nella dir
+    # della simulazione scelta con "Set Sim path", come animate.tcl fa con
+    # viewval. Senza questo cd, con "Set Sim path" attivo xaing non trova
+    # variabili.rtf -> "shared-memory not attached" -> il pannello muore (non
+    # compare nulla). Il figlio (xaing 3) e poi il pannello ereditano la cwd.
+    set d2g_olddir [pwd]
+    set d2g_simdir [d2g_sim_dir]
+    if { $d2g_simdir ne "" } { catch { cd $d2g_simdir } }
     if { [catch { exec $xaing 3 $name & } err] } {
         tk_messageBox -icon error -type ok \
             -message "Invio perturbazione fallito per $name:\n$err"
     }
+    catch { cd $d2g_olddir }
 }
 
 proc selVars {} {
