@@ -34,10 +34,12 @@ set s01mode [expr {[file exists $S01FILE] && ![file isdirectory $S01FILE]}]
 set s01_name ""
 set s01_desc ""
 
-# -loc automatico (helper: LG_SIM_AUTO): il Set Sim path va deciso qui in base
-# alla task selezionata (in S01 = dir della task). -loc DIR esplicito fissa
-# invece LG_SIM_PATH nell'helper; -noloc lo lascia assente.
-set SIMAUTO  [expr {[info exists env(LG_SIM_AUTO)] && $env(LG_SIM_AUTO) ne ""}]
+# Set Sim path (helper -loc): LG_SIM_PATH = dir del simulatore in esecuzione,
+# ereditata dal processo draw2gr. In modalita' S01 e' la dir del file S01 (la
+# cwd di lancio): li' gira il simulatore COMPOSTO (dati live, SHM, f22circ.dat,
+# variabili.rtf). Le task vengono invece lanciate dalla loro dir MODELLO (solo
+# per caricare lo schema .tom): animazione/Plot/Command devono comunque puntare
+# alla dir del simulatore, non a quella modello. Qui la mostriamo soltanto.
 set SIMPATH  [expr {[info exists env(LG_SIM_PATH)] && $env(LG_SIM_PATH) ne "" ? $env(LG_SIM_PATH) : ""}]
 
 # ITEMS = lista parallela alla listbox: {label dir name} per ogni voce.
@@ -171,18 +173,6 @@ proc refresh_list {} {
     }
 }
 
-# --- Set Sim path (LG_SIM_PATH) per la HMI in lancio --------------------
-# -loc automatico (default, SIMAUTO): in S01 il sim path = dir della task
-# selezionata; in dir-scan resta la cwd ereditata dall'helper. -loc DIR
-# esplicito (SIMPATH senza SIMAUTO): fisso per tutte. -noloc: LG_SIM_PATH
-# assente -> non tocchiamo l'ambiente.
-proc apply_sim_path {taskdir} {
-    global s01mode SIMAUTO env
-    if {$s01mode && $SIMAUTO} {
-        set env(LG_SIM_PATH) $taskdir
-    }
-}
-
 # --- Lancio della HMI in un processo indipendente ------------------------
 proc launch_hmi {} {
     global LGTIX ITEMS
@@ -203,9 +193,10 @@ proc launch_hmi {} {
             "Directory della task non trovata:\n$dir"
         return
     }
-    # Set Sim path per questa HMI (deve essere impostato PRIMA dell'exec, cosi'
-    # il processo draw2gr eredita LG_SIM_PATH).
-    apply_sim_path $dir
+    # LG_SIM_PATH (Set Sim path) e' ereditato invariato dall'helper: la dir del
+    # simulatore in esecuzione (in S01 = dir del file S01). NON va reimpostato
+    # alla dir modello della task, altrimenti animazione/Plot/Command leggono
+    # una dir senza dati live/SHM del simulatore attivo.
     # Processo INDIPENDENTE: cd nella task ed exec della HMI. `setsid` la mette
     # in una nuova sessione -> sopravvive al Quit del selettore. L'output va in
     # un log in /tmp (per non sporcare la task) utile per debug.
@@ -236,12 +227,8 @@ if {$s01mode} {
     set ::s01hdr 1
 }
 
-# Riga informativa sul Set Sim path pre-impostato.
-if {$s01mode && $SIMAUTO} {
-    label .loc -text "Set Sim path: directory della task selezionata" \
-               -anchor w -padx 6 -foreground blue
-    pack .loc -side top -fill x
-} elseif {$SIMPATH ne ""} {
+# Riga informativa sul Set Sim path pre-impostato (dir del simulatore attivo).
+if {$SIMPATH ne ""} {
     label .loc -text "Set Sim path pre-impostato (-loc): $SIMPATH" \
                -anchor w -padx 6 -foreground blue
     pack .loc -side top -fill x
