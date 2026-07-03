@@ -2,11 +2,16 @@
 #
 # lghmi - selettore grafico delle task LegoPST che lancia la HMI draw2gr.
 #
-# Apre una finestra con l'elenco delle task in $LG_TASKROOT (default
-# $HOME/legocad) - le sottodir con almeno un *.tom. Scegliendo una task viene
-# lanciata, in un processo indipendente, la HMI:
+# Apre una finestra con l'elenco delle task; scegliendone una viene lanciata,
+# in un processo indipendente, la HMI:
 #     cd <task> ; wish $LG_TIX/draw2gr.tcl 1 f22circ
 # Il selettore resta aperto; "Quit" chiude solo il selettore (le HMI restano).
+#
+# La sorgente della lista dipende dalla directory di lancio:
+#   - se nella dir CORRENTE esiste un file "S01": la lista viene letta da esso
+#     (task di PROCESSO del simulatore, tipo P - le uniche con .tom); ogni task
+#     e' lanciata dalla propria dir modello (path relativo risolto sul S01).
+#   - altrimenti (default): sottodir di $LG_TASKROOT ($HOME/legocad) con *.tom.
 #
 # Uso:   lghmi [-loc [DIR] | -noloc]
 #   -loc, --loc [DIR]
@@ -17,12 +22,16 @@
 #                 lghmi dalla dir della simulazione in corso, cosi'
 #                 animazione/Plot/Command puntano subito a quella sim senza dover
 #                 fare Set Sim path a mano in ogni HMI.
+#                 In modalita' S01, -loc SENZA DIR imposta il Set Sim path alla
+#                 dir della TASK selezionata (una diversa per ogni HMI); -loc DIR
+#                 resta invece un sim path fisso per tutte.
 #   -noloc, --noloc
 #                 NON pre-imposta alcun Set Sim path (LG_SIM_PATH non definito):
 #                 ogni HMI parte senza sim path, da impostare a mano.
 #   Variabili d'ambiente:
 #     LG_TASKROOT   directory delle task (default: $HOME/legocad)
 #     LG_SIM_PATH   dir sim preimpostata per Set Sim path (la setta -loc)
+#     LG_SIM_AUTO   =1 con -loc automatico: lghmi.tcl decide il sim path per task
 #     LG_TIX        dir di draw2gr.tcl/lghmi.tcl (dal profilo LegoPST)
 #
 set -u
@@ -33,7 +42,10 @@ LOC_DIR="$PWD"
 # ---- arg parsing --------------------------------------------------------
 # -loc e' il DEFAULT (LOC=1, LOC_DIR = cwd). -loc DIR usa DIR come dir di
 # lancio; -noloc disabilita del tutto la pre-impostazione del sim path.
+# LOC_EXPLICIT=1 solo se -loc DIR e' dato con una directory esplicita: serve a
+# distinguere il -loc "automatico" (default) da un sim path fisso (vedi sotto).
 LOC=1
+LOC_EXPLICIT=0
 WISH_ARGS=()
 while [ "$#" -gt 0 ]; do
     a="$1"
@@ -43,10 +55,10 @@ while [ "$#" -gt 0 ]; do
             LOC=1
             # Se il prossimo argomento non e' un'opzione, e' la dir di lancio.
             if [ "$#" -ge 2 ] && [ "${2#-}" = "$2" ]; then
-                LOC_DIR="$2"; shift
+                LOC_DIR="$2"; LOC_EXPLICIT=1; shift
             fi
             ;;
-        -h|--help)  sed -n '3,26p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+        -h|--help)  sed -n '3,36p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
         *)          WISH_ARGS+=("$a") ;;
     esac
     shift
@@ -79,6 +91,12 @@ fi
 
 # -loc (default): pre-imposta il Set Sim path delle HMI alla dir di lancio.
 # -noloc: LG_SIM_PATH non definito.
+#
+# Distinzione automatico/fisso (rilevante in modalita' S01, vedi lghmi.tcl):
+#   - -loc "automatico" (default o bare -loc, senza DIR): esporta LG_SIM_AUTO=1.
+#     In dir-scan il sim path resta la cwd; in S01 lghmi.tcl lo reimposta alla
+#     dir della task selezionata ad ogni lancio.
+#   - -loc DIR esplicito: LG_SIM_PATH fisso a quella dir per tutte le HMI.
 if [ "$LOC" -eq 1 ]; then
     if [ ! -d "$LOC_DIR" ]; then
         echo "lghmi: directory non trovata: $LOC_DIR" >&2
@@ -87,6 +105,10 @@ if [ "$LOC" -eq 1 ]; then
     # Normalizza a path assoluto (LOC_DIR puo' essere relativo se dato con -loc DIR).
     LG_SIM_PATH="$(cd "$LOC_DIR" && pwd)"
     export LG_SIM_PATH
+    if [ "$LOC_EXPLICIT" -eq 0 ]; then
+        LG_SIM_AUTO=1
+        export LG_SIM_AUTO
+    fi
 fi
 
 exec wish "$LG_TIX/lghmi.tcl" ${WISH_ARGS[@]+"${WISH_ARGS[@]}"}
