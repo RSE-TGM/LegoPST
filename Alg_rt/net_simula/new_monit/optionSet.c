@@ -200,12 +200,16 @@ static	void	activateCB_optionSetMenuLoadpb( UxWidget, UxClientData, UxCallbackAr
 	UxOptionSetContext = UxContext =
 			(_UxCoptionSet *) UxGetContext( UxWidget );
 	{
-#ifndef DESIGN_TIME 
+#ifndef DESIGN_TIME
 	printf ("load Options\n");
 	read_options();
 	opt_interface_active = 0;
 	DistruggiInterfaccia (optionSet);
-	aggiorna_opzioni (UxWidget, &options);
+	/* NB: NON richiamare aggiorna_opzioni() qui. Quel richiamo ricopiava i
+	 * widget della pagina corrente dentro `options`, sovrascrivendo (solo per
+	 * la pagina visualizzata) i valori appena riletti da .bi_options da
+	 * read_options() e vanificando il "Load". read_options() ha gia' ripristi-
+	 * nato l'intera struttura dall'ultimo salvataggio: non serve altro. */
 #endif
 	}
 	UxOptionSetContext = UxSaveCtx;
