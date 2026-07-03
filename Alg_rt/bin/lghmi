@@ -8,12 +8,18 @@
 #     cd <task> ; wish $LG_TIX/draw2gr.tcl 1 f22circ
 # Il selettore resta aperto; "Quit" chiude solo il selettore (le HMI restano).
 #
-# Uso:   lghmi [-loc]
-#   -loc, --loc   pre-imposta il "Set Sim path" (menu View) delle HMI lanciate
-#                 alla directory CORRENTE da cui lanci lghmi (via LG_SIM_PATH):
-#                 utile se lanci lghmi dalla dir della simulazione in corso,
-#                 cosi' animazione/Plot/Command puntano subito a quella sim
-#                 senza dover fare Set Sim path a mano in ogni HMI.
+# Uso:   lghmi [-loc [DIR] | -noloc]
+#   -loc, --loc [DIR]
+#                 pre-imposta il "Set Sim path" (menu View) delle HMI lanciate
+#                 (via LG_SIM_PATH). Senza DIR usa la directory CORRENTE da cui
+#                 lanci lghmi; con DIR usa quella directory (come se lanciassi
+#                 lghmi da li'). E' il comportamento di DEFAULT: utile se lanci
+#                 lghmi dalla dir della simulazione in corso, cosi'
+#                 animazione/Plot/Command puntano subito a quella sim senza dover
+#                 fare Set Sim path a mano in ogni HMI.
+#   -noloc, --noloc
+#                 NON pre-imposta alcun Set Sim path (LG_SIM_PATH non definito):
+#                 ogni HMI parte senza sim path, da impostare a mano.
 #   Variabili d'ambiente:
 #     LG_TASKROOT   directory delle task (default: $HOME/legocad)
 #     LG_SIM_PATH   dir sim preimpostata per Set Sim path (la setta -loc)
@@ -25,14 +31,25 @@ set -u
 LOC_DIR="$PWD"
 
 # ---- arg parsing --------------------------------------------------------
-LOC=0
+# -loc e' il DEFAULT (LOC=1, LOC_DIR = cwd). -loc DIR usa DIR come dir di
+# lancio; -noloc disabilita del tutto la pre-impostazione del sim path.
+LOC=1
 WISH_ARGS=()
-for a in "$@"; do
+while [ "$#" -gt 0 ]; do
+    a="$1"
     case "$a" in
-        -loc|--loc) LOC=1 ;;
-        -h|--help)  sed -n '3,21p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+        -noloc|--noloc) LOC=0 ;;
+        -loc|--loc)
+            LOC=1
+            # Se il prossimo argomento non e' un'opzione, e' la dir di lancio.
+            if [ "$#" -ge 2 ] && [ "${2#-}" = "$2" ]; then
+                LOC_DIR="$2"; shift
+            fi
+            ;;
+        -h|--help)  sed -n '3,26p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
         *)          WISH_ARGS+=("$a") ;;
     esac
+    shift
 done
 
 # Sorgia il profilo LegoPST se l'ambiente non e' gia' impostato (LG_TIX).
@@ -60,9 +77,16 @@ if ! command -v wish >/dev/null 2>&1; then
     exit 1
 fi
 
-# -loc: pre-imposta il Set Sim path delle HMI alla dir di lancio.
+# -loc (default): pre-imposta il Set Sim path delle HMI alla dir di lancio.
+# -noloc: LG_SIM_PATH non definito.
 if [ "$LOC" -eq 1 ]; then
-    export LG_SIM_PATH="$LOC_DIR"
+    if [ ! -d "$LOC_DIR" ]; then
+        echo "lghmi: directory non trovata: $LOC_DIR" >&2
+        exit 1
+    fi
+    # Normalizza a path assoluto (LOC_DIR puo' essere relativo se dato con -loc DIR).
+    LG_SIM_PATH="$(cd "$LOC_DIR" && pwd)"
+    export LG_SIM_PATH
 fi
 
 exec wish "$LG_TIX/lghmi.tcl" ${WISH_ARGS[@]+"${WISH_ARGS[@]}"}
