@@ -651,12 +651,14 @@ proc umis_load {} {
     catch {set out [exec $exe -l]}
     cd $olddir
     foreach line [split $out "\n"] {
-        # riga tabella: CODICE lettera sel u0|u1|... A B  (6 campi; le righe
-        # "#file ..." o di servizio di chdefaults hanno un numero diverso)
+        # salta commenti/intestazioni (#...) e righe di servizio di chdefaults
+        if {[string index [string trim $line] 0] eq "#"} continue
+        # riga tabella: CODICE lettera sel u0|[u1]|... A B  (6 campi;
+        # l'unita' selezionata e' tra parentesi quadre, che qui rimuoviamo)
         if {[catch {llength $line} n] || $n != 6} continue
         lassign $line cod let sel units A B
         if {![string is integer -strict $sel]} continue
-        set ulist [split $units |]
+        set ulist [split [string map {[ {} ] {}} $units] |]
         set ::umis_tab($let) [list [lindex $ulist $sel] $A $B]
         lappend ::umis_rows [list $cod $let $sel $ulist]
     }

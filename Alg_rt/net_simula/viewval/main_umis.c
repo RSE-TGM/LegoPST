@@ -54,16 +54,26 @@ fprintf(stderr,"      (default: crea/aggiorna ./uni_misc.cfg per-simulazione)\n"
 return(1);
 }
 
+/*
+   lista della tabella, leggibile e parsabile (animate.tcl umis_load):
+     #file <path> <cfg|dat>
+     # TIPO ...                                  (intestazione colonne)
+     <tipo> <lettera> <sel> <u0|[u1]|...> <A> <B>
+   L'unita' SELEZIONATA e' racchiusa tra [ ]; A e B sono i coefficienti
+   dell'unita' selezionata (val_vis = A*val_MKS + B).
+*/
 static void lista()
 {
 int i,j,num_umis,primo;
 char um[L_NOMI_UMIS+1];
+char units[16*(L_NOMI_UMIS+3)];
 
 printf("#file %s %s\n",umis_file_attivo(),umis_file_is_cfg()?"cfg":"dat");
+printf("# TIPO     L sel  unita' (selezionata tra [ ])    A[sel]     B[sel]\n");
 num_umis=cerca_num_umis();
 for(i=0;i<num_umis;i++)
         {
-        printf("%s %c %d ",uni_mis[i].codice,uni_mis[i].type,uni_mis[i].sel);
+        units[0]='\0';
         primo=1;
         for(j=0;j<N_TIPI_UMIS;j++)
                 {
@@ -72,10 +82,20 @@ for(i=0;i<num_umis;i++)
                 rtrim(um);
                 if(um[0]=='\0')
                         continue;
-                printf("%s%s",primo?"":"|",um);
+                if(!primo)
+                        strcat(units,"|");
+                if(j==uni_mis[i].sel)
+                        {
+                        strcat(units,"[");
+                        strcat(units,um);
+                        strcat(units,"]");
+                        }
+                else
+                        strcat(units,um);
                 primo=0;
                 }
-        printf(" %.9g %.9g\n",
+        printf("%-9s %c %2d   %-30s %10.6g %10.6g\n",
+               uni_mis[i].codice,uni_mis[i].type,uni_mis[i].sel,units,
                uni_mis[i].A[uni_mis[i].sel],
                uni_mis[i].B[uni_mis[i].sel]);
         }
