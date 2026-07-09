@@ -203,6 +203,11 @@ set scaledSize [expr {int(round(8 * $zl))}]
 if {$scaledSize < 1} { set scaledSize 1 }
 set scaledFont [list Helvetica $scaledSize]
 
+# (Ri)carica la tabella delle unita' di misura ad ogni attivazione (modi
+# init): serve al path statico F14 (conversione lato Tcl); il path live e'
+# gia' convertito da viewval con lo stesso file unita'.
+if { $mod == 1 || $mod == 3 } { catch {umis_load} }
+
 #tk_messageBox  -message "anima_ggiorn- modo=$mod - indicatore_after=$::indicatore_after"
 
 if { $mod == 1 } {
@@ -392,7 +397,8 @@ anim_load_remap
            if { [catch { set valore14 $matrVf14($variab_inv,valu)} errmsg ]} {
               set valore14 $errmsg
               }
-           set testo "$valore14 [ret_umis $variab_inv]"
+           # valore f14 in MKS: conversione nell'unita' selezionata (come live)
+           set testo "[conv_umis $variab_inv $valore14] [ret_umis $variab_inv]"
            set tid [$c create text $x $y -text $testo -font $scaledFont -tags {infoitemname}]
            set ::origFontOf($c,$tid) $baseFont
            $c addtag $tid.visual withtag $item
@@ -475,7 +481,8 @@ proc anima_freeval_field { c item x y scaledFont baseFont live } {
             if {[catch { set valore14 $matrVf14($var,valu) } errmsg]} {
                 set valore14 $errmsg
             }
-            set valtxt "$valore14 [ret_umis $var]"
+            # valore f14 in MKS: conversione nell'unita' selezionata (come live)
+            set valtxt "[conv_umis $var $valore14] [ret_umis $var]"
         }
         if {[info exists ::anim_mode($inst_name)] && $::anim_mode($inst_name) eq "L"} {
             set testo "$var $valtxt"
@@ -602,9 +609,68 @@ proc anim_freeval_apply { c item w } {
     anima_freeval_field $c $item $x $y [list Helvetica $ssz] $baseFont $live
 }
 
+# ==========================================================================
+# Unita' di misura (tool umis, Alg_rt/bin)
+# ==========================================================================
+# La conversione dei valori LIVE (pipe viewval -s) avviene gia' in viewval,
+# che legge il file unita' (uni_misc.cfg per-simulazione, fallback
+# uni_misc.dat) dalla dir della sim. Qui carichiamo la STESSA tabella via
+# `umis -l` per: 1) i valori statici F14 (conversione lato Tcl), 2) il
+# dialogo di scelta unita' (umis_dialog).
+#   ::umis_tab(<lettera>) = {unita A B} dell'unita' SELEZIONATA del tipo
+#   ::umis_rows           = righe {codice lettera sel {unita...}} (dialogo)
+
+# Directory della simulazione: la stessa usata da viewval/graphics/xaing.
+proc umis_sim_dir {} {
+    if {[info exists ::anima_sim_path] && $::anima_sim_path ne "" && \
+        [file isdirectory $::anima_sim_path]} { return $::anima_sim_path }
+    return [pwd]
+}
+
+# Path del tool umis ("" se non disponibile: la feature degrada senza errori).
+proc umis_exec_path {} {
+    if {[info exists ::env(LEGORT_BIN)]} {
+        set p [file join $::env(LEGORT_BIN) umis]
+        if {[file executable $p]} { return $p }
+    }
+    set p [auto_execok umis]
+    if {$p ne ""} { return [lindex $p 0] }
+    return ""
+}
+
+# Carica la tabella unita' correnti dalla dir della simulazione.
+# Ritorna 1 se la tabella e' stata caricata.
+proc umis_load {} {
+    array unset ::umis_tab
+    set ::umis_rows {}
+    set exe [umis_exec_path]
+    if {$exe eq ""} { return 0 }
+    set olddir [pwd]
+    catch {cd [umis_sim_dir]}
+    set out ""
+    catch {set out [exec $exe -l]}
+    cd $olddir
+    foreach line [split $out "\n"] {
+        # riga tabella: CODICE lettera sel u0|u1|... A B  (6 campi; le righe
+        # "#file ..." o di servizio di chdefaults hanno un numero diverso)
+        if {[catch {llength $line} n] || $n != 6} continue
+        lassign $line cod let sel units A B
+        if {![string is integer -strict $sel]} continue
+        set ulist [split $units |]
+        set ::umis_tab($let) [list [lindex $ulist $sel] $A $B]
+        lappend ::umis_rows [list $cod $let $sel $ulist]
+    }
+    return [expr {[llength $::umis_rows] > 0}]
+}
+
+# Unita' di misura della variabile (dalla lettera iniziale del nome).
+# Usa la tabella umis se caricata, altrimenti il fallback storico MKS.
 proc ret_umis { nome } {
   set nome1 [string toupper $nome]
   set vai [string index $nome1 0]
+  if {[info exists ::umis_tab($vai)]} {
+      return [lindex $::umis_tab($vai) 0]
+  }
   set umis " "
   switch $vai {
 
@@ -620,4 +686,93 @@ proc ret_umis { nome } {
 
 			  }
   return $umis
+}
+
+# Converte un valore MKS nell'unita' selezionata: val_vis = A*val + B
+# (stessa formula di viewval/graphics). Ritorna il valore invariato se la
+# tabella non e' caricata o il valore non e' numerico (es. messaggi errore).
+proc conv_umis { nome val } {
+    set vai [string index [string toupper $nome] 0]
+    if {![info exists ::umis_tab($vai)]} { return $val }
+    if {![string is double -strict $val]} { return $val }
+    lassign $::umis_tab($vai) um A B
+    return [format %.6g [expr {$A*$val + $B}]]
+}
+
+# --------------------------------------------------------------------------
+# Dialogo di scelta unita' (per tipo di grandezza). Le scelte vengono salvate
+# nel file TESTO per-simulazione uni_misc.cfg della dir della sim (creato se
+# assente) dal tool umis. refresh_cmd: script eseguito dopo il salvataggio
+# (tipicamente il re-Show Value, per rilanciare viewval con le nuove unita').
+proc umis_dialog { {refresh_cmd ""} } {
+    set exe [umis_exec_path]
+    if {$exe eq ""} {
+        tk_messageBox -icon error -title "Units" -message \
+            "Tool 'umis' non trovato (LEGORT_BIN)."
+        return
+    }
+    if {![umis_load]} {
+        tk_messageBox -icon error -title "Units" -message \
+            "Impossibile leggere la tabella delle unita' di misura."
+        return
+    }
+    set w .umis_dlg
+    catch {destroy $w}
+    toplevel $w
+    wm title $w "Unita' di misura"
+    label $w.head -justify left -anchor w -text \
+        "Unita' per la simulazione:\n[umis_sim_dir]"
+    pack $w.head -fill x -padx 10 -pady 6
+
+    frame $w.g
+    pack $w.g -padx 12 -pady 4
+    array unset ::umis_choice
+    set r 0
+    foreach row $::umis_rows {
+        lassign $row cod let sel units
+        # tipi con una sola unita' (o placeholder): niente da scegliere
+        if {[llength $units] < 2} continue
+        label $w.g.l$r -text "$cod ($let)" -anchor w -width 12
+        grid $w.g.l$r -row $r -column 0 -sticky w -padx 2 -pady 1
+        set ::umis_choice($cod) [lindex $units $sel]
+        set col 1
+        foreach u $units {
+            radiobutton $w.g.r${r}c$col -text $u -value $u \
+                -variable ::umis_choice($cod)
+            grid $w.g.r${r}c$col -row $r -column $col -sticky w
+            incr col
+        }
+        incr r
+    }
+
+    frame $w.btn
+    pack $w.btn -pady 8
+    button $w.btn.ok  -text OK      -width 8 -default active \
+        -command [list umis_apply $w $exe $refresh_cmd]
+    button $w.btn.can -text Annulla -width 8 -command [list destroy $w]
+    pack $w.btn.ok $w.btn.can -side left -padx 6
+    bind $w <Return> [list umis_apply $w $exe $refresh_cmd]
+    bind $w <Escape> [list destroy $w]
+}
+
+# Applica le scelte del dialogo: una exec di umis per ogni tipo cambiato.
+proc umis_apply { w exe refresh_cmd } {
+    set olddir [pwd]
+    catch {cd [umis_sim_dir]}
+    set errs ""
+    foreach row $::umis_rows {
+        lassign $row cod let sel units
+        if {![info exists ::umis_choice($cod)]} continue
+        if {$::umis_choice($cod) eq [lindex $units $sel]} continue
+        if {[catch {exec $exe $cod $::umis_choice($cod)} msg]} {
+            append errs "$cod: $msg\n"
+        }
+    }
+    cd $olddir
+    umis_load
+    catch {destroy $w}
+    if {$errs ne ""} {
+        tk_messageBox -icon error -title "Units" -message $errs
+    }
+    if {$refresh_cmd ne ""} { uplevel #0 $refresh_cmd }
 }

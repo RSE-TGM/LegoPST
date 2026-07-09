@@ -173,7 +173,9 @@ if [[ $BUNDLE -eq 1 ]]; then
     # xaing: pannello Motif di perturbazione real-time, usato dal Command Mode
     # di draw2gr (xaing 3 = send, xaing 1 = pannello). Le sue dipendenze Motif/X
     # coincidono con quelle di graphics (gia' raccolte nel giro ldd sotto).
-    for b in dispatcher net_sked killsim net_prepf22 xaing; do
+    # umis: tool unita' di misura (dialogo View->Units di draw2gr): scrive il
+    # file testo per-simulazione uni_misc.cfg letto da viewval/graphics/xaing.
+    for b in dispatcher net_sked killsim net_prepf22 xaing umis; do
         cp -p "$LEGOROOT_ABS/Alg_rt/bin/$b" "$BD/Alg_rt/bin/" \
             || { echo "ERR: $b non trovato in $LEGOROOT_ABS/Alg_rt/bin" >&2; exit 4; }
     done

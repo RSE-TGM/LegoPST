@@ -724,6 +724,21 @@ if { $::LINUXPLAT == 1 } {
         set ::anima_sim_path [tk_chooseDirectory -initialdir $::anima_sim_path -title "Choose simulator path"]
         .menu.vmgr.simpath entryconfigure 0 -label [set ::anima_sim_path]
     }
+
+    # Units: scelta delle unita' di misura visualizzate (per tipo di
+    # grandezza). Il dialogo (umis_dialog, animate.tcl) salva nel file TESTO
+    # per-simulazione uni_misc.cfg della dir della sim via tool umis; lo
+    # stesso file e' letto da viewval/graphics/xaing. Il refresh rilancia
+    # Show Value se attivo: viewval riparte e rilegge le nuove unita'.
+    $m add command -label "Units..." -command [list umis_dialog [list umis_refresh_showvalue $c]]
+}
+
+# Re-Show Value dopo il cambio unita' (refresh_cmd di umis_dialog).
+proc umis_refresh_showvalue { c } {
+    if {$::showon == 4} {
+        ShowNamesfilt $c $c 1
+        ShowNamesfilt $c $c 4
+    }
 }
 
 

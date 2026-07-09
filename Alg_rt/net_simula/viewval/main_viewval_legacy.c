@@ -91,11 +91,9 @@ char **argv;
   float valore_conv;
 
   SetUp(argc, argv);
-  // leggo le unità di misura di default
-  getcwd(pathloc, 256);
-  chdefaults();
+  // leggo le unità di misura (self-contained: ./uni_misc.cfg per-simulazione,
+  // poi ./uni_misc.dat, poi $HOME/defaults/uni_misc.dat; ripristina la cwd)
   init_umis();
-  chdir(pathloc);
 
   // printf("nomevar=%s\n", nomevar);
 

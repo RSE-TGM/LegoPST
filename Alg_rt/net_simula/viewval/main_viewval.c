@@ -165,10 +165,9 @@ int main(int argc, char **argv) {
     float valore_conv;
 
     SetUp(argc, argv);
-    getcwd(pathloc, 256);
-    chdefaults();
+    /* init_umis e' self-contained: cerca ./uni_misc.cfg (per-simulazione),
+       poi ./uni_misc.dat, poi $HOME/defaults/uni_misc.dat; ripristina la cwd */
     init_umis();
-    chdir(pathloc);
 
     viewshr(INIZIALIZZA, nomevar, &indir, &valore, &stato, &tempo, &num_var, forzval);
 

@@ -557,7 +557,8 @@ topLevel = XtAppInitialize(&app_context, "xaing",
  */
     if (getcwd (pathdir, 100) == 0)
 	printf ("\n errore in lettura path");
-    chdefaults ();
+    /* init_umis e' self-contained: cerca ./uni_misc.cfg (per-simulazione),
+       poi ./uni_misc.dat, poi $HOME/defaults/uni_misc.dat; ripristina la cwd */
     init_umis ();
     num_umis = cerca_num_umis ();
     chdir (pathdir);

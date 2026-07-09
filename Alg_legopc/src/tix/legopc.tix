@@ -3665,6 +3665,15 @@ global modified modified1 needbuild fileChange
 
 source $env(LG_TIX)/animate.tcl
 
+# Re-Show Value dopo il cambio unita' (refresh_cmd di umis_dialog, menu
+# View -> Units...): rilancia l'animazione cosi' viewval rilegge le unita'.
+proc umis_refresh_showvalue_pc { c c2 } {
+    if {$::showon == 4} {
+        ShowNamesfilt $c $c2 1
+        ShowNamesfilt $c $c2 4
+    }
+}
+
 proc ShowNamesfilt { c c2 mod } {
 global modalita lgsincropid
 if { $mod == 5 } {
@@ -4822,8 +4831,14 @@ if { $::LINUXPLAT != 0 } {
     $m add cascade -label "Set Sim path" -menu $simpath -underline 0
 #    $simpath add command -label [set ::anima_sim_path]
     $simpath add command -label [set ::anima_sim_path] -command {
-    set ::anima_sim_path [tk_chooseDirectory -initialdir $::anima_sim_path -title "Choose simulator path"] 
+    set ::anima_sim_path [tk_chooseDirectory -initialdir $::anima_sim_path -title "Choose simulator path"]
     $simpath  entryconfigure 0 -label [set ::anima_sim_path]    }
+
+    # Units: scelta delle unita' di misura visualizzate (per tipo di
+    # grandezza). Il dialogo (umis_dialog, animate.tcl) salva nel file TESTO
+    # per-simulazione uni_misc.cfg via tool umis; lo stesso file e' letto da
+    # viewval/graphics/xaing. Il refresh rilancia Show Value se attivo.
+    $m add command -label "Units..." -command [list umis_dialog [list umis_refresh_showvalue_pc $c $c2]]
     }
 
 #    $m add separator

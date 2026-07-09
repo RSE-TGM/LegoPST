@@ -54,7 +54,7 @@ OGGETTI_LEGACY = main_viewval_legacy.o viewshr.o
 
 
 
-all: $(PATHBIN)/viewval $(OGGETTI) $(PATHBIN)/viewval_legacy $(OGGETTI_LEGACY)Makefile.mk
+all: $(PATHBIN)/viewval $(OGGETTI) $(PATHBIN)/viewval_legacy $(OGGETTI_LEGACY) $(PATHBIN)/umis Makefile.mk
 
 
 $(PATHBIN)/viewval: $(OGGETTI)
@@ -62,3 +62,6 @@ $(PATHBIN)/viewval: $(OGGETTI)
 
 $(PATHBIN)/viewval_legacy: $(OGGETTI_LEGACY)
 	cc $(CFLAGS) $(OGGETTI_LEGACY) $(LIBSVIL) $(LIBUTIL) $(STUB_LIBS) -o $(PATHBIN)/viewval_legacy
+
+$(PATHBIN)/umis: main_umis.o
+	cc $(CFLAGS) main_umis.o $(LEGORT_LIB)/libsim.a $(LEGOROOT_LIB)/libutil.a -o $(PATHBIN)/umis

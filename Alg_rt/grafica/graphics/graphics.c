@@ -614,14 +614,17 @@ if (MrmOpenHierarchy(db_filename_num, /* Number of files. */
       != MrmSUCCESS)
         s_error("\ncan't open hierarchy");
 //  init_application();
+/* per selezione defaults delle unita' di misura: init_umis va chiamata
+   PRIMA di chdefaults, con la cwd ancora sulla dir della simulazione,
+   cosi' trova l'eventuale uni_misc.cfg per-simulazione (fallback:
+   $HOME/defaults/uni_misc.dat). Ripristina la cwd. */
+init_umis();
 /*
  si posiziona nella directory dei defaults ($HOME/defaults) creandola
- se non esiste
+ se non esiste (serve a open_path per f22_files.edf)
 */
 chdefaults();
 
-/* per selezione defaults delle unita' di misura */
-init_umis();
 num_umis=cerca_num_umis();
 umis_defsel= (int*) calloc (num_umis, sizeof (int));
 x_codumis=(XmString *)XtCalloc(num_umis+1, sizeof(XmString));
