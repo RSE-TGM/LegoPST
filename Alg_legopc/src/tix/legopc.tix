@@ -4374,15 +4374,17 @@ proc raisetopol { c } {
 		}
 		.menu.lib  entryconfigure 0 -state normal 
 		.menu.lib  entryconfigure 1 -state normal 
-		.menu.view  entryconfigure 0 -state normal 
-		.menu.view  entryconfigure 1 -state normal 
-          if  { $::LINUXPLAT == 1 } {
-		.menu.view  entryconfigure 2 -state normal
-		} else {
-		.menu.view  entryconfigure 3 -state normal
-               }		 
-		.menu.view  entryconfigure 4 -state normal
-		.menu.view  entryconfigure 5 -state normal
+		.menu.view  entryconfigure 0 -state normal
+		.menu.view  entryconfigure 1 -state normal
+		# voci indirizzate per LABEL: gli indici numerici cambiano tra
+		# piattaforme e a ogni voce aggiunta (es. Units...)
+		if { $::LINUXPLAT == 1 } {
+		.menu.view  entryconfigure "Set Sim path" -state normal
+		.menu.view  entryconfigure "Units..." -state normal
+		}
+		.menu.view  entryconfigure "Show OFF" -state normal
+		.menu.view  entryconfigure "Show Names" -state normal
+		.menu.view  entryconfigure "Show Classes" -state normal
 		.menu.util  entryconfigure 5 -state disabled
 		.menu.util  entryconfigure 6 -state disabled
 		$model_img configure -showbackground 1
@@ -4429,15 +4431,17 @@ proc raisedata { c c2 } {
 		}
 		.menu.lib  entryconfigure 0 -state disabled 
 		.menu.lib  entryconfigure 1 -state disabled 
-		.menu.view  entryconfigure 0 -state disabled 
-		.menu.view  entryconfigure 1 -state disabled 
-          if  { $::LINUXPLAT == 1 } {
-		.menu.view  entryconfigure 2 -state normal
-		} else {
-		.menu.view  entryconfigure 3 -state normal
-               }		 
-		.menu.view  entryconfigure 4 -state normal
-		.menu.view  entryconfigure 5 -state normal
+		.menu.view  entryconfigure 0 -state disabled
+		.menu.view  entryconfigure 1 -state disabled
+		# voci indirizzate per LABEL: gli indici numerici cambiano tra
+		# piattaforme e a ogni voce aggiunta (es. Units...)
+		if { $::LINUXPLAT == 1 } {
+		.menu.view  entryconfigure "Set Sim path" -state normal
+		.menu.view  entryconfigure "Units..." -state normal
+		}
+		.menu.view  entryconfigure "Show OFF" -state normal
+		.menu.view  entryconfigure "Show Names" -state normal
+		.menu.view  entryconfigure "Show Classes" -state normal
 		.menu.util  entryconfigure 5 -state normal
 		.menu.util  entryconfigure 6 -state normal
 		$model_img configure -showbackground 0
@@ -4467,17 +4471,19 @@ proc raisetaskconf { c c2 c4 } {
 	.menu.file entryconfigure 11 -state disabled 
 	.menu.lib  entryconfigure 0 -state disabled 
 	.menu.lib  entryconfigure 1 -state disabled 
-	.menu.view  entryconfigure 0 -state disabled 
-	.menu.view  entryconfigure 1 -state disabled 
-          if  { $::LINUXPLAT == 1 } {
-		.menu.view  entryconfigure 2 -state normal
-		} else {
-		.menu.view  entryconfigure 3 -state normal
-               }		 
-	.menu.view  entryconfigure 4 -state normal 
-	.menu.view  entryconfigure 5 -state normal 
-	.menu.util  entryconfigure 5 -state normal 
-	.menu.util  entryconfigure 6 -state normal 
+	.menu.view  entryconfigure 0 -state disabled
+	.menu.view  entryconfigure 1 -state disabled
+	# voci indirizzate per LABEL: gli indici numerici cambiano tra
+	# piattaforme e a ogni voce aggiunta (es. Units...)
+	if { $::LINUXPLAT == 1 } {
+	.menu.view  entryconfigure "Set Sim path" -state normal
+	.menu.view  entryconfigure "Units..." -state normal
+	}
+	.menu.view  entryconfigure "Show OFF" -state normal
+	.menu.view  entryconfigure "Show Names" -state normal
+	.menu.view  entryconfigure "Show Classes" -state normal
+	.menu.util  entryconfigure 5 -state normal
+	.menu.util  entryconfigure 6 -state normal
 	$model_img configure -showbackground 0
 	$data_img configure -showbackground 0
 	$task_img configure -showbackground 1
