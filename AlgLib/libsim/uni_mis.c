@@ -44,6 +44,8 @@ static char SccsID[] = "@(#)uni_mis.c	5.1\t11/10/95";
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <uni_mis_val.h>
 #include <ctype.h>
 #include "sim_types.h"
@@ -57,8 +59,6 @@ static char SccsID[] = "@(#)uni_mis.c	5.1\t11/10/95";
  const char *umis_file_attivo();
  int umis_file_is_cfg();
 
-extern void chdefaults();       /* libutil: si posiziona in $HOME/defaults */
-
 #define UMIS_CFG_FILE "uni_misc.cfg"
 #define UMIS_DAT_FILE "uni_misc.dat"
 
@@ -66,6 +66,29 @@ extern void chdefaults();       /* libutil: si posiziona in $HOME/defaults */
    usato da agg_umis() per salvare dove si e' letto */
 static char umis_path[FILENAME_MAX] = "";
 static int  umis_cfg = 0;       /* 1 = formato testo .cfg, 0 = binario .dat */
+
+/* si posiziona in $HOME/defaults creandola se non esiste (equivalente
+   locale di chdefaults() in libutil: replicato qui per NON creare la
+   dipendenza libsim->libutil, che romperebbe l'ordine di link dei
+   makefile legacy dove libutil.a precede libsim.a). Ritorna 1 se ok. */
+static int umis_chdefaults()
+{
+char *home_dir;
+char path_defaults[FILENAME_MAX];
+
+home_dir=getenv("HOME");
+if(home_dir==NULL)
+        return(0);
+snprintf(path_defaults,sizeof(path_defaults),"%s/defaults",home_dir);
+if(chdir(path_defaults)==-1)
+        {
+        if(mkdir(path_defaults,S_IRWXU|S_IRGRP|S_IROTH)==-1)
+                return(0);
+        if(chdir(path_defaults)==-1)
+                return(0);
+        }
+return(1);
+}
 
 /* elimina spazi/tab in coda */
 static void umis_rtrim(char *s)
@@ -217,7 +240,15 @@ if(fpUMIS!=NULL)
         }
 
 /* 3) binario globale in $HOME/defaults */
-chdefaults();
+if(!umis_chdefaults())
+        {
+        /* HOME non definita/inaccessibile: restano i default compilati,
+           agg_umis salvera' nella directory corrente (comportamento storico) */
+        fprintf(stderr,"init_umis: $HOME/defaults non accessibile, uso i default compilati\n");
+        strcpy(umis_path,UMIS_DAT_FILE);
+        umis_cfg=0;
+        return;
+        }
 fpUMIS=fopen(UMIS_DAT_FILE,"r");
 if(fpUMIS==NULL)
         {
