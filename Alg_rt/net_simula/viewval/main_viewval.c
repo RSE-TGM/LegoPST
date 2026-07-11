@@ -320,6 +320,15 @@ int main(int argc, char **argv) {
 
     // Original viewval logic continues here...
     if (server) {
+        /* Handshake di avvio: emette UNA riga su stdout appena la SHM e'
+           stata agganciata con successo (viewshr(INIZIALIZZA) e' gia'
+           ritornato qui sopra). Il lato Tcl (animate.tcl) fa un gets
+           BLOCCANTE subito dopo aver aperto la pipe "| viewval -s": senza
+           questa riga l'event loop Tcl si blocca all'infinito (freeze
+           recuperabile solo con kill -9). Storicamente la riga era fornita
+           "per caso" dal printf("direttorio def...") di chdefaults(),
+           rimosso con il refactor umis_chdefaults() in uni_mis.c. */
+        printf("VIEWVAL READY\n");
         fflush(stdout);
     ciclo:
         scanf("%s", nomevar);
