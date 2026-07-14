@@ -1738,6 +1738,9 @@ set plist [split [lindex $::currTags 0] . ]
 	$c dtag $eport busy
 	$c dtag $eport connwith.$sport
 
+	# rimuovi l'eventuale override di stile per-tratto (mentre le porte esistono ancora)
+	catch {linkstyle_forget_link $c $sport $eport}
+
 ##	if { $dmen == 0} {$c delete current
 ##	} else { $c delete $Tid }
         $c delete $Tid
@@ -2829,6 +2832,7 @@ bind $c <B1-ButtonRelease> {
     $pop add command -label "Delete" -under 0 -command "itemDelete_new $c"
     $pop add command -label "Bring to Front" -under 0 -command "itemBringToFront $c"
     $pop add command -label "Send to Back"   -under 0 -command "itemSendToBack $c"
+    $pop add command -label "Line style..." -command "linkstyle_dialog_current $c"
     $pop add separator
     if { $::LINUXPLAT == 1 } {
         $pop add command -label "Backg Default"  -command {setBgColor topol default}
@@ -2850,9 +2854,13 @@ bind $c <B1-ButtonRelease> {
 #	             tk_messageBox -message $::currTags
                      set ::currTid [lindex $::currTags 0]
                      set pop $c.pop
+# "Line style..." abilitato solo sui link (indirizzato per LABEL: non dipende
+# dagli indici numerici che cambiano tra piattaforme/voci aggiunte)
+                     catch {$pop entryconfigure "Line style..." -state disabled}
                      if {[lsearch [$c gettags $::currTid] link*] != -1} then {
 # è un link
                      itemStartDrag $c $::currTid_x $::currTid_y
+                     catch {$pop entryconfigure "Line style..." -state normal}
                      $pop entryconfigure 1 -state disabled
                      $pop entryconfigure 2 -state disabled
                      $pop entryconfigure 3 -state disabled
@@ -3587,6 +3595,8 @@ if { $modo == 0 } {
 if { $modo != 0 } {
 	if { [topRead $c [file rootname $curFileName]]} { return 2 }
 }
+# Riapplica gli override di stile connessioni per-modello (.lstyle)
+catch {linkstyle_reload $c}
 
 
 #
@@ -4359,6 +4369,7 @@ source $env(LG_TIX)/read_con.tcl
 source $env(LG_TIX)/itemjoin.tcl
 source $env(LG_TIX)/viewmgr.tcl
 source $env(LG_TIX)/fileio.tcl
+source $env(LG_TIX)/linkstyle.tcl
 source $env(LG_TIX)/rotate.tcl
 source $env(LG_TIX)/legodat_v2.tix
 source $env(LG_TIX)/openhelp.tcl
@@ -4372,6 +4383,9 @@ proc raisetopol { c } {
 		if { [avverti $c]} { return 1}
 
     		if { [topRead $c [file rootname $curFileName]]} { return 1}
+
+    		# Riapplica gli override di stile connessioni per-modello (.lstyle)
+    		catch {linkstyle_reload $c}
 
     		if { $::showon == 4 } { set qq [$c gettags infoitemname ]; anima chiudi qq }
 		

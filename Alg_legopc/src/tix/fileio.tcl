@@ -307,6 +307,8 @@ puts "writeFiles: $item è un MODULO nelem=$nelem  blo_nam=$blo_nam($nelem)"
 
 	   close $fileid
 	   set modified 0
+	   # persiste anche gli override di stile connessioni per-modello (.lstyle)
+	   catch {linkstyle_save}
 return 0
 }
 

@@ -51,6 +51,9 @@ proc showLinks {c mode nascondi} {
 		foreach it $urk {$c lower $it}
 	} else {
 		foreach it $urk {$c raise $it}
+		# la categoria e' tornata visibile: riapplica gli override
+		# per-modello (CAT + per-tratto) cosi' non vengono persi dal ricolore
+		catch {linkstyle_apply_category $c $mode}
 	}
 }
 
