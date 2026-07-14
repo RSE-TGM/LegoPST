@@ -1,4 +1,24 @@
 
+# elementScript: path dello script .tcl da sorgiare per istanziare l'elemento
+# di classe $cls dalla libreria $dir. Ordine:
+#  1) <dir>/<cls>.tcl se esiste (moduli veri e remark @com_0/@val_0 hanno il loro);
+#  2) altrimenti, SOLO per elementi non-topologici (nome '@...'), lo script
+#     condiviso delle immagini di background $LG_TIX/bgelement.tcl (unico per
+#     tutte le librerie: aggiungere un decoro = mettere la sua GIF, nessun .tcl).
+# Il gate sul '@' preserva la rete di sicurezza: un modulo VERO (nome senza '@')
+# con <cls>.tcl mancante ritorna il path originale -> 'source' da' errore, come prima.
+# DEVE stare qui (in fileio.tcl) e non in legopc.tix: topRead la usa, e fileio.tcl
+# e' sorgiato anche da draw2gr/legodat/edit_simulx/select (che NON hanno legopc.tix).
+proc elementScript {dir cls} {
+	set f [file join $dir $cls.tcl]
+	if {[file exists $f]} { return $f }
+	if {[string match {@*} [file tail $cls]] && [info exists ::env(LG_TIX)]} {
+		set bg [file join $::env(LG_TIX) bgelement.tcl]
+		if {[file exists $bg]} { return $bg }
+	}
+	return $f
+}
+
 proc leggi_font {c  mymodId  modo newfont} {
 # modo 1 : lettura da canvas 
 # modo 2 : scrittura su canvas

@@ -213,10 +213,14 @@ if [[ $BUNDLE -eq 1 ]]; then
     # l'intero stack: script Tcl + runtime Tcl/Tk/Tix (wish) + risorse grafiche.
     echo "  + draw2gr HMI (Command Mode) + runtime Tcl/Tk/Tix"
 
-    # (a) script Tcl di draw2gr (LG_TIX). draw2gr.tcl sorgia esattamente questi 9.
+    # (a) script Tcl di draw2gr (LG_TIX). draw2gr.tcl sorgia i primi 9;
+    #     bgelement.tcl NON e' sorgiato staticamente ma da elementScript
+    #     (in fileio.tcl) a runtime, quando topRead carica un elemento grafico
+    #     di background (nome '@...'): serve nel bundle o il load fallisce.
     mkdir -p "$BD/Alg_legopc/bin"
     for s in draw2gr.tcl checkopen.tcl balloon.tcl read_con.tcl read_f01.tcl \
-             fileio.tcl itemjoin.tcl read_f14.tcl viewmgr.tcl animate.tcl; do
+             fileio.tcl itemjoin.tcl read_f14.tcl viewmgr.tcl animate.tcl \
+             bgelement.tcl; do
         cp -p "$LEGOROOT_ABS/Alg_legopc/bin/$s" "$BD/Alg_legopc/bin/" \
             || { echo "ERR: script tix $s non trovato in $LEGOROOT_ABS/Alg_legopc/bin" >&2; exit 4; }
     done

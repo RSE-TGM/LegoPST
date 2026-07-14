@@ -73,8 +73,12 @@ all:../bin/creasim ../bin/creastazsim ../bin/direct.sh ../bin/mkstaz \
 ../bin/creasvincolo: creasvincolo.sh
 	cp creasvincolo.sh ../bin/creasvincolo ; chmod 777 ../bin/creasvincolo
 #
-../bin/diffs01: diffs01.sh
-	cp diffs01.sh ../bin/diffs01 ; chmod 777 ../bin/diffs01
+# diffs01 = programma Fortran PROGRAM DIFFS01 (stampa i valori di stazionario
+# delle variabili di interconnessione delle task di un S01). Il sorgente
+# canonico e' kutil/kDiffS01Slave4.f (stesso motore usato da kbin/kDiffS01);
+# prima era erroneamente una copia di diffs01.sh (stub corrotto di 3 byte).
+../bin/diffs01: ../../kutil/kDiffS01Slave4.f
+	gfortran $? -o ../bin/diffs01 ; chmod 777 ../bin/diffs01
 #
 ../bin/divstaz: divstaz.sh
 	cp divstaz.sh ../bin/divstaz ; chmod 777 ../bin/divstaz
