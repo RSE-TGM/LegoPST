@@ -697,6 +697,7 @@ XEvent *ev;
 {
 #ifdef ON_PAGEDIT
 extern Boolean is_drawing_background();
+extern void RefreshDrawingArea(Widget); /* PagShell.c: XClearArea+expose dell'area */
 #endif
 if(dr_corrente == NULL) return;
 XtUngrabPointer(wid,CurrentTime);
@@ -729,6 +730,17 @@ set_draw_translations(wid);
 */
 	if(is_drawing_background(wid))
 		set_arrow_mode(wid);
+/*
+ A fine connessione ripulisce l'intera area di disegno. Le linee-guida sono
+ crocifili a tutta pagina disegnati in XOR da FirstPoint/FirstDraw (XdConn.c)
+ a ogni punto/gomito: per come e' gestita la contabilita' XOR restano alcuni
+ crocifili non cancellati (in particolare quelli tracciati da FirstPoint a
+ ogni gomito). Anziche' districare quella logica fragile, si forza qui un
+ XClearArea+expose che ridisegna solo il contenuto reale, azzerando ogni
+ artefatto XOR. Equivale al Refresh manuale da menu, ma automatico, e copre
+ sia il completamento sia l'annullamento (Btn2/Btn3/F11) della connessione.
+*/
+	RefreshDrawingArea(wid);
 #endif
 
 dr_corrente=NULL;
