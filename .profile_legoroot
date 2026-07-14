@@ -16,12 +16,11 @@ export XCURSOR_SIZE=24
 
 export PATH=$PATH:$HOME/legocad/libut_bin:/usr/local/bin/
 #
-#       definizione simulatore e cassaforte di riferimento
-#       va messo prima di inizializzare l'ambiente ALTERLEGO
+#       Il simulatore corrente NON e' piu' hardcodato qui (il profilo e'
+#       general-purpose). Si sceglie a runtime con  ksetsim <nome-sim>  ;
+#       all'avvio (in fondo) riprende l'ultimo scelto da ~/.legosim.
+#       Vedi ksetsim/ksims in Alg_env.sh.
 #
-export KSIM=$HOME/sked/cassano0
-export KCASSAFORTE=$HOME/sked/cassano0/cassanosafe
-export KSIMNAME=cassano0
 export KFUNCTIONALAREA=' GP '
 #
 
@@ -78,6 +77,9 @@ unset ALGENV_SET
               . $LEGOROOT/Alg_env.sh
               export ALGENV_SET="YES"
         fi
+# Simulatore corrente all'avvio: ~/.legosim -> cassano0 -> primo disponibile.
+# Cambialo in qualsiasi momento con:  ksetsim <nome-sim>   (ksims per l'elenco).
+ksetsim_default
 #export LG_TEXTEDITOR=nedit
 export LG_TEXTEDITOR=leafpad
 #############PRODUCTINSTEND##########

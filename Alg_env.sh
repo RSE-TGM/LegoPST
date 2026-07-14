@@ -300,22 +300,77 @@ export FBIN=$KSOURCE/kbin
 export TBIN=$KSOURCE/kbin
 export SBIN=$KSOURCE/kbin
 export OBIN=$KSOURCE/kbin
-export KSTATUS=$KSIM/status
-export KLOG=$KSIM/log
-export KBASIC=$KSIM/plant_display
-export KEXPORT=$KSIM/export
-export KSCADA=$KSIM/scada
-export KFILEOP=$KSCADA/fileop
-export KSTART_TABLES=$KSCADA/start_txt
-export KEDIT_TABLES=$KSCADA/txt
-export KOPER_TABLES=$KSCADA/rtf
-export KWIN=$KSIM/o_win
-export KINFO=$KSIM/.info
-export KINFOTAG=$KINFO/tag
-export KDATABASES=$KSIM/databases
 export TMPDIR=$HOME/tmp
-export KSTATISTIC=$KSIM/statistic
 export KARCHIVE=$KSOURCE/archive
+#
+# ====================================================================
+# Simulatore CORRENTE (KSIM) e variabili derivate.
+# NON hardcodato qui: si sceglie a runtime con  ksetsim <nome-sim> .
+# ksetsim ri-deriva TUTTE le K* dipendenti; gli override specifici del
+# singolo simulatore stanno in  $KSIM/ksim.conf  (vivono col simulatore).
+# ====================================================================
+export KSKED=${KSKED:-$HOME/sked}          # root dei simulatori (generale)
+
+ksetsim() {                                 # uso: ksetsim <nome | /path-assoluto>
+    if [ -z "$1" ]; then echo "uso: ksetsim <nome-simulatore | /path>"; return 1; fi
+    case "$1" in /*) _ksdir="$1";; *) _ksdir="$KSKED/$1";; esac
+    if [ ! -d "$_ksdir" ]; then echo "ksetsim: directory non trovata: $_ksdir"; return 1; fi
+    export KSIM="$_ksdir"
+    export KSIMNAME="$(basename "$_ksdir")"
+    export KCASSAFORTE="$KSIM/${KSIMNAME}safe"   # default; override in ksim.conf
+    # --- derivate da KSIM ---
+    export KSTATUS=$KSIM/status
+    export KLOG=$KSIM/log
+    export KBASIC=$KSIM/plant_display
+    export KEXPORT=$KSIM/export
+    export KSCADA=$KSIM/scada
+    export KFILEOP=$KSCADA/fileop
+    export KSTART_TABLES=$KSCADA/start_txt
+    export KEDIT_TABLES=$KSCADA/txt
+    export KOPER_TABLES=$KSCADA/rtf
+    export KWIN=$KSIM/o_win
+    export KINFO=$KSIM/.info
+    export KINFOTAG=$KINFO/tag
+    export KDATABASES=$KSIM/databases
+    export KSTATISTIC=$KSIM/statistic
+    export KPAGES=$KSIM/globpages
+    # --- override PER-SIMULATORE (es. KCASSAFORTE con nome irregolare) ---
+    if [ -f "$KSIM/ksim.conf" ]; then . "$KSIM/ksim.conf"; fi
+    # --- derivate da KCASSAFORTE (dopo l'eventuale override) ---
+    export KGRAF=$KCASSAFORTE/curve
+    export KDIRGR=$KCASSAFORTE/curve
+    export KDIRPD=$KCASSAFORTE/plant_display
+    export KDISPLAY=$KCASSAFORTE
+    mkdir -p "$KSTATUS" "$KLOG" 2>/dev/null
+    echo "$KSIMNAME" > "$HOME/.legosim" 2>/dev/null   # scelta "sticky" tra shell
+    echo "Simulatore corrente: $KSIMNAME  ($KSIM)"
+}
+
+# elenca i simulatori disponibili (solo directory sotto $KSKED)
+ksims() { for _d in "$KSKED"/*/; do [ -d "$_d" ] && basename "$_d"; done; }
+
+# sceglie il simulatore all'avvio, in ordine di preferenza:
+#   1) ultimo scelto (~/.legosim)  2) cassano0  3) primo disponibile (ksims).
+# I tentativi falliti sono silenziosi (stderr scartato); quello riuscito stampa
+# "Simulatore corrente: ...". Solo se $KSKED non ha simulatori stampa l'avviso.
+ksetsim_default() {
+    _want="$(cat "$HOME/.legosim" 2>/dev/null)"
+    [ -n "$_want" ] && ksetsim "$_want" 2>/dev/null && return 0
+    ksetsim cassano0 2>/dev/null && return 0
+    _first="$(ksims | head -1)"
+    [ -n "$_first" ] && ksetsim "$_first" 2>/dev/null && return 0
+    echo "Nessun simulatore in $KSKED: creane/scegline uno con 'ksetsim <nome>' (ksims per l'elenco)."
+    return 1
+}
+
+# completion di ksetsim sui nomi dei simulatori in $KSKED (solo bash, solo dir)
+if [ -n "$BASH_VERSION" ]; then
+    _ksetsim_complete() {
+        local cur="${COMP_WORDS[COMP_CWORD]}"
+        COMPREPLY=( $(compgen -W "$(ksims)" -- "$cur") )
+    }
+    complete -F _ksetsim_complete ksetsim
+fi
 #
 # Sezione ALIAS
 #
@@ -334,13 +389,8 @@ alias kwin='cd $KWIN; pwd'
 alias kscada='cd $KSCADA; pwd'
 alias kbasic='cd $KBASIC; pwd'
 #
-# Sezione per generazione curve
-#
-export KGRAF=$KCASSAFORTE/curve
-export KDIRGR=$KCASSAFORTE/curve
-export KDIRPD=$KCASSAFORTE/plant_display
-export KDISPLAY=$KCASSAFORTE
-export KPAGES=$KSIM/globpages
+# Sezione per generazione curve: KGRAF/KDIRGR/KDIRPD/KDISPLAY e KPAGES sono
+# ora derivate da KSIM/KCASSAFORTE dentro ksetsim() (vedi sopra).
 #
 #############################################################
 #                 LegoPC
