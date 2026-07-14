@@ -1102,17 +1102,20 @@ nascondi_links $c 0
 }
 
 # elementScript: path dello script .tcl da sorgiare per istanziare l'elemento
-# di classe $cls dalla libreria $dir. Se manca <cls>.tcl (tipico degli elementi
-# di background, che condividono UN solo script generico basato su $idclass)
-# ripiega su <dir>/_default.tcl. Cosi' un'intera libreria di icone decorative
-# puo' avere un solo _default.tcl + una GIF per elemento (aggiungere un decoro
-# = mettere la sua GIF, nessun .tcl per-elemento). Se non esiste nemmeno il
-# fallback ritorna il path originale, cosi' 'source' dara' l'errore standard.
+# di classe $cls dalla libreria $dir. Ordine:
+#  1) <dir>/<cls>.tcl se esiste (moduli veri e remark @com_0/@val_0 hanno il loro);
+#  2) altrimenti, SOLO per elementi non-topologici (nome '@...'), lo script
+#     condiviso delle immagini di background $LG_TIX/bgelement.tcl (unico per
+#     tutte le librerie: aggiungere un decoro = mettere la sua GIF, nessun .tcl).
+# Il gate sul '@' preserva la rete di sicurezza: un modulo VERO (nome senza '@')
+# con <cls>.tcl mancante ritorna il path originale -> 'source' da' errore, come prima.
 proc elementScript {dir cls} {
 	set f [file join $dir $cls.tcl]
 	if {[file exists $f]} { return $f }
-	set d [file join $dir _default.tcl]
-	if {[file exists $d]} { return $d }
+	if {[string match {@*} [file tail $cls]] && [info exists ::env(LG_TIX)]} {
+		set bg [file join $::env(LG_TIX) bgelement.tcl]
+		if {[file exists $bg]} { return $bg }
+	}
 	return $f
 }
 

@@ -25,55 +25,26 @@ Esempio di riferimento già presente: **`@alb_0`** in
 `$LG_LIBRARIES/background/`.
 
 > **Il punto chiave**: tutti gli elementi di background condividono **un solo**
-> script `_default.tcl` (generico, basato su `$idclass`). Per aggiungere un
-> nuovo decoro **basta mettere la sua GIF** — nessun `.tcl` per-elemento. Vedi
+> script — `$LG_TIX/bgelement.tcl` (generico, basato su `$idclass`) — che vive
+> tra i file della UI, **non** tra le risorse grafiche. Per aggiungere un nuovo
+> decoro **basta mettere la sua GIF** nella libreria: nessun `.tcl`. Vedi
 > §"Uno script per tutti" per il perché.
 
 ### A) Preparare la libreria — una volta sola
 
 Gli elementi di background vivono in una **libreria dedicata** sotto
-`$LG_LIBRARIES`, separati dai moduli. Serve **una tantum**:
+`$LG_LIBRARIES`, separati dai moduli. Serve **una tantum** un solo file, il
+marker `.lib`:
 
 ```bash
 mkdir -p "$LG_LIBRARIES/background"
-# 1) marker .lib: rende la libreria selezionabile nel browser (contenuto irrilevante)
+# marker .lib: rende la libreria selezionabile nel browser (contenuto irrilevante)
 cp "$LG_LIBRARIES/remark/OldLibH20.lib" "$LG_LIBRARIES/background/background.lib"
-# 2) _default.tcl: lo script CONDIVISO da tutti i decori della libreria
-#    (copialo da una libreria background esistente, o vedi il template sotto)
-cp "<altra_lib_background>/_default.tcl" "$LG_LIBRARIES/background/_default.tcl"
 ```
 
 Un file `*.lib` qualsiasi nella directory basta: il browser di legopc
-(`Open library`) elenca le dir che contengono un `.lib`.
-
-Template di `_default.tcl` (già presente nella libreria `background`):
-
-```tcl
-# _default.tcl - script CONDIVISO per gli elementi di background della libreria.
-# Generico: usa $idclass (la classe dell'elemento, es. @alb_0) impostato dal
-# chiamante. Crea un item "image" NON topologico (nome con '@' -> escluso da
-# F01), niente porte, non animabile. Tag 0..6 IDENTICI a @com_0
-# (0=id,1=module,2=cls,3=ori,4=remarkdescr,5=lpath,6=name): codice a indici
-# posizionali fissi. "bgimage" PER ULTIMO.
-
-	set mymodId [$c create image $x $y -image $idclass$GIForient]
-
-	$c addtag id$mymodId     withtag $mymodId
-	$c addtag module         withtag $mymodId
-	$c addtag $idclass.cls   withtag $mymodId
-	$c addtag $GIForient.ori withtag $mymodId
-	$c addtag remarkdescr    withtag $mymodId
-	if {$fromfile == "yes"} {
-		$c addtag $mlpath.lpath   withtag $mymodId
-	} else {
-		$c addtag $curLibPath.lpath withtag $mymodId
-	}
-	if {$fromfile == "yes"} then {set progName $ff_progNumb} else {inputModName $c $x $y}
-	$c addtag $progName.name withtag $mymodId
-	incr progNumb
-	# tag distintivo dell'immagine di background: AGGIUNTO PER ULTIMO
-	$c addtag bgimage withtag $mymodId
-```
+(`Open library`) elenca le dir che contengono un `.lib`. **Nessuno script
+`.tcl`** va messo nella libreria: quello condiviso è già `$LG_TIX/bgelement.tcl`.
 
 ### B) Aggiungere un decoro — per ogni nuovo elemento
 
@@ -104,21 +75,50 @@ mostrata nella status-bar della palette quando selezioni l'icona.
 Apri legopc, poi *Open library* → `background.lib`: l'icona deve comparire nella
 palette. Selezionala e fai **Ctrl+Left** sul canvas per inserirla.
 
-## Uno script per tutti: `_default.tcl`
+## Uno script per tutti: `$LG_TIX/bgelement.tcl`
 
-Il template è **generico** perché non nomina mai un elemento specifico: crea
-l'immagine con `-image $idclass$GIForient`, dove `$idclass` è la classe
+Lo script è **unico per tutte le librerie** e vive tra i file della UI
+(`Alg_legopc/src/tix/bgelement.tcl`, deployato in `$LG_TIX`), **non** tra le
+risorse grafiche. È **generico** perché non nomina mai un elemento specifico:
+crea l'immagine con `-image $idclass$GIForient`, dove `$idclass` è la classe
 dell'elemento (es. `@alb_0`) impostata dal chiamante. Quindi lo stesso script
 produce l'immagine giusta per **qualunque** decoro.
 
-Per questo legopc, quando istanzia un elemento, cerca prima `<nome>.tcl` e — se
-manca — ripiega su **`_default.tcl`** della stessa libreria (helper
-`elementScript` in `legopc.tix`, usato da `itemAdd`, `itemAddFromfile` e
-`topRead`). I moduli veri hanno il loro `<nome>.tcl` e non ripiegano mai; i
-decori non hanno `.tcl` dedicato e usano tutti il condiviso.
+Quando istanzia un elemento, legopc (helper `elementScript`, usato da `itemAdd`,
+`itemAddFromfile`, `topRead`):
 
-Vuoi un decoro con comportamento speciale? Basta dargli il suo `@<nome>_0.tcl`
-dedicato: avrà la precedenza sul `_default.tcl`.
+1. usa `<lib>/<nome>.tcl` **se esiste** (moduli veri e `@com_0`/`@val_0` ce
+   l'hanno);
+2. altrimenti, **solo se il nome inizia con `@`**, usa `$LG_TIX/bgelement.tcl`.
+
+Il **gate `@`** è la rete di sicurezza: un **modulo vero** (nome senza `@`) con
+il `.tcl` mancante **non** ripiega — `source` dà errore come prima, così un bug
+di libreria resta visibile. Solo gli elementi non-topologici (`@…`) senza script
+dedicato usano il condiviso.
+
+Vuoi un decoro con comportamento speciale? Dagli il suo `@<nome>_0.tcl` dedicato
+nella libreria: avrà la precedenza sul condiviso.
+
+Template di `bgelement.tcl` (per riferimento; è già in `$LG_TIX`):
+
+```tcl
+	set mymodId [$c create image $x $y -image $idclass$GIForient]
+
+	$c addtag id$mymodId     withtag $mymodId
+	$c addtag module         withtag $mymodId
+	$c addtag $idclass.cls   withtag $mymodId
+	$c addtag $GIForient.ori withtag $mymodId
+	$c addtag remarkdescr    withtag $mymodId
+	if {$fromfile == "yes"} {
+		$c addtag $mlpath.lpath   withtag $mymodId
+	} else {
+		$c addtag $curLibPath.lpath withtag $mymodId
+	}
+	if {$fromfile == "yes"} then {set progName $ff_progNumb} else {inputModName $c $x $y}
+	$c addtag $progName.name withtag $mymodId
+	incr progNumb
+	$c addtag bgimage withtag $mymodId
+```
 
 Cosa NON toccare nel template, e perché:
 
@@ -199,7 +199,8 @@ tutte condizionate al tag **`bgimage`**:
 
 | File / punto | Ruolo |
 |---|---|
-| `legopc.tix` — `elementScript` | sceglie `<nome>.tcl` o, se manca, `_default.tcl` (usato da `itemAdd`/`itemAddFromfile`/`topRead`) |
+| `legopc.tix` — `elementScript` | sceglie `<nome>.tcl` o, se manca ed è un nome `@…`, `$LG_TIX/bgelement.tcl` (usato da `itemAdd`/`itemAddFromfile`/`topRead`) |
+| `src/tix/bgelement.tcl` | script condiviso che crea l'item `image` con i tag + `bgimage` (deployato in `$LG_TIX`) |
 | `fileio.tcl` — `writeFiles` (save `.tom`) | non scrive testo/font per i BG |
 | `fileio.tcl` — `topRead` (load `.tom`) | per i BG consuma il blocco fino a `++++` |
 | `legopc.tix` — `IncollaItem` (paste) | non legge `-text` sui BG |
