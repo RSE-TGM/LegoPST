@@ -197,7 +197,11 @@ puts "writeFiles: $item è un MODULO nelem=$nelem  blo_nam=$blo_nam($nelem)"
 			}
 		}
 #Guag 16/05/2007 
-                if {[lsearch [$c gettags $item] remarkdescr] != -1} {
+#                le immagini di background (tag bgimage) non hanno testo/font:
+#                l'immagine viene ricreata dal .tcl al load (topRead pass-1),
+#                quindi qui non si scrive nulla tra il nome e il "++++".
+                if {[lsearch [$c gettags $item] remarkdescr] != -1 &&
+                    [lsearch [$c gettags $item] bgimage] == -1} {
 #                	set qqqq [lsearch -inline [$c gettags $item] remarkdescr]
                 	set testo_attuale [$c itemcget $item -text ]
 ##debug tk_messageBox -message "writeFiles:item=$item\n testo_attuale=$testo_attuale=\n font=$::xfont"
@@ -380,7 +384,7 @@ proc topRead {c model} {
 		set fromfile "yes"
             set idclass $mclass
 #		tk_messageBox -message "fileio.tcl: prima di include tcl"
-		set result [source [file join $mlpath $mclass.tcl]]
+		set result [source [elementScript $mlpath $mclass]]
 #		tk_messageBox -message "fileio.tcl: dopo di include tcl"
 		gets $fileid mclass
 	}
@@ -392,9 +396,18 @@ proc topRead {c model} {
 ##e comportarsi di conseguenza, senza cercare connessioni se no d�errore
 		gets $fileid mname
 		if { [regexp {@} $mclass] == 1} {
-# �un elemento di tipo remark			
-			set item [$c find withtag $mname.name ] 
-			gets $fileid fontbuff			
+# �un elemento di tipo remark
+			set item [$c find withtag $mname.name ]
+# le immagini di background (bgimage) non hanno testo/font: l'immagine e'
+# gia' stata ricreata nel pass-1 (source .tcl). Qui consumo solo il blocco
+# fino a "++++" senza applicare nulla.
+			if {[lsearch [$c gettags $item] bgimage] != -1} {
+				gets $fileid riga_bg
+				while {$riga_bg != "++++"} { gets $fileid riga_bg }
+				gets $fileid mclass
+				continue
+			}
+			gets $fileid fontbuff
 			gets $fileid testo_linea
 			if { $testo_linea != "++++"} { 
 			   set testo_dafile $testo_linea

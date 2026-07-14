@@ -1101,6 +1101,21 @@ drawlinks $c
 nascondi_links $c 0
 }
 
+# elementScript: path dello script .tcl da sorgiare per istanziare l'elemento
+# di classe $cls dalla libreria $dir. Se manca <cls>.tcl (tipico degli elementi
+# di background, che condividono UN solo script generico basato su $idclass)
+# ripiega su <dir>/_default.tcl. Cosi' un'intera libreria di icone decorative
+# puo' avere un solo _default.tcl + una GIF per elemento (aggiungere un decoro
+# = mettere la sua GIF, nessun .tcl per-elemento). Se non esiste nemmeno il
+# fallback ritorna il path originale, cosi' 'source' dara' l'errore standard.
+proc elementScript {dir cls} {
+	set f [file join $dir $cls.tcl]
+	if {[file exists $f]} { return $f }
+	set d [file join $dir _default.tcl]
+	if {[file exists $d]} { return $d }
+	return $f
+}
+
 proc itemAdd {c x y} {
 	global modified needbuild
 	global curTool curLibPath progNumb progName wsXsiz wsYsiz
@@ -1112,7 +1127,7 @@ proc itemAdd {c x y} {
 	set y [expr $y + [lindex [$c yview] 0] * $wsYsiz]
       set GIForient "n"
       set idclass $curTool
-	source [file join $curLibPath $curTool.tcl]
+	source [elementScript $curLibPath $curTool]
 	# Se l'utente cancella l'inserimento (Escape), progName sarà vuoto
 	if {$progName eq ""} {
 		# Cancella il modulo e tutte le porte associate (taggati con id$mymodId)
@@ -1156,7 +1171,7 @@ global progNumb modified needbuild
 	}
     if { $curname != "?" } { aggiungi_eccedi14 $curname $ff_progNumb }
 
-	source [file join $libp $ctool.tcl]
+	source [elementScript $libp $ctool]
 	set modified 1
 	set needbuild 1
 
@@ -2297,6 +2312,8 @@ set y $::currTid_y
                 -message "Questo elemento non ha testo statico.\nIn modalità View -> Show Value, fai doppio-click sul campo per assegnare la variabile da animare."
             return
         }
+#se è un'immagine di background (bgimage) non ha testo statico da modificare
+        if {[lsearch -exact $mylist  bgimage] != -1} { return }
 #è un remark, procedo
 	set mytag [lindex $mylist [lsearch $mylist id* ]]
 	set fontbuff [leggi_font $c $mytag 1 "qq"]
@@ -3117,7 +3134,7 @@ set curname [file rootname [lindex [$c gettags $mytid] [lsearch [$c gettags $myt
 	set mymod_paste [itemAddFromfile $c $x $y $ctool $lpath $prnum $ori $curname]
 #tk_messageBox -message "IncollaItem 2: $::currTags\n lpath=$lpath ctool=$ctool ori=$ori\n progNumb=$progNumb\n prnum=$prnum curname=$curname"
 	
-	if {$isremark == 1} {
+	if {$isremark == 1 && [lsearch -exact $mytags bgimage] == -1} {
 		set testo_attuale [$c itemcget $mytid -text ]
 		set xfont_color [leggi_font $c $mytid 1 "qq"]
 		set xfont "[lindex $xfont_color 0] [lindex $xfont_color 1]"
