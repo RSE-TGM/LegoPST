@@ -56,8 +56,9 @@ def _find_free_slot():
 
 
 class _FMUInstance:
-    def __init__(self, name, fmu_path):
+    def __init__(self, name, fmu_path, hmi=False):
         self.name = name
+        self.hmi  = hmi     # True -> apre la HMI draw2gr al fmi2Instantiate
         # Dir persistente accanto al .fmu (come run_fmu.sh): evita problemi di
         # path relativi in sked_start e collisioni su run successivi.
         self.unzip_dir = os.path.splitext(os.path.abspath(fmu_path))[0]
@@ -114,10 +115,16 @@ class _FMUInstance:
             raise RuntimeError(f"[lg_cosim] tutti gli 8 slot SHM occupati per uid={os.getuid()}")
         _cenv_set('SHR_USR_KEY',  str(slot_key))
         _cenv_set('SHR_USR_KEYS', str(slot_key + 1000))
+        # HMI: la .so apre draw2gr in fmi2Instantiate se LG_FMU_OPEN_HMI=1.
+        # La impostiamo esplicitamente per-FMU (1 solo per le hmi:true; 0 per le
+        # altre, cosi' non ereditano una var globale). Serve un DISPLAY X11:
+        # senza, la .so ignora la richiesta (nessuna finestra).
+        _cenv_set('LG_FMU_OPEN_HMI', '1' if self.hmi else '0')
         self.slave = FMU2Slave(
             guid=self.guid, unzipDirectory=self.unzip_dir,
             modelIdentifier=self.model_id, instanceName=self.name)
         self.slave.instantiate()
+        _cenv_set('LG_FMU_OPEN_HMI', '0')   # reset per l'istanza FMU successiva
         self._shr_usr_key  = _cenv_get('SHR_USR_KEY')
         self._shr_usr_keys = _cenv_get('SHR_USR_KEYS')
         print(f"[lg_cosim] {self.name}: slot SHM SHR_USR_KEY={self._shr_usr_key}")
@@ -197,11 +204,17 @@ class LgCosim:
         self.start_values = cfg.get("start_values", {})  # {"A.VAR": val, ...}
 
         self.fmus = {}
-        for name, path in cfg["fmus"].items():
+        for name, spec in cfg["fmus"].items():
+            # spec = "path.fmu"  oppure  {"path": "...", "hmi": true}
+            if isinstance(spec, dict):
+                path = spec["path"]; hmi = bool(spec.get("hmi", False))
+            else:
+                path = spec; hmi = False
             if not os.path.isabs(path):
                 path = os.path.join(self._cfg_dir, path)
-            print(f"[lg_cosim] caricamento {name}: {os.path.basename(path)}")
-            self.fmus[name] = _FMUInstance(name, path)
+            print(f"[lg_cosim] caricamento {name}: {os.path.basename(path)}"
+                  + ("  [HMI]" if hmi else ""))
+            self.fmus[name] = _FMUInstance(name, path, hmi=hmi)
 
     @staticmethod
     def _split(ref):

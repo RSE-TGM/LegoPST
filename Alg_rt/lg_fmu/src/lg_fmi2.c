@@ -643,8 +643,18 @@ static void maybe_open_hmi(lg_fmi2_instance *inst)
     /* Nessun argomento: run_draw2gr.sh auto-trova l'unica task sotto task/.
      * '&' => background: la HMI e' un'app GUI long-running, non deve bloccare
      * fmi2Instantiate. */
-    char cmd[LG_FMI2_PATH_MAX + 64];
-    snprintf(cmd, sizeof(cmd), "bash \"%s\" >/dev/null 2>&1 &", script);
+    char cmd[LG_FMI2_PATH_MAX * 2 + 96];
+    /* In launch mode (sim avviata da noi) la sim di QUESTA FMU gira nella sua
+     * task_path: passiamo LG_SIM_PATH esplicito, cosi' la HMI (Plot/Show Value/
+     * Command) punta alla sim giusta anche in co-simulazione con piu' FMU/net_sked
+     * attivi, senza affidarsi all'euristica pgrep di run_draw2gr.sh. In attach
+     * mode la sim e' esterna: lasciamo che run_draw2gr.sh la trovi da solo. */
+    if (inst->we_started_sim)
+        snprintf(cmd, sizeof(cmd),
+                 "LG_SIM_PATH=\"%s\" bash \"%s\" >/dev/null 2>&1 &",
+                 inst->task_path, script);
+    else
+        snprintf(cmd, sizeof(cmd), "bash \"%s\" >/dev/null 2>&1 &", script);
     if (getenv("LG_FMU_DEBUG"))
         fprintf(stderr, "[lg_fmu DBG] open_hmi: %s\n", cmd);
     lg_log(inst, fmi2OK, "logAll", "open_hmi: %s", cmd);

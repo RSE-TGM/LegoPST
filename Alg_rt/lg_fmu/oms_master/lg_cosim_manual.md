@@ -78,7 +78,7 @@ python3 lg_cosim.py config.json
     "log_vars":    ["FMU_A.VARNAME", "FMU_B.VARNAME"]
   },
   "fmus": {
-    "FMU_A": "path/al/modello_a.fmu",
+    "FMU_A": {"path": "path/al/modello_a.fmu", "hmi": true},
     "FMU_B": "path/al/modello_b.fmu"
   },
   "start_values": {
@@ -337,6 +337,40 @@ FMU alla volta).
 | `to_dispatcher: ...` su stdout durante la sim | Output normale del dispatcher C (non un errore) | Redirigere stderr a `/dev/null` o a file se disturbano |
 
 ---
+
+## HMI (draw2gr) in co-simulazione
+
+Per aprire la HMI interattiva **draw2gr** (schema animato, *View→Show Value*,
+Plot, Command Mode) su una FMU dentro la co-simulazione, dai a quella FMU la
+forma estesa con **`"hmi": true`** nel `config.json`:
+
+```json
+"fmus": {
+  "COLLET":     {"path": "example/legoclix_collet_bundle.fmu", "hmi": true},
+  "CONTROLLER": "example/legoclix_ctrcoll_bundle.fmu"
+}
+```
+
+```bash
+DISPLAY=:0 python3 lg_cosim.py config.json --speedup 1.0
+```
+
+- Apre **una HMI per ogni FMU con `hmi:true`** (le altre restano headless).
+  `lg_cosim` imposta `LG_FMU_OPEN_HMI=1` **solo** durante l'istanza di quelle
+  FMU, quindi hai il controllo puntuale.
+- Serve un **`DISPLAY` X11**: senza, la FMU ignora la richiesta (nessuna finestra,
+  la co-sim prosegue).
+- Usa **`--speedup 1.0`** (o simile): a velocità massima la sim vola e la HMI non
+  è utile per osservare/perturbare.
+- Ogni FMU ha il suo **slot `SHR_USR_KEY`** e la sua HMI punta **esattamente**
+  alla propria sim: `lg_fmi2.c` passa `LG_SIM_PATH = task_path` della FMU (in
+  launch mode), quindi niente ambiguità di Plot/Show Value anche con più
+  `net_sked` attivi.
+- Il **Command Mode** (perturbazione via xaing) agisce sul `net_sked` di quella
+  FMU: in co-simulazione la perturbi mentre il master scambia le variabili.
+
+> Nota: richiede FMU generate con il codice corrente (il passaggio esplicito di
+> `LG_SIM_PATH` è nella `.so` del bundle). Rigenera con `dolgfmu -b <task>`.
 
 ## Test in Docker (prova di portabilità, senza LegoPST)
 
