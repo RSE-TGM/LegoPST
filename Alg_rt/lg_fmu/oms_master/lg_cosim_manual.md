@@ -338,5 +338,31 @@ FMU alla volta).
 
 ---
 
+## Test in Docker (prova di portabilità, senza LegoPST)
+
+Per verificare che la co-simulazione **accoppiata** giri su una macchina *senza
+LegoPST installato*, c'è lo script
+[`../scripts/test_cosim_docker.sh`](../scripts/test_cosim_docker.sh): lancia
+`lg_cosim.py` + le FMU del config in un container Docker effimero
+(`python:3.11-slim`), installando solo `fmpy`.
+
+```bash
+../scripts/test_cosim_docker.sh                       # config di default, max velocità
+../scripts/test_cosim_docker.sh -s 1.0 -t 60          # tempo reale, 60 s
+../scripts/test_cosim_docker.sh -d /path/config.json  # altra config + debug FMU
+```
+
+- Monta la dir del config **read-only**; copia tutto in una dir effimera del
+  container ed estrae lì (l'host non viene sporcato da file di root).
+- La FMU (`lg_fmi2.c`) ripristina da sola i bit `+x` dopo l'estrazione via fmpy,
+  quindi **non serve LegoPST né chmod**: è il senso del test.
+- Ogni FMU prende uno **slot `SHR_USR_KEY`** diverso → SHM separate, nessuna
+  collisione. Stampa in coda le ultime righe del log CSV.
+
+A differenza di `test_fmu_docker.sh` (FMU **indipendenti** in parallelo), questo
+esegue il **master accoppiato** con lo scambio uscite→ingressi.
+
+---
+
 *Versione: lg_cosim 1.1 — 2026-05-11*  
 *Aggiornamenti: slot probe Python-side (ID_SHM_VAR), `LG_COSIM_NO_KILLSIM`, `_patch_killsim_guard`, log_file assoluto.*
