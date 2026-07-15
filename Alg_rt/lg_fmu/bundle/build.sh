@@ -175,7 +175,9 @@ if [[ $BUNDLE -eq 1 ]]; then
     # coincidono con quelle di graphics (gia' raccolte nel giro ldd sotto).
     # umis: tool unita' di misura (dialogo View->Units di draw2gr): scrive il
     # file testo per-simulazione uni_misc.cfg letto da viewval/graphics/xaing.
-    for b in dispatcher net_sked killsim net_prepf22 xaing umis; do
+    # viewval: motore di View->Show Value (pipe "viewval -s"): senza, la HMI del
+    # bundle non mostra i valori live delle variabili.
+    for b in dispatcher net_sked killsim net_prepf22 xaing umis viewval; do
         cp -p "$LEGOROOT_ABS/Alg_rt/bin/$b" "$BD/Alg_rt/bin/" \
             || { echo "ERR: $b non trovato in $LEGOROOT_ABS/Alg_rt/bin" >&2; exit 4; }
     done
@@ -355,24 +357,19 @@ LAUNCH
     # non richiede exec bit sul file) prima di lanciare launch_sim.sh.
     cat > "$BD/restore_perms.sh" <<'PERMS'
 #!/usr/bin/env bash
+# fmpy estrae via zipfile Python, che NON preserva il bit +x. Rimettiamo +x su
+# TUTTI gli eseguibili del bundle: una lista hardcoded dimenticava binari (es.
+# viewval/umis -> Show Value/Units KO). Glob delle dir che contengono binari.
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-chmod +x "$SCRIPT_DIR/launch_sim.sh" \
-         "$SCRIPT_DIR/run_graphics.sh" \
-         "$SCRIPT_DIR/run_draw2gr.sh" \
-         "$SCRIPT_DIR/Alg_rt/bin/dispatcher" \
-         "$SCRIPT_DIR/Alg_rt/bin/net_sked" \
-         "$SCRIPT_DIR/Alg_rt/bin/killsim" \
-         "$SCRIPT_DIR/Alg_rt/bin/net_prepf22" \
-         "$SCRIPT_DIR/Alg_rt/bin/graphics" \
-         "$SCRIPT_DIR/Alg_rt/bin/xaing" \
-         "$SCRIPT_DIR/tclbin/wish" \
-         "$SCRIPT_DIR/Alg_rt/lg_fmu/scripts/net_startup_headless.sh" \
-         "$SCRIPT_DIR/Alg_rt/lg_fmu/tools/probe_init" \
-         "$SCRIPT_DIR/lego_big/bin/initav" 2>/dev/null || true
-# Eseguibili dentro task/<name>/proc/ (lg5sk e altri lg*).
 shopt -s nullglob
+chmod +x "$SCRIPT_DIR"/*.sh 2>/dev/null || true
+for d in "$SCRIPT_DIR/Alg_rt/bin" "$SCRIPT_DIR/tclbin" "$SCRIPT_DIR/lego_big/bin" \
+         "$SCRIPT_DIR/Alg_rt/lg_fmu/scripts" "$SCRIPT_DIR/Alg_rt/lg_fmu/tools"; do
+    [[ -d "$d" ]] && chmod +x "$d"/* 2>/dev/null || true
+done
+# Eseguibili dentro task/<name>/proc/ (lg5sk e altri lg*).
 for f in "$SCRIPT_DIR"/task/*/proc/*; do
-    [[ -f "$f" ]] && chmod +x "$f"
+    [[ -f "$f" ]] && chmod +x "$f" 2>/dev/null || true
 done
 shopt -u nullglob
 exit 0
@@ -475,12 +472,27 @@ export LG_FMU_BUNDLE=1
 [[ -n "${DISPLAY:-}" ]]      || { echo "ERR: DISPLAY non impostato (serve X11)" >&2; exit 1; }
 [[ -n "${SHR_USR_KEY:-}" ]]  || { echo "ERR: SHR_USR_KEY non impostata (sim non attiva?)" >&2; exit 1; }
 
-# cwd = task dir: draw2gr usa [pwd] per .tom / f01 / f14 / f22
+# cwd = task dir del bundle: draw2gr usa [pwd] per caricare lo schema (.tom/f01/f14).
 if [[ $# -ge 1 && -d "$1" ]]; then
     cd "$1"; shift
 else
     TASKDIR=$(find "$SCRIPT_DIR/task" -maxdepth 1 -mindepth 1 -type d 2>/dev/null | head -1)
     [[ -n "$TASKDIR" ]] && cd "$TASKDIR"
+fi
+
+# I dati LIVE (f22circ.dat per il Plot, SHM/variabili.rtf per Show Value) sono
+# nella cwd del net_sked della sim, che in ATTACH mode NON e' questa copia
+# statica del bundle ma la dir reale della simulazione. Impostiamo LG_SIM_PATH
+# a quella dir: draw2gr (Set Sim path / ::anima_sim_path) ci ripunta il f22 del
+# Plot e ci fa 'cd' per viewval/xaing. Se coincide con la cwd (launch mode:
+# net_sked gira qui nel bundle) e' un no-op. Portabile: pgrep/readlink standard.
+if [[ -z "${LG_SIM_PATH:-}" ]]; then
+    for _pid in $(pgrep -x net_sked 2>/dev/null); do
+        _sd="$(readlink "/proc/$_pid/cwd" 2>/dev/null)"
+        if [[ -n "$_sd" && -f "$_sd/f22circ.dat" ]]; then
+            export LG_SIM_PATH="$_sd"; break
+        fi
+    done
 fi
 
 # draw2gr.tcl argv: [0]=0(grafics)/1(graphics)  [1]=base f22 SENZA .dat

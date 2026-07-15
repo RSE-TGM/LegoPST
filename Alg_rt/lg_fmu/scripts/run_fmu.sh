@@ -238,6 +238,16 @@ unzip_dir = os.path.abspath(unzip_dir)
 extract(fmu_path, unzipdir=unzip_dir)
 print(f"[run_fmu] unzipped : {unzip_dir}")
 
+# fmpy estrae via zipfile Python, che NON preserva il bit +x: senza questo il
+# wish/net_sked/xaing/graphics del bundle restano non-eseguibili (es. la HMI
+# --hmi in attach mode non si apriva). Il bundle porta restore_perms.sh: lo
+# eseguiamo qui subito dopo l'estrazione. No-op per FMU non-bundle.
+import subprocess as _sp
+_rp = os.path.join(unzip_dir, "resources", "bundle", "restore_perms.sh")
+if os.path.isfile(_rp):
+    _sp.run(["bash", _rp], check=False)
+    print("[run_fmu] restore_perms: bundle executables +x")
+
 if mode == "validate":
     from fmpy.validation import validate_fmu
     issues = validate_fmu(fmu_path)

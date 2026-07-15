@@ -370,26 +370,34 @@ static void msleep_lg(long ms)
 }
 
 /* exec headless launcher and poll fino a sim ready o timeout. */
+/* fmpy estrae il bundle via Python zipfile, che NON preserva il bit +x.
+ * restore_perms.sh (generato da bundle/build.sh) riapplica chmod +x sui file
+ * noti del bundle (net_sked, wish, xaing, graphics, script...). Va invocato in
+ * bundle mode SIA in launch SIA in ATTACH: la HMI (run_draw2gr.sh -> wish,
+ * xaing, graphics) serve anche quando la sim e' gia' attiva (attach), dove
+ * launch_sim_and_wait NON viene chiamato -> senza questo il wish del bundle
+ * resta non-eseguibile e la HMI non si apre. Invocato via `bash` (non richiede
+ * l'exec bit sul file). Idempotente (no-op se i bit erano gia' a posto). */
+static void restore_bundle_perms(lg_fmi2_instance *inst)
+{
+    if (!inst->bundle_mode) return;
+    char rcmd[LG_FMI2_PATH_MAX + 64];
+    snprintf(rcmd, sizeof(rcmd),
+             "bash \"%s/restore_perms.sh\" >/dev/null 2>&1",
+             inst->legoroot_path);
+    if (getenv("LG_FMU_DEBUG"))
+        fprintf(stderr, "[lg_fmu DBG] restore_perms: %s\n", rcmd);
+    system(rcmd);
+}
+
 static int launch_sim_and_wait(lg_fmi2_instance *inst)
 {
     char script[LG_FMI2_PATH_MAX];
     char cmd[LG_FMI2_PATH_MAX * 2 + 64];
     if (inst->bundle_mode) {
-        /* fmpy estrae il bundle via Python zipfile, che NON preserva il
-         * bit +x. restore_perms.sh (generato da bundle/build.sh) riapplica
-         * chmod +x sui file noti del bundle; lo invochiamo via `bash` (che
-         * non richiede l'exec bit sul file stesso) prima del launch.
-         * Idempotente: se i bit erano gia' a posto (estrazione via unzip
-         * sull'host), il chmod e' un no-op. */
-        char rcmd[LG_FMI2_PATH_MAX + 64];
-        snprintf(rcmd, sizeof(rcmd),
-                 "bash \"%s/restore_perms.sh\" >/dev/null 2>&1",
-                 inst->legoroot_path);
-        if (getenv("LG_FMU_DEBUG"))
-            fprintf(stderr, "[lg_fmu DBG] restore_perms: %s\n", rcmd);
-        system(rcmd);
-
-        /* launch_sim.sh setta LEGOROOT/PATH/LD_LIBRARY_PATH e poi invoca
+        /* I permessi +x del bundle sono gia' stati ripristinati da
+         * restore_bundle_perms() in fmi2Instantiate (in entrambi i modi).
+         * launch_sim.sh setta LEGOROOT/PATH/LD_LIBRARY_PATH e poi invoca
          * net_startup_headless.sh dentro il bundle. */
         snprintf(script, sizeof(script),
                  "%s/launch_sim.sh", inst->legoroot_path);
@@ -705,6 +713,9 @@ FMI2_Export fmi2Component fmi2Instantiate(fmi2String instanceName,
      * imposta env e cwd, prova ad attaccarsi alla sim; se non c'e',
      * lancia net_startup_headless.sh e attende che sia pronta. */
     int dbg_inst = getenv("LG_FMU_DEBUG") != NULL;
+    /* Ripristina i bit +x del bundle PRIMA di attach/launch: serve al net_sked
+     * (launch mode) e al wish/xaing/graphics della HMI (anche in attach mode). */
+    restore_bundle_perms(inst);
     if (attach_or_launch(inst) != 0) {
         if (dbg_inst) fprintf(stderr, "[lg_fmu DBG] attach_or_launch FAIL\n");
         if (inst->dbpunti) RtDestroyDbPunti((RtDbPuntiOggetto)inst->dbpunti);
