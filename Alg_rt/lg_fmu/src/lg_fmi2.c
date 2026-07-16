@@ -393,10 +393,11 @@ static void restore_bundle_perms(lg_fmi2_instance *inst)
 static int launch_sim_and_wait(lg_fmi2_instance *inst)
 {
     char script[LG_FMI2_PATH_MAX];
-    char cmd[LG_FMI2_PATH_MAX * 2 + 64];
+    char logf[LG_FMI2_PATH_MAX];
+    char cmd[LG_FMI2_PATH_MAX * 3 + 96];
     if (inst->bundle_mode) {
         /* I permessi +x del bundle sono gia' stati ripristinati da
-         * restore_bundle_perms() in fmi2Instantiate (in entrambi i modi).
+         * restore_bundle_perms() in attach_or_launch (in entrambi i modi).
          * launch_sim.sh setta LEGOROOT/PATH/LD_LIBRARY_PATH e poi invoca
          * net_startup_headless.sh dentro il bundle. */
         snprintf(script, sizeof(script),
@@ -416,26 +417,34 @@ static int launch_sim_and_wait(lg_fmi2_instance *inst)
 
     int dbg = getenv("LG_FMU_DEBUG") != NULL;
 
-    /* Quote sicuro per spazi nel TASK_PATH; in debug NON redirigere a null
-     * cosi' vediamo cosa stampa il launcher. */
-    if (dbg) {
-        snprintf(cmd, sizeof(cmd),
-                 "\"%s\" \"%s\" 2>&1 | sed 's,^,[lg_fmu LAUNCH] ,' >&2",
-                 script, inst->task_path);
-    } else {
-        snprintf(cmd, sizeof(cmd), "\"%s\" \"%s\" >/dev/null 2>&1",
-                 script, inst->task_path);
-    }
+    /* Quote sicuro per spazi nel TASK_PATH. Redirigiamo su file invece di
+     * pipare a sed: lo stato d'uscita di una pipeline e' quello dell'ULTIMO
+     * comando (sed), quindi system() tornava sempre 0 e un launcher fallito
+     * passava inosservato fino al timeout di boot, riportato come "TIMEOUT"
+     * invece del motivo vero (es. "Permission denied"). Col file otteniamo
+     * sia lo stato reale sia il motivo, e il log resta per il debug. */
+    snprintf(logf, sizeof(logf), "%s/launch_sim.fmu.log", inst->task_path);
+    snprintf(cmd, sizeof(cmd), "\"%s\" \"%s\" > \"%s\" 2>&1",
+             script, inst->task_path, logf);
 
     lg_log(inst, fmi2OK, "logAll", "auto-launch: %s", cmd);
     if (dbg) fprintf(stderr, "[lg_fmu DBG] system: %s\n", cmd);
 
-    int rc = system(cmd);
-    if (dbg) fprintf(stderr, "[lg_fmu DBG] system rc=%d (WEXITSTATUS=%d)\n",
-                     rc, WEXITSTATUS(rc));
-    if (rc != 0) {
+    int rc  = system(cmd);
+    int lrc = (rc == -1) ? -1 : WEXITSTATUS(rc);
+    if (dbg) fprintf(stderr,
+                     "[lg_fmu DBG] launcher rc=%d (log: %s)\n", lrc, logf);
+    /* In debug mostriamo sempre l'output; in caso di errore lo mostriamo
+     * comunque, altrimenti il fallimento resterebbe muto. */
+    if (dbg || lrc != 0) {
+        char pcmd[LG_FMI2_PATH_MAX + 64];
+        snprintf(pcmd, sizeof(pcmd),
+                 "sed 's,^,[lg_fmu LAUNCH] ,' \"%s\" >&2", logf);
+        system(pcmd);
+    }
+    if (lrc != 0) {
         lg_log(inst, fmi2Error, "logStatusError",
-               "headless launcher uscito con rc=%d", rc);
+               "headless launcher fallito (rc=%d), log: %s", lrc, logf);
         /* prosegui col polling: a volte i background sono partiti comunque */
     }
 
@@ -581,6 +590,13 @@ static int attach_or_launch(lg_fmi2_instance *inst)
         "[lg_fmu DBG] bundle_mode=%d legoroot='%s' task='%s'\n",
         inst->bundle_mode, inst->legoroot_path, inst->task_path);
 
+    /* Ripristina i bit +x del bundle PRIMA di attach/launch. Va qui e non in
+     * fmi2Instantiate: bundle_mode e legoroot_path sono noti solo ora (letti da
+     * task_info.env poco sopra); chiamata prima, su una struct appena calloc-ata,
+     * usciva sempre subito sul guard !bundle_mode -> no-op silenzioso e
+     * launch_sim.sh non eseguibile ("Permission denied"). */
+    restore_bundle_perms(inst);
+
     /* 3. setenv + 4. chdir */
     setup_legopst_env(inst->legoroot_path, inst->bundle_mode);
     if (dbg) fprintf(stderr,
@@ -642,8 +658,13 @@ static void maybe_open_hmi(lg_fmi2_instance *inst)
     }
     /* Nessun argomento: run_draw2gr.sh auto-trova l'unica task sotto task/.
      * '&' => background: la HMI e' un'app GUI long-running, non deve bloccare
-     * fmi2Instantiate. */
-    char cmd[LG_FMI2_PATH_MAX * 2 + 96];
+     * fmi2Instantiate. Essendo in background non abbiamo uno stato d'uscita da
+     * controllare, quindi l'output NON va su /dev/null ma su un log: cosi' un
+     * fallimento di draw2gr (es. errore Tcl in avvio) e' diagnosticabile invece
+     * di manifestarsi come "la HMI non compare" senza alcuna traccia. */
+    char hlog[LG_FMI2_PATH_MAX];
+    char cmd[LG_FMI2_PATH_MAX * 3 + 96];
+    snprintf(hlog, sizeof(hlog), "%s/draw2gr.fmu.log", inst->task_path);
     /* In launch mode (sim avviata da noi) la sim di QUESTA FMU gira nella sua
      * task_path: passiamo LG_SIM_PATH esplicito, cosi' la HMI (Plot/Show Value/
      * Command) punta alla sim giusta anche in co-simulazione con piu' FMU/net_sked
@@ -651,13 +672,13 @@ static void maybe_open_hmi(lg_fmi2_instance *inst)
      * mode la sim e' esterna: lasciamo che run_draw2gr.sh la trovi da solo. */
     if (inst->we_started_sim)
         snprintf(cmd, sizeof(cmd),
-                 "LG_SIM_PATH=\"%s\" bash \"%s\" >/dev/null 2>&1 &",
-                 inst->task_path, script);
+                 "LG_SIM_PATH=\"%s\" bash \"%s\" > \"%s\" 2>&1 &",
+                 inst->task_path, script, hlog);
     else
-        snprintf(cmd, sizeof(cmd), "bash \"%s\" >/dev/null 2>&1 &", script);
+        snprintf(cmd, sizeof(cmd), "bash \"%s\" > \"%s\" 2>&1 &", script, hlog);
     if (getenv("LG_FMU_DEBUG"))
         fprintf(stderr, "[lg_fmu DBG] open_hmi: %s\n", cmd);
-    lg_log(inst, fmi2OK, "logAll", "open_hmi: %s", cmd);
+    lg_log(inst, fmi2OK, "logAll", "open_hmi: %s (log: %s)", cmd, hlog);
     system(cmd);
 }
 
@@ -723,9 +744,6 @@ FMI2_Export fmi2Component fmi2Instantiate(fmi2String instanceName,
      * imposta env e cwd, prova ad attaccarsi alla sim; se non c'e',
      * lancia net_startup_headless.sh e attende che sia pronta. */
     int dbg_inst = getenv("LG_FMU_DEBUG") != NULL;
-    /* Ripristina i bit +x del bundle PRIMA di attach/launch: serve al net_sked
-     * (launch mode) e al wish/xaing/graphics della HMI (anche in attach mode). */
-    restore_bundle_perms(inst);
     if (attach_or_launch(inst) != 0) {
         if (dbg_inst) fprintf(stderr, "[lg_fmu DBG] attach_or_launch FAIL\n");
         if (inst->dbpunti) RtDestroyDbPunti((RtDbPuntiOggetto)inst->dbpunti);

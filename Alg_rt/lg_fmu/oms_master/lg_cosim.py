@@ -10,7 +10,7 @@ Uso:
 Speedup: null/0 = massima velocità, 1.0 = real-time, 2.0 = 2× real-time
 """
 
-import json, os, sys, csv, time, argparse, ctypes, glob
+import json, os, sys, csv, time, argparse, ctypes, glob, subprocess
 from fmpy import read_model_description, extract
 from fmpy.fmi2 import FMU2Slave
 
@@ -63,7 +63,18 @@ class _FMUInstance:
         # path relativi in sked_start e collisioni su run successivi.
         self.unzip_dir = os.path.splitext(os.path.abspath(fmu_path))[0]
         extract(fmu_path, unzipdir=self.unzip_dir)
+        self._restore_perms()
         self._patch_killsim_guard()
+        # FMU LegoPST? Discriminante = resources/task_info.env, il file che
+        # attach_or_launch (lg_fmi2.c) richiede per ricavare TASK_PATH/LEGOROOT:
+        # c'e' in tutte le FMU LegoPST (bundle e non), non in una FMU standard.
+        # Serve a saltare lo slot SHM e la HMI su FMU di terze parti, che non
+        # sanno che farsene (vedi instantiate()).
+        self.is_lego = os.path.isfile(
+            os.path.join(self.unzip_dir, "resources", "task_info.env"))
+        if self.hmi and not self.is_lego:
+            print(f"[lg_cosim] {name}: 'hmi' ignorato, non e' una FMU LegoPST")
+            self.hmi = False
         md = read_model_description(fmu_path)
         self.guid     = md.guid
         self.model_id = md.coSimulation.modelIdentifier
@@ -77,6 +88,16 @@ class _FMUInstance:
         self.slave = None
         self._shr_usr_key  = None   # slot SHM scelto da fmi2Instantiate
         self._shr_usr_keys = None
+
+    def _restore_perms(self):
+        """fmpy estrae via zipfile Python, che NON preserva il bit +x: senza
+        questo launch_sim.sh/net_sked/wish del bundle restano non-eseguibili e
+        fmi2Instantiate muore con 'Permission denied'. Stessa cosa che fa
+        run_fmu.sh dopo extract(). Invocato via `bash` (non serve l'exec bit sul
+        file stesso). No-op per FMU non-bundle, idempotente."""
+        rp = os.path.join(self.unzip_dir, "resources", "bundle", "restore_perms.sh")
+        if os.path.isfile(rp):
+            subprocess.run(["bash", rp], check=False)
 
     def _patch_killsim_guard(self):
         """Wrappa killsim nei net_startup_headless.sh estratti con la guardia
@@ -105,25 +126,33 @@ class _FMUInstance:
         raise KeyError(f"variabile '{var}' non trovata in FMU '{self.name}'")
 
     def instantiate(self):
-        # Il probe slot in lg_fmi2.c usa ID_SHM_SIM=0 che in modalità headless
-        # non viene mai creato → tutti gli slot sembrano liberi → collisione.
-        # Facciamo il probe qui da Python usando ID_SHM_VAR=5 (la SHM che esiste
-        # davvero) e pre-assegniamo SHR_USR_KEY prima di chiamare fmi2Instantiate.
-        # Usiamo ctypes perché os.environ non vede i setenv() delle .so C.
-        slot_key = _find_free_slot()
-        if slot_key is None:
-            raise RuntimeError(f"[lg_cosim] tutti gli 8 slot SHM occupati per uid={os.getuid()}")
-        _cenv_set('SHR_USR_KEY',  str(slot_key))
-        _cenv_set('SHR_USR_KEYS', str(slot_key + 1000))
-        # HMI: la .so apre draw2gr in fmi2Instantiate se LG_FMU_OPEN_HMI=1.
-        # La impostiamo esplicitamente per-FMU (1 solo per le hmi:true; 0 per le
-        # altre, cosi' non ereditano una var globale). Serve un DISPLAY X11:
-        # senza, la .so ignora la richiesta (nessuna finestra).
-        _cenv_set('LG_FMU_OPEN_HMI', '1' if self.hmi else '0')
+        # Slot SHM e HMI riguardano solo le FMU LegoPST: una FMU standard ignora
+        # SHR_USR_KEY/LG_FMU_OPEN_HMI e non crea alcuna SHM, quindi il probe la
+        # vedrebbe sempre "libera" assegnando lo stesso slot a tutte (innocuo ma
+        # fuorviante) e potrebbe far fallire per "slot esauriti" una co-sim di
+        # sole FMU di terze parti. Saltiamo il blocco per le non-LegoPST.
+        if self.is_lego:
+            # Il probe slot in lg_fmi2.c usa ID_SHM_SIM=0 che in modalità headless
+            # non viene mai creato → tutti gli slot sembrano liberi → collisione.
+            # Facciamo il probe qui da Python usando ID_SHM_VAR=5 (la SHM che esiste
+            # davvero) e pre-assegniamo SHR_USR_KEY prima di chiamare fmi2Instantiate.
+            # Usiamo ctypes perché os.environ non vede i setenv() delle .so C.
+            slot_key = _find_free_slot()
+            if slot_key is None:
+                raise RuntimeError(f"[lg_cosim] tutti gli 8 slot SHM occupati per uid={os.getuid()}")
+            _cenv_set('SHR_USR_KEY',  str(slot_key))
+            _cenv_set('SHR_USR_KEYS', str(slot_key + 1000))
+            # HMI: la .so apre draw2gr in fmi2Instantiate se LG_FMU_OPEN_HMI=1.
+            # La impostiamo esplicitamente per-FMU (1 solo per le hmi:true; 0 per le
+            # altre, cosi' non ereditano una var globale). Serve un DISPLAY X11:
+            # senza, la .so ignora la richiesta (nessuna finestra).
+            _cenv_set('LG_FMU_OPEN_HMI', '1' if self.hmi else '0')
         self.slave = FMU2Slave(
             guid=self.guid, unzipDirectory=self.unzip_dir,
             modelIdentifier=self.model_id, instanceName=self.name)
         self.slave.instantiate()
+        if not self.is_lego:
+            return
         _cenv_set('LG_FMU_OPEN_HMI', '0')   # reset per l'istanza FMU successiva
         self._shr_usr_key  = _cenv_get('SHR_USR_KEY')
         self._shr_usr_keys = _cenv_get('SHR_USR_KEYS')

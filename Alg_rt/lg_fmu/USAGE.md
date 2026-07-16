@@ -267,7 +267,8 @@ print(f\"OK {len(result)} sample\")"'
 Per target con glibc < 2.38 servirebbe rebuild dei binari LegoPST in un container con baseline più bassa (es. `aguagliardi/legopst_multi:2.0` su Ubuntu 20.04 = glibc 2.31).
 
 **Note di implementazione (non rilevanti per l'utente, lette dalla FMU automaticamente):**
-- fmpy estrae lo zip via Python `zipfile` che NON preserva il bit `+x` → la FMU invoca `bash restore_perms.sh` (generato da `bundle/build.sh`) prima del launch.
+- fmpy estrae lo zip via Python `zipfile` che NON preserva il bit `+x` → la FMU invoca `bash restore_perms.sh` (generato da `bundle/build.sh`) in `attach_or_launch`, prima **sia** dell'attach **sia** del launch (la HMI serve anche in attach mode). Anche i master lato Python lo invocano subito dopo `extract()` (`run_fmu.sh`, `lg_cosim.py`): serve per i bundle il cui `.so` è anteriore al fix, ed è idempotente.
+- `run_draw2gr.sh` esporta **`LG_MODELS`** = `task/` (dir padre del modello): `draw2gr`/`topRead` risolve lo schema come `$LG_MODELS/<model>/<model>.tom`. Nel bundle **non** vale `$LG_ENTRY` (convenzione di `Alg_env.sh`), perché `legocad/` del bundle contiene solo `libgraph`/`lego_big` e nessun modello.
 - Container con utente root (uid=0): SysV SHM key=0 = `IPC_PRIVATE`, non condivisibile. La FMU ricalcola `SHR_USR_KEY = getpid()*10 + 10000` come fallback.
 - Multi-istanza (uid≠0, sim non viva): la FMU sceglie automaticamente uno degli 8 slot `uid*10000 + slot*1100` (slot 1..8) disponibili. Lo slot 0 (= `uid*10000`) è riservato alla sessione LegoPST normale dell'utente: aprendo il banco operatore mentre una FMU gira, le SHM non collidono. Limite: max 8 FMU concorrenti per uid. In co-simulazione tramite `lg_cosim.py`, il probe degli slot è fatto lato Python (con `ID_SHM_VAR=5`) anziché dentro `lg_fmi2.c` (che usa `ID_SHM_SIM=0`, mai creato in headless → tutti i slot sembrano liberi → colliderebbero); `lg_cosim.py` pre-assegna `SHR_USR_KEY` via `ctypes.setenv` prima di ogni `fmi2Instantiate`.
 - Co-simulazione e `killsim`: su Linux `killsim` cancella **tutte** le SHM dell'utente (non solo il proprio slot). In co-simulazione, il `killsim` chiamato da `net_startup_headless.sh` di ogni FMU distruggerebbe le SHM delle FMU già avviate. `lg_cosim.py` setta `LG_COSIM_NO_KILLSIM=1` nell'environment C prima dell'instantiate, e `net_startup_headless.sh` (sia quello installato in `Alg_rt/bin/` sia quelli estratti dai bundle, patchati on-the-fly da `_patch_killsim_guard()`) salta il `killsim` quando questa variabile è impostata.
@@ -444,7 +445,8 @@ cd $LEGOROOT/Alg_rt/lg_fmu/tests && make -f Makefile.mk
 3. `setup_legopst_env`: `SHR_USR_KEY` (se non in env: probe slot 1..8 di `uid*10000+slot*1100` via `shmget(ID_SHM_SIM)` finché ENOENT — slot 0 riservato alla sessione LegoPST normale; uid=0 fallback `getpid()*10+10000`), `SHR_USR_KEYS = SHR_USR_KEY+1000`, `OS=Linux`, `PATH`, `LD_LIBRARY_PATH` (bundle), `SHR_TAV_KEY=999` (bundle)
 4. `chdir(TASK_PATH)`
 5. `try_attach_db` (`RtCreateDbPunti(errore, "TEST", ...)`). `file_top="TEST"` (anziché `NULL`) seleziona `condizione=2` in `InitializeDbPunti` ([RtDbPunti.c:121-127](AlgLib/Rt/RtDbPunti.c#L121-L127)), che in caso di magic mismatch sgancia silenziosamente la SHM invece di emettere `[error shared-memory not attached]`: per noi il fail è atteso (probing pre-launch). Se OK → attach mode (`we_started_sim=0`). Se NO → `launch_sim_and_wait` (`we_started_sim=1`)
-   - In bundle mode: pre-launch invoca `bash restore_perms.sh` (riapplica `chmod +x` post-fmpy.extract)
+   - In bundle mode, **prima** del punto 5 (quindi sia per attach sia per launch): `restore_bundle_perms` invoca `bash restore_perms.sh` (riapplica `chmod +x` post-fmpy.extract). Va chiamata qui e non in `fmi2Instantiate`: `bundle_mode`/`legoroot_path` sono noti solo dopo il punto 2, prima valevano 0/"" e la funzione usciva sul guard `!bundle_mode` (no-op silenzioso → `launch_sim.sh: Permission denied`)
+   - L'output del launcher va su **`<task>/launch_sim.fmu.log`** (non più in pipe a `sed`, che restituiva lo stato di `sed` → `system()` sempre 0 → un launcher fallito passava inosservato fino al timeout di boot). Su errore il log è riversato su stderr anche senza `LG_FMU_DEBUG`
 6. **`init_sim_if_stopped`**: se `RtDbPGetStato == STATO_STOP`, manda `SD_inizializza(BI)` + poll `STATO != STOP` (timeout 30s). Idempotente (no-op se già FREEZE/RUN)
 7. `lg_var_open` + `build_var_index` su `variabili.rtf`
 
@@ -530,6 +532,8 @@ Da lì si vede immediatamente se `n_goup > 1` o se c'è disallineamento.
       legocad/lego_big -> ../lego_big        # symlink atteso da Alg_env.sh:118
       lib/{libgfortran.so.5,libgcc_s.so.1,libsqlite3.so.0,libz.so.1}
       task/<name>/            # copia della task (filtrata via rsync exclude)
+        launch_sim.fmu.log    # (runtime) output di launch_sim.sh + stato reale
+        draw2gr.fmu.log       # (runtime) output della HMI, se aperta
     README.txt
 ```
 
@@ -544,7 +548,8 @@ installato" non vede:
 
 | Problema (in container) | Causa | Fix in lg_fmu |
 |-------------------------|-------|---------------|
-| File del bundle senza bit `+x` dopo `fmpy.extract` | Python `zipfile` non preserva i permessi unix dello zip | `bundle/restore_perms.sh` (generato da `bundle/build.sh`) chmoda i file noti; `lg_fmi2.c::launch_sim_and_wait` lo invoca via `bash` (non richiede exec bit sul file invocato) prima di `launch_sim.sh` |
+| File del bundle senza bit `+x` dopo `fmpy.extract` | Python `zipfile` non preserva i permessi unix dello zip | `bundle/restore_perms.sh` (generato da `bundle/build.sh`) chmoda i file noti; `lg_fmi2.c::attach_or_launch` lo invoca via `bash` (non richiede exec bit sul file invocato) prima di attach e di launch. Anche `run_fmu.sh`/`lg_cosim.py` lo invocano dopo `extract()`, per i bundle col `.so` anteriore al fix |
+| HMI (`--hmi` / `"hmi": true`) non compare, nessun errore | `run_draw2gr.sh` non esportava `LG_MODELS`, richiesta da `draw2gr`/`topRead`: `wish` muore in avvio. Su una macchina **con** LegoPST la variabile trapelava dal profilo (`Alg_env.sh`: `LG_MODELS=$LG_ENTRY`) mascherando il difetto; sulla macchina target del bundle non esiste | `bundle/build.sh` genera `export LG_MODELS="$(dirname "$PWD")"` (= `task/`) in `run_draw2gr.sh`. Diagnosi: `<task>/draw2gr.fmu.log` |
 | `SHR_USR_KEY=0` in container root (uid=0) → `IPC_PRIVATE`, SHM non condivisibile | `Alg_env.sh:234`: `USR_KEY=$(id -u)`, poi `SHR_USR_KEY=USR_KEY*10000` | `lg_fmi2.c::setup_legopst_env`: se `getuid()==0` fallback a `getpid()*10 + 10000`; `net_startup_headless.sh` preserva `SHR_USR_KEY` del caller dopo source profile |
 | `dispatcher non in PATH` exit 2 dal launcher | `/bin/sh = dash` su debian/ubuntu, non digerisce sintassi bash di `.profile_legoroot` (`set -o emacs`, `[[ ]]`) → source silente fallisce → `PATH` non esteso | `net_startup_headless.sh` ora ha shebang `#!/usr/bin/env bash` |
 
@@ -692,9 +697,21 @@ tra run successivi sulla stessa `unzipdir`. Il `rm` in `net_startup_headless.sh`
 Variabile env `LG_FMU_DEBUG=1` (si setta nel processo che carica la `.so`):
 attiva `[lg_fmu DBG] ...` su stderr in:
 - `attach_or_launch`: res_dir, bundle_mode, legoroot, task_path, env post-setup, errno chdir, stato pre-init, esito SD_inizializza
-- `launch_sim_and_wait`: cmd system, rc, polling try_attach
+- `launch_sim_and_wait`: cmd system, rc **reale** del launcher, polling try_attach
 - `fmi2Instantiate`: ptr lg_var_open, rc build_var_index
-- `[lg_fmu LAUNCH]`: stdout/stderr di `launch_sim.sh` (NON ridiretto a /dev/null in debug)
+- `[lg_fmu LAUNCH]`: stdout/stderr di `launch_sim.sh`
+
+**Log persistenti nella task dir** (non richiedono `LG_FMU_DEBUG`):
+
+| File | Contenuto |
+|------|-----------|
+| `<task>/launch_sim.fmu.log` | output di `launch_sim.sh`. Su rc≠0 è riversato anche su stderr come `[lg_fmu LAUNCH] ...` |
+| `<task>/draw2gr.fmu.log` | output della HMI `run_draw2gr.sh`/`wish` (è in background: non ha uno stato d'uscita da controllare, quindi l'errore si legge qui) |
+
+Prima questi due percorsi scrivevano su `/dev/null` (e il launcher era in pipe a
+`sed`, che ne mascherava lo stato d'uscita): un fallimento si manifestava come
+`TIMEOUT boot` dopo 30 s o come "la HMI non compare", senza alcuna traccia del
+motivo. **Primo posto dove guardare** quando la FMU non parte o la HMI non si apre.
 
 Tools standalone (richiedono sim attiva sulla task corrente):
 - `probe_init` — `SD_inizializza(BI)`. Sblocca sim ferma in `STATO_STOP` post-headless
@@ -714,7 +731,7 @@ Tools standalone (richiedono sim attiva sulla task corrente):
 | `to_dispatcher` + `msg_ack.ret=1` ma tempo non avanza | Sim attiva ma in stato sporco da test precedente | `killsim` + `net_startup_headless.sh` |
 | **`fmi2DoStep` status 3** al secondo run, `net_sked.fmu.log` mostra `f22_leggo_header header: p_fine=N` con N>0 | `f22circ.dat` del run precedente sopravvive a `fmpy.extract` (che non cancella la dir); il dispatcher lo riapre in append mode e net_sked lo legge come stato restored → `SD_goup` non avanza il tempo | Fixato 2026-05-06: `net_startup_headless.sh` esegue `rm -f f22circ.dat backtrack.dat` dopo `killsim`. Se ancora presente: cancella manualmente `<unzipdir>/resources/bundle/task/<task>/f22circ.dat` e `backtrack.dat`. Vedi sezione "Ciclo di vita di `f22circ.dat`" |
 | Bundle gira con env normale ma fallisce con `env -i` | Eredità di env vars LegoPST dalla shell del builder | Verifica con `unzip -p <fmu> resources/task_info.env` che le 12 N/M siano presenti |
-| Container: `[lg_fmu LAUNCH] sh: ... Permission denied` | `fmpy.extract` non preserva il bit `+x` | Fixato in P7-bis: `restore_perms.sh` invocato pre-launch. Verifica che il bundle contenga `resources/bundle/restore_perms.sh` |
+| `[lg_fmu LAUNCH] sh: ... Permission denied` (container o co-simulazione) | `fmpy.extract` non preserva il bit `+x` | `restore_perms.sh` invocato da `attach_or_launch` prima di attach/launch. Verifica che il bundle contenga `resources/bundle/restore_perms.sh`. Con un `.so` anteriore al fix la chiamata C era un no-op: usa `run_fmu.sh`/`lg_cosim.py`, che lo invocano dopo `extract()`, oppure ricostruisci il bundle |
 | Container root: polling `try_attach_db` infinito, sim non parte | `SHR_USR_KEY=0` (uid root) = `IPC_PRIVATE` | Fixato in P7-bis: fallback a `pid*10+10000`. Verifica con `LG_FMU_DEBUG=1` la riga `SHR_USR_KEY=...` post-setup |
 | Container debian/ubuntu: launcher exit 2 "dispatcher non in PATH" | `/bin/sh = dash`, source `.profile_legoroot` (bash) fallisce silenziosamente | Fixato in P7-bis: shebang `bash` in `net_startup_headless.sh`. Bash deve essere disponibile nel target (lo è in tutte le distro Linux mainstream) |
 | Glibc del target < 2.38 → `version 'GLIBC_2.38' not found` | Bundle compilato su host con glibc recente; `net_sked` link a 2.38 | Rebuild dei binari LegoPST in container con glibc baseline più bassa (es. ubuntu:20.04) |

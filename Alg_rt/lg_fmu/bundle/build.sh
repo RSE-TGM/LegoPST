@@ -480,6 +480,16 @@ else
     [[ -n "$TASKDIR" ]] && cd "$TASKDIR"
 fi
 
+# topRead (fileio.tcl) risolve lo schema come $LG_MODELS/<model>/<model>.tom:
+# LG_MODELS = dir PADRE della task, cioe' task/ (NON $LG_ENTRY come nella
+# convenzione LegoPST di Alg_env.sh, perche' legocad/ del bundle contiene solo
+# libgraph e lego_big, nessun modello). La ricaviamo dalla cwd appena scelta,
+# cosi' vale sia col task_dir passato come $1 sia con l'auto-find.
+# Senza questa, draw2gr muore in avvio ("no such variable env(LG_MODELS)") e la
+# HMI non compare: su una macchina di sviluppo la variabile trapelava dal profilo
+# LegoPST mascherando il difetto, sulla macchina target del bundle non esiste.
+export LG_MODELS="$(dirname "$PWD")"
+
 # I dati LIVE (f22circ.dat per il Plot, SHM/variabili.rtf per Show Value) sono
 # nella cwd del net_sked della sim, che in ATTACH mode NON e' questa copia
 # statica del bundle ma la dir reale della simulazione. Impostiamo LG_SIM_PATH

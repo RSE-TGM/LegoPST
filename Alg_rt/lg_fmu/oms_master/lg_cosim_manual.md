@@ -1,7 +1,13 @@
 # lg_cosim — Manuale Utente
 
-Co-simulation master FMI 2.0 per FMU LegoPST.  
+Co-simulation master FMI 2.0.  
 Gestisce N FMU in co-simulazione: scambio variabili, sincronizzazione real-time / tempo accelerato.
+
+Accetta **sia FMU LegoPST sia FMU standard di terze parti**, anche mescolate nello
+stesso `config.json`. Le funzioni specifiche LegoPST (slot SHM, HMI `draw2gr`,
+ripristino permessi del bundle) si attivano **solo** sulle FMU LegoPST, riconosciute
+dalla presenza di `resources/task_info.env` nel `.fmu`; sulle altre sono no-op
+silenziosi. Vedi [FMU non LegoPST](#fmu-non-legopst-e-limiti).
 
 ---
 
@@ -371,6 +377,50 @@ DISPLAY=:0 python3 lg_cosim.py config.json --speedup 1.0
 
 > Nota: richiede FMU generate con il codice corrente (il passaggio esplicito di
 > `LG_SIM_PATH` è nella `.so` del bundle). Rigenera con `dolgfmu -b <task>`.
+
+**Se la HMI non compare**, guarda **`<task>/draw2gr.fmu.log`** dentro il bundle
+estratto (`<dir del .fmu>/<nome>/resources/bundle/task/<nome>/`): la HMI gira in
+background e i suoi errori finiscono lì. Causa storica: `run_draw2gr.sh` non
+esportava `LG_MODELS` e `draw2gr` moriva in avvio — bundle costruiti prima di
+quel fix vanno rigenerati.
+
+---
+
+## FMU non LegoPST, e limiti
+
+`lg_cosim` esegue **normali FMU FMI 2.0 Co-Simulation** di terze parti, da sole o
+insieme a FMU LegoPST. Non serve configurare nulla: il riconoscimento è automatico
+(presenza di `resources/task_info.env` nel `.fmu`).
+
+Su una FMU non LegoPST il master **salta**: il probe dello slot SHM e
+`SHR_USR_KEY`/`SHR_USR_KEYS` (una FMU standard non crea SHM LegoPST: il probe la
+vedrebbe sempre "libera" e assegnerebbe lo stesso slot a tutte), l'apertura della
+HMI, e il ripristino dei permessi del bundle. Restano attivi `connections`,
+`start_values`, `log_vars` e il pacing `--speedup`, identici.
+
+Un `"hmi": true` su una FMU non LegoPST viene **ignorato con un avviso**
+(`'hmi' ignorato, non e' una FMU LegoPST`): non esiste una `draw2gr` da aprire.
+
+Limiti del master (validi per tutte le FMU):
+
+| Aspetto | Supporto |
+|---|---|
+| Versione FMI | **2.0** soltanto (usa `fmpy.fmi2.FMU2Slave`); non FMI 3.0 |
+| Tipo | **Co-Simulation** soltanto (serve `coSimulation.modelIdentifier`); non Model Exchange |
+| Tipi variabile | `Real`, `Integer`, `Boolean`. **`String` non gestito** in `get`/`set` |
+| Accoppiamento | Gauss-Seidel a **passo fisso**, nell'ordine di dichiarazione in `config.json`; nessuna iterazione sui loop algebrici, nessun rollback (`fmi2GetFMUstate`) |
+
+Esempio con sole FMU standard:
+
+```json
+{
+  "settings": {"stop_time": 5.0, "step_size": 1.0, "speedup": null,
+               "log_file": "log_std.csv", "log_vars": ["A.y", "B.y"]},
+  "fmus": { "A": "StdA.fmu", "B": "StdB.fmu" },
+  "start_values": { "A.u": 1.0 },
+  "connections": [ {"from": "A.y", "to": "B.u"} ]
+}
+```
 
 ## Test in Docker (prova di portabilità, senza LegoPST)
 
