@@ -220,9 +220,13 @@ if [[ $BUNDLE -eq 1 ]]; then
     #     (in fileio.tcl) a runtime, quando topRead carica un elemento grafico
     #     di background (nome '@...'): serve nel bundle o il load fallisce.
     mkdir -p "$BD/Alg_legopc/bin"
+    #     lghmi.tcl e' il selettore delle task: in co-simulazione (lg_cosim) e'
+    #     l'unica HMI lanciata, e da li' l'utente apre le pagine draw2gr che
+    #     vuole. Lancia il run_draw2gr.sh del bundle di ciascuna task, quindi
+    #     funziona anche tra bundle diversi.
     for s in draw2gr.tcl checkopen.tcl balloon.tcl read_con.tcl read_f01.tcl \
              fileio.tcl itemjoin.tcl read_f14.tcl viewmgr.tcl animate.tcl \
-             bgelement.tcl; do
+             bgelement.tcl lghmi.tcl; do
         cp -p "$LEGOROOT_ABS/Alg_legopc/bin/$s" "$BD/Alg_legopc/bin/" \
             || { echo "ERR: script tix $s non trovato in $LEGOROOT_ABS/Alg_legopc/bin" >&2; exit 4; }
     done
@@ -470,7 +474,8 @@ export LG_FMU_BUNDLE=1
 
 [[ -x "$WISH" ]] || { echo "ERR: $WISH non trovato/eseguibile" >&2; exit 1; }
 [[ -n "${DISPLAY:-}" ]]      || { echo "ERR: DISPLAY non impostato (serve X11)" >&2; exit 1; }
-[[ -n "${SHR_USR_KEY:-}" ]]  || { echo "ERR: SHR_USR_KEY non impostata (sim non attiva?)" >&2; exit 1; }
+# NB: SHR_USR_KEY si controlla piu' sotto, dopo il cd: se non e' gia' in env la
+# ricaviamo dal net_sked di QUESTA task (vedi blocco "sim di questa task").
 
 # cwd = task dir del bundle: draw2gr usa [pwd] per caricare lo schema (.tom/f01/f14).
 if [[ $# -ge 1 && -d "$1" ]]; then
@@ -490,20 +495,44 @@ fi
 # LegoPST mascherando il difetto, sulla macchina target del bundle non esiste.
 export LG_MODELS="$(dirname "$PWD")"
 
-# I dati LIVE (f22circ.dat per il Plot, SHM/variabili.rtf per Show Value) sono
-# nella cwd del net_sked della sim, che in ATTACH mode NON e' questa copia
-# statica del bundle ma la dir reale della simulazione. Impostiamo LG_SIM_PATH
-# a quella dir: draw2gr (Set Sim path / ::anima_sim_path) ci ripunta il f22 del
-# Plot e ci fa 'cd' per viewval/xaing. Se coincide con la cwd (launch mode:
-# net_sked gira qui nel bundle) e' un no-op. Portabile: pgrep/readlink standard.
+# --- sim di QUESTA task -------------------------------------------------
+# SHR_USR_KEY (SHM/Show Value/Command) e LG_SIM_PATH (dati live: f22circ.dat per
+# il Plot, variabili.rtf per Show Value) devono puntare alla sim di QUESTA task.
+# In co-simulazione girano piu' net_sked insieme, uno per FMU, ognuno con la
+# propria chiave: prendere "il primo" aprirebbe la pagina sulla sim sbagliata.
+# Cerchiamo quindi il net_sked il cui cwd e' proprio questa task dir e da li'
+# leggiamo la chiave (/proc/<pid>/environ) -> non serve dichiararla da nessuna
+# parte, ne' passarla a mano. Chi la fornisce gia' in env (es. la FMU che apre
+# la HMI) vince: qui si riempiono solo i buchi.
+_sked_env() {  # $1=pid $2=nome var -> valore
+    tr '\0' '\n' < "/proc/$1/environ" 2>/dev/null | sed -n "s/^$2=//p" | head -1
+}
+if [[ -z "${SHR_USR_KEY:-}" || -z "${LG_SIM_PATH:-}" ]]; then
+    for _pid in $(pgrep -x net_sked 2>/dev/null); do
+        _sd="$(readlink "/proc/$_pid/cwd" 2>/dev/null)"
+        [[ "$_sd" == "$PWD" ]] || continue
+        [[ -z "${SHR_USR_KEY:-}" ]] && { _k="$(_sked_env "$_pid" SHR_USR_KEY)"
+                                         [[ -n "$_k" ]] && export SHR_USR_KEY="$_k"; }
+        [[ -z "${LG_SIM_PATH:-}" ]] && export LG_SIM_PATH="$_sd"
+        break
+    done
+fi
+# Fallback ATTACH mode: la sim NON gira qui nel bundle ma in un'altra dir (la
+# copia del bundle e' statica), quindi nessun net_sked ha il cwd su questa task:
+# prendiamo il primo che abbia un f22circ.dat. Fuori dalla co-simulazione ce n'e'
+# uno solo, quindi e' corretto; e' il comportamento storico.
 if [[ -z "${LG_SIM_PATH:-}" ]]; then
     for _pid in $(pgrep -x net_sked 2>/dev/null); do
         _sd="$(readlink "/proc/$_pid/cwd" 2>/dev/null)"
         if [[ -n "$_sd" && -f "$_sd/f22circ.dat" ]]; then
-            export LG_SIM_PATH="$_sd"; break
+            export LG_SIM_PATH="$_sd"
+            [[ -z "${SHR_USR_KEY:-}" ]] && { _k="$(_sked_env "$_pid" SHR_USR_KEY)"
+                                             [[ -n "$_k" ]] && export SHR_USR_KEY="$_k"; }
+            break
         fi
     done
 fi
+[[ -n "${SHR_USR_KEY:-}" ]] || { echo "ERR: SHR_USR_KEY non impostata e nessun net_sked trovato per $PWD (sim non attiva?)" >&2; exit 1; }
 
 # draw2gr.tcl argv: [0]=0(grafics)/1(graphics)  [1]=base f22 SENZA .dat
 # (graphics apre <base>.dat: passare "f22circ.dat" gli farebbe cercare
@@ -511,6 +540,45 @@ fi
 exec "$WISH" -f "$LG_TIX/draw2gr.tcl" 1 f22circ "$@"
 DRAW2GR
     chmod 0755 "$BD/run_draw2gr.sh"
+
+    # run_lghmi.sh: selettore delle task. In co-simulazione e' l'UNICA HMI che
+    # lg_cosim lancia: da li' l'utente apre le pagine draw2gr che vuole, invece
+    # di doverle decidere nel config prima di partire. Entra in modalita' S01 se
+    # trova un file S01 nella cwd (lo genera lg_cosim2s01.py dal lg_cosim.json).
+    cat > "$BD/run_lghmi.sh" <<'LGHMI'
+#!/usr/bin/env bash
+#
+# run_lghmi.sh — selettore delle task del bundle / della co-simulazione.
+#
+# Uso:
+#   cd <dir con il file S01>   # generato da lg_cosim2s01.py
+#   DISPLAY=:0 run_lghmi.sh
+#
+# Senza S01 nella cwd elenca le task sotto $LG_TASKROOT (default: le task di
+# QUESTO bundle). Ogni pagina viene aperta col run_draw2gr.sh del bundle a cui
+# la task appartiene, che si ricava da solo SHR_USR_KEY/LG_SIM_PATH dal proprio
+# net_sked: non serve ne' dichiararli ne' che i bundle siano lo stesso.
+set -u
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+export LEGOROOT="$SCRIPT_DIR"
+export LD_LIBRARY_PATH="$SCRIPT_DIR/lib:${LD_LIBRARY_PATH:-}"
+export TCL_LIBRARY="$SCRIPT_DIR/tcllib/tcl8.6"
+export TK_LIBRARY="$SCRIPT_DIR/tcllib/tk8.6"
+export TCLLIBPATH="$SCRIPT_DIR/tcllib"
+export LG_BIN="$SCRIPT_DIR/Alg_legopc/bin"
+export LG_TIX="$LG_BIN"
+export PATH="$SCRIPT_DIR/Alg_rt/bin:$SCRIPT_DIR/tclbin:$PATH"
+# Senza S01 nella cwd: le task da elencare sono quelle del bundle.
+export LG_TASKROOT="${LG_TASKROOT:-$SCRIPT_DIR/task}"
+WISH="$SCRIPT_DIR/tclbin/wish"
+
+[[ -x "$WISH" ]] || { echo "ERR: $WISH non trovato/eseguibile" >&2; exit 1; }
+[[ -n "${DISPLAY:-}" ]] || { echo "ERR: DISPLAY non impostato (serve X11)" >&2; exit 1; }
+[[ -f "$LG_TIX/lghmi.tcl" ]] || { echo "ERR: $LG_TIX/lghmi.tcl non trovato" >&2; exit 1; }
+
+exec "$WISH" -f "$LG_TIX/lghmi.tcl" "$@"
+LGHMI
+    chmod 0755 "$BD/run_lghmi.sh"
 
     # Sommario bundle
     BUNDLE_SIZE=$(du -sh "$BD" | cut -f1)

@@ -9,12 +9,12 @@
 #
 # A differenza di test_fmu_docker.sh (che lancia le FMU INDIPENDENTI in
 # parallelo, senza connessioni), qui gira il MASTER lg_cosim.py che legge il
-# config.json e scambia le variabili collegate a ogni passo.
+# lg_cosim.json e scambia le variabili collegate a ogni passo.
 #
 # Uso:
-#   test_cosim_docker.sh [opzioni] [<config.json>]
+#   test_cosim_docker.sh [opzioni] [<lg_cosim.json>]
 #
-#   <config.json>  configurazione lg_cosim (default: <oms_master>/config.json).
+#   <lg_cosim.json>  configurazione lg_cosim (default: <lg_cosim>/lg_cosim.json).
 #                  I path delle FMU e del log sono risolti dalla dir del config
 #                  (cosi' vengono montati tutti insieme nel container).
 #
@@ -30,8 +30,8 @@
 # Esempi:
 #   test_cosim_docker.sh                              # config di default, max velocita'
 #   test_cosim_docker.sh -s 1.0 -t 60                 # tempo reale, 60 s
-#   test_cosim_docker.sh /path/mio_sistema/config.json
-#   test_cosim_docker.sh -i debian:12 -d config.json  # altra immagine + debug
+#   test_cosim_docker.sh /path/mio_sistema/lg_cosim.json
+#   test_cosim_docker.sh -i debian:12 -d lg_cosim.json  # altra immagine + debug
 #
 # Uscita: 0 co-sim ok, 1 args, 2 config non trovato, 3 docker non disponibile,
 #         !=0 = codice di lg_cosim (co-sim fallita).
@@ -51,8 +51,8 @@ X11=0
 RM_FLAG="--rm"
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-OMS_DIR="$(cd "$SCRIPT_DIR/../oms_master" 2>/dev/null && pwd || true)"
-LG_COSIM_PY="$OMS_DIR/lg_cosim.py"
+LG_COSIM_DIR="$(cd "$SCRIPT_DIR/../lg_cosim" 2>/dev/null && pwd || true)"
+LG_COSIM_PY="$LG_COSIM_DIR/lg_cosim.py"
 CONFIG=""
 
 # ---- parsing opzioni -----------------------------------------------------
@@ -73,11 +73,11 @@ while [ $# -gt 0 ]; do
     esac
 done
 
-[ -n "$CONFIG" ] || CONFIG="$OMS_DIR/config.json"
+[ -n "$CONFIG" ] || CONFIG="$LG_COSIM_DIR/lg_cosim.json"
 
 # ---- validazioni ---------------------------------------------------------
 if [ ! -f "$LG_COSIM_PY" ]; then
-    echo "ERRORE: lg_cosim.py non trovato in $OMS_DIR" >&2; exit 2
+    echo "ERRORE: lg_cosim.py non trovato in $LG_COSIM_DIR" >&2; exit 2
 fi
 if [ ! -f "$CONFIG" ]; then
     echo "ERRORE: config '$CONFIG' non trovato." >&2; exit 2

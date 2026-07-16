@@ -163,3 +163,8 @@ CONVENTIONS.md
 # File generato da Makefile.mk (coordinate repository)
 docker/repo_info.conf
 .aider*
+
+# Bundle FMU estratti da fmpy (lg_cosim/run_fmu): artefatti rigenerati
+# automaticamente dai .fmu, ~120 MB. I .fmu SI' sono tracciati: sono la sorgente.
+Alg_rt/lg_fmu/*/example/legoclix_*_bundle/
+__pycache__/

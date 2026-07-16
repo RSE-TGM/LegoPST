@@ -45,6 +45,53 @@ LegoPST/
 └── VERSION           # Project version (used by build and installer)
 ```
 
+### Core Components
+
+**AlgLib/** - Core algorithm libraries
+- Contains fundamental libraries (libRt.a, libcom.a, libsim.a, etc.)
+- Threading support via dcethreads
+- Database support via SQLite
+- Shared memory and IPC utilities
+
+**Alg_mmi/** - Man-Machine Interface
+- MMI client/server architecture
+- Configuration tools for graphical interfaces
+- Widget libraries and drawing tools
+- Conversion utilities for legacy formats
+
+**Alg_rt/** - Runtime System
+- Real-time simulation engine
+- Process control and monitoring
+- Network simulation components
+- Session management
+
+**legocad/** - CAD Tools
+- Engineering design tools
+- Model creation and editing
+- Library management for plant components
+
+**kprocedure/** - Administrative Scripts
+- System management utilities
+- Process control scripts
+- Database maintenance tools
+- User management and configuration
+
+### Key Libraries Structure
+- **libcom.a**: Communication and event handling
+- **libsim.a**: Simulation core functions
+- **libnet.a**: Network communication
+- **libipc.a**: Inter-process communication
+- **libdispatcher.a**: Message dispatching system
+- **libmanovra.a**: Control operations
+- **libutil.a**: General utilities
+
+### Configuration System
+The system uses hierarchical configuration:
+1. Environment variables set in `.profile_legoroot`
+2. Platform detection (32/64-bit Linux)
+3. Extension-based directory structure
+4. User-specific settings in home directories
+
 ## 🚀 Install and Run
 The quickest way to run LegoPST is to [launch it in a Docker container](#option-1-quick-start---docker-container-execution), without installing the package and without having a machine running the Fedora 41 Linux distribution. In this case the host machine can be a generic Linux distribution running on a X86-64, Intel or AMD platform.
 Alternatively, if you want a stable installation on your Fedora 41 machine, you can [download and install directly into your Fedora](#option-2-running-into-a-fully-configured-linux-fedora-41-distribution).

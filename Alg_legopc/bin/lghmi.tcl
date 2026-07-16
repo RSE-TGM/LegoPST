@@ -182,15 +182,23 @@ proc launch_hmi {} {
         return
     }
     lassign [lindex $ITEMS [lindex $sel 0]] label dir name
-    set d2g [file join $LGTIX draw2gr.tcl]
-    if {$LGTIX eq "" || ![file exists $d2g]} {
-        tk_messageBox -icon error -title "LG_TIX" -parent . -message \
-            "draw2gr.tcl non trovato (LG_TIX='$LGTIX').\nAvvia lghmi da un ambiente LegoPST (profilo sorgiato)."
-        return
-    }
     if {![file isdirectory $dir]} {
         tk_messageBox -icon error -title "Task" -parent . -message \
             "Directory della task non trovata:\n$dir"
+        return
+    }
+    # Task dentro un bundle FMU? (<bundle>/task/<nome> -> <bundle>/run_draw2gr.sh)
+    # Allora la HMI va lanciata col run_draw2gr.sh di QUEL bundle, non col
+    # draw2gr.tcl dell'installazione LegoPST: solo lui conosce l'ambiente del
+    # proprio bundle (wish, LG_TIX, runtime Tcl/Tk/Tix, LG_MODELS) e si ricava da
+    # solo SHR_USR_KEY/LG_SIM_PATH dal net_sked di QUESTA task. Serve in
+    # co-simulazione (lg_cosim), dove ogni FMU e' un simulatore a se' con la
+    # propria chiave. Sulla macchina target del bundle, LegoPST non c'e' affatto.
+    set launcher [file normalize [file join $dir .. .. run_draw2gr.sh]]
+    set d2g [file join $LGTIX draw2gr.tcl]
+    if {![file exists $launcher] && ($LGTIX eq "" || ![file exists $d2g])} {
+        tk_messageBox -icon error -title "LG_TIX" -parent . -message \
+            "draw2gr.tcl non trovato (LG_TIX='$LGTIX').\nAvvia lghmi da un ambiente LegoPST (profilo sorgiato)."
         return
     }
     # LG_SIM_PATH (Set Sim path) e' ereditato invariato dall'helper: la dir del
@@ -201,7 +209,15 @@ proc launch_hmi {} {
     # in una nuova sessione -> sopravvive al Quit del selettore. L'output va in
     # un log in /tmp (per non sporcare la task) utile per debug.
     set log [file join /tmp "lghmi_${name}.log"]
-    set sh  "cd [list $dir] && exec wish [list $d2g] 1 f22circ >[list $log] 2>&1"
+    if {[file exists $launcher]} {
+        # Bundle: `env -u` toglie LG_SIM_PATH/SHR_USR_KEY ereditate dal selettore.
+        # Sono quelle del simulatore da cui e' partito lghmi (per S01/-loc) e qui
+        # sarebbero SBAGLIATE: in co-simulazione ogni task ha la sua sim e la sua
+        # chiave. Tolte, run_draw2gr.sh le ricava dal net_sked di questa task.
+        set sh "exec env -u LG_SIM_PATH -u SHR_USR_KEY bash [list $launcher] [list $dir] >[list $log] 2>&1"
+    } else {
+        set sh "cd [list $dir] && exec wish [list $d2g] 1 f22circ >[list $log] 2>&1"
+    }
     if {[catch {exec setsid sh -c $sh &} err]} {
         # fallback senza setsid: resta comunque orfano (sopravvive) alla chiusura
         if {[catch {exec sh -c $sh &} err2]} {
