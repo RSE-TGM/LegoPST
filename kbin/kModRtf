@@ -6,7 +6,7 @@ KTEST=`cat $KSTATUS/kTest.status`
 echo "kTest result : $KTEST"
 if [ ! "$KTEST" = "OK" ]
 then
-echo "Environement test not succesful\a"
+print "Environement test not succesful\a"
 banner "NOK"
 exit
 fi
@@ -24,9 +24,9 @@ echo "Wait ..."
 #
 if [ "$1" = "" ]
 then
-  echo "\n use:\t\tkModRtf parameter \n\a"
-  echo " parameter:\tsim = Add _sim to the nomeProgram attribute Pictograph"
-  echo "\t\tsca = Delete _sim to the nomeProgram attribute Pictograph\n"
+  print "\n use:\t\tkModRtf parameter \n\a"
+  print " parameter:\tsim = Add _sim to the nomeProgram attribute Pictograph"
+  print "\t\tsca = Delete _sim to the nomeProgram attribute Pictograph\n"
   exit
 elif [ "$1" = "sim" ]
 then
@@ -37,7 +37,7 @@ then
   label1="_sim"
   label2=""
 else
-  echo "\n ERROR : Parameter unknown \n\a"
+  print "\n ERROR : Parameter unknown \n\a"
   exit
 fi
 #
@@ -148,10 +148,10 @@ do
   mv ${pagina}.mod ${pagina}
   else
   rm -f ${pagina}
-  echo "Error with plant display ${pagina}\a"
-  echo "\tSolution : Compile page ${pagina}"
+  print "Error with plant display ${pagina}\a"
+  print "\tSolution : Compile page ${pagina}"
   echo "Error with plant display ${pagina}" >> $KLOG/kModRtf.log
-  echo "\tSolution : Compile page ${pagina}" >> $KLOG/kModRtf.log
+  print "\tSolution : Compile page ${pagina}" >> $KLOG/kModRtf.log
   fi
 done
 ls | grep ^O_ | grep .rtf | grep -v err | grep -v mod | while read pagina
@@ -164,10 +164,10 @@ do
   mv ${pagina}.mod ${pagina}
   else
   rm -f ${pagina}
-  echo "Error with operating window ${pagina}\a"
-  echo "\tSolution : Compile page ${pagina}"  
+  print "Error with operating window ${pagina}\a"
+  print "\tSolution : Compile page ${pagina}"  
   echo "Error with operating window ${pagina}" >> $KLOG/kModRtf.log
-  echo "\tSolution : Compile page ${pagina}" >> $KLOG/kModRtf.log
+  print "\tSolution : Compile page ${pagina}" >> $KLOG/kModRtf.log
   fi
 done
 #

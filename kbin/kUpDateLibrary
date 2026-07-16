@@ -32,7 +32,7 @@ then
 ln -fs $KSOURCE/legocad/libut $HOME/legocad/libut
 echo Linking libut
 else
-echo "${star5}\nWARNING : Local Libut already exists\n${star5}\a\a\a"
+print "${star5}\nWARNING : Local Libut already exists\n${star5}\a\a\a"
 #rm -i $HOME/legocad/libut
 fi
 if [ ! -d $HOME/legocad/libut_reg ]
@@ -40,7 +40,7 @@ then
 ln -fs $KSOURCE/legocad/libut_reg $HOME/legocad/libut_reg
 echo Linking libut_reg
 else
-echo "${star5}\nWARNING : Local Libut_reg already exists\n${star5}\a\a\a"
+print "${star5}\nWARNING : Local Libut_reg already exists\n${star5}\a\a\a"
 #rm -i $HOME/legocad/libut_reg
 fi
 if [ ! -d $HOME/legocad/libut_mmi ]
@@ -48,7 +48,7 @@ then
 ln -fs $KSOURCE/legocad/libut_mmi $HOME/legocad/libut_mmi
 echo Linking libut_mmi
 else
-echo "${star5}\nWARNING : Local Libut_mmi already exists\n${star5}\a\a\a"
+print "${star5}\nWARNING : Local Libut_mmi already exists\n${star5}\a\a\a"
 #rm -i $HOME/legocad/libut_mmi
 fi
 if [ ! -d $HOME/legocad/libut_bin ]
@@ -56,7 +56,7 @@ then
 ln -fs $KSOURCE/legocad/libut_bin $HOME/legocad/libut_bin
 echo Linking libut_bin
 else
-echo "${star5}\nWARNING : Local Libut_bin already exists\n${star5}\a\a\a"
+print "${star5}\nWARNING : Local Libut_bin already exists\n${star5}\a\a\a"
 #rm -i $HOME/legocad/libut_bin
 fi
 #

@@ -6,7 +6,7 @@ KTEST=`cat $KSTATUS/kTest.status`
 echo "kTest result : $KTEST"
 if [ ! "$KTEST" = "OK" ]
 then
-echo "Environement test not succesful\a"
+print "Environement test not succesful\a"
 banner "NOK"
 exit
 fi
@@ -22,11 +22,11 @@ kAddLog kNetCompi Start
 #
 if [ ! -f $KSIM/S01 ]
 then
-echo "ERROR\t: File $KSIM/S01 not found"
-echo "ERROR\t: File $KSIM/S01 not found" >> $KLOG/kNetCompi.log
+print "ERROR\t: File $KSIM/S01 not found"
+print "ERROR\t: File $KSIM/S01 not found" >> $KLOG/kNetCompi.log
 banner "NOK"
 banner "NOK" >> $KLOG/kNetCompi.log
-echo "\a\a\a"
+print "\a\a\a"
 exit
 fi
 #
@@ -38,12 +38,12 @@ export DEBUG=YES
 if [ ! -f $KSIM/variabili.rtf ]
 then
 banner "NOK"
-echo "\a\a\a"
+print "\a\a\a"
 echo "ERROR : variabili.rtf not generated" >> $KLOG/kNetCompi.log
 fi
 kAddScreen kNetCompi End
 kAddLog kNetCompi End
-echo "Log File :\t$KLOG/kNetCompi.log"
+print "Log File :\t$KLOG/kNetCompi.log"
 echo "$star"
 echo "$star" >> $KLOG/kNetCompi.log
 

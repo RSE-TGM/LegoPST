@@ -267,7 +267,7 @@ pagmod=`which pagmod`				# Eseguibile
 page_num=0					# Risorsa: *pag_num   / Context.ctx
 page_list=""					# Risorsa: *page_list / Context.ctx
 
-echo "*page_list:\t\\" > kMakeGlobpages.list
+print "*page_list:\t\\" > kMakeGlobpages.list
 pwd=`pwd`
 s02=$pwd/S02_OSF1
 t2=kMakeGlobpages.rtf				# F. temporaneo (anti: arg too long)
@@ -595,7 +595,7 @@ echo "$star5" >> $efn
 page_num=`wc -l kMakeGlobpages.list | cut -f1 -d' '`
 let page_num=page_num-1
 X "echo \"*pag_num:\t$page_num\" >> $ctx"
-echo "*pag_num:\t$page_num" >> $ctx
+print "*pag_num:\t$page_num" >> $ctx
 X "echo \"*page_list:\t$page_num\" >> $ctx"
 #echo "*page_list:\t\\$page_list" >> $ctx			# <<< ATTENZIONE ai blank !
 cat kMakeGlobpages.list | tr '\n' ' ' >> $ctx

@@ -8,7 +8,7 @@ KTEST=`cat $KSTATUS/kTest.status`
 echo "kTest result : $KTEST"
 if [ ! "$KTEST" = "OK" ]
 then
-echo "Environement test not succesful\a"
+print "Environement test not succesful\a"
 banner "NOK"
 exit
 fi
@@ -34,7 +34,7 @@ elif [ "${donde}" = "Local" ]
 then
 REGO_TASK_LIST=`pwd`
 else
-echo "Correct Use :\n\tkCheckRegoTask  All/Sim/Local\a"
+print "Correct Use :\n\tkCheckRegoTask  All/Sim/Local\a"
 exit
 fi
 #
@@ -59,17 +59,17 @@ XC86=`echo "${line}" | grep "_XC86" | wc -l | tr -d ' ' `
 XF51=`echo "${line}" | grep "_XF51" | wc -l | tr -d ' ' `
 if [ "${XB86}" = "1" ] && [ "${XF51}" = "0" ]
 then
-echo "${page}\tICI\t\t\t: OK ALARM\tSLAVE"
+print "${page}\tICI\t\t\t: OK ALARM\tSLAVE"
 elif [ "${XC86}" = "1" ] && [ "${XF51}" = "1" ]
 then
-echo "${page}\tICI\t\t\t: OK ALARM\tMASTER"
+print "${page}\tICI\t\t\t: OK ALARM\tMASTER"
 elif [ "${XB86}" = "1" ] && [ "${XF51}" = "1" ]
 then
-echo "${page}\tICI\t\t\t:ERROR ALARM\tCONFIGURATION SLAVE"
-echo "${page}\tICI\t\t\t:ERROR ALARM\tCONFIGURATION SLAVE" >> $KLOG/kCheckRegoTask.log
+print "${page}\tICI\t\t\t:ERROR ALARM\tCONFIGURATION SLAVE"
+print "${page}\tICI\t\t\t:ERROR ALARM\tCONFIGURATION SLAVE" >> $KLOG/kCheckRegoTask.log
 else
-echo "${page}\tICI\t\t\t:ERROR ALARM\tNOT CONFIGURATED"
-echo "${page}\tICI\t\t\t:ERROR ALARM\tNOT CONFIGURATED" >> $KLOG/kCheckRegoTask.log
+print "${page}\tICI\t\t\t:ERROR ALARM\tNOT CONFIGURATED"
+print "${page}\tICI\t\t\t:ERROR ALARM\tNOT CONFIGURATED" >> $KLOG/kCheckRegoTask.log
 fi
 done
 ###############################################################################
@@ -82,10 +82,10 @@ XF51=`echo "${line}" | grep "_XF51" | wc -l | tr -d ' ' `
 XC86=`echo "${line}" | grep "_XC86" | wc -l | tr -d ' ' `
 if [ "${XF51}" = "1" ] && [ "${XC86}" = "1" ]
 then
-echo "${page}\tCC-CONTROLE DRIVE\t: OK ALARM"
+print "${page}\tCC-CONTROLE DRIVE\t: OK ALARM"
 else
-echo "${page}\tCC-CONTROLE DRIVE\t: ERROR ALARM\tNOT CONFIGURATED"
-echo "${page}\tCC-CONTROLE DRIVE\t: ERROR ALARM\tNOT CONFIGURATED" >> $KLOG/kCheckRegoTask.log
+print "${page}\tCC-CONTROLE DRIVE\t: ERROR ALARM\tNOT CONFIGURATED"
+print "${page}\tCC-CONTROLE DRIVE\t: ERROR ALARM\tNOT CONFIGURATED" >> $KLOG/kCheckRegoTask.log
 fi
 done
 ###############################################################################
@@ -98,10 +98,10 @@ XF51=`echo "${line}" | grep "_XF51" | wc -l | tr -d ' ' `
 XC86=`echo "${line}" | grep "_XC86" | wc -l | tr -d ' ' `
 if [ "${XF51}" = "1" ] && [ "${XC86}" = "1" ]
 then
-echo "${page}\tCC-CONTROLE DRIVE\t: OK ALARM"
+print "${page}\tCC-CONTROLE DRIVE\t: OK ALARM"
 else
-echo "${page}\tCC-CONTROLE DRIVE\t: ERROR ALARM\tNOT CONFIGURATED"
-echo "${page}\tCC-CONTROLE DRIVE\t: ERROR ALARM\tNOT CONFIGURATED" >> $KLOG/kCheckRegoTask.log
+print "${page}\tCC-CONTROLE DRIVE\t: ERROR ALARM\tNOT CONFIGURATED"
+print "${page}\tCC-CONTROLE DRIVE\t: ERROR ALARM\tNOT CONFIGURATED" >> $KLOG/kCheckRegoTask.log
 fi
 done
 ###############################################################################
@@ -118,16 +118,16 @@ then
 KKSTYPE=`echo "${KKS}" | cut -c1`
 else
 KKSTYPE="X"
-echo "ERROR : The page ${page} contains more than one KKS label text ...\a"
+print "ERROR : The page ${page} contains more than one KKS label text ...\a"
 echo "ERROR : The page ${page} contains more than one KKS label text ..." >> $KLOG/kCheckRegoTask.log
 fi
 if [ "${XZ01}" = "1" ]
 then
-echo "${page}\tMEASURE\t\t\t: OK ALARM"
+print "${page}\tMEASURE\t\t\t: OK ALARM"
 elif [ ! "${KKSTYPE}" = "X" ]
 then
-echo "${page}\tMEASURE\t\t\t: ERROR ALARM\tNOT CONFIGURATED"
-echo "${page}\tMEASURE\t\t\t: ERROR ALARM\tNOT CONFIGURATED" >> $KLOG/kCheckRegoTask.log
+print "${page}\tMEASURE\t\t\t: ERROR ALARM\tNOT CONFIGURATED"
+print "${page}\tMEASURE\t\t\t: ERROR ALARM\tNOT CONFIGURATED" >> $KLOG/kCheckRegoTask.log
 fi
 done
 ###############################################################################
@@ -139,10 +139,10 @@ line=`grep "${tag}.inputValue:" ${page}`
 XA05=`echo "${line}" | grep "_XA05" | wc -l | tr -d ' ' `
 if [ "${XA05}" = "1" ]
 then
-echo "${page}\tSUB LOOP CTRL\t: OK ALARM"
+print "${page}\tSUB LOOP CTRL\t: OK ALARM"
 else
-echo "${page}\tSUB LOOP CTRL\t: ERROR ALARM\tNOT CONFIGURATED"
-echo "${page}\tSUB LOOP CTRL\t: ERROR ALARM\tNOT CONFIGURATED" >> $KLOG/kCheckRegoTask.log
+print "${page}\tSUB LOOP CTRL\t: ERROR ALARM\tNOT CONFIGURATED"
+print "${page}\tSUB LOOP CTRL\t: ERROR ALARM\tNOT CONFIGURATED" >> $KLOG/kCheckRegoTask.log
 fi
 done
 ###############################################################################
@@ -154,10 +154,10 @@ line=`grep "${tag}.inputValue:" ${page}`
 XZ01=`echo "${line}" | grep "_XZ01" | wc -l | tr -d ' ' `
 if [ "${XZ01}" = "1" ]
 then
-echo "${page}\tSUB GROUP CTRL\t\t: OK ALARM"
+print "${page}\tSUB GROUP CTRL\t\t: OK ALARM"
 else
-echo "${page}\tSUB GROUP CTRL\t\t: ERROR ALARM\tNOT CONFIGURATED"
-echo "${page}\tSUB GROUP CTRL\t\t: ERROR ALARM\tNOT CONFIGURATED" >> $KLOG/kCheckRegoTask.log
+print "${page}\tSUB GROUP CTRL\t\t: ERROR ALARM\tNOT CONFIGURATED"
+print "${page}\tSUB GROUP CTRL\t\t: ERROR ALARM\tNOT CONFIGURATED" >> $KLOG/kCheckRegoTask.log
 fi
 done
 ###############################################################################
@@ -169,10 +169,10 @@ line=`grep "${tag}.inputValue:" ${page}`
 XZ01=`echo "${line}" | grep "_XZ01" | wc -l | tr -d ' ' `
 if [ "${XZ01}" = "1" ]
 then
-echo "${page}\tGROUP CTRL\t\t: OK ALARM"
+print "${page}\tGROUP CTRL\t\t: OK ALARM"
 else
-echo "${page}\tGROUP CTRL\t\t: ERROR ALARM\tNOT CONFIGURATED"
-echo "${page}\tGROUP CTRL\t\t: ERROR ALARM\tNOT CONFIGURATED" >> $KLOG/kCheckRegoTask.log
+print "${page}\tGROUP CTRL\t\t: ERROR ALARM\tNOT CONFIGURATED"
+print "${page}\tGROUP CTRL\t\t: ERROR ALARM\tNOT CONFIGURATED" >> $KLOG/kCheckRegoTask.log
 fi
 done
 ###############################################################################
@@ -187,18 +187,18 @@ if [ "${CCONS}" = "1" ]
 then
 	if [ "${XF52}" = "1" ]
 	then
-	echo "${page}\tSLAVE CTRL\t\t: ERROR ALARM\tXF52 NOT NECESSARY FOR SLAVE"
-	echo "${page}\tSLAVE CTRL\t\t: ERROR ALARM\tXF52 NOT NECESSARY FOR SLAVE" >> $KLOG/kCheckRegoTask.log
+	print "${page}\tSLAVE CTRL\t\t: ERROR ALARM\tXF52 NOT NECESSARY FOR SLAVE"
+	print "${page}\tSLAVE CTRL\t\t: ERROR ALARM\tXF52 NOT NECESSARY FOR SLAVE" >> $KLOG/kCheckRegoTask.log
 	else
-	echo "${page}\tSLAVE CTRL\t\t: OK ALARM"
+	print "${page}\tSLAVE CTRL\t\t: OK ALARM"
 	fi
 else
 	if [ "${XF52}" = "1" ]
 	then
-	echo "${page}\tMASTER CTRL\t\t: OK ALARM"
+	print "${page}\tMASTER CTRL\t\t: OK ALARM"
 	else
-	echo "${page}\tMASTER CTRL\t\t: ERROR ALARM\tNOT CONFIGURATED"
-	echo "${page}\tMASTER CTRL\t\t: ERROR ALARM\tNOT CONFIGURATED" >> $KLOG/kCheckRegoTask.log
+	print "${page}\tMASTER CTRL\t\t: ERROR ALARM\tNOT CONFIGURATED"
+	print "${page}\tMASTER CTRL\t\t: ERROR ALARM\tNOT CONFIGURATED" >> $KLOG/kCheckRegoTask.log
 	fi
 fi
 done
@@ -216,28 +216,28 @@ if [ "${MASTER}" = "1" ]
 then
 	if [ "${XZ01}" = "1" ]
 	then
-	echo "${page}\tMASTER CONTROLLER\t: ERROR ALARM\tXZ01 NOT NECESSARY FOR MASTER CONTROLLER"
-	echo "${page}\tMASTER CONTROLLER\t: ERROR ALARM\tXZ01 NOT NECESSARY FOR MASTER CONTROLLER" >> $KLOG/kCheckRegoTask.log
+	print "${page}\tMASTER CONTROLLER\t: ERROR ALARM\tXZ01 NOT NECESSARY FOR MASTER CONTROLLER"
+	print "${page}\tMASTER CONTROLLER\t: ERROR ALARM\tXZ01 NOT NECESSARY FOR MASTER CONTROLLER" >> $KLOG/kCheckRegoTask.log
 	else
-	echo "${page}\tMASTER CONTROLLER\t: OK ALARM"
+	print "${page}\tMASTER CONTROLLER\t: OK ALARM"
 	fi
 else
 	if [ "${XZ01}" = "1" ]
 	then
-	echo "${page}\tSETPOINT ADJUSTER\t: OK ALARM"
+	print "${page}\tSETPOINT ADJUSTER\t: OK ALARM"
 	else
-	echo "${page}\tSETPOINT ADJUSTER\t: ERROR ALARM\tNOT CONFIGURATED"
-	echo "${page}\tSETPOINT ADJUSTER\t: ERROR ALARM\tNOT CONFIGURATED" >> $KLOG/kCheckRegoTask.log
+	print "${page}\tSETPOINT ADJUSTER\t: ERROR ALARM\tNOT CONFIGURATED"
+	print "${page}\tSETPOINT ADJUSTER\t: ERROR ALARM\tNOT CONFIGURATED" >> $KLOG/kCheckRegoTask.log
 	fi
 fi
 done
 ###############################################################################
 cd $LEGOCAD_USER/legocad
 done
-echo "\a"
+print "\a"
 #
 kAddScreen kCheckRegoTask End 
 kAddLog kCheckRegoTask End
 echo "$star"
 echo "$star" >> $KLOG/kCheckRegoTask.log
-echo "Log file\t: $KLOG/kCheckRegoTask.log"
+print "Log file\t: $KLOG/kCheckRegoTask.log"

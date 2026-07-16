@@ -4,7 +4,7 @@ NewHost=`hostname`
 #
 if [ ! -f $KSIM/S01 ]
 then
-echo "ERROR\t: File S01 not found"
+print "ERROR\t: File S01 not found"
 exit
 fi
 #

@@ -3,7 +3,7 @@
 rm -f ${KWIN}/mgw.list
 if [ -f ${KWIN}/*.ListVert ]
 then
-echo "@#L@TITLE\t@#L@MGWDESCR\t@#L@HEIGH\t@#L@GTYPE\t@#L@GBACKGROUND\
+print "@#L@TITLE\t@#L@MGWDESCR\t@#L@HEIGH\t@#L@GTYPE\t@#L@GBACKGROUND\
 \t@#L@1KKS\t@#L@1DESCR\t@#L@1PAGE\t@#L@1VAR0\t@#L@1VAR1\t@#L@1VAR2\t@#L@1VAR3\
 \t@#L@2KKS\t@#L@2DESCR\t@#L@2PAGE\t@#L@2VAR0\t@#L@2VAR1\t@#L@2VAR2\t@#L@2VAR3\
 \t@#L@3KKS\t@#L@3DESCR\t@#L@3PAGE\t@#L@3VAR0\t@#L@3VAR1\t@#L@3VAR2\t@#L@3VAR3\

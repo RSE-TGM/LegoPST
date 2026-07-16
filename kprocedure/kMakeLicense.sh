@@ -6,7 +6,7 @@ KTEST=`cat $KSTATUS/kTest.status`
 echo "kTest result : $KTEST"
 if [ ! "$KTEST" = "OK" ]
 then
-echo "Environement test not succesful\a"
+print "Environement test not succesful\a"
 banner "NOK"
 exit
 fi
@@ -36,7 +36,7 @@ else
 	if [ ! -w $ALTERLEGO_CAP_DIR ]
 	then
 	echo "Sorry, the program can not access $ALTERLEGO_CAP_DIR directory !!"
-	echo "Solution : Assign ALTERLEGO_CAP_DIR environement variable to HOME/.license.\a"
+	print "Solution : Assign ALTERLEGO_CAP_DIR environement variable to HOME/.license.\a"
 	banner NOK
 	exit
 	fi
@@ -61,7 +61,7 @@ if [ ! "$TCP_ACTUAL" = "$TCP_DEFAULT" ]
 then
 echo "Sorry, this program can only calculate license for ["$TCP_DEFAULT".X] TCP address type."
 echo "(The value X must be included between 1 and 19.)"
-echo "The TCP address can not be ["$TCP_ACTUAL.$NetId"] .\a"
+print "The TCP address can not be ["$TCP_ACTUAL.$NetId"] .\a"
 banner NOK
 exit
 fi
@@ -71,7 +71,7 @@ if [ "${TagLine1}" = "" ]
 then
 echo "Sorry, this program can not calulate license for [$TCP_ACTUAL.$NetId] address."
 echo "It can only calculate license for ["$TCP_DEFAULT".X] TCP address type."
-echo "(The value X must be included between 1 and 19.)\a"
+print "(The value X must be included between 1 and 19.)\a"
 banner NOK
 exit
 fi
@@ -86,9 +86,9 @@ echo "${BeginLine3}${TagLine3}${EndLine3}" >> $ALTERLEGO_CAP_DIR/CAP.conf
 echo "${BeginLine4}${TagLine4}${EndLine4}" >> $ALTERLEGO_CAP_DIR/CAP.conf
 echo "${BeginLine5}${TagLine5}${EndLine5}" >> $ALTERLEGO_CAP_DIR/CAP.conf
 echo "${BeginLine6}${TagLine6}${EndLine6}" >> $ALTERLEGO_CAP_DIR/CAP.conf
-echo "TCP\t: [$TCP_ACTUAL.$NetId]"
-echo "TCP\t: [$TCP_ACTUAL.$NetId]" >> $KLOG/kMakeLicense.log
-echo "Output File\t: $ALTERLEGO_CAP_DIR/CAP.conf" >> $KLOG/kMakeLicense.log
+print "TCP\t: [$TCP_ACTUAL.$NetId]"
+print "TCP\t: [$TCP_ACTUAL.$NetId]" >> $KLOG/kMakeLicense.log
+print "Output File\t: $ALTERLEGO_CAP_DIR/CAP.conf" >> $KLOG/kMakeLicense.log
 if [ "$Silent" = "" ]
 then
 	echo "$star"
@@ -99,6 +99,6 @@ then
 	kAddLog kLogger "End kMakeLicense"
 	echo "$star"
 	echo "$star" >> $KLOG/kMakeLicense.log
-	echo "Log File\t: $KLOG/kMakeLicense.log"
-	echo "Output File\t: $ALTERLEGO_CAP_DIR/CAP.conf"
+	print "Log File\t: $KLOG/kMakeLicense.log"
+	print "Output File\t: $ALTERLEGO_CAP_DIR/CAP.conf"
 fi

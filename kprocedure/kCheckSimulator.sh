@@ -6,7 +6,7 @@ KTEST=`cat $KSTATUS/kTest.status`
 echo "kTest result : $KTEST"
 if [ ! "$KTEST" = "OK" ]
 then
-echo "Environement test not succesful\a"
+print "Environement test not succesful\a"
 banner "NOK"
 exit
 fi
@@ -20,10 +20,10 @@ echo ${star} >> $KLOG/kCheckSimulator.log
 kAddScreen kCheckSimulator Start
 kAddLog kCheckSimulator Start
 ###############################################################################
-echo "\n${star5}"
+print "\n${star5}"
 echo "Malfunctions not found"
 echo ${star5}
-echo "\n${star5}" >> $KLOG/kCheckSimulator.log
+print "\n${star5}" >> $KLOG/kCheckSimulator.log
 echo "Malfunctions not found" >> $KLOG/kCheckSimulator.log
 echo ${star5} >> $KLOG/kCheckSimulator.log
 cd ${KWIN}
@@ -39,8 +39,8 @@ ls | grep O_ | grep .pag | grep -v DTW | \
 			fault=`echo F_${kks}.pag`
 			if [ ! -f ${fault} ]
 			then
-			echo "ERROR : Malfunction of OW [${ow}] \tnot found"
-			echo "ERROR : Malfunction of OW [${ow}] \tnot found" >> $KLOG/kCheckSimulator.log
+			print "ERROR : Malfunction of OW [${ow}] \tnot found"
+			print "ERROR : Malfunction of OW [${ow}] \tnot found" >> $KLOG/kCheckSimulator.log
 			fi
 		fi
 		done
@@ -53,23 +53,23 @@ grep pageName ${pd} | grep -v M_S_NS | cut -f2 | while read page
 	do
 	if [ ! -f "${page}.pag" ]
 	then
-	echo "ERROR : The hyperlink [${page}] \tof the PD ${pd} \tnot found" >> $KLOG/kCheckSimulator.tmp
+	print "ERROR : The hyperlink [${page}] \tof the PD ${pd} \tnot found" >> $KLOG/kCheckSimulator.tmp
 	fi
 	done
 done
 sort -o $KLOG/kCheckSimulator.tmp $KLOG/kCheckSimulator.tmp 
-echo "\n${star5}"
+print "\n${star5}"
 echo "Remote parameters not found"
 echo ${star5}
-echo "\n${star5}" >> $KLOG/kCheckSimulator.log
+print "\n${star5}" >> $KLOG/kCheckSimulator.log
 echo "Remote parameters not found" >> $KLOG/kCheckSimulator.log
 echo ${star5} >> $KLOG/kCheckSimulator.log
 grep F_ $KLOG/kCheckSimulator.tmp
 grep F_ $KLOG/kCheckSimulator.tmp >> $KLOG/kCheckSimulator.log
-echo "\n${star5}"
+print "\n${star5}"
 echo "Plant displaies not found"
 echo ${star5}
-echo "\n${star5}" >> $KLOG/kCheckSimulator.log
+print "\n${star5}" >> $KLOG/kCheckSimulator.log
 echo "Plant displaies not found" >> $KLOG/kCheckSimulator.log
 echo ${star5} >> $KLOG/kCheckSimulator.log
 grep -v F_ $KLOG/kCheckSimulator.tmp
@@ -85,15 +85,15 @@ echo ${star2}
 if [ "${error}" -gt "0" ]
 then
 banner "NOK"
-echo "\t${error} ERRORS found during kCheckSimulator\a\a\a"
+print "\t${error} ERRORS found during kCheckSimulator\a\a\a"
 banner "NOK" >> $KLOG/kCheckSimulator.log
-echo "\t${error} ERRORS found during kCheckSimulator" >> $KLOG/kCheckSimulator.log
+print "\t${error} ERRORS found during kCheckSimulator" >> $KLOG/kCheckSimulator.log
 else
-echo "\tkCheckSimulator : OK"
+print "\tkCheckSimulator : OK"
 fi
 echo ${star2}
 kAddScreen kCheckSimulator End 
 kAddLog kCheckSimulator End
-echo "\n${star}"
-echo "\n${star}" >> $KLOG/kCheckSimulator.log
-echo "Log file :\t$KLOG/kCheckSimulator.log"
+print "\n${star}"
+print "\n${star}" >> $KLOG/kCheckSimulator.log
+print "Log file :\t$KLOG/kCheckSimulator.log"

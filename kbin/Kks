@@ -5,17 +5,17 @@ option=${1}
 question=${2}
 if [ "${option}" = "-h" ]
 then
-echo "\n${star8}\nThe Kks command helps the user to found a tag in the simulator.\n"
+print "\n${star8}\nThe Kks command helps the user to found a tag in the simulator.\n"
 echo "Options :"
-echo "\t-h\t: this help"
-echo "\t-r\t: found kks in regopages [default]"
-echo "\t-ow\t: found operating windows in plant displaies"
-echo "\t-rp\t: found remote parameters in plant displaies"
-echo "\t-li\t: found direct links in plant displaies"
-echo "\t-r20\t: found kks in R20 database"
-echo "\t-a\t: found ALL"
-echo "\n\tExemple\t: kks -a 0HAd10Cp0"
-echo "\n${star8}\n${star2}"
+print "\t-h\t: this help"
+print "\t-r\t: found kks in regopages [default]"
+print "\t-ow\t: found operating windows in plant displaies"
+print "\t-rp\t: found remote parameters in plant displaies"
+print "\t-li\t: found direct links in plant displaies"
+print "\t-r20\t: found kks in R20 database"
+print "\t-a\t: found ALL"
+print "\n\tExemple\t: kks -a 0HAd10Cp0"
+print "\n${star8}\n${star2}"
 exit
 fi
 if [ "${question}" = "" ]
@@ -27,18 +27,18 @@ fi
 cd $KINFOTAG
 if [ "${option}" = "-r" ]
 then
-	echo "\nRegolation pages:"
+	print "\nRegolation pages:"
 	grep -i ${question} ./KKS.list | while read page kks
 	do
 	task=` grep -w ${page} ./TASK.list | cut -f2 -d' ' `
 	tag=` grep -w ${page} ./TAG.list | cut -f2 -d' ' `
 	rev=` grep -w ${page} ./REV.list | cut -f2 -d' ' `
 	descr=` grep -w ${page} ./DESCR.list | cut -f2- -d' ' `
-	echo "|" ${task}"\t" "|" ${page} "|" ${tag} "|" ${rev} "|" ${kks} "|" ${descr} "|"
+	print "|" ${task}"\t" "|" ${page} "|" ${tag} "|" ${rev} "|" ${kks} "|" ${descr} "|"
 	done
 elif [ "${option}" = "-ow" ]
 then
-	echo "\nOperating windows:"
+	print "\nOperating windows:"
 	grep -i ${question} ./OW.list | while read pd ow
 	do
 	pddescr=` grep -w ${pd} ./PDDESCR.list | cut -f2- -d' ' `
@@ -53,7 +53,7 @@ then
 	done
 elif [ "${option}" = "-rp" ]
 then
-	echo "\nRemote parameters:"
+	print "\nRemote parameters:"
 	grep -i ${question} ./RP.list | while read pd rp
 	do
 	pddescr=` grep -w ${pd} ./PDDESCR.list | cut -f2- -d' ' `
@@ -61,7 +61,7 @@ then
 	done
 elif [ "${option}" = "-li" ]
 then
-	echo "\nDirect links:"
+	print "\nDirect links:"
 	grep -i ${question} ./LI.list | while read pd li
 	do
 	echo "|" ${pd} "|" ${li} "|"
@@ -69,7 +69,7 @@ then
 
 elif [ "${option}" = "-r20" ]
 then
-	echo "\nR20 database:"
+	print "\nR20 database:"
 	grep -i ${question} ./R20.txt | while read pd description fa date status
 	do
 	if [ "${status}" = "1" ]
@@ -94,6 +94,6 @@ Kks -rp ${question}
 Kks -li ${question}
 else
 banner NOK
-echo "Option non configurated.\a\a\a"
+print "Option non configurated.\a\a\a"
 fi
 #echo ${star2}

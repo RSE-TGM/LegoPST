@@ -4,21 +4,21 @@ clear
 kTest
 echo $star7
 echo
-echo "\t\t\tSimulator Installation\a"
+print "\t\t\tSimulator Installation\a"
 echo
 echo $star7
-echo "\n\t$KREV\n\t$KDESCR"
+print "\n\t$KREV\n\t$KDESCR"
 #kpresentation
 CONFIRM=""
 export CONFIRM
 echo ""
-echo "\tPlease confirm $KSIMNAME simulator file updating"
-echo "\tin $KSIM directory.\n"
-echo "\tPress  y to confirm"
+print "\tPlease confirm $KSIMNAME simulator file updating"
+print "\tin $KSIM directory.\n"
+print "\tPress  y to confirm"
 read CONFIRM
 if [ ! "${CONFIRM}" = "y" ]
 then
-	echo "\nSorry ...\a\n"
+	print "\nSorry ...\a\n"
 	exit
 fi
 echo

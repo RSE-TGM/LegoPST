@@ -6,12 +6,12 @@ echo ${star5}
 echo ${star5} >> $KLOG/kCheckAlarm.log
 kAddScreen kCheckAlarm "Verification n.6 : START"
 kAddLog kCheckAlarm "Verification n.6 : START"
-echo "\n\tOperating Windows selection in N_winXXX.list with the criterion"
-echo "\tFunctional Area presents in al_sim.conf file.\n"
-echo "\tFunctional Area List: "$MMI_K_FA_LIST""
-echo "\n\tOperating Windows selection in N_winXXX.list with the criterion" >> $KLOG/kCheckAlarm.log
-echo "\tFunctional Area presents in al_sim.conf file.\n" >> $KLOG/kCheckAlarm.log
-echo "\tFunctional Area List: "$MMI_K_FA_LIST"" >> $KLOG/kCheckAlarm.log
+print "\n\tOperating Windows selection in N_winXXX.list with the criterion"
+print "\tFunctional Area presents in al_sim.conf file.\n"
+print "\tFunctional Area List: "$MMI_K_FA_LIST""
+print "\n\tOperating Windows selection in N_winXXX.list with the criterion" >> $KLOG/kCheckAlarm.log
+print "\tFunctional Area presents in al_sim.conf file.\n" >> $KLOG/kCheckAlarm.log
+print "\tFunctional Area List: "$MMI_K_FA_LIST"" >> $KLOG/kCheckAlarm.log
 #
 ls $KWIN/N_win*.list | grep -v DFGK_S | while read file
 do
@@ -42,5 +42,5 @@ kAddStatus kCheckAlarm6 RUNED
 #
 kAddScreen kCheckAlarm "Verification n.6 : END"
 kAddLog kCheckAlarm "Verification n.6 : END"
-echo ${star5}\n
-echo ${star5}\n >> $KLOG/kCheckAlarm.log
+print "${star5}\n"
+print "${star5}\n" >> $KLOG/kCheckAlarm.log

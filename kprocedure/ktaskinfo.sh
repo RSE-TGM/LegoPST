@@ -10,4 +10,4 @@ cp $file $file.sav
 sed  "s/pentolin/puegasr0/g"  $file.sav  > $file
 done
 rm ktaskinfo.out ktaskinfo.list
-echo "End ktaskinfo \a"
+print "End ktaskinfo \a"

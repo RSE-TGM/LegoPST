@@ -5,8 +5,8 @@ ParentTag=$2
 PageName=$3
 if [ ! -f "$PageName" ]
 then
-echo "\n\tCorrect Use\t: kAddChildrenWidget WidgeType ParentTag PageName"
-echo "\n\tExemple\t: kAddChildrenWidget ChangePage 100w A001.pag\n\a"
+print "\n\tCorrect Use\t: kAddChildrenWidget WidgeType ParentTag PageName"
+print "\n\tExemple\t: kAddChildrenWidget ChangePage 100w A001.pag\n\a"
 exit
 fi
 grep ^*${ParentTag}.listChildren: ${PageName} | \

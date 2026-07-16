@@ -2,7 +2,7 @@
 #
 echo "Please not use this program ..."
 #exit
-echo "${star5}\nUpDating Pages Connessioni.reg Context.ctx\n${star5}"
+print "${star5}\nUpDating Pages Connessioni.reg Context.ctx\n${star5}"
 ls B3??.pag | while read page
 do
 dos=`echo ${page} | cut -c 3-4`

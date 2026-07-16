@@ -10,4 +10,4 @@ echo ${star5}
 . $KBIN/kPulirProc
 cd $LEGOCAD_USER/legocad
 done
-echo "\n\a"
+print "\n\a"

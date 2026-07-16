@@ -2,8 +2,8 @@
 #
 # $KGRAF/kRecorder_VAR.txt without empty line !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # Variables extraction from kRecorder_VAR.txt
-echo "\n${star6}\nVariables extraction from kRecorder_VAR.txt\n${star6}\n"
-echo "\n${star6}\nVariables extraction from kRecorder_VAR.txt\n${star6}\n" >> $KLOG/kMakeRecorder.log
+print "\n${star6}\nVariables extraction from kRecorder_VAR.txt\n${star6}\n"
+print "\n${star6}\nVariables extraction from kRecorder_VAR.txt\n${star6}\n" >> $KLOG/kMakeRecorder.log
 grep "P " $KSIM/al_sim.conf | while read id TaskName TaskDirectory TaskDescription
 do
 echo "Specific process variables added to task $TaskName :"

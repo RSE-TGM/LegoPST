@@ -6,7 +6,7 @@ KTEST=`cat $KSTATUS/kTest.status`
 echo "kTest result : $KTEST"
 if [ ! "$KTEST" = "OK" ]
 then
-echo "Environement test not succesful\a"
+print "Environement test not succesful\a"
 banner "NOK"
 exit
 fi
@@ -33,7 +33,7 @@ cat <<EOF
 
 
 EOF
-echo "\tSelection ==> \c"
+print "\tSelection ==> \c"
 read option
 case $option in
      0) exit
@@ -133,7 +133,7 @@ elif [ "${K_HELP_ITEM25}" = "" ]
 then
 K_HELP_ITEM25=${menu}
 else
-echo "\aWarning Task Number > 15"
+print "\aWarning Task Number > 15"
 fi
 done
 cat <<EOF
@@ -173,7 +173,7 @@ cat <<EOF
 
 
 EOF
-echo "\tSelection ==> \c"
+print "\tSelection ==> \c"
 read option
 case $option in
      0) exit;

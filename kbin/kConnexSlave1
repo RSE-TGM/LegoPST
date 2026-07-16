@@ -3,7 +3,7 @@
 cd $KSIM
 if [ -f $KSIM/S01 ]
 then
-echo "\nSaving S01 in S01.kold\n"
+print "\nSaving S01 in S01.kold\n"
 echo "Saving S01 in S01.kold" >> $KLOG/kConnex.log
 mv  $KSIM/S01 $KSIM/S01.kold
 fi
@@ -27,25 +27,25 @@ cat S01.new  | awk '{
 > S01
 rm -f S01.new
 #
-echo "\n${star5}\nGenerated Simulator Toplogy File :\n\t$KSIM/S01"
-echo "\n${star5}\nGenerated Simulator Toplogy File :\n\t$KSIM/S01" >> $KLOG/kConnex.log
-echo "\nLog File :\n\t$KLOG/kConnex.log\n${star5}"
-echo "\nLog File :\n\t$KLOG/kConnex.log\n${star5}" >> $KLOG/kConnex.log
-echo "\n${star5}" >> $KLOG/kConnex.log
+print "\n${star5}\nGenerated Simulator Toplogy File :\n\t$KSIM/S01"
+print "\n${star5}\nGenerated Simulator Toplogy File :\n\t$KSIM/S01" >> $KLOG/kConnex.log
+print "\nLog File :\n\t$KLOG/kConnex.log\n${star5}"
+print "\nLog File :\n\t$KLOG/kConnex.log\n${star5}" >> $KLOG/kConnex.log
+print "\n${star5}" >> $KLOG/kConnex.log
 cat $KSIM/connex2.out >> $KLOG/kConnex.log
 grep -v EJ $KSIM/connex2.out | grep -v C/ | grep -v _ZV | grep -v "\>  CONNECTED" | \
 grep -v LOW_RANGE | grep -v HIGH_RANGE > $KLOG/kConnex.err
-echo "${star5}\n" >> $KLOG/kConnex.log
+print "${star5}\n" >> $KLOG/kConnex.log
 #
 # Perso
 if [ -x $KPERSO/kConnexPerso ]
 then
-echo "$star\nIt has been detected a personalisation macro :\n\t$KPERSO/kConnexPerso"
-echo "$star\nIt has been detected a personalisation macro :\n\t$KPERSO/kConnexPerso" >> $KLOG/kConnex.log
+print "$star\nIt has been detected a personalisation macro :\n\t$KPERSO/kConnexPerso"
+print "$star\nIt has been detected a personalisation macro :\n\t$KPERSO/kConnexPerso" >> $KLOG/kConnex.log
 . $KPERSO/kConnexPerso
 echo "$star"
 echo "$star" >> $KLOG/kConnex.log
 fi
 # Clean
 rm -f $KSIM/connex2.out
-echo "\a"
+print "\a"

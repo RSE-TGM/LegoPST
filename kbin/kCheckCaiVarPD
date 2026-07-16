@@ -3,14 +3,14 @@
 echo "Please wait ..."
 rm -f $KWIN/kCheckCaiVarPD.all
 star="*********************************************************************************"
-echo "$star\n$KWIN/kCheckCaiVarPD.all\n$star" > $KWIN/kCheckCaiVarPD.all
-echo "$star\n$KWIN/kCheckCaiVarPD.pb\n$star" > $KWIN/kCheckCaiVarPD.pb
+print "$star\n$KWIN/kCheckCaiVarPD.all\n$star" > $KWIN/kCheckCaiVarPD.all
+print "$star\n$KWIN/kCheckCaiVarPD.pb\n$star" > $KWIN/kCheckCaiVarPD.pb
 text="CaiVar not animated by alarm"
 text2="CaiVar Problem"
 ls $KWIN/M_S_*.pag | grep -v GR | while read page
 do
-	echo "$star\n$text\nPlant Display : $page\n$star" >> $KWIN/kCheckCaiVarPD.all
-	echo "$star\n$text2\nPlant Display : $page\n$star" >> $KWIN/kCheckCaiVarPD.pb
+	print "$star\n$text\nPlant Display : $page\n$star" >> $KWIN/kCheckCaiVarPD.all
+	print "$star\n$text2\nPlant Display : $page\n$star" >> $KWIN/kCheckCaiVarPD.pb
 	grep input1 $page | grep -v SUPERVIS > $page.kCheckCaiVarPD
 	cat $page.kCheckCaiVarPD | while read line
 	do
@@ -31,4 +31,4 @@ do
 	done
 	rm -f $page.kCheckCaiVarPD
 done
-echo "The results are in files :\n\t$KWIN/kCheckCaiVarPD.pb\n\t$KWIN/kCheckCaiVarPD.all\n\a"
+print "The results are in files :\n\t$KWIN/kCheckCaiVarPD.pb\n\t$KWIN/kCheckCaiVarPD.all\n\a"

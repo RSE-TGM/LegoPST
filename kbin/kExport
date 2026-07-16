@@ -132,7 +132,7 @@ then
 echo "Creating $KSTART_TABLES directory ... "
 mkdir $KSTART_TABLES
 fi
-echo "${star5}\n\tALARM.txt\n${star5}\n"
+print "${star5}\n\tALARM.txt\n${star5}\n"
 if [ -f $KSTART_TABLES/ALARM.txt ]
 then
 echo Rename $KSTART_TABLES/ALARM.txt in ALARM.txt.kold
@@ -141,7 +141,7 @@ fi
 echo Copy export/ALARM.txt in $KSTART_TABLES
 cp $KEXPORT/ALARM.txt $KSTART_TABLES/ALARM.txt
 ###############################################################################
-echo "${star5}\n\tTAG.txt\n${star5}\n"
+print "${star5}\n\tTAG.txt\n${star5}\n"
 if [ -f $KSTART_TABLES/TAG.txt ]
 then
 echo Rename $KSTART_TABLES/TAG.txt in TAG.txt.kold
@@ -150,7 +150,7 @@ fi
 echo Copy export/TAG.txt in $KSTART_TABLES
 cp $KEXPORT/TAG.txt $KSTART_TABLES/TAG.txt
 ###############################################################################
-echo "${star5}\n\tTAGS.txt\n${star5}\n"
+print "${star5}\n\tTAGS.txt\n${star5}\n"
 if [ -f $KSTART_TABLES/TAGS.txt ]
 then
 echo Rename $KSTART_TABLES/TAGS.txt in TAGS.txt.kold
@@ -159,7 +159,7 @@ fi
 echo Copy export/TAGS.txt in $KSTART_TABLES
 cp $KEXPORT/TAGS.txt $KSTART_TABLES/TAGS.txt
 ###############################################################################
-echo "${star5}\n\tcomponent.mf\n${star5}\n"
+print "${star5}\n\tcomponent.mf\n${star5}\n"
 if [ -f $KWIN/component.mf ]
 then
 echo Rename $KWIN/component.mf in component.mf.kold
@@ -168,7 +168,7 @@ fi
 echo Copy export/component.mf in $KWIN
 cp $KEXPORT/component.mf $KWIN/component.mf
 ###############################################################################
-echo "${star5}\n\tmalf_set.mf\n${star5}\n"
+print "${star5}\n\tmalf_set.mf\n${star5}\n"
 if [ -f $KWIN/malf_set.mf ]
 then
 echo Rename $KWIN/malf_set.mf in malf_set.mf.kold
@@ -177,7 +177,7 @@ fi
 echo Copy export/malf_set.mf in $KWIN
 cp $KEXPORT/malf_set.mf $KWIN/malf_set.mf
 ###############################################################################
-echo "${star5}\n\ttipo_comp_malf.mf\n${star5}\n"
+print "${star5}\n\ttipo_comp_malf.mf\n${star5}\n"
 if [ -f $KWIN/tipo_comp_malf.mf ]
 then
 echo Rename $KWIN/tipo_comp_malf.mf in tipo_comp_malf.mf.kold
@@ -186,7 +186,7 @@ fi
 echo Copy export/tipo_comp_malf.mf in $KWIN
 cp $KEXPORT/tipo_comp_malf.mf $KWIN/tipo_comp_malf.mf
 ###############################################################################
-echo "${star5}\n\tsosti.dat\n${star5}\n"
+print "${star5}\n\tsosti.dat\n${star5}\n"
 if [ -f $KWIN/sosti.dat ]
 then
 echo Rename $KWIN/sosti.dat in sosti.dat.kold
@@ -195,7 +195,7 @@ fi
 echo Copy export/sosti.dat in $KWIN
 cp $KEXPORT/sosti.dat $KWIN/sosti.dat
 ###############################################################################
-echo "${star5}\n\tcai_var.dat\n${star5}\n"
+print "${star5}\n\tcai_var.dat\n${star5}\n"
 if [ -f $KSIM/cai_var.dat ]
 then
 echo Rename $KSIM/cai_var.dat in cai_var.dat.kold
@@ -204,7 +204,7 @@ fi
 echo Copy export/cai_var.dat in $KSIM
 cp $KEXPORT/cai_var.dat $KSIM/cai_var.dat
 ###############################################################################
-echo "${star5}\n\tmgw.conf\n${star5}\n"
+print "${star5}\n\tmgw.conf\n${star5}\n"
 if [ -f $KWIN/mgw.conf ]
 then
 echo Rename $KWIN/mgw.conf in mgw.conf.kold
@@ -213,7 +213,7 @@ fi
 echo Copy export/mgw.conf in $KWIN
 cp $KEXPORT/mgw.con $KWIN/mgw.conf
 ###############################################################################
-echo "${star5}\n\tmgw.descr\n${star5}\n"
+print "${star5}\n\tmgw.descr\n${star5}\n"
 if [ -f $KWIN/mgw.descr ]
 then
 echo Rename $KWIN/mgw.descr in mgw.descr.kold
@@ -222,7 +222,7 @@ fi
 echo Copy export/mgw.descr in $KWIN
 cp $KEXPORT/mgw.des $KWIN/mgw.descr
 ###############################################################################
-echo "${star5}\n\tgrugraf.txt\n${star5}\n"
+print "${star5}\n\tgrugraf.txt\n${star5}\n"
 if [ -f $KGRAF/grugraf.txt ]
 then
 echo Rename $KGRAF/grugraf.txt in grugraf.txt.kold
@@ -231,7 +231,7 @@ fi
 echo Copy export/grugraf.txt in $KGRAF
 cp $KEXPORT/grugraf.txt $KGRAF/grugraf.txt
 ###############################################################################
-echo "${star5}\n\tkksgrafi.txt\n${star5}\n"
+print "${star5}\n\tkksgrafi.txt\n${star5}\n"
 if [ -f $KGRAF/kksgrafi.txt ]
 then
 echo Rename $KGRAF/kksgrafi.txt in kksgrafi.txt.kold
@@ -240,7 +240,7 @@ fi
 echo Copy export/kksgrafi.txt in $KGRAF
 cp $KEXPORT/kksgrafi.txt $KGRAF/kksgrafi.txt
 ###############################################################################
-echo "${star5}\n\tvargraf.txt\n${star5}\n"
+print "${star5}\n\tvargraf.txt\n${star5}\n"
 if [ -f $KGRAF/vargraf.txt ]
 then
 echo Rename $KGRAF/vargraf.txt in vargraf.txt.kold
@@ -249,7 +249,7 @@ fi
 echo Copy export/vargraf.txt in $KGRAF
 cp $KEXPORT/vargraf.txt $KGRAF/vargraf.txt
 ###############################################################################
-echo "${star5}\n\tR20.txt\n${star5}\n"
+print "${star5}\n\tR20.txt\n${star5}\n"
 if [ -f $KINFOTAG/R20.txt ]
 then
 echo Rename $KINFOTAG/R20.txt in R20.txt.kold
@@ -259,16 +259,16 @@ echo Copy export/R20.txt in $KINFOTAG
 cat $KEXPORT/R20.txt | tr -s '\011' ' ' | sed "s/ 0:00:00//g" | sed "s/;;/;\&;/g" | \
     sed "s/ /\&/g" | sed "s/\&\&/\&/g" | sed "s/;/ /g" | tr -s '\011' ' ' > $KINFOTAG/R20.txt
 ###############################################################################
-echo "${star5}\n\tDatabases\n${star5}\n"
-echo "Copy databases in $KDATABASES \n"
+print "${star5}\n\tDatabases\n${star5}\n"
+print "Copy databases in $KDATABASES \n"
 if [ -f $KEXPORT/*.mdb ]
 then
 	ls -C1 $KEXPORT/*.mdb
 	cp $KEXPORT/*mdb $KDATABASES
 fi
 ###############################################################################
-echo "${star5}\n\tN_win*.tab\n${star5}\n"
-echo "Copy N_win*.tab in $KWIN \n"
+print "${star5}\n\tN_win*.tab\n${star5}\n"
+print "Copy N_win*.tab in $KWIN \n"
 ls -C1 $KEXPORT/N_win*.tab
 cp $KEXPORT/N_win*.tab $KWIN
 cd $KWIN
@@ -280,4 +280,4 @@ cat $KLOG/kMalfunctionGroupWindow.log >> $KLOG/kExport.log
 rm -f $KLOG/kMalfunctionGroupWindow.log
 kAddScreen kExport End
 kAddLog kExport End
-echo "Log File :\t$KLOG/kExport.log\a"
+print "Log File :\t$KLOG/kExport.log\a"

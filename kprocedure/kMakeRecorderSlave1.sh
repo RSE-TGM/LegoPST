@@ -3,7 +3,7 @@
 # Variables extraction from recorder.edf_*
 if [ ! -f $KSIM/recorder.edf_* ]
 then
-echo "WARNING : $KSIM/recorder.edf_* not found\a"
+print "WARNING : $KSIM/recorder.edf_* not found\a"
 sleep 2
 exit
 fi
@@ -11,8 +11,8 @@ ls $KSIM/recorder.edf_* | while read GroupRecorder
 do
 count=0
 next=model
-echo "\n${star6}\nVariables extraction from ${GroupRecorder}\n${star6}\n" 
-echo "\n${star6}\nVariables extraction from ${GroupRecorder}\n${star6}\n" >> $KLOG/kMakeRecorder.log
+print "\n${star6}\nVariables extraction from ${GroupRecorder}\n${star6}\n" 
+print "\n${star6}\nVariables extraction from ${GroupRecorder}\n${star6}\n" >> $KLOG/kMakeRecorder.log
 cat ${GroupRecorder} |
 while read var
 do

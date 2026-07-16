@@ -19,16 +19,16 @@ ls M_S_*.pag | grep -v _GR | while read page
 	if [ "${HIERARCHY}" = "" ]
 	then
 	HIERARCHY="-1,-1,-1,-1,-1,-1"
-	echo "\n\n\aERROR : Hierarchy of plant display [${PLANTDISPLAY_SHORT}] not found in $KEXPORT/kpd.txt"
+	print "\n\n\aERROR : Hierarchy of plant display [${PLANTDISPLAY_SHORT}] not found in $KEXPORT/kpd.txt"
 	echo "ERROR : Hierarchy of plant display [${PLANTDISPLAY_SHORT}] not found in $KEXPORT/kpd.txt" >> $KLOG/kUpDateCaiHierarchy.log
         else
-        echo ". \c"
+        print ". \c"
 	fi
 	grep -v "gerarchia:" ${page} > ${page}.tmp
-	echo "*gerarchia:\t${HIERARCHY}" >> ${page}.tmp
+	print "*gerarchia:\t${HIERARCHY}" >> ${page}.tmp
 	mv ${page}.tmp ${page}
 	done
-	echo "\n"
+	print "\n"
 kAddLog kUpDateCaiHierarchy "End UpDate PlantDisplay Hierarchy"
 kAddScreen kUpDateCaiHierarchy "End UpDate PlantDisplay Hierarchy"
 echo "$star8"

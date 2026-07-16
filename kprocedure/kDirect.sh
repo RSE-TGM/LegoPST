@@ -6,7 +6,7 @@ KTEST=`cat $KSTATUS/kTest.status`
 echo "kTest result : $KTEST"
 if [ ! "$KTEST" = "OK" ]
 then
-echo "Environement test not succesful\a"
+print "Environement test not succesful\a"
 banner "NOK"
 exit
 fi
@@ -24,7 +24,7 @@ kAddLog kDirect Start
 cd ${KSIM}
 if [ ! -f S01 ]
 then
-echo "-->> Error : File S01 not found \a"
+print "-->> Error : File S01 not found \a"
 banner NOK
 exit
 fi
@@ -40,12 +40,12 @@ cd ${KSIM}
 ###############################################################################
 #	DirLinksAn.list
 ###############################################################################
-echo "\n${star5}"
-echo "\n${star5}" >> $KLOG/kDirect.log
+print "\n${star5}"
+print "\n${star5}" >> $KLOG/kDirect.log
 kAddScreen kDirect "Merge files DirLinksAn.list ..."
 kAddLog kDirect "Merge files DirLinksAn.list ..."
-echo "${star5}\n"
-echo "${star5}\n" >> $KLOG/kDirect.log
+print "${star5}\n"
+print "${star5}\n" >> $KLOG/kDirect.log
 rm -f ${KWIN}/DirLinksAn.list
 count=0
 cat S01 |
@@ -69,8 +69,8 @@ done |
 	while read tok1 tok2 tok3 tok4
 do
 	cd ${tok1}
-	echo "\t\tfrom task ${tok1} ..."
-	echo "\t\tfrom task ${tok1} ..." >> $KLOG/kDirect.log
+	print "\t\tfrom task ${tok1} ..."
+	print "\t\tfrom task ${tok1} ..." >> $KLOG/kDirect.log
 	if [ -f DirLinksAn.list ]
 	then
 	ls DirLinksAn.list |
@@ -88,12 +88,12 @@ done
 ###############################################################################
 #	Plant Display Elaboration
 ###############################################################################
-echo "\n${star5}"
-echo "\n${star5}" >> $KLOG/kDirect.log
+print "\n${star5}"
+print "\n${star5}" >> $KLOG/kDirect.log
 kAddScreen kDirect "Elaboration Plant Displays ... "
 kAddLog kDirect "Elaboration Plant Displays ... "
-echo "${star5}\n"
-echo "${star5}\n" >> $KLOG/kDirect.log
+print "${star5}\n"
+print "${star5}\n" >> $KLOG/kDirect.log
 direct.sh -s ${KSIMNAME}
 if [ -f ${KBASIC}/direct.sh.log ]
 then

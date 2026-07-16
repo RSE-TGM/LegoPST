@@ -12,7 +12,7 @@ grep -f $TMPDIR/rpupper.tmp ./*/pag/RP.list | sed "s/RP.list:/ /g" | \
 tr -d '.' | tr -d '/' | sed "s/pag//g" | while read fa pd rp
 do
 pddescr=` grep -w ${pd} ./*/pag/PDDESCR.list | cut -f2- -d' ' `
-echo "|" ${fa}"\t" "|" ${rp} "|" ${pd} "|" ${pddescr} "|"
+print "|" ${fa}"\t" "|" ${rp} "|" ${pd} "|" ${pddescr} "|"
 done
 echo ${star2}
 else

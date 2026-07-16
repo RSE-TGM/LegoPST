@@ -5,7 +5,7 @@ KTEST=`cat $KSTATUS/kTest.status`
 echo "kTest result : $KTEST"
 if [ ! "$KTEST" = "OK" ]
 then
-echo "Environement test not succesful\a"
+print "Environement test not succesful\a"
 banner "NOK"
 exit
 fi
@@ -33,12 +33,12 @@ rm -f OW.list
 rm -f RP.list
 rm -f TASK.list
 ###############################################################################
-echo "\n\n${star8}\nExtraction tags and descriptions from rego tasks\n${star8}\n"
+print "\n\n${star8}\nExtraction tags and descriptions from rego tasks\n${star8}\n"
 cd $LEGOCAD_USER/legocad
 ls -d r_* | while read task
 do
 cd $task
-echo "\n${star2}\n$task\n${star2}\n"
+print "\n${star2}\n$task\n${star2}\n"
 echo 1.- Find KKS
 $KBIN/xFindKks
 echo 2.- Find tag
@@ -52,12 +52,12 @@ $KBIN/xFindTask ${task}
 cd $LEGOCAD_USER/legocad
 done
 ###############################################################################
-echo "\n\n${star8}\nExtraction tags and descriptions from plant display\n${star8}\n"
+print "\n\n${star8}\nExtraction tags and descriptions from plant display\n${star8}\n"
 cd ${KDISPLAY}/plant_display
 ls -d ./*/pag | while read task
 do
 cd $task
-echo "\n${star2}\n$task\n${star2}\n"
+print "\n${star2}\n$task\n${star2}\n"
 echo 1.- Find Link Direct
 . $KBIN/xFindLi
 echo 2.- Find operating windows
@@ -69,7 +69,7 @@ echo 4.- Find plant display description
 cd ${KDISPLAY}/plant_display
 done
 ###############################################################################
-echo "\n\n$star"
+print "\n\n$star"
 echo "$star" >> $KLOG/kFind.log
 kAddScreen kFind Started
 kAddLog kFind Started

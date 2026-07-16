@@ -8,7 +8,7 @@ KTEST=`cat $KSTATUS/kTest.status `
 echo "kTest result : $KTEST"
 if [ ! "$KTEST" = "OK" ]
 then
-echo "Environement test not succesful\a"
+print "Environement test not succesful\a"
 banner "NOK"
 exit
 fi
@@ -27,21 +27,21 @@ kCleanStatus=`cat $KSTATUS/kClean.status`
 if [ ! "$kCleanStatus" = "OK" ]
 then
 banner "NOK"
-echo "ERROR : kClean not executed\n\a"
+print "ERROR : kClean not executed\n\a"
 exit
 fi
 kScdStatus=`cat $KSTATUS/kScd.status`
 if [  "$kScdStatus" = "Start" ]
 then
 banner "NOK"
-echo "ERROR : kScd starting ...\n\a"
+print "ERROR : kScd starting ...\n\a"
 exit
 fi
 kScdStatus=`cat $KSTATUS/kScd.status`
 if [  "$kScdStatus" = "OK" ]
 then
 banner "NOK"
-echo "ERROR : kScd already started\n\a"
+print "ERROR : kScd already started\n\a"
 exit
 fi
 ###############################################################################

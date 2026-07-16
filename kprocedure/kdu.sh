@@ -1,6 +1,6 @@
 #!/bin/ksh
 #
-echo "\n"
+print "\n"
 echo "blocks    bytes        subdirectory                                      "
 echo "--------  -----------  --------------------------------------------------"
 ls -la \

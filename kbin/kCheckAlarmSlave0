@@ -6,9 +6,9 @@ echo ${star5}
 echo ${star5} >> $KLOG/kCheckAlarm.log
 kAddScreen kCheckAlarm "Verification n.0 : START"
 kAddLog kCheckAlarm "Verification n.0 : START"
-echo "\n\tVerification that all alarms presents in simulator are configurated in database.\n"
-echo "\n\tVerification that all alarms presents in simulator are configurated in database.\n" >> $KLOG/kCheckAlarm.log
-echo "\n\tWait ..."
+print "\n\tVerification that all alarms presents in simulator are configurated in database.\n"
+print "\n\tVerification that all alarms presents in simulator are configurated in database.\n" >> $KLOG/kCheckAlarm.log
+print "\n\tWait ..."
 #
 cd $KEXPORT
 cp TAG.txt TAG_ALL.txt
@@ -23,13 +23,13 @@ do
 AlarmPresentInDataBase=`grep $kks $KEXPORT/TAG_ALL.txt | wc -l | tr -s '\011' ' ' | tr -d '[:space:]'`
 if [ "$AlarmPresentInDataBase" = "0" ]
 then
-echo "ERROR : Alarm $kks\t($tag) presents in simulator but not found in database" >> $KLOG/kCheckAlarmSlave0.log
+print "ERROR : Alarm $kks\t($tag) presents in simulator but not found in database" >> $KLOG/kCheckAlarmSlave0.log
 fi
 done
 ErrorNumber=`grep ERROR $KLOG/kCheckAlarmSlave0.log | wc -l | tr -s '\011' ' ' | tr -d '[:space:]'`
 if [ ! "$ErrorNumber" = "0" ]
 then
-echo "\n\t$ErrorNumber errors\n\a"
+print "\n\t$ErrorNumber errors\n\a"
 banner NOK
 fi
 cat $KLOG/kCheckAlarmSlave0.log >> $KLOG/kCheckAlarm.log
@@ -41,5 +41,5 @@ kAddStatus kCheckAlarm0 OK
 #
 kAddScreen kCheckAlarm "Verification n.0 : END"
 kAddLog kCheckAlarm "Verification n.0 : END"
-echo "${star5}\n"
-echo "${star5}\n" >> $KLOG/kCheckAlarm.log
+print "${star5}\n"
+print "${star5}\n" >> $KLOG/kCheckAlarm.log

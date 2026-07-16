@@ -6,7 +6,7 @@ KTEST=`cat $KSTATUS/kTest.status`
 echo "kTest result : $KTEST"
 if [ ! "$KTEST" = "OK" ]
 then
-echo "Environement test not succesful\a"
+print "Environement test not succesful\a"
 banner "NOK"
 exit
 fi
@@ -44,6 +44,6 @@ kAddScreen kConnex End
 kAddLog kConnex End
 echo "$star"
 echo "$star" >> $KLOG/kConnex.log
-echo "Log file\t: $KLOG/kConnex.log"
-echo "Error file\t: $KLOG/kConnex.err"
+print "Log file\t: $KLOG/kConnex.log"
+print "Error file\t: $KLOG/kConnex.err"
 

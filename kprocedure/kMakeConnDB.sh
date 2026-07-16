@@ -6,7 +6,7 @@ KTEST=`cat $KSTATUS/kTest.status `
 echo "kTest result : $KTEST"
 if [ ! "$KTEST" = "OK" ]
 then
-echo "Environement test not succesful\a"
+print "Environement test not succesful\a"
 banner "NOK"
 exit
 fi
@@ -31,8 +31,8 @@ rm -f $KWIN/REG_INT_CONN_DB*
 kMakeConnDBSlave1
 mv $KSIM/REG_INT_CONN_DB.pag $KWIN/REG_INT_CONN_DB.pag
 mv $KSIM/REG_INT_CONN_DB.dir $KWIN/REG_INT_CONN_DB.dir
-echo "\nDatabase REG_INT_CONN_DB created in $KWIN\n"
-echo "\nDatabase REG_INT_CONN_DB created in $KWIN\n" >> $KLOG/kMakeConnDB.log
+print "\nDatabase REG_INT_CONN_DB created in $KWIN\n"
+print "\nDatabase REG_INT_CONN_DB created in $KWIN\n" >> $KLOG/kMakeConnDB.log
 #
 kAddScreen kMakeConnDB End 
 kAddLog kMakeConnDB End

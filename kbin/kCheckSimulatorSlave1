@@ -1,11 +1,11 @@
 #!/bin/ksh
 #
-echo "\n$star5"
+print "\n$star5"
 echo "Unaccesible curves from mmi"
-echo "$star5\n"
-echo "\n$star5" >> $KLOG/kCheckSimulator.log
+print "$star5\n"
+print "\n$star5" >> $KLOG/kCheckSimulator.log
 echo "Unaccesible curves from mmi" >> $KLOG/kCheckSimulator.log
-echo "$star5\n" >> $KLOG/kCheckSimulator.log
+print "$star5\n" >> $KLOG/kCheckSimulator.log
 cd $KWIN
 rm -f $KGRAF/Group.lst $KGRAF/Group.nok
 grep ".pageName" M_S_*pag | cut -f2 | grep "M_S" | sed "s/M_S_//g" | sort | uniq > $KGRAF/PdCurveLink.lst
@@ -19,7 +19,7 @@ grep -vwf $KGRAF/Group.ok $KGRAF/Group.lst | sed "s/_GR//g" > $KGRAF/Group.nok.t
 grep -f $KGRAF/Group.nok.tmp $KGRAF/grugraf.txt | cut -f1-2 -d";" | sed "s/;/  /g" > $KGRAF/Group.nok.tmp2
 cat $KGRAF/Group.nok.tmp2 | while read line
 do
-echo "ERROR\t: ${line}" >> $KGRAF/Group.nok
+print "ERROR\t: ${line}" >> $KGRAF/Group.nok
 done
 rm -f $KGRAF/Group.lst $KGRAF/PdCurveLink.lst $KGRAF/Group.tmp $KGRAF/Group.nok.tmp $KGRAF/Group.nok.tmp2
 if [ -f $KGRAF/Group.nok ]

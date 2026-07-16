@@ -6,7 +6,7 @@ KTEST=`cat $KSTATUS/kTest.status`
 echo "kTest result : $KTEST"
 if [ ! "$KTEST" = "OK" ]
 then
-echo "Environement test not succesful\a"
+print "Environement test not succesful\a"
 banner "NOK"
 exit
 fi
@@ -23,7 +23,7 @@ kAddLog kDiffS01 Start
 cd ${KSIM}
 if [ ! -f S01 ]
 then
-echo "-->> Error : File S01 not found \a"
+print "-->> Error : File S01 not found \a"
 banner NOK
 exit
 fi

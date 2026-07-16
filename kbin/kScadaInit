@@ -61,7 +61,7 @@ PointInst $KSTART_TABLES $KEDIT_TABLES $KOPER_TABLES $KSIM -noinformix $1
 if [ ! -f $KEDIT_TABLES/editConfDB.txt ]
 then
 banner "NOK"
-echo "\a\a\a"
+print "\a\a\a"
 kAddLog kScadaInit "ERROR: Memory fault(coredump)"
 echo "ERROR $0 : `date` : Memory fault(coredump) " >> $KLOG/kScadaInit.log
 exit
@@ -76,7 +76,7 @@ echo "$KFILEOP" > $KFILEOP/conf.cfg
 if [ ! -f $KFILEOP/fnomi.rtf ]
 then
 banner "NOK"
-echo "\a\a\a"
+print "\a\a\a"
 fi
 kAddScreen kScadaInit End
 kAddLog kScadaInit End

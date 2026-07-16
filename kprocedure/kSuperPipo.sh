@@ -14,11 +14,11 @@ do
 Algo=`grep elenco_wid0 $page | tr '[:space:]' '[\n*]' | grep w | grep -v elenco_wid0 | sort | uniq -d`
 if [ "$Algo" != "" ]
 then
-echo "\n${star7}\nPage $page :\n $Algo\n${star7}"
-echo "\n${star7}\nPage $page :\n $Algo\n${star7}" >> $TMPDIR/kSuperPipo.txt
+print "\n${star7}\nPage $page :\n $Algo\n${star7}"
+print "\n${star7}\nPage $page :\n $Algo\n${star7}" >> $TMPDIR/kSuperPipo.txt
 fi
 done
 #
 cd $LEGOCAD_USER/legocad
 done
-echo "\n\a"
+print "\n\a"

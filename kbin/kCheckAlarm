@@ -6,7 +6,7 @@ KTEST=`cat $KSTATUS/kTest.status`
 echo "kTest result : $KTEST"
 if [ ! "$KTEST" = "OK" ]
 then
-echo "Environement test not succesful\a"
+print "Environement test not succesful\a"
 banner "NOK"
 exit
 fi
@@ -71,7 +71,7 @@ export MMI_K_FA_LIST="$field1 $field2 $field3 $field4 $field5 $field6 $field7 $f
 done
 if [ "$MMI_K_FA_LIST" = "" ]
 then
-echo "\aRessource MMI_K_FA_LIST not found in $KSIM/al_sim.conf"
+print "\aRessource MMI_K_FA_LIST not found in $KSIM/al_sim.conf"
 banner NOK
 exit
 fi
@@ -97,4 +97,4 @@ kAddLog kCheckAlarm End
 kAddStatus kCheckAlarm END
 echo "$star"
 echo "$star" >> $KLOG/kCheckAlarm.log
-echo "Log file :\t $KLOG/kCheckAlarm.log"
+print "Log file :\t $KLOG/kCheckAlarm.log"

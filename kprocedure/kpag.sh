@@ -6,4 +6,4 @@ rm pipo.tmp
 wc -w pipo
 mye pipo
 mye Context.ctx
-echo "\a"
+print "\a"

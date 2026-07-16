@@ -8,7 +8,7 @@ KTEST=`cat $KSTATUS/kTest.status`
 echo "kTest result : $KTEST"
 if [ ! "$KTEST" = "OK" ]
 then
-echo "Environement test not succesful\a"
+print "Environement test not succesful\a"
 banner "NOK"
 exit
 fi
@@ -16,7 +16,7 @@ kpresentation
 echo ${star}
 if [ ! -f $KSIM/kMmi.cfg ]
 then
-echo "ERROR : $KSIM/kMmi.cfg not found\a\a"
+print "ERROR : $KSIM/kMmi.cfg not found\a\a"
 sleep 2
 echo "Creating $KSIM/kMmi.cfg default file"
 echo "a;1;I;$HOST;$USER" > $KSIM/kMmi.cfg
@@ -26,9 +26,9 @@ echo "d;4;O;$HOST;$USER" >> $KSIM/kMmi.cfg
 fi
 if [ ! -r ${KPAGES} ]
 then
-echo "ERROR\t: Directory ${KPAGES} not found"
+print "ERROR\t: Directory ${KPAGES} not found"
 banner NOK
-echo "\a\a\a"
+print "\a\a\a"
 exit
 fi
 ###############################################################################

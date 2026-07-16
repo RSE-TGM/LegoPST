@@ -6,7 +6,7 @@ KTEST=`cat $KSTATUS/kTest.status`
 echo "kTest result : $KTEST"
 if [ ! "$KTEST" = "OK" ]
 then
-echo "Environement test not succesful\a"
+print "Environement test not succesful\a"
 banner "NOK"
 exit
 fi
@@ -23,7 +23,7 @@ kAddLog kCheckDirect Start
 cd ${KSIM}
 if [ ! -f S01 ]
 then
-echo "-->> Error : File S01 not found \a"
+print "-->> Error : File S01 not found \a"
 banner NOK
 exit
 fi
@@ -72,11 +72,11 @@ cd $KWIN
 cat DirLinksAn.list | cut -f1 -d" "  | sort | uniq -d > $KLOG/kCheckDirect.err
 if [ -s $KLOG/kCheckDirect.err ]
 then
-echo "\nThe following tags are duplicated in DirLinksAn.list :"
-echo "\nThe following tags are duplicated in DirLinksAn.list :" >> $KLOG/kCheckDirect.log
+print "\nThe following tags are duplicated in DirLinksAn.list :"
+print "\nThe following tags are duplicated in DirLinksAn.list :" >> $KLOG/kCheckDirect.log
 cat $KLOG/kCheckDirect.err
 cat $KLOG/kCheckDirect.err >> $KLOG/kCheckDirect.log
-echo "\a"
+print "\a"
 banner NOK
 echo "Log file : $KLOG/kCheckDirect.log"
 exit

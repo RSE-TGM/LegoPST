@@ -26,7 +26,7 @@ done
     do
     if [ ! -f ${plantd}.AntesUserLevel ]
     then
-    	echo "$star\nElaborating ${plantd}\n$star"
+    	print "$star\nElaborating ${plantd}\n$star"
     	cp ${plantd} ${plantd}.AntesUserLevel
     	pagmod.1.4 -p ${plantd} -s UserLevel.scr
     	mv ${plantd}.mod ${plantd}
@@ -41,7 +41,7 @@ done
 # Cleaning
 rm -f config.log
 rm -f core
-echo "\a"
+print "\a"
 rm -i UserLevel.scr
-echo "\a"
+print "\a"
 rm -i pagmod.log

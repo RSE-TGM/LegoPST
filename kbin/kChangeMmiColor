@@ -6,7 +6,7 @@ KTEST=`cat $KSTATUS/kTest.status`
 echo "kTest result : $KTEST"
 if [ ! "$KTEST" = "OK" ]
 then
-echo "Environement test not succesful\a"
+print "Environement test not succesful\a"
 banner "NOK"
 exit
 fi
@@ -125,7 +125,7 @@ star="*******************************************************"
     do
     if [ ! -f ${plantd}.AntesChangeMMIColor ]
     then
-    	echo "$star\nElaborating ${plantd}\n$star" >> $KLOG/kChangeMmiColor.log
+    	print "$star\nElaborating ${plantd}\n$star" >> $KLOG/kChangeMmiColor.log
     	cp ${plantd} ${plantd}.AntesChangeMMIColor
     	pagmod.1.4 -p ${plantd} -s ChangeMMIColor.scr
     	mv ${plantd}.mod ${plantd}

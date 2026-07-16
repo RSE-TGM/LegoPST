@@ -1,7 +1,7 @@
 #!/bin/ksh
 #
-echo "\n${star6}\nVariables extraction from f22fgraf.edf\n${star6}\n"
-echo "\n${star6}\nVariables extraction from f22fgraf.edf\n${star6}\n" >> $KLOG/kMakeRecorder.log
+print "\n${star6}\nVariables extraction from f22fgraf.edf\n${star6}\n"
+print "\n${star6}\nVariables extraction from f22fgraf.edf\n${star6}\n" >> $KLOG/kMakeRecorder.log
 cd $KSIM
 strings f22_fgraf.edf | grep "BL." | cut -f1 -d" " | sort -r | uniq | tr -s '[:space:]' > f22fgraf.txt
 grep "P " $KSIM/al_sim.conf | while read id TaskName TaskDirectory TaskDescription

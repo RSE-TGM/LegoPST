@@ -6,7 +6,7 @@ KTEST=`cat $KSTATUS/kTest.status`
 echo "kTest result : $KTEST"
 if [ ! "$KTEST" = "OK" ]
 then
-echo "Environement test not succesful\a"
+print "Environement test not succesful\a"
 banner "NOK"
 exit
 fi
@@ -28,11 +28,11 @@ do
 cd $task
 if [ ! -f f14.dat ]
 then
-echo "ERROR\t: File $PWD/f14.dat not found"
-echo "ERROR\t: File $PWD/f14.dat not found" >> $KLOG/kProcessReport.log
+print "ERROR\t: File $PWD/f14.dat not found"
+print "ERROR\t: File $PWD/f14.dat not found" >> $KLOG/kProcessReport.log
 banner "NOK"
 banner "NOK" >> $KLOG/kProcessReport.log
-echo "\a\a\a"
+print "\a\a\a"
 exit
 fi
 echo ${star5}
@@ -64,13 +64,13 @@ done
 #
 cd $LEGOCAD_USER/legocad
 done
-echo "\n\a"
+print "\n\a"
 #
 sort -o $KINFO/kProcessReport.info $KINFO/kProcessReport.info
 #
 kAddScreen kProcessReport End
 kAddLog kProcessReport End
-echo "Log File :\t$KLOG/kProcessReport.log"
+print "Log File :\t$KLOG/kProcessReport.log"
 echo "$star"
 echo "$star" >> $KLOG/kProcessReport.log
 echo "Log file :" $KLOG/kProcessReport.log

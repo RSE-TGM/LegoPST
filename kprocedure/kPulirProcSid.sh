@@ -37,7 +37,7 @@ do
    if test -f $file
    then
       rm $file
-      echo "$file\t\teliminated"
+      print "$file\t\teliminated"
    fi
 done
 rm -f *.bak
@@ -52,5 +52,5 @@ rm -rf proc/*bak
 rm -f Simulator
 if [ -f *.o ]
 then
-echo "Warning : Local modules in $PWD\a"
+print "Warning : Local modules in $PWD\a"
 fi

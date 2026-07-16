@@ -11,4 +11,4 @@ echo ${star5}
 . $KBIN/kNavigation -Parent ${key}
 cd $LEGOCAD_USER/legocad
 done
-echo "\n\a"
+print "\n\a"

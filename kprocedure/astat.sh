@@ -1,3 +1,3 @@
 #!/bin/ksh
 #
-echo "\nPlease use kStat\a\n"
+print "\nPlease use kStat\a\n"

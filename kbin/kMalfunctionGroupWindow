@@ -5,7 +5,7 @@ KTEST=`cat $KSTATUS/kTest.status `
 echo "kTest result : $KTEST"
 if [ ! "$KTEST" = "OK" ]
 then
-echo "Environement test not succesful\a"
+print "Environement test not succesful\a"
 banner "NOK"
 exit
 fi
@@ -19,14 +19,14 @@ if [ ! -f $KWIN/mgw.conf ]
 then
 echo "File $KWIN/mgw.conf not found"
 banner NOK
-echo "\a\a\a"
+print "\a\a\a"
 exit
 fi
 if [ ! -f $KWIN/mgw.descr ]
 then
 echo "File $KWIN/mgw.descr not found"
 banner NOK
-echo "\a\a\a"
+print "\a\a\a"
 exit
 fi
 if [ -f $KLOG/kMalfunctionGroupWindow.log ]

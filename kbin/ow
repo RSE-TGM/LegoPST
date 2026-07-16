@@ -19,7 +19,7 @@ pdhier=` grep -w ${pdwithoutext} ${KEXPORT}/kpd.txt | cut -f3- -d' ' `
 else
 pdhier=""
 fi
-echo "|" ${fa}"\t" "|" ${ow} "|" ${pd} "|" ${pddescr} "|" ${pdhier} "|" 
+print "|" ${fa}"\t" "|" ${ow} "|" ${pd} "|" ${pddescr} "|" ${pdhier} "|" 
 done
 echo ${star2}
 else

@@ -17,10 +17,10 @@ echo ${star5}
 ls *.pag | while read page
 		do
 		grep -v nextnum ${page} > ${page}.WithoutNextNum
-		echo "*nextnum:\t6000" >> ${page}.WithoutNextNum
+		print "*nextnum:\t6000" >> ${page}.WithoutNextNum
 		mv ${page}.WithoutNextNum ${page}
  		done
 #
 cd $LEGOCAD_USER/legocad
 done
-echo "\n\a"
+print "\n\a"

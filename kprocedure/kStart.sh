@@ -9,7 +9,7 @@ KTEST=`cat $KSTATUS/kTest.status`
 echo "kTest result : $KTEST"
 if [ ! "$KTEST" = "OK" ]
 then
-echo "Environement test not succesful\a"
+print "Environement test not succesful\a"
 banner "NOK"
 exit
 fi
@@ -23,21 +23,21 @@ kScdStatus=`cat $KSTATUS/kScd.status`
 if [ ! "$kScdStatus" = "Started" ]
 then
 banner "NOK"
-echo "ERROR : kScd not started\n\a"
+print "ERROR : kScd not started\n\a"
 exit
 fi
 kStartStatus=`cat $KSTATUS/kStart.status`
 if [ "$kStartStatus" = "Start" ]
 then
 banner "NOK"
-echo "ERROR : kStart starting ...\n\a"
+print "ERROR : kStart starting ...\n\a"
 exit
 fi
 kStartStatus=`cat $KSTATUS/kStart.status`
 if [ "$kStartStatus" = "Started" ]
 then
 banner "NOK"
-echo "ERROR : kStart already started\n\a"
+print "ERROR : kStart already started\n\a"
 exit
 fi
 ###############################################################################

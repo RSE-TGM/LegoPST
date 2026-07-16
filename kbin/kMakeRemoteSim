@@ -9,7 +9,7 @@ rm -rf ${KSIM}/f22_fgraf.edf ${KSIM}/f22circ.dat ${KSIM}/kMmi.cfg ${KSIM}/al_sim
 FILES_REMOTED="f22_fgraf.edf f22circ.dat kMmi.cfg al_sim.conf scada log status .info"
 if [ ! -e /usr/users_mount/RemoteSim/al_sim.conf ]
 then
-echo "\nERROR\t: The simulator is not mounted in /usr/users_mount/RemoteSim !\a\a"
+print "\nERROR\t: The simulator is not mounted in /usr/users_mount/RemoteSim !\a\a"
 banner "NOK"
 exit
 fi

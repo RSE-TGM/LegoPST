@@ -1,8 +1,8 @@
 #!/bin/ksh
 #
 # Recorder.edf.new elaboration
-echo "\n${star6}\nRecorder.edf.new elaboration\n${star6}\n"
-echo "\n${star6}\nRecorder.edf.new elaboration\n${star6}\n" >> $KLOG/kMakeRecorder.log
+print "\n${star6}\nRecorder.edf.new elaboration\n${star6}\n"
+print "\n${star6}\nRecorder.edf.new elaboration\n${star6}\n" >> $KLOG/kMakeRecorder.log
 cd $KSIM/kRecorderSupportDirectory
 ls | while read file
 do
@@ -36,9 +36,9 @@ if [ "$VariablesNumberInRecorder" -gt "$VariablesNumberInRecorderMax" ]
 then
 banner NOK
 banner NOK >> $KLOG/kMakeRecorder.log
-echo "\a"
+print "\a"
 fi
-echo "\nVariables number in recorder.edf :\t\t [$VariablesNumberInRecorder]\t($OldVariablesNumberInRecorder)"
-echo "Maximum variables number in recorder.edf :\t [$VariablesNumberInRecorderMax]\n"
-echo "\nVariables number in recorder.edf :\t\t [$VariablesNumberInRecorder]\t($OldVariablesNumberInRecorder)" >> $KLOG/kMakeRecorder.log
-echo "Maximum variables number in recorder.edf :\t [$VariablesNumberInRecorderMax]\n" >> $KLOG/kMakeRecorder.log
+print "\nVariables number in recorder.edf :\t\t [$VariablesNumberInRecorder]\t($OldVariablesNumberInRecorder)"
+print "Maximum variables number in recorder.edf :\t [$VariablesNumberInRecorderMax]\n"
+print "\nVariables number in recorder.edf :\t\t [$VariablesNumberInRecorder]\t($OldVariablesNumberInRecorder)" >> $KLOG/kMakeRecorder.log
+print "Maximum variables number in recorder.edf :\t [$VariablesNumberInRecorderMax]\n" >> $KLOG/kMakeRecorder.log

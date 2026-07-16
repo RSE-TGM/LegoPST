@@ -6,7 +6,7 @@ KTEST=`cat $KSTATUS/kTest.status `
 echo "kTest result : $KTEST"
 if [ ! "${KTEST}" = "OK" ]
 then
-echo "Environement test not succesful\a"
+print "Environement test not succesful\a"
 banner "NOK"
 exit
 fi
@@ -29,8 +29,8 @@ do
 echo "Please remove ${OldMf}"
 done
 #
-echo "\n\tWindows Generation :\n\t\t(*)Generic Malfunctions\n\t\t(*)Specific Malfunctions\n\t\t(*)Remote Parameters\n"
-echo "\n\tWindows Generation :\n\t\t(*)Generic Malfunctions\n\t\t(*)Specific Malfunctions\n\t\t(*)Remote Parameters\n" >> $KLOG/kPlace.log
+print "\n\tWindows Generation :\n\t\t(*)Generic Malfunctions\n\t\t(*)Specific Malfunctions\n\t\t(*)Remote Parameters\n"
+print "\n\tWindows Generation :\n\t\t(*)Generic Malfunctions\n\t\t(*)Specific Malfunctions\n\t\t(*)Remote Parameters\n" >> $KLOG/kPlace.log
 echo "..."
 sleep 3
 cd ${KWIN}

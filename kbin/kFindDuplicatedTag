@@ -6,7 +6,7 @@ KTEST=`cat $KSTATUS/kTest.status`
 echo "kTest result : $KTEST"
 if [ ! "$KTEST" = "OK" ]
 then
-echo "Environement test not succesful\a"
+print "Environement test not succesful\a"
 banner "NOK"
 exit
 fi
@@ -32,21 +32,21 @@ if [ -s ${KSIM}/kFindDuplicatedTag.PB ]
 then
 cat kFindDuplicatedTag.PB | while read tag
 do
-echo "ERROR\t: ${tag}\tduplicated"
-echo "ERROR\t: ${tag}\tduplicated" >> $KLOG/kFindDuplicatedTag.log
+print "ERROR\t: ${tag}\tduplicated"
+print "ERROR\t: ${tag}\tduplicated" >> $KLOG/kFindDuplicatedTag.log
 done
-echo "\n$star8"
-echo "SOLUTION \t: 1.- ksim"
-echo "\t\t: 2.- grep @#K@DuplicatedTag variabili.edf | grep "\""\-\-U"\"" | sort | uniq"
-echo "\t\t: 3.- Delete with config or legocad the wrong tag"
-echo "$star8\n"
-echo "\n$star8" >> $KLOG/kFindDuplicatedTag.log
-echo "SOLUTION \t: 1.- ksim" >> $KLOG/kFindDuplicatedTag.log
-echo "\t\t: 2.- grep @#K@DuplicatedTag variabili.edf | grep "\""\-\-U"\"" | sort | uniq" >> $KLOG/kFindDuplicatedTag.log
-echo "\t\t: 3.- Delete with config or legocad the wrong tag" >> $KLOG/kFindDuplicatedTag.log
-echo "$star8\n" >> $KLOG/kFindDuplicatedTag.log
+print "\n$star8"
+print "SOLUTION \t: 1.- ksim"
+print "\t\t: 2.- grep @#K@DuplicatedTag variabili.edf | grep "\""\-\-U"\"" | sort | uniq"
+print "\t\t: 3.- Delete with config or legocad the wrong tag"
+print "$star8\n"
+print "\n$star8" >> $KLOG/kFindDuplicatedTag.log
+print "SOLUTION \t: 1.- ksim" >> $KLOG/kFindDuplicatedTag.log
+print "\t\t: 2.- grep @#K@DuplicatedTag variabili.edf | grep "\""\-\-U"\"" | sort | uniq" >> $KLOG/kFindDuplicatedTag.log
+print "\t\t: 3.- Delete with config or legocad the wrong tag" >> $KLOG/kFindDuplicatedTag.log
+print "$star8\n" >> $KLOG/kFindDuplicatedTag.log
 banner "NOK"
-echo "\a\a"
+print "\a\a"
 else
 echo "No error found"
 fi
@@ -56,5 +56,5 @@ kAddScreen kFindDuplicatedTag End
 kAddLog kFindDuplicatedTag End
 echo "$star"
 echo "$star" >> $KLOG/kFindDuplicatedTag.log
-echo "Log file\t: $KLOG/kFindDuplicatedTag.log"
+print "Log file\t: $KLOG/kFindDuplicatedTag.log"
 kCheckDirect

@@ -26,10 +26,10 @@ ls M_S_*.pag | while read page
         if [ "${ALARMSHIERARCHY}" = "" ]
 	then
 	ALARMSHIERARCHY="[-1][-1][-1][-1][-1][-1]"
-	echo "\a\nERROR : Hierarchy of plant display [${PLANTDISPLAY}] (present in ${page}) not found in kpd.txt"
+	print "\a\nERROR : Hierarchy of plant display [${PLANTDISPLAY}] (present in ${page}) not found in kpd.txt"
 	echo "ERROR : Hierarchy of plant display [${PLANTDISPLAY}] (present in ${page}) not found in kpd.txt" >> $KLOG/kUpDateCaiHierarchy.log
 	else
-	echo ". \c"
+	print ". \c"
 	fi
         echo value=${ALARMSHIERARCHY} >> ${page}.script
 	done
@@ -40,7 +40,7 @@ ls M_S_*.pag | while read page
 	rm ${page}.script
 	fi
 	done
-	echo "\n"
+	print "\n"
 kAddLog kUpDateCaiHierarchy "End Cai Navigation"
 kAddScreen kUpDateCaiHierarchy "End Cai Navigation"
 echo "$star8"

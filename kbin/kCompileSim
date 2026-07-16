@@ -6,7 +6,7 @@ KTEST=`cat $KSTATUS/kTest.status`
 echo "kTest result : $KTEST"
 if [ ! "$KTEST" = "OK" ]
 then
-echo "Environement test not succesful\a"
+print "Environement test not succesful\a"
 banner "NOK"
 exit
 fi
@@ -33,15 +33,15 @@ kconfig -c compall
 ###############################################################################
 ###############################################################################
 pagepagenumber=`ls | grep rtf_err | wc -l`
-echo "\n\t * Animated pages number compilied : "${pagepagenumber}"\n"
-echo "\n\t * Animated pages number compilied : "${pagepagenumber}"\n" >> $KLOG/kCompileSim.log
+print "\n\t * Animated pages number compilied : "${pagepagenumber}"\n"
+print "\n\t * Animated pages number compilied : "${pagepagenumber}"\n" >> $KLOG/kCompileSim.log
 	ls | grep rtf_err | while read errorpage
 	do
 	errlinenumber=`cat ${errorpage} | wc -l`
 	if [ "${errlinenumber}" -gt "5" ]
 	then
-	echo "\t * ERROR in Animated page "${errorpage}"\n"
-	echo "\t * ERROR in Animated page "${errorpage}"\n" >> $KLOG/kCompileSim.log
+	print "\t * ERROR in Animated page "${errorpage}"\n"
+	print "\t * ERROR in Animated page "${errorpage}"\n" >> $KLOG/kCompileSim.log
 	fi
 	done
 ###############################################################################
@@ -53,4 +53,4 @@ kAddLog kCompileSim End
 echo "$star"
 echo "$star" >> $KLOG/kCompileSim.log
 #
-echo "Log file $KLOG/kCompileSim.log\a\a\a"
+print "Log file $KLOG/kCompileSim.log\a\a\a"

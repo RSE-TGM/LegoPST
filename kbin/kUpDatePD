@@ -6,7 +6,7 @@ KTEST=`cat $KSTATUS/kTest.status`
 echo "kTest result : $KTEST"
 if [ ! "$KTEST" = "OK" ]
 then
-echo "Environement test not succesful\a"
+print "Environement test not succesful\a"
 banner "NOK"
 exit
 fi
@@ -51,10 +51,10 @@ if [ "${pdlocalnumber}" = "${pdlistnumber}" ]
 then
 echo "${pdlocalnumber} plant displaies have been copied"
 else
-echo "${star3}\n\tERROR :\n\tThe file pd.list contains "${pdlistnumber}" plant displaies, but\
+print "${star3}\n\tERROR :\n\tThe file pd.list contains "${pdlistnumber}" plant displaies, but\
  only "${pdlocalnumber}" plant\n\tdisplaies have been found in the\
  directories : \n\t\t$KDIRPD\n\t\t$KDIRGR\a\n${star3}"
-echo "${star3}\n\tERROR :\n\tThe file pd.list contains "${pdlistnumber}" plant displaies, but\
+print "${star3}\n\tERROR :\n\tThe file pd.list contains "${pdlistnumber}" plant displaies, but\
  only "${pdlocalnumber}" plant\n\tdisplaies have been found in the\
  directories : \n\t\t$KDIRPD\n\t\t$KDIRGR\a\n${star3}" >> $KLOG/kUpDatePD.log
 banner "NOK"
@@ -86,7 +86,7 @@ do
     stringa=`grep 'gerarchia:' ${pagina}`
     if [ "${stringa}" = "" ]
     then
-      echo "*${tag}.gerarchia:\t-1,-1,-1,-1,-1,-1" >> Context.ctx
+      print "*${tag}.gerarchia:\t-1,-1,-1,-1,-1,-1" >> Context.ctx
     else
       echo '*'${tag}.`grep 'gerarchia:' ${pagina} | cut -c2-` >> Context.ctx
     fi
@@ -110,11 +110,11 @@ cat >> Context.ctx << !EOF
 *pag_num:	${num_page}
 *page_list:	${list_page}
 !EOF
-echo "\n${num_page} mmi pages have been added in Context.ctx\n"
-echo "\n${num_page} mmi pages have been added in Context.ctx\n" >> $KLOG/kUpDatePD.log
+print "\n${num_page} mmi pages have been added in Context.ctx\n"
+print "\n${num_page} mmi pages have been added in Context.ctx\n" >> $KLOG/kUpDatePD.log
 ###############################################################################
 kAddScreen kUpDatePD End 
 kAddLog kUpDatePD End
 echo "$star"
 echo "$star" >> $KLOG/kUpDatePD.log
-echo "Log file\t: $KLOG/kUpDatePD.log"
+print "Log file\t: $KLOG/kUpDatePD.log"

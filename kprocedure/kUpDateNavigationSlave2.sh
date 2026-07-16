@@ -8,8 +8,8 @@ grep -l "schemeInUse:	0" ????.pag > NotInUse.list
 #########################################################################################
 #	Input Navigation UpDating
 #########################################################################################
-echo "$star\n\tInput Navigation UpDating\n$star"
-echo "$star\n\tInput Navigation UpDating\n$star" >> $KLOG/kUpDateNavigation.log
+print "$star\n\tInput Navigation UpDating\n$star"
+print "$star\n\tInput Navigation UpDating\n$star" >> $KLOG/kUpDateNavigation.log
 grep kNavigationInput ????.pag | \
 	sed "s/:/ /g" | \
 	sed "s/.objectTag//g" | \
@@ -51,8 +51,8 @@ TagYellow=`grep -f ${Page}.Intaglist ${Page} | \
 SamePositionNumber=`echo ${TagYellow} | wc -w`
 if [ ! "${SamePositionNumber}" -eq "1" ]
 then
-echo "\n${star5}\nFatal error on page ${Page} : Two interface objets (${TagYellow}) have the same position ${yYellow} !\a\a\a\a\n${star5}\n" >> $KLOG/kUpDateNavigation.log
-echo "\n${star5}\nFatal error on page ${Page} : Two interface objets (${TagYellow}) have the same position ${yYellow} !\a\a\a\a\n${star5}\n"
+print "\n${star5}\nFatal error on page ${Page} : Two interface objets (${TagYellow}) have the same position ${yYellow} !\a\a\a\a\n${star5}\n" >> $KLOG/kUpDateNavigation.log
+print "\n${star5}\nFatal error on page ${Page} : Two interface objets (${TagYellow}) have the same position ${yYellow} !\a\a\a\a\n${star5}\n"
 banner "NOK"
 exit
 fi
@@ -64,7 +64,7 @@ LinkedPageTagLong=`grep ${LocalPageTag} $KSIM/S01 | tr -s '\011' ' ' | cut -f3 -
 LinkedTaskId=`grep ${LocalPageTag} $KSIM/S01 | tr -s '\011' ' ' | cut -f2 -d" " | cut -c1 | sort | uniq`
 else
 banner "NOK"
-echo "\a\a\aTask $PWD not compilated"
+print "\a\a\aTask $PWD not compilated"
 echo "Problem with page [${Page}]"
 echo "Detail : [${Page}] [${NavigationTag}] [${yYellow}] [${TagYellow}] [${LocalPageTagTmp}] [${LocalPageTag}]"
 exit
@@ -80,12 +80,12 @@ fi
 	if [ "${Page}" != "${OldPage}" ]
 	then
 	echo page=${Page} >> ${Page}.scr
-	echo "${star}\n#\tInput\n${star}" >> ${Page}.scr
-	echo "${star2}\n${Page}\t${NavigationTag}\t${LinkedPageName}"
-	echo "${star2}\n${Page}\t${NavigationTag}\t${LinkedPageName}" >> $KLOG/kUpDateNavigation.log
+	print "${star}\n#\tInput\n${star}" >> ${Page}.scr
+	print "${star2}\n${Page}\t${NavigationTag}\t${LinkedPageName}"
+	print "${star2}\n${Page}\t${NavigationTag}\t${LinkedPageName}" >> $KLOG/kUpDateNavigation.log
 	else
-	echo "\t\t${NavigationTag}\t${LinkedPageName}"
-	echo "\t\t${NavigationTag}\t${LinkedPageName}" >> $KLOG/kUpDateNavigation.log
+	print "\t\t${NavigationTag}\t${LinkedPageName}"
+	print "\t\t${NavigationTag}\t${LinkedPageName}" >> $KLOG/kUpDateNavigation.log
 	fi
 	echo widgetname=${NavigationTag} >> ${Page}.scr
 	echo attrib=pageName >> ${Page}.scr
@@ -129,8 +129,8 @@ fi
 #########################################################################################
 #	Output Navigation UpDating
 #########################################################################################
-echo "$star\n\tOutput Navigation UpDating\n$star"
-echo "$star\n\tOutput Navigation UpDating\n$star" >> $KLOG/kUpDateNavigation.log
+print "$star\n\tOutput Navigation UpDating\n$star"
+print "$star\n\tOutput Navigation UpDating\n$star" >> $KLOG/kUpDateNavigation.log
 grep kNavigationOutput ????.pag | \
 	sed "s/:/ /g" | \
 	sed "s/.objectTag//g" | \
@@ -166,8 +166,8 @@ TagYellow=`grep -f ${Page}.Outtaglist ${Page} | \
 SamePositionNumber=`echo ${TagYellow} | wc -w`
 if [ ! "${SamePositionNumber}" -eq "1" ]
 then
-echo "\n${star5}\nFatal error on page ${Page} : Two interface objets (${TagYellow}) have the same position ${yYellow} !\a\a\a\a\n${star5}\n" >> $KLOG/kUpDateNavigation.log
-echo "\n${star5}\nFatal error on page ${Page} : Two interface objets (${TagYellow}) have the same position ${yYellow} !\a\a\a\a\n${star5}\n"
+print "\n${star5}\nFatal error on page ${Page} : Two interface objets (${TagYellow}) have the same position ${yYellow} !\a\a\a\a\n${star5}\n" >> $KLOG/kUpDateNavigation.log
+print "\n${star5}\nFatal error on page ${Page} : Two interface objets (${TagYellow}) have the same position ${yYellow} !\a\a\a\a\n${star5}\n"
 banner "NOK"
 exit
 fi
@@ -179,7 +179,7 @@ LinkedPageTagLong=`grep ${LocalPageTag} $KSIM/S01 | tr -s '\011' ' ' | cut -f1 -
 LinkedTaskId=`grep ${LocalPageTag} $KSIM/S01 | tr -s '\011' ' ' | cut -f2 -d" " | cut -c1 | sort | uniq`
 else
 banner "NOK"
-echo "Task $PWD (page $Page) not compilated\a\a\a"
+print "Task $PWD (page $Page) not compilated\a\a\a"
 fi
 LinkedPageTagShort=`echo ${LinkedPageTagLong} | cut -c 5-8 `
 if [ ! "${LinkedPageTagShort}" = "" ] && [ ! "${LinkedTaskId}" = "$" ]
@@ -195,12 +195,12 @@ fi
 		then
 		echo page=${Page} >> ${Page}.scr
 		fi
-	echo "${star}\n#\tOutput\n${star}" >> ${Page}.scr
-	echo "${star2}\n${Page}\t${NavigationTag}\t${LinkedPageName}"
-	echo "${star2}\n${Page}\t${NavigationTag}\t${LinkedPageName}" >> $KLOG/kUpDateNavigation.log
+	print "${star}\n#\tOutput\n${star}" >> ${Page}.scr
+	print "${star2}\n${Page}\t${NavigationTag}\t${LinkedPageName}"
+	print "${star2}\n${Page}\t${NavigationTag}\t${LinkedPageName}" >> $KLOG/kUpDateNavigation.log
 	else
-	echo "\t\t${NavigationTag}\t${LinkedPageName}"
-	echo "\t\t${NavigationTag}\t${LinkedPageName}" >> $KLOG/kUpDateNavigation.log
+	print "\t\t${NavigationTag}\t${LinkedPageName}"
+	print "\t\t${NavigationTag}\t${LinkedPageName}" >> $KLOG/kUpDateNavigation.log
 	fi
 	echo widgetname=${NavigationTag} >> ${Page}.scr
 	echo attrib=pageName >> ${Page}.scr

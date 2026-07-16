@@ -1,8 +1,8 @@
 #!/bin/ksh
 #
-echo "\n$star8"
-echo "\tCurve page generation"
-echo "$star8\n"
+print "\n$star8"
+print "\tCurve page generation"
+print "$star8\n"
 cd $KGRAF
 if [ ! -f curve.list ]
 then
@@ -36,7 +36,7 @@ then
 		cp $KDISPLAY/curve/template/M_S_KKS_1GR.bkg $KWIN/$filename.bkg
 		cat ./tmp/curentgraph.list >> $KWIN/$filename.pag
 		rm ./tmp/curentgraph.list
-		echo "$filename \c"
+		print "$filename \c"
 		echo "${filename} generated" >> $KLOG/kMakeCurve.log
 	fi
 	fi
@@ -49,10 +49,10 @@ sort -o ./tmp/curvename.list ./tmp/curvename.list
 uniq -d ./tmp/curvename.list > ./tmp/multiple.list
 if [ -s ./tmp/multiple.list ]
 then
-echo "\n$star \n ERROR : Multiplied defined curves \n"
+print "\n$star \n ERROR : Multiplied defined curves \n"
 cat ./tmp/multiple.list
 echo "$star"
-echo "\n$star \n ERROR : Multiplied defined curves \n" >> $KLOG/kMakeCurve.log
+print "\n$star \n ERROR : Multiplied defined curves \n" >> $KLOG/kMakeCurve.log
 cat ./tmp/multiple.list >> $KLOG/kMakeCurve.log
 echo "$star" >> $KLOG/kMakeCurve.log
 fi
@@ -62,6 +62,6 @@ echo $star8 >> $KLOG/kMakeCurve.log
 cat ./tmp/$0.err $KLOG/kMakeCurve.log
 echo $star8 >> $KLOG/kMakeCurve.log
 banner NOK
-echo "\a"
+print "\a"
 fi
 rm -rf ./tmp

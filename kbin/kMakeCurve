@@ -9,7 +9,7 @@ KTEST=`cat $KSTATUS/kTest.status`
 echo "kTest result : $KTEST"
 if [ ! "$KTEST" = "OK" ]
 then
-echo "Environement test not succesful\a"
+print "Environement test not succesful\a"
 banner "NOK"
 exit
 fi
@@ -24,23 +24,23 @@ mv $KLOG/kMakeCurve.err $KLOG/kMakeCurve.err.kold
 fi
 if [ ! -f $KGRAF/grugraf.txt ]
 then
-echo "ERROR\t: File $KGRAF/grugraf.txt not found"
+print "ERROR\t: File $KGRAF/grugraf.txt not found"
 exit
 fi
 if [ ! -f $KGRAF/kksgrafi.txt ]
 then
-echo "ERROR\t: File $KGRAF/kksgrafi.txt not found"
+print "ERROR\t: File $KGRAF/kksgrafi.txt not found"
 exit
 fi
 if [ ! -f $KGRAF/vargraf.txt ]
 then
-echo "ERROR\t: File $KGRAF/vargraf.txt not found"
+print "ERROR\t: File $KGRAF/vargraf.txt not found"
 exit
 fi
 if [ ! -f $KSIM/variabili.edf ]
 then
-echo "ERROR\t: File $KSIM/variabili.edf not found"
-echo "Solution\t: kNetCompi"
+print "ERROR\t: File $KSIM/variabili.edf not found"
+print "Solution\t: kNetCompi"
 exit
 fi
 ###############################################################################
@@ -60,7 +60,7 @@ echo "kMakeCurveSlave0 result : $KTEST"
 echo "kMakeCurveSlave0 result : $KTEST" >> $KLOG/kMakeCurve.log
 if [ ! "$KTEST" = "OK" ]
 then
-echo "ACCESS database not correctly configurated\a"
+print "ACCESS database not correctly configurated\a"
 echo "ACCESS database not correctly configurated" >> $KLOG/kMakeCurve.log
 banner "NOK"
 exit
@@ -82,8 +82,8 @@ echo ${star} >> $KLOG/kMakeCurve.log
 $KBINSLAVE/kMakeCurveSlave1 $Check
 $KBINSLAVE/kMakeCurveSlave2
 #
-echo "\n$star"
-echo "\n$star" >> $KLOG/kMakeCurve.log
+print "\n$star"
+print "\n$star" >> $KLOG/kMakeCurve.log
 kAddScreen kMakeCurve End
 kAddLog kMakeCurve End
 kAddStatus kMakeCurve End
@@ -91,5 +91,5 @@ kAddLog kLogger "End kMakeCurve"
 echo "$star"
 echo "$star" >> $KLOG/kMakeCurve.log
 #
-echo "Log File\t: $KLOG/kMakeCurve.log"
-echo "Error File\t: $KLOG/kMakeCurve.err\a\n"
+print "Log File\t: $KLOG/kMakeCurve.log"
+print "Error File\t: $KLOG/kMakeCurve.err\a\n"

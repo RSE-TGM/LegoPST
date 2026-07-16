@@ -7,7 +7,7 @@ KTEST=`cat $KSTATUS/kTest.status`
 echo "kTest result : $KTEST"
 if [ ! "$KTEST" = "OK" ]
 then
-echo "Environement test not succesful\a"
+print "Environement test not succesful\a"
 banner "NOK"
 exit
 fi
@@ -28,7 +28,7 @@ cd ${KWIN}
 echo "Searching CAI in plant display :"
 ls M_S_*.pag | grep -v GR.pag | while read page
 do
-echo " ${page}\c"
+print " ${page}\c"
 echo "page=${page}" > ${page}.scr
 grep objectTag ${page} | grep _[FX]$ | sed "s/O_//g" | \
     tr -s '\011' ' ' | awk '{ print $1 , $2 }' | while read tag ow_ext
@@ -40,7 +40,7 @@ grep objectTag ${page} | grep _[FX]$ | sed "s/O_//g" | \
 	hier=`grep -w ${ow} sosti.dat | cut -f2-20 -d"," | sed  "s/\"//g"`
 	if [ "${hier}" = "" ]
 	then
-	echo "\n\nERROR : Hierarchy of OW ${ow} in PD ${page} not found in sosti.dat\n\a"
+	print "\n\nERROR : Hierarchy of OW ${ow} in PD ${page} not found in sosti.dat\n\a"
 	echo "ERROR : Hierarchy of OW ${ow} in PD ${page} not found in sosti.dat" >> $KLOG/kUpDateCaiHierarchy.log
 	hier="0,7,-1,-1,-1,-1"
 	ext="F"
@@ -64,9 +64,9 @@ done
 	ScriptNumber=` ls M_S_*scr | wc -w `
 	if [ ! "${ScriptNumber}" -eq "0" ]
 	then
-		echo "\n${star5}\n"
+		print "\n${star5}\n"
 		kAddScreen kUpDateCaiHierarchy "Start $PAGMOD"
-		echo "\n${star5}\n" >> $KLOG/kUpDateCaiHierarchy.log
+		print "\n${star5}\n" >> $KLOG/kUpDateCaiHierarchy.log
 		kAddLog kUpDateCaiHierarchy "Start $PAGMOD"
 		echo Processing ${ScriptNumber} scripts ...
 		ls M_S_*scr | while read script
@@ -77,11 +77,11 @@ done
 		rm ${script}
 		done
 		kAddScreen kUpDateCaiHierarchy "End $PAGMOD"
-		echo "\n${star5}"
+		print "\n${star5}"
 		kAddLog kUpDateCaiHierarchy "End $PAGMOD"
-		echo "\n${star5}" >> $KLOG/kUpDateCaiHierarchy.log
+		print "\n${star5}" >> $KLOG/kUpDateCaiHierarchy.log
 	else
-	echo "\n${star3}"
+	print "\n${star3}"
 	echo Nothing to do
 	echo ${star3}
 	fi
@@ -95,15 +95,15 @@ echo ${star2}
 if [ "${error}" -gt "0" ]
 then
 banner "NOK"
-echo "\t${error} ERRORS found during kUpDateCaiHierarchy\a\a\a"
+print "\t${error} ERRORS found during kUpDateCaiHierarchy\a\a\a"
 banner "NOK" >> $KLOG/kUpDateCaiHierarchy.log
-echo "\t${error} ERRORS found during kUpDateCaiHierarchy" >> $KLOG/kUpDateCaiHierarchy.log
+print "\t${error} ERRORS found during kUpDateCaiHierarchy" >> $KLOG/kUpDateCaiHierarchy.log
 else
-echo "\tkUpDateCaiHierarchy : OK"
+print "\tkUpDateCaiHierarchy : OK"
 fi
 echo ${star2}
 kAddScreen kUpDateCaiHierarchy End 
 kAddLog kUpDateCaiHierarchy End
-echo "\n${star}\n"
-echo "\n${star}\n" >> $KLOG/kUpDateCaiHierarchy.log
-echo "Log file :\t$KLOG/kUpDateCaiHierarchy.log"
+print "\n${star}\n"
+print "\n${star}\n" >> $KLOG/kUpDateCaiHierarchy.log
+print "Log file :\t$KLOG/kUpDateCaiHierarchy.log"

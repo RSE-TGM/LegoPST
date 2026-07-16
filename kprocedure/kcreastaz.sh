@@ -16,5 +16,5 @@ echo Fine generazione operating windows !!
 echo Fine generazione operating windows !! >> kcreastaz.log
 date >> kcreastaz.log
 echo   # Beep
-echo "\n"
+print "\n"
 

@@ -6,7 +6,7 @@ KTEST=`cat $KSTATUS/kTest.status`
 echo "kTest result : $KTEST"
 if [ ! "$KTEST" = "OK" ]
 then
-echo "Environement test not succesful\a"
+print "Environement test not succesful\a"
 banner "NOK"
 exit
 fi
@@ -18,13 +18,13 @@ fi
 cd ${KSIM}
 if [ ! -f al_sim.conf ]
 then
-echo "-->> Error : File al_sim.conf not found \a"
+print "-->> Error : File al_sim.conf not found \a"
 banner NOK
 exit
 fi
 if [ ! -f $KGRAF/kksgrafi.rtf ]
 then
-echo "-->> Error : File $KGRAF/kksgrafi.rtf not found \a"
+print "-->> Error : File $KGRAF/kksgrafi.rtf not found \a"
 banner NOK
 exit
 fi

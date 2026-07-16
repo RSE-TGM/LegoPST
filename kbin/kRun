@@ -7,7 +7,7 @@ KTEST=`cat $KSTATUS/kTest.status `
 echo "kTest result : $KTEST"
 if [ ! "$KTEST" = "OK" ]
 then
-echo "Environement test not succesful\a"
+print "Environement test not succesful\a"
 banner "NOK"
 exit
 fi
@@ -39,7 +39,7 @@ sleep 5
 kScdStatus=`cat $KSTATUS/kScd.status`
 while [ ! "$kScdStatus" = "Started" ]
 do
-echo "kRun :\tWaiting for SCADA started"
+print "kRun :\tWaiting for SCADA started"
 sleep 20
 kScdStatus=`cat $KSTATUS/kScd.status`
 done
@@ -50,7 +50,7 @@ sleep 5
 kStartStatus=`cat $KSTATUS/kStart.status`
 while [ ! "$kStartStatus" = "Started" ]
 do
-echo "kRun :\tWaiting for SCHEDULATOR started"
+print "kRun :\tWaiting for SCHEDULATOR started"
 sleep 20
 kStartStatus=`cat $KSTATUS/kStart.status`
 done

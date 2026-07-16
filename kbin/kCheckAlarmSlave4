@@ -6,8 +6,8 @@ echo ${star5}
 echo ${star5} >> $KLOG/kCheckAlarm.log
 kAddScreen kCheckAlarm "Verification n.4 : START"
 kAddLog kCheckAlarm "Verification n.4 : START"
-echo "\n\tUpdating Nwin_XXX.list Hierarchy using sosti.dat file"
-echo "\n\tUpdating Nwin_XXX.list Hierarchy using sosti.dat file" >> $KLOG/kCheckAlarm.log
+print "\n\tUpdating Nwin_XXX.list Hierarchy using sosti.dat file"
+print "\n\tUpdating Nwin_XXX.list Hierarchy using sosti.dat file" >> $KLOG/kCheckAlarm.log
 #
 echo "Waiting ..."
 rm -f $KLOG/sosti.log $KLOG/sosti2.log $KWIN/*.newhier
@@ -70,5 +70,5 @@ fi
 #
 kAddScreen kCheckAlarm "Verification n.4 : END"
 kAddLog kCheckAlarm "Verification n.4 : END"
-echo "${star5}\n"
-echo "${star5}\n" >> $KLOG/kCheckAlarm.log
+print "${star5}\n"
+print "${star5}\n" >> $KLOG/kCheckAlarm.log

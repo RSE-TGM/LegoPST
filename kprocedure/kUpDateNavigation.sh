@@ -7,13 +7,13 @@ KTEST=`cat $KSTATUS/kTest.status`
 echo "kTest result : $KTEST"
 if [ ! "$KTEST" = "OK" ]
 then
-echo "Environement test not succesful\a"
+print "Environement test not succesful\a"
 banner "NOK"
 exit
 fi
 if [ ! -f ${KSIM}/variabili.edf  ]
 then
-echo "File ${KSIM}/variabili.edf not found !!! \a"
+print "File ${KSIM}/variabili.edf not found !!! \a"
 banner "NOK"
 exit
 fi
@@ -39,14 +39,14 @@ if [ "$mode" = "-i" -o "$mode" = "-b" ]
 then
 echo "Mode = $mode" >> $KLOG/kUpDateNavigation.log
 else
-echo "\n\tCorrect Use : kUpDateNavigation  -b/-i  -Parent/-Child  [ -script ]\n\a"
+print "\n\tCorrect Use : kUpDateNavigation  -b/-i  -Parent/-Child  [ -script ]\n\a"
 exit 
 fi
 if [ "$type" = "-Parent" -o "$mode" = "-Child" ]
 then
 echo "Type = $type" >> $KLOG/kUpDateNavigation.log
 else
-echo "\n\tCorrect Use : kUpDateNavigation  -b/-i  -Parent/-Child  [ -script ]\n\a"
+print "\n\tCorrect Use : kUpDateNavigation  -b/-i  -Parent/-Child  [ -script ]\n\a"
 exit
 fi
 if [ ! -f $KSIM/al_sim.conf ]
@@ -75,7 +75,7 @@ then
 export LUNG_kUpDateNavigationlist="`cat kUpDateNavigation.list | wc -l`"
 if [ ${LUNG_kUpDateNavigationlist} -gt 15 ]
 then
-echo "\aWarning Task Number > 15"
+print "\aWarning Task Number > 15"
 exit
 fi
 if [ ${LUNG_kUpDateNavigationlist} -ge 1 ]
@@ -166,7 +166,7 @@ cat <<EOF
 
 
 EOF
-echo "\tSelection ==> \c"
+print "\tSelection ==> \c"
 read option
 case $option in
      0) exit;
@@ -220,8 +220,8 @@ else
 NAVIGATION_TASK_LIST=${NAVIGATION_ALL}
 fi
 ###################################################################################################
-echo "\n${star5}\nTasks list :\n${NAVIGATION_TASK_LIST}\n${star5}"
-echo "\n${star5}\nTasks list :\n${NAVIGATION_TASK_LIST}\n${star5}" >> $KLOG/kUpDateNavigation.log
+print "\n${star5}\nTasks list :\n${NAVIGATION_TASK_LIST}\n${star5}"
+print "\n${star5}\nTasks list :\n${NAVIGATION_TASK_LIST}\n${star5}" >> $KLOG/kUpDateNavigation.log
 kAddScreen kUpDateNavigation "Database creation : Start"
 kAddLog kUpDateNavigation "Database creation : Start"
 grep BLOCCO $KSIM/variabili.edf | \
@@ -235,8 +235,8 @@ for task in ${NAVIGATION_TASK_LIST}
 do
 	if [ -d $LEGOCAD_USER/legocad/${task} ]
 	then
-	echo "\n${star3}\n\t${task}\n${star3}\n"
-	echo "\n${star3}\n\t${task}\n${star3}\n" >> $KLOG/kUpDateNavigation.log
+	print "\n${star3}\n\t${task}\n${star3}\n"
+	print "\n${star3}\n\t${task}\n${star3}\n" >> $KLOG/kUpDateNavigation.log
 	cd $LEGOCAD_USER/legocad/${task}
 	rm -f *scr
 	if [ "${type}" = "-Child" ]
@@ -252,9 +252,9 @@ do
 	then
 	if [ ! "${ScriptNumber}" -eq "0" ]
 	then
-		echo "\n${star5}\n"
+		print "\n${star5}\n"
 		kAddScreen kUpDateNavigation "Start $PAGMOD"
-		echo "\n${star5}\n" >> $KLOG/kUpDateNavigation.log
+		print "\n${star5}\n" >> $KLOG/kUpDateNavigation.log
 		kAddLog kUpDateNavigation "Start $PAGMOD"
 		echo Processing ${ScriptNumber} scripts ...
 		ls *scr | while read script
@@ -265,16 +265,16 @@ do
 		rm ${script}
 		done
 		kAddScreen kUpDateNavigation "End $PAGMOD"
-		echo "\n${star5}"
+		print "\n${star5}"
 		kAddLog kUpDateNavigation "End $PAGMOD"
-		echo "\n${star5}" >> $KLOG/kUpDateNavigation.log
+		print "\n${star5}" >> $KLOG/kUpDateNavigation.log
 	else
 	echo Nothing to do
 	fi
 	else
-	echo "\n${star5}\n"
+	print "\n${star5}\n"
 	kAddScreen kUpDateNavigation "WARNING : ONLY SCRIPT ELABORATION"
-	echo "\n${star5}\n" >> $KLOG/kUpDateNavigation.log
+	print "\n${star5}\n" >> $KLOG/kUpDateNavigation.log
 	kAddLog kUpDateNavigation "WARNING : ONLY SCRIPT ELABORATION"
 	fi
 	else

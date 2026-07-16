@@ -6,10 +6,10 @@ echo ${star5}
 echo ${star5} >> $KLOG/kCheckAlarm.log
 kAddScreen kCheckAlarm "Verification n.2 : START"
 kAddLog kCheckAlarm "Verification n.2 : START"
-echo "\n\tVerification that all alarms are associated with a Plant Display"
-echo "\tor an Operating Window of the same Functional Area\n"
-echo "\n\tVerification that all alarms are associated with a Plant Display" >> $KLOG/kCheckAlarm.log
-echo "\tor an Operating Window of the same Functional Area\n" >> $KLOG/kCheckAlarm.log
+print "\n\tVerification that all alarms are associated with a Plant Display"
+print "\tor an Operating Window of the same Functional Area\n"
+print "\n\tVerification that all alarms are associated with a Plant Display" >> $KLOG/kCheckAlarm.log
+print "\tor an Operating Window of the same Functional Area\n" >> $KLOG/kCheckAlarm.log
 #
 rm -f $KSIM/*.pb
 ErrorNumber=0
@@ -33,7 +33,7 @@ kAddScreen kCheckAlarm "Verification n.2 : OK"
 kAddLog kCheckAlarm "Verification n.2 : OK"
 kAddStatus kCheckAlarm2 OK
 else
-echo "\n${ErrorNumber} error(s) found\a\n"
+print "\n${ErrorNumber} error(s) found\a\n"
 banner NOK
 kAddScreen kCheckAlarm "Verification n.2 : NOK"
 kAddLog kCheckAlarm "Verification n.2 : NOK"
@@ -43,5 +43,5 @@ fi
 #
 kAddScreen kCheckAlarm "Verification n.2 : END"
 kAddLog kCheckAlarm "Verification n.2 : END"
-echo "${star5}\n"
-echo "${star5}\n" >> $KLOG/kCheckAlarm.log
+print "${star5}\n"
+print "${star5}\n" >> $KLOG/kCheckAlarm.log

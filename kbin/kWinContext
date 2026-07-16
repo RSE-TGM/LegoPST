@@ -6,7 +6,7 @@ KTEST=`cat $KSTATUS/kTest.status `
 echo "kTest result : $KTEST"
 if [ ! "$KTEST" = "OK" ]
 then
-echo "Environement test not succesful\a"
+print "Environement test not succesful\a"
 banner "NOK"
 exit
 fi
@@ -45,7 +45,7 @@ do
     stringa=`grep 'gerarchia:' ${pagina}`
     if [ "${stringa}" = "" ]
     then
-      echo "*${tag}.gerarchia:\t-1,-1,-1,-1,-1,-1" >> Context.ctx
+      print "*${tag}.gerarchia:\t-1,-1,-1,-1,-1,-1" >> Context.ctx
     else
       echo '*'${tag}.`grep 'gerarchia:' ${pagina} | cut -c2-` >> Context.ctx
     fi
@@ -69,8 +69,8 @@ cat >> Context.ctx << !EOF
 *pag_num:	${num_page}
 *page_list:	${list_page}
 !EOF
-echo "\n${num_page} mmi pages have been added in Context.ctx\n"
-echo "\n${num_page} mmi pages have been added in Context.ctx\n" >> $KLOG/kWinContext.log
+print "\n${num_page} mmi pages have been added in Context.ctx\n"
+print "\n${num_page} mmi pages have been added in Context.ctx\n" >> $KLOG/kWinContext.log
 #
 kAddScreen kWinContext End 
 kAddLog kWinContext End

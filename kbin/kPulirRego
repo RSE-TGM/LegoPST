@@ -55,7 +55,7 @@ do
    if test -f $file
    then
       rm  $file
-      echo "$file\t\teliminated"
+      print "$file\t\teliminated"
    fi
 done
 rm -f *.Outtaglist
@@ -74,42 +74,42 @@ echo
 echo "Removing sed file ..."
 ls | grep sed$ | while read sedfile
 do
-echo "${sedfile} \c"
+print "${sedfile} \c"
 rm ${sedfile}
 done
 echo
 echo "Removing error file ..."
 ls | grep err$ | while read errfile
 do
-echo "${errfile} \c"
+print "${errfile} \c"
 rm ${errfile}
 done
 echo
 echo "Removing pagmod file ..."
 ls | grep mod$ | while read modfile
 do
-echo "${modfile} \c"
+print "${modfile} \c"
 rm ${modfile}
 done
 #
 echo "Removing script file ..."
 ls | grep scr$ | while read scrfile
 do
-echo "${scrfile} \c"
+print "${scrfile} \c"
 rm ${scrfile}
 done
 #
 echo "Removing Operating windows file ..."
 ls | grep ^O_ | while read owfile
 do
-echo "\a${owfile} \c"
+print "\a${owfile} \c"
 #rm ${owfile}
 done
 #
 echo "Removing Malfunction windows file ..."
 ls | grep ^F_ | while read MFfile
 do
-echo "\a${MFfile} \c"
+print "\a${MFfile} \c"
 #rm ${MFfile}
 done
 #

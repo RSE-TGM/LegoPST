@@ -21,12 +21,12 @@
 ##############################################################################
 #	Database Creation for GIPS tasks
 ###############################################################################
-echo "\n${star5}"
-echo "\n${star5}" >> $KLOG/kDiffS01.log
+print "\n${star5}"
+print "\n${star5}" >> $KLOG/kDiffS01.log
 kAddScreen kDiffS01 "Database Creation for GIPS tasks ..."
 kAddLog kDiffS01 "Database Creation for GIPS tasks ..."
-echo "${star5}\n"
-echo "${star5}\n" >> $KLOG/kDiffS01.log
+print "${star5}\n"
+print "${star5}\n" >> $KLOG/kDiffS01.log
 count=0
 cat S01 |
 while read var
@@ -49,8 +49,8 @@ done |
 	while read tok1 tok2 tok3 tok4
 do
 	cd ${tok1}
-	echo "\t\tDatabase task ${tok1} ..."
-	echo "\t\tDatabase task ${tok1} ..." >> $KLOG/kDiffS01.log
+	print "\t\tDatabase task ${tok1} ..."
+	print "\t\tDatabase task ${tok1} ..." >> $KLOG/kDiffS01.log
 ##############################################################################	
 	rm -f kDiffS01.DB 
 if [ -s proc/task.info ]

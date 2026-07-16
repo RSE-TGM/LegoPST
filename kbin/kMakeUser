@@ -2,17 +2,17 @@
 #
 if [ ! -d "${KSOURCE}" ]
 then
-echo "Sorry : ambient variable KSOURCE not defined\a."
+print "Sorry : ambient variable KSOURCE not defined\a."
 banner NOK
 exit
 fi
 if [ "${KSOURCE}" = "${HOME}" ]
 then
-echo "Please not use this program with $USER user\a."
+print "Please not use this program with $USER user\a."
 exit
 fi
 cd $HOME
-echo "${star5}\n"
+print "${star5}\n"
 if [ ! -d $HOME/tmp ]
 then
 echo "Creating tmp directory"
@@ -64,4 +64,4 @@ cp $KSOURCE/Xpdefaults $HOME/.Xpdefaults
 fi
 ${KBIN}/kUpDateLibrary
 ${KBIN}/kMakeLicense Silent
-echo "\n${star5}\n"
+print "\n${star5}\n"

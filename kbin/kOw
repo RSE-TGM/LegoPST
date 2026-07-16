@@ -6,7 +6,7 @@ KTEST=`cat $KSTATUS/kTest.status`
 echo "kTest result : $KTEST"
 if [ ! "$KTEST" = "OK" ]
 then
-echo "Environement test not succesful\a"
+print "Environement test not succesful\a"
 banner "NOK"
 exit
 fi
@@ -34,19 +34,19 @@ done
 SlashNumber=`grep / N_win*list | wc -l | tr -s '\011' ' ' | tr -d ' '`
 if [ ! "$SlashNumber" = "0" ]
 then
-echo "\nERROR\t\t: The following files contain a slash(/) symbol."
+print "\nERROR\t\t: The following files contain a slash(/) symbol."
 echo
 grep -l / N_win*list
-echo "\nSOLUTION\t: 1.- Substitue / with : or & in the database"
-echo "\t\t  2.- Export database on workstation\n"
+print "\nSOLUTION\t: 1.- Substitue / with : or & in the database"
+print "\t\t  2.- Export database on workstation\n"
 banner NOK
-echo "\nERROR\t\t: The following files contain a slash(/) symbol." >> $KLOG/kOw.log
+print "\nERROR\t\t: The following files contain a slash(/) symbol." >> $KLOG/kOw.log
 echo >> $KLOG/kOw.log
 grep -l / N_win*list >> $KLOG/kOw.log
-echo "\nSOLUTION\t: 1.- Substitue / with : or & in the database" >> $KLOG/kOw.log
-echo "\t\t  2.- Export database on workstation\n" >> $KLOG/kOw.log
+print "\nSOLUTION\t: 1.- Substitue / with : or & in the database" >> $KLOG/kOw.log
+print "\t\t  2.- Export database on workstation\n" >> $KLOG/kOw.log
 banner NOK >> $KLOG/kOw.log
-echo "\a\a\a"
+print "\a\a\a"
 exit
 fi
 #

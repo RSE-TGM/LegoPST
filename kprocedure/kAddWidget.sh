@@ -4,8 +4,8 @@ WidgetType=$1
 PageName=$2
 if [ ! -f "$PageName" ]
 then
-echo "\n\tCorrect Use\t: kAddWidget widgetype page"
-echo "\n\tExemple\t: kAddWidget ChangePage A001.pag\n\a"
+print "\n\tCorrect Use\t: kAddWidget widgetype page"
+print "\n\tExemple\t: kAddWidget ChangePage A001.pag\n\a"
 exit
 fi
 grep ^*elenco_wid0 ${PageName} | \
@@ -27,7 +27,7 @@ fi
 done
 if [ "${TagNumberMax}" -eq "0" ]
 then
-echo "Error on kAddWidget with page ${PageName}\a\a"
+print "Error on kAddWidget with page ${PageName}\a\a"
 banner "NOK"
 exit
 fi

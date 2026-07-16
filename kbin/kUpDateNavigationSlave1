@@ -4,8 +4,8 @@ rm -f *scr
 #########################################################################################
 #	Input Navigation UpDating
 #########################################################################################
-echo "$star\n\tInput Navigation UpDating\n$star"
-echo "$star\n\tInput Navigation UpDating\n$star" >> $KLOG/kUpDateNavigation.log
+print "$star\n\tInput Navigation UpDating\n$star"
+print "$star\n\tInput Navigation UpDating\n$star" >> $KLOG/kUpDateNavigation.log
 OldPage="PIPO"
 grep kNavigationInput ????.pag | \
 	sed "s/:/ /g" | \
@@ -33,12 +33,12 @@ fi
 	if [ "${Page}" != "${OldPage}" ]
 	then
 	echo page=${Page} >> ${Page}.scr
-	echo "${star}\n#\tInput\n${star}" >> ${Page}.scr
-	echo "${star2}\n${Page}\t${ChildrenTag}\t${LinkedPageName}"
-	echo "${star2}\n${Page}\t${ChildrenTag}\t${LinkedPageName}" >> $KLOG/kUpDateNavigation.log
+	print "${star}\n#\tInput\n${star}" >> ${Page}.scr
+	print "${star2}\n${Page}\t${ChildrenTag}\t${LinkedPageName}"
+	print "${star2}\n${Page}\t${ChildrenTag}\t${LinkedPageName}" >> $KLOG/kUpDateNavigation.log
 	else
-	echo "\t\t${ChildrenTag}\t${LinkedPageName}"
-	echo "\t\t${ChildrenTag}\t${LinkedPageName}" >> $KLOG/kUpDateNavigation.log
+	print "\t\t${ChildrenTag}\t${LinkedPageName}"
+	print "\t\t${ChildrenTag}\t${LinkedPageName}" >> $KLOG/kUpDateNavigation.log
 	fi
 	echo widgetname=${ChildrenTag} >> ${Page}.scr
 	echo attrib=pageName >> ${Page}.scr
@@ -48,8 +48,8 @@ done
 #########################################################################################
 #	Output Navigation UpDating
 #########################################################################################
-echo "$star\n\tOutput Navigation UpDating\n$star"
-echo "$star\n\tOutput Navigation UpDating\n$star" >> $KLOG/kUpDateNavigation.log
+print "$star\n\tOutput Navigation UpDating\n$star"
+print "$star\n\tOutput Navigation UpDating\n$star" >> $KLOG/kUpDateNavigation.log
 OldPage="PIPO"
 grep kNavigationOutput ????.pag | \
 	sed "s/:/ /g" | \
@@ -80,12 +80,12 @@ fi
 		then
 		echo page=${Page} >> ${Page}.scr
 		fi
-	echo "${star}\n#\tOutput\n${star}" >> ${Page}.scr
-	echo "${star2}\n${Page}\t${ChildrenTag}\t${LinkedPageName}"
-	echo "${star2}\n${Page}\t${ChildrenTag}\t${LinkedPageName}" >> $KLOG/kUpDateNavigation.log
+	print "${star}\n#\tOutput\n${star}" >> ${Page}.scr
+	print "${star2}\n${Page}\t${ChildrenTag}\t${LinkedPageName}"
+	print "${star2}\n${Page}\t${ChildrenTag}\t${LinkedPageName}" >> $KLOG/kUpDateNavigation.log
 	else
-	echo "\t\t${ChildrenTag}\t${LinkedPageName}"
-	echo "\t\t${ChildrenTag}\t${LinkedPageName}" >> $KLOG/kUpDateNavigation.log
+	print "\t\t${ChildrenTag}\t${LinkedPageName}"
+	print "\t\t${ChildrenTag}\t${LinkedPageName}" >> $KLOG/kUpDateNavigation.log
 	fi
 	echo widgetname=${ChildrenTag} >> ${Page}.scr
 	echo attrib=pageName >> ${Page}.scr

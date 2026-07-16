@@ -8,7 +8,7 @@ KTEST=`cat $KSTATUS/kTest.status `
 echo "kTest result : $KTEST"
 if [ ! "$KTEST" = "OK" ]
 then
-echo "Environement test not succesful\a"
+print "Environement test not succesful\a"
 banner "NOK"
 exit
 fi
@@ -29,8 +29,8 @@ kAddLog kLeeF22 Start
 kAddStatus kLeeF22 Start
 kAddLog kLogger "Start kLeeF22"
 kAddStatistic kLeeF22
-echo "$star\n"
-echo "$star\n" >> $KLOG/kLeeF22.log
+print "$star\n"
+print "$star\n" >> $KLOG/kLeeF22.log
 ###############################################################################
 #
 cd $KSIM
@@ -38,11 +38,11 @@ rm -f LeeF22.out
 if [ ! -f LeeF22.in ]
 then
 cp $CBIN/LeeF22.in .
-echo "Please update LeeF22.in in simulator directory\a"
+print "Please update LeeF22.in in simulator directory\a"
 exit
 fi
 $CBIN/LeeF22
-echo "\a"
+print "\a"
 #
 ###############################################################################
 echo "$star"
@@ -52,7 +52,7 @@ kAddLog kLeeF22 End
 kAddStatus kLeeF22 End
 echo "$star"
 echo "$star" >> $KLOG/kLeeF22.log
-echo "Log File\t: $KLOG/kLeeF22.log"
-echo "Output File\t: $KSIM/LeeF22.out\n"
+print "Log File\t: $KLOG/kLeeF22.log"
+print "Output File\t: $KSIM/LeeF22.out\n"
 sleep 10
 #

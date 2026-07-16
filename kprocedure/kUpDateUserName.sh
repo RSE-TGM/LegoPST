@@ -5,7 +5,7 @@ KTEST=`cat $KSTATUS/kTest.status`
 echo "kTest result : $KTEST"
 if [ ! "$KTEST" = "OK" ]
 then
-echo "Environement test not succesful\a"
+print "Environement test not succesful\a"
 banner "NOK"
 exit
 fi
@@ -37,7 +37,7 @@ fi
 newusersdir=`echo $HOME | cut -f3 -d"/" | grep users`
 if [ "${newusersdir}" = "" ]
 then
-echo "New users directory not automaticaly identified\a"
+print "New users directory not automaticaly identified\a"
 exit
 fi
 echo ${star5}
@@ -52,8 +52,8 @@ then
 	exit
 	fi
 fi	
-echo "Old user\t: ${olduser}"
-echo "New user\t: ${USER}"
+print "Old user\t: ${olduser}"
+print "New user\t: ${USER}"
 ###############################################################################
 #	Simulator
 ###############################################################################
@@ -72,7 +72,7 @@ sed  "s/\/users4\//\/${newusersdir}\//g" Context.ctx.tmp4 > Context.ctx.tmp5
 sed  "s/${olduser}/${USER}/g" Context.ctx.tmp5 > Context.ctx
 rm -f Context.ctx.new Context.ctx.tmp1 Context.ctx.tmp2 Context.ctx.tmp3 Context.ctx.tmp4 Context.ctx.tmp5
 else
-echo "WARNING : Globpages Context.ctx not found\a"
+print "WARNING : Globpages Context.ctx not found\a"
 fi
 #
 echo UpDating kMmi.cfg ...
@@ -93,7 +93,7 @@ cd $LEGOCAD_USER/legocad
 REGO_TASK_LIST=`ls -d r_*`
 for task in ${REGO_TASK_LIST}
 do
-echo "$task \c"
+print "$task \c"
 cd $task
 if [ -f Context.ctx ]
 then
@@ -106,14 +106,14 @@ sed  "s/\/users4\//\/${newusersdir}\//g" Context.ctx.tmp4 > Context.ctx.tmp5
 sed  "s/${olduser}/${USER}/g" Context.ctx.tmp5 > Context.ctx
 rm -f Context.ctx.new Context.ctx.tmp1 Context.ctx.tmp2 Context.ctx.tmp3 Context.ctx.tmp4 Context.ctx.tmp5
 else
-echo "WARNING : Context.ctx not found\a"
+print "WARNING : Context.ctx not found\a"
 fi
 cd $LEGOCAD_USER/legocad
 done
 ###############################################################################
 #	Appsid Task
 ###############################################################################
-echo "\n${star5}"
+print "\n${star5}"
 echo "task.info updating"
 echo "${star5}"
 cd ${TASKROOT}
@@ -134,7 +134,7 @@ cd ${task}/work
 	sed  "s/${olduser}/${USER}/g" task.info.tmp5 > task.info
 	rm -f task.info.new task.info.tmp1 task.info.tmp2 task.info.tmp3 task.info.tmp4 task.info.tmp5
 	else
-	echo "WARNING : task.info not found\a"
+	print "WARNING : task.info not found\a"
 	fi
 	if [ -f task.info.100 ]
 	then
@@ -148,7 +148,7 @@ cd ${task}/work
 	sed  "s/${olduser}/${USER}/g" task.info.100.tmp5 > task.info.100
 	rm -f task.info.100.new task.info.100.tmp1 task.info.100.tmp2 task.info.100.tmp3 task.info.100.tmp4 task.info.100.tmp5
 	else
-	echo "WARNING : task.info.100 not found\a"
+	print "WARNING : task.info.100 not found\a"
 	fi
 cd ${TASKROOT}
 done

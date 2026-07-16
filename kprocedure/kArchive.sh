@@ -6,7 +6,7 @@ KTEST=`cat $KSTATUS/kTest.status`
 echo "kTest result : $KTEST"
 if [ ! "$KTEST" = "OK" ]
 then
-echo "Environement test not succesful\a"
+print "Environement test not succesful\a"
 banner "NOK"
 exit
 fi
@@ -40,40 +40,40 @@ then
 	cp -R $KINFOTAG .
 	chmod -R 777 $KARCHIVE/$KREV
 	else
-	echo "\nSorry, the simulator $KREV is already archived\n\a"
+	print "\nSorry, the simulator $KREV is already archived\n\a"
 	fi
 elif  [ "$Type" = "Load" ]
 then
-	echo "\n$star8"
+	print "\n$star8"
 	CONFIRM=""
 	echo "Please confirm the NEW simulator directory is $KSIM."
 	echo "(If not, please update KSIMNAME ressource in .profile and execute it)."
-	echo "\nPress y to confirm"
+	print "\nPress y to confirm"
 	read CONFIRM
 	if [ ! "${CONFIRM}" = "y" ]
 	then
-	echo "\nSorry ...\a\n"
+	print "\nSorry ...\a\n"
 	echo "$star8"
 	exit
 	fi
 	echo "$star8"
-	echo "\nThe available simulators are the following :\n"
+	print "\nThe available simulators are the following :\n"
 	$KBIN/kArchiveDisponibility
-	echo "\nPlease enter the simulator name you want to load :"
+	print "\nPlease enter the simulator name you want to load :"
 	read KREVOLD
 	if [ -d $KARCHIVE/$KREVOLD ]
 	then
-	echo "\n$star4"
+	print "\n$star4"
 	echo "Please confirm updating of following files"
-	echo "in $KSIM directory.\n"
+	print "in $KSIM directory.\n"
 	cd $KARCHIVE/$KREVOLD
 	ls -C1
 	CONFIRM=""
-	echo "\nPress  y to confirm"
+	print "\nPress  y to confirm"
 	read CONFIRM
 	if [ ! "${CONFIRM}" = "y" ]
 	then
-	echo "\nSorry ...\a\n"
+	print "\nSorry ...\a\n"
 	echo "$star4"
 	exit
 	fi
@@ -100,21 +100,21 @@ then
 	fi
 	cp $KARCHIVE/$KREVOLD/* $KSIM
 	kAddInfo Original_Revision `echo "$KREVOLD"`
-	echo "\nPlease update the al_sim.conf (simulator name), pd.list, kMmi.cfg and "
+	print "\nPlease update the al_sim.conf (simulator name), pd.list, kMmi.cfg and "
 	echo "LeeF22.in files using an editor and EXIT THE SESSION."
-	echo "(It is possible to remove the recorder.edf file if it is not necessary).\n\a\a"
+	print "(It is possible to remove the recorder.edf file if it is not necessary).\n\a\a"
 	banner "EXIT"
 	else
-	echo "Sorry, the simulator $KREVOLD does not exist\a"
+	print "Sorry, the simulator $KREVOLD does not exist\a"
 	fi
 else
-	echo "\n\tCorrect Use :  kArchive  [ Load / Save ]\n\a"
+	print "\n\tCorrect Use :  kArchive  [ Load / Save ]\n\a"
 	exit
 fi
 #
 kAddScreen kArchive End
 kAddLog kArchive End
-echo "Log File :\t$KLOG/kArchive.log"
+print "Log File :\t$KLOG/kArchive.log"
 echo "$star"
 echo "$star" >> $KLOG/kArchive.log
 

@@ -9,7 +9,7 @@ KTEST=`cat $KSTATUS/kTest.status`
 echo "kTest result : $KTEST"
 if [ ! "$KTEST" = "OK" ]
 then
-echo "Environement test not succesful\a"
+print "Environement test not succesful\a"
 banner "NOK"
 exit
 fi
@@ -39,24 +39,24 @@ if [ "$MmiHost" = "$HOST" ] & [ "$MmiUser" = "$USER" ]
 then
 	if [ "$IdScada" -gt "4" ]
 	then
-	echo "\n${star8}\nERROR\t\t: The scada identifier must be lower than 5"
-	echo "SOLUTION\t: 1.- mye $KSIM/kMmi.cfg\n\t\t  2.- Modify second column\n\t\t  3.- kMmiConfig\n${star8}\n"
+	print "\n${star8}\nERROR\t\t: The scada identifier must be lower than 5"
+	print "SOLUTION\t: 1.- mye $KSIM/kMmi.cfg\n\t\t  2.- Modify second column\n\t\t  3.- kMmiConfig\n${star8}\n"
 	banner NOK
-	echo "\a\a\a"
+	print "\a\a\a"
 	exit
 	fi
 	if [ "$IdType" = "I" ]
 	then
-	echo "\t${IdMmi}-\tInstructor"
+	print "\t${IdMmi}-\tInstructor"
 	elif [ "$IdType" = "O" ]
 	then
-	echo "\t${IdMmi}-\tOperator"
+	print "\t${IdMmi}-\tOperator"
 	elif [ "$IdType" = "S" ]
 	then
-	echo "\t${IdMmi}-\tOnly Scada"
+	print "\t${IdMmi}-\tOnly Scada"
 	elif [ "$IdType" = "X" ]
 	then
-	echo "\t${IdMmi}-\tSuper instructor"
+	print "\t${IdMmi}-\tSuper instructor"
 	else
 	echo "[${IdType}] not defined"
 	banner NOK
@@ -71,7 +71,7 @@ IdMmiSelected=$IdMmiSelectedDirect
 fi
 if [ "$IdMmiSelected" = "" ]
 then
-echo "SORRY : You have to answer with an available mmi identifier [not null].\a\a\n"
+print "SORRY : You have to answer with an available mmi identifier [not null].\a\a\n"
 exit
 fi
 cat $KSIM/kMmi.cfg | tr -s '\011' ' ' | tr -s ';' ' ' | while read IdMmi IdScada IdType MmiHost MmiUser
@@ -99,7 +99,7 @@ if [ -r ${KPAGES}_${IdMmiSelected} ]
 then
 cd ${KPAGES}_${IdMmiSelected}
 else
-echo "\nSORRY : You have to answer with an available mmi identifier [not ${IdMmiSelected}].\a\a\n"
+print "\nSORRY : You have to answer with an available mmi identifier [not ${IdMmiSelected}].\a\a\n"
 exit
 fi
 kAddScreen kMmi_${IdMmiSelected} Start
@@ -111,19 +111,19 @@ kMmiStatus=`cat $KSTATUS/kMmi_${IdMmiSelected}.status`
 . kuser 77${IdScadaSelected}
 	if [ "$IdTypeSelected" = "I" ]
 	then
-	echo "\nConfiguration MMI INSTRUCTOR [${IdMmiSelected}]"
+	print "\nConfiguration MMI INSTRUCTOR [${IdMmiSelected}]"
 	export MMI_ULEVEL=1
 	elif [ "$IdTypeSelected" = "O" ]
 	then
-	echo "\nConfiguration MMI OPERATOR [${IdMmiSelected}]"
+	print "\nConfiguration MMI OPERATOR [${IdMmiSelected}]"
 	export MMI_ULEVEL=0
 	elif [ "$IdTypeSelected" = "S" ]
 	then
-	echo "\nConfiguration MMI SCADA [${IdMmiSelected}]"
+	print "\nConfiguration MMI SCADA [${IdMmiSelected}]"
 	export MMI_ULEVEL=0
 	elif [ "$IdTypeSelected" = "X" ]
 	then
-	echo "\nConfiguration MMI SUPER INSTRUCTOR [${IdMmiSelected}]"
+	print "\nConfiguration MMI SUPER INSTRUCTOR [${IdMmiSelected}]"
 	export MMI_ULEVEL=2
 	else
 	echo "[${IdTypeSelected}] not defined"

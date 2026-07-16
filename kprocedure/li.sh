@@ -11,7 +11,7 @@ cd ${KDISPLAY}/plant_display
 grep -f $TMPDIR/liupper.tmp ./*/pag/LI.list | sed "s/LI.list:/ /g" | \
 tr -d '.' | tr -d '/' | sed "s/pag//g" | while read fa pd li
 do
-echo "|" ${fa}"\t" "|" ${pd} "|" ${li} "|"
+print "|" ${fa}"\t" "|" ${pd} "|" ${li} "|"
 done
 echo ${star2}
 else
@@ -20,7 +20,7 @@ echo ${star7}
 grep -f $TMPDIR/liupper.tmp ./LI.list | sed "s/LI.list:/ /g" | \
 tr -d '.' | tr -d '/' | sed "s/pag//g" | while read fa pd li
 do
-echo "|" ${fa}"\t" "|" ${pd} "|" ${li} "|"
+print "|" ${fa}"\t" "|" ${pd} "|" ${li} "|"
 done
 echo ${star7}
 fi

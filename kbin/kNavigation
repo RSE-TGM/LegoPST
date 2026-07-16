@@ -27,8 +27,8 @@ fi
 ################################################################################
 #	Input kNavigation
 ################################################################################
-echo "$star\n\tInput kNavigation\n$star"
-echo "$star\n\tInput kNavigation\n$star" >> kNavigation.log
+print "$star\n\tInput kNavigation\n$star"
+print "$star\n\tInput kNavigation\n$star" >> kNavigation.log
 grep r_saio_03 ????.pag | sed "s/.pag:/ /g" | sed "s/.nomeFile:/ /g" | \
                           tr '*' ' ' | tr -s '\011' ' ' > kNavigationInput.tmp
 grep r_slio_03 ????.pag | sed "s/.pag:/ /g" | sed "s/.nomeFile:/ /g" | \
@@ -145,8 +145,8 @@ rm -f kNavigationInput.tmp
 ################################################################################
 #	Output kNavigation
 ################################################################################
-echo "$star\n\tOutput kNavigation\n$star"
-echo "$star\n\tOutput kNavigation\n$star" >> kNavigation.log
+print "$star\n\tOutput kNavigation\n$star"
+print "$star\n\tOutput kNavigation\n$star" >> kNavigation.log
 grep r_saio_04 ????.pag | sed "s/.pag:/ /g" | sed "s/.nomeFile:/ /g" | \
                           tr '*' ' ' | tr -s '\011' ' ' > kNavigationOutput.tmp
 grep r_slio_02 ????.pag | sed "s/.pag:/ /g" | sed "s/.nomeFile:/ /g" | \
@@ -258,7 +258,7 @@ rm -f kNavigationOutput.tmp
 kAddScreen kNavigation "End on `pwd`"
 kAddLog kNavigation "End on `pwd`"
 else
-echo "\n\tCorrect Use : kNavigation  -Parent/-Child  [ -Init ]\n\a"
+print "\n\tCorrect Use : kNavigation  -Parent/-Child  [ -Init ]\n\a"
 exit
 fi
-echo "Log File :\t kNavigation.log"
+print "Log File :\t kNavigation.log"
