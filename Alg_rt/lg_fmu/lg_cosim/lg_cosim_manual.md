@@ -397,18 +397,28 @@ la cui *cwd* è la task dir che sta aprendo e ne legge `SHR_USR_KEY` da
 `net_sked` attivi, e `lghmi` delega al `run_draw2gr.sh` **del bundle di quella
 task** — che conosce il proprio ambiente e funziona anche tra bundle diversi.
 
-Il traduttore è usabile anche da solo, senza avviare nulla:
+Il traduttore è usabile anche da solo, senza avviare nulla — e genera un S01
+**completo**, quindi serve oltre a `lghmi`:
 
 ```bash
 cd <dir con lg_cosim.json>
 python3 lg_cosim2s01.py        # genera ./S01
-lghmi                          # elenca le task
+lghmi                          # elenca le task (legge sez. 1-3)
+kDiffS01                       # verifica coerenza delle variabili di interconnessione
 ```
 
-> L'S01 generato è **parziale** (sezioni 1-3: nome, task, path) e **non
-> eseguibile** da `net_sked`: descrive la co-simulazione per il selettore, non è
-> un simulatore composto nativo. Le FMU non LegoPST vengono saltate — non hanno
-> una task dir da elencare.
+L'S01 prodotto ha tutte le sezioni di un S01 nativo: simulatore, elenco task,
+path + tipo, **distribuzione** (`OS <host> guest <path>`, host da `settings.host`
+o per-FMU), **passo di integrazione** per task (`settings.step_size`, override
+per-FMU con `dt`), **connessioni** (un blocco per task destinazione, direzione
+`<var_in> <task_sorgente> <var_out>`) e i processi di sessione `BM/SCADA/BI` che
+`net_compi` pretende. I nomi di variabile non sono troncati a 8 caratteri.
+
+> **Non è eseguibile** da `net_sked`: descrive la co-simulazione (per `lghmi`,
+> `kDiffS01`, ispezione), non è un simulatore composto nativo — un S01 nativo ha
+> UNO scheduler per N task, una co-simulazione ha N scheduler indipendenti. Le
+> FMU non LegoPST sono saltate (nessuna task dir), e con esse le connessioni
+> da/verso di loro.
 
 ### Se la HMI non compare
 

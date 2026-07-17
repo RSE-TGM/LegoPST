@@ -387,14 +387,33 @@ class LgCosim:
 
 
 def main():
-    ap = argparse.ArgumentParser(description="LegoPST FMU co-simulation master")
-    ap.add_argument("config", nargs="?", default="lg_cosim.json")
-    ap.add_argument("--stop-time",  type=float, metavar="T", help="Override stop_time")
-    ap.add_argument("--step-size",  type=float, metavar="H", help="Override step_size")
+    ap = argparse.ArgumentParser(
+        description="LegoPST FMU co-simulation master (FMI 2.0 Co-Simulation).",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""\
+Gli override --stop-time/--step-size/--speedup, se omessi, prendono il valore da
+settings nel file di configurazione.
+
+Esempi:
+  python3 lg_cosim.py                       # usa ./lg_cosim.json, velocita' massima
+  python3 lg_cosim.py mio.json              # config alternativo
+  python3 lg_cosim.py --speedup 1.0         # real-time (1 s sim = 1 s wall)
+  python3 lg_cosim.py --stop-time 120 --speedup 2.0   # 120 s simulati, 2x real-time
+  DISPLAY=:0 python3 lg_cosim.py --speedup 1.0        # con HMI (settings.hmi=true)
+  python3 lg_cosim.py --debug               # output diagnostico dal C della FMU
+""")
+    ap.add_argument("config", nargs="?", default="lg_cosim.json",
+                    help="file di configurazione JSON (default: %(default)s)")
+    ap.add_argument("--stop-time",  type=float, metavar="T",
+                    help="override di settings.stop_time [s] (default: dal config)")
+    ap.add_argument("--step-size",  type=float, metavar="H",
+                    help="override di settings.step_size [s] (default: dal config)")
     ap.add_argument("--speedup",    type=float, metavar="S",
-                    help="Override speedup: 1.0=RT, 2.0=2×RT, 0=max")
+                    help="override di settings.speedup: 1.0=real-time, 2.0=2xRT, "
+                         "0=velocita' massima (default: dal config)")
     ap.add_argument("--debug",      action="store_true",
-                    help="Abilita LG_FMU_DEBUG=1 (output verbose dal C della FMU)")
+                    help="abilita LG_FMU_DEBUG=1, output verbose dal C della FMU "
+                         "(default: %(default)s)")
     args = ap.parse_args()
 
     if args.debug:
