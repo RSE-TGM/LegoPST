@@ -391,28 +391,28 @@ def main():
         description="LegoPST FMU co-simulation master (FMI 2.0 Co-Simulation).",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""\
-Gli override --stop-time/--step-size/--speedup, se omessi, prendono il valore da
-settings nel file di configurazione.
+When omitted, --stop-time/--step-size/--speedup take their value from the
+settings section of the configuration file.
 
-Esempi:
-  python3 lg_cosim.py                       # usa ./lg_cosim.json, velocita' massima
-  python3 lg_cosim.py mio.json              # config alternativo
+Examples:
+  python3 lg_cosim.py                       # use ./lg_cosim.json, maximum speed
+  python3 lg_cosim.py my.json               # alternative config file
   python3 lg_cosim.py --speedup 1.0         # real-time (1 s sim = 1 s wall)
-  python3 lg_cosim.py --stop-time 120 --speedup 2.0   # 120 s simulati, 2x real-time
-  DISPLAY=:0 python3 lg_cosim.py --speedup 1.0        # con HMI (settings.hmi=true)
-  python3 lg_cosim.py --debug               # output diagnostico dal C della FMU
+  python3 lg_cosim.py --stop-time 120 --speedup 2.0   # 120 s simulated, 2x real-time
+  DISPLAY=:0 python3 lg_cosim.py --speedup 1.0        # with HMI (settings.hmi=true)
+  python3 lg_cosim.py --debug               # diagnostic output from the FMU C code
 """)
     ap.add_argument("config", nargs="?", default="lg_cosim.json",
-                    help="file di configurazione JSON (default: %(default)s)")
+                    help="JSON configuration file (default: %(default)s)")
     ap.add_argument("--stop-time",  type=float, metavar="T",
-                    help="override di settings.stop_time [s] (default: dal config)")
+                    help="override settings.stop_time [s] (default: from config)")
     ap.add_argument("--step-size",  type=float, metavar="H",
-                    help="override di settings.step_size [s] (default: dal config)")
+                    help="override settings.step_size [s] (default: from config)")
     ap.add_argument("--speedup",    type=float, metavar="S",
-                    help="override di settings.speedup: 1.0=real-time, 2.0=2xRT, "
-                         "0=velocita' massima (default: dal config)")
+                    help="override settings.speedup: 1.0=real-time, 2.0=2xRT, "
+                         "0=maximum speed (default: from config)")
     ap.add_argument("--debug",      action="store_true",
-                    help="abilita LG_FMU_DEBUG=1, output verbose dal C della FMU "
+                    help="enable LG_FMU_DEBUG=1, verbose output from the FMU C code "
                          "(default: %(default)s)")
     args = ap.parse_args()
 

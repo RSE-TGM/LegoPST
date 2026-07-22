@@ -395,7 +395,7 @@ cd $env(LG_LIBUT)
     aggmex
     file delete $env(LG_LIBUT)/comp.out -force
   } else {
-    catch {exec cad_crealibut > $env(LG_LIBUT)/comp.out }
+    catch {exec cad_crealibut >& $env(LG_LIBUT)/comp.out }
     aggmex
 
   }

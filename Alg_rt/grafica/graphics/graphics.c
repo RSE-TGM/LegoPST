@@ -556,6 +556,31 @@ char *path_uid;
 
 
 
+/* Stampa l'uso da riga di comando. Chiamata prima di X/Motif, cosi' `graphics -h`
+   funziona anche senza DISPLAY ne' LEGORT_UID. */
+static void print_usage(char *prog)
+{
+printf("graphics - visualizzatore grafici LegoPST (file circolare f22)\n\n");
+printf("Uso:\n");
+printf("  %s [-scala] <file_f22> [var1 var2 ... varN]\n\n", prog);
+printf("Argomenti:\n");
+printf("  -scala      (opzionale, come 1o argomento) scala verticale UNICA,\n");
+printf("              condivisa da tutte le tracce invece di una per traccia\n");
+printf("  <file_f22>  path del file circolare f22 SENZA estensione .dat\n");
+printf("              (es. .../f22circ  apre  f22circ.dat)\n");
+printf("  var1..varN  nomi di variabili da tracciare subito all'apertura\n");
+printf("              (opzionali; max 5 senza -scala, 4 con -scala)\n\n");
+printf("Ambiente:\n");
+printf("  DISPLAY        server X11 (obbligatoria)\n");
+printf("  LEGORT_UID     dir dei file .uid Motif (dal profilo: $LEGORT/uid)\n");
+printf("  $HOME/defaults dir dei default (creata se manca): f22_files.edf,\n");
+printf("                 unita' di misura\n\n");
+printf("Esempi:\n");
+printf("  %s /home/antonio/sked/duetask/f22circ\n", prog);
+printf("  %s -scala /home/antonio/sked/duetask/f22circ\n", prog);
+printf("  %s .../f22circ PORTATA PRESSIONE\n", prog);
+}
+
 int main(argc, argv)
     unsigned int argc;                  /* Command line argument count. */
     char *argv[];                       /* Pointers to command line args. */
@@ -563,6 +588,14 @@ int main(argc, argv)
 int i;
 char name_uid[200];
 name_uid[0]=0;
+
+/* Help da CLI, prima di qualsiasi init X/Motif. */
+if (argc > 1 && (strcmp(argv[1],"-h")==0 || strcmp(argv[1],"--help")==0
+                 || strcmp(argv[1],"-help")==0))
+        {
+        print_usage(argv[0]);
+        exit(0);
+        }
 
 /* redirezione output  e stampa versione */
 /*
@@ -585,8 +618,8 @@ if (argc > 1)
 	{
 	if(argc>7)
 		{
-		printf("\n Errore command line:");
-		printf("\n Uso corretto:  graphics path_file nome_var");
+		printf("\n Errore command line: troppi argomenti\n");
+		print_usage(argv[0]);
 		exit(0);
 		}
 /*

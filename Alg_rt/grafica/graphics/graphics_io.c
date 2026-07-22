@@ -633,6 +633,18 @@ void close_path()
 int i;
 
 fpPATH=fopen("f22_files.edf","r+");
+/* Se il file non c'e' (la cwd al quit puo' differire da quella di open_path:
+   es. si e' aperto un f22 con path assoluto in un'altra dir), "r+" ritorna
+   NULL e il fseek/fprintf successivi segfaultavano al quit dopo aver gia'
+   stampato "terminato correttamente". Lo creiamo, come fa open_path in
+   lettura; se neppure la creazione riesce (permessi), usciamo senza crashare. */
+if(fpPATH==NULL)
+        fpPATH=fopen("f22_files.edf","w");
+if(fpPATH==NULL)
+        {
+        printf("\n close_path: impossibile scrivere f22_files.edf\n");
+        return;
+        }
 fseek(fpPATH,0,0);
 // GUAG2025
 //ControlName(path);
