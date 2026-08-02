@@ -58,8 +58,12 @@ C
 C   Nota: nella precedente OPEN era presente l'attributo "SHARED"
 C
       READ (22) (VET,J=1,20)
-C GUAG2025 aggiunto close
-      CLOSE (UNIT=22)
+C GUAG2025 il CLOSE che era qui e' stato TOLTO (2026-07-31): PREPO deve uscire
+C lasciando l'unita' 22 APERTA su proc/f22.dat. Chi chiama e' RECOUT (recout.f:53),
+C che subito dopo fa REWIND 22 e riscrive titolo/nomi/campioni: con l'unita' chiusa
+C gfortran li dirottava su un file "fort.22" e proc/f22.dat restava col solo
+C campione TIM=-1 scritto qui sopra (748 byte) -> drift senza dati graficabili.
+C Il REWIND di RECOUT sovrascrive quanto scritto qui, quindi nessun residuo.
       RETURN
 C
   101 CONTINUE

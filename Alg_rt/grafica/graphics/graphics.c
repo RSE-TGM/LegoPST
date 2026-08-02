@@ -1598,8 +1598,10 @@ timer= XtAppAddTimeOut(XtWidgetToApplicationContext(main_window_widget),
  inserisce nelle stringhe della scala dei tempi i valori calcolati
  in base all'ultimo tempo acquisito 
 */
-void prep_str_tim(t_ini,t_fin)
-float t_ini,t_fin;
+/* Stile prototipo, NON K&R: il prototipo a riga ~492 dichiara (float,float)
+   mentre la definizione K&R promuoveva i float a double -> disallineamento fra
+   chiamante e chiamato (stesso difetto di formatta in grafics.c). */
+void prep_str_tim(float t_ini, float t_fin)
 {
     int i;
     float t_delta;

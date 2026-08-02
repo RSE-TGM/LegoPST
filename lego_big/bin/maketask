@@ -128,7 +128,13 @@ lg1:proc f14.dat
 f14.dat: proc/f02.dat proc/lg2
 	 rm -f proc/lgerr.out
 	 proc/lg2
-	 testerr proc/lgerr.out
+#	 lg2 NON scrive proc/lgerr.out (a differenza di lg3b, usato dai target
+#	 f04.dat/f24.dat): segnala gli errori con l'exit code (LGABRT -> exit 1),
+#	 che make controlla gia' da se'. Senza il test di esistenza, testerr
+#	 falliva SEMPRE qui e bloccava il build anche a calcolo riuscito -- cosa
+#	 che si vedeva solo ricostruendo f14.dat, cioe' dopo una modifica alla
+#	 topologia. Il controllo resta attivo se il file c'e' davvero.
+	 if test -f proc/lgerr.out; then testerr proc/lgerr.out; fi
 	 if test -f f14.dat;\
 	 then\
 	    edi14_exe > edi14.lis;\

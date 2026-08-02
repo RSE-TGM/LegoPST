@@ -150,6 +150,8 @@ char * err_file_nonspec=
  "File non specificato";
 char * err_file_nones=
  "File non esistente";
+char * err_file_vuoto=
+ "File vuoto: nessun dato registrato (transitorio non prodotto?)";
 char * err_tfin_tiniz=
  "Tempo iniziale = tempo finale";
 char * err_too_many_data=
@@ -512,6 +514,7 @@ static int font_unit = 400;
 
 char *getenv();
 void testata(char *, char *);
+void init_gcs();      /* prototipo: la definizione e' dopo il main (riga ~855) */
 
 /*
  * OS transfer point.  The main routine does all the one-time setup and
@@ -596,7 +599,12 @@ open_path();
  */
 display=XtDisplay(toplevel_widget);
 screen_num=DefaultScreen(display);
-void init_gcs();
+/* Crea i Graphics Context (gc[], gc2[], gc_grid*, gc_zoom) usati dal disegno.
+   NB: qui serve la CHIAMATA, non una dichiarazione: con "void init_gcs();" i GC
+   restavano NULL e il primo XDrawString (draw_proc) segfaultava in libX11 con
+   QUALSIASI file. init_gcs usa RootWindow, quindi bastano display/screen_num
+   gia' impostati sopra. Cfr. graphics.c, che chiama init_gcs() correttamente. */
+init_gcs();
 
 /* Register the items MRM needs to bind for us. */
 
@@ -665,13 +673,20 @@ path_22dat=XtMalloc(strlen(nome_file)+1);
 strcpy(path_22dat,nome_file);
 strcpy(file_vis,path_22dat);
 printf("\n nome file %s",path_22dat);
-if(open_22dat())
+{
+int aperto=open_22dat();
+if(aperto)
       {
-      WidAttenzione(main_window_widget,err_file_nones,MAPPA);
+      /* open_22dat: 1 = fopen fallito (file inesistente), 2 = aperto ma header
+         illeggibile (file vuoto/troncato). Messaggi distinti invece di un
+         generico "non esistente" per un file che in realta' c'e' ma e' vuoto. */
+      WidAttenzione(main_window_widget,
+                    aperto==2 ? err_file_vuoto : err_file_nones, MAPPA);
       nofile=1;
       strcpy(file_vis,no_file_sel);
       return; /* esce se errore in apertura */
       }
+}
 nofile=0;
 flag=TUTTI;
 result= read_22dat1(flag);
@@ -682,9 +697,12 @@ if(result==1)  /* legge tutti i dati dall'inizio del file */
                 if(read_22dat1(flag)==1)
                         {
 /*
-   file non esistente
+   Il file si e' aperto ma read_22dat1 non trova dati validi: header presente
+   ma nessun campione (es. f22 del drift/lg5 senza transitorio). Prima restava
+   silenzioso -> finestra vuota senza spiegazione; ora un messaggio esplicito.
  */
                         close_22dat();
+                        WidAttenzione(main_window_widget,err_file_vuoto,MAPPA);
                         XtFree(path_22dat);
                         d2free(simboli);
                         widget_array[k_selmis_dialog]=0;
@@ -1455,9 +1473,10 @@ t_secondi);
  prep_draw
  preparazione del vettore dei punti da disegnare
 */
-void prep_draw(t_iniziale,t_finale,min_max)
-float t_iniziale,t_finale;
-S_MIN_MAX *min_max;
+/* Stile prototipo, NON K&R: il prototipo a riga ~460 dichiara (float,float,...)
+   mentre la definizione K&R promuoveva i float a double -> i due lati non
+   concordavano e i tempi arrivavano spazzatura (stesso difetto di formatta). */
+void prep_draw(float t_iniziale, float t_finale, S_MIN_MAX *min_max)
 {
 float f_pix;
 int x_pix,x_pixprec;  /* posizione in pixel del tempo sull-asse delle ascisse */
@@ -2556,9 +2575,14 @@ switch(widget_num)
 }
 
 
-void formatta(str,fval)
-char *str;
-float fval;
+/* Definizione in stile prototipo, NON K&R: con la vecchia forma
+      void formatta(str,fval) char *str; float fval;
+   il parametro float subiva la promozione automatica a double, mentre il
+   chiamante -- che vede il prototipo "static void formatta(char*,float)" a
+   riga 458 -- passava un float. I due lati non concordavano e il valore
+   arrivava spazzatura (tipicamente 0): tutte le ordinate e i valori a video
+   uscivano "0.000E+00" pur avendo dati corretti in memoria. */
+void formatta(char *str, float fval)
 {
 if(fval>999999.9 || fval<-99999.9 || (fval<0.01 && fval>-0.01))
         sprintf(str,"%9.3E",fval);
@@ -2923,9 +2947,12 @@ zzate */
                 if(read_22dat1(flag)==1)
                         {
 /*
-   file non esistente
+   Il file si e' aperto ma read_22dat1 non trova dati validi: header presente
+   ma nessun campione (es. f22 del drift/lg5 senza transitorio). Prima restava
+   silenzioso -> finestra vuota senza spiegazione; ora un messaggio esplicito.
  */
                         close_22dat();
+                        WidAttenzione(main_window_widget,err_file_vuoto,MAPPA);
                         XtFree(path_22dat);
                         d2free(simboli);
                         widget_array[k_selmis_dialog]=0;

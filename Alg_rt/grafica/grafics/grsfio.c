@@ -142,7 +142,16 @@ strcpy(path_name,path_22dat);
 fpDAT=fopen(path_22dat,"r");
 if(fpDAT==NULL)
         {
-        return(1);
+        /* Fallback: prova <path>.dat. grafics, a differenza di graphics, non
+           aggiunge l'estensione, quindi "grafics ./f22" cercava ./f22 (assente)
+           mentre il file e' ./f22.dat. Aggiorniamo path_22dat al nome effettivo
+           cosi' il resto del codice (e i messaggi) usa il file giusto. */
+        char *p2=XtMalloc(strlen(path_22dat)+5);
+        sprintf(p2,"%s.dat",path_22dat);
+        fpDAT=fopen(p2,"r");
+        if(fpDAT==NULL) { XtFree(p2); return(1); }
+        XtFree(path_22dat);
+        path_22dat=p2;
         }
 // #endif
 
@@ -602,6 +611,16 @@ papp+=sizeof(S_HEAD2);
         alloca l'array bidimensionale che conterra' la lista delle
         descrizioni.
 */
+/* header2 corrotto (f22 troncato / senza dati): ncasi assurdo, es.
+   -1082130432 = il float -1.0 letto come int per disallineamento della lettura
+   su un file incompleto. Senza questa guardia XtCalloc(row,...) con row
+   negativo/enorme (unsigned) aborta l'intero programma con "Cannot perform
+   calloc". Ritorniamo errore -> read_22dat1 -> load_file mostra "File vuoto". */
+if(header2.ncasi < 0 || header2.ncasi > 1000000) {
+    printf("\n read_nomi: header2.ncasi=%d non valido: f22 vuoto o corrotto\n",
+           header2.ncasi);
+    return(1);
+}
 row=header2.ncasi+1;
 col=LUN_SIMB+1;
 pdata = (char *) XtCalloc(row * col,  sizeof(char));
@@ -688,6 +707,16 @@ fread(&header2.ncasi,sizeof(int),1,fp);
         alloca l'array bidimensionale che conterra' la lista delle
         descrizioni.
 */
+/* header2 corrotto (f22 troncato / senza dati): ncasi assurdo, es.
+   -1082130432 = il float -1.0 letto come int per disallineamento della lettura
+   su un file incompleto. Senza questa guardia XtCalloc(row,...) con row
+   negativo/enorme (unsigned) aborta l'intero programma con "Cannot perform
+   calloc". Ritorniamo errore -> read_22dat1 -> load_file mostra "File vuoto". */
+if(header2.ncasi < 0 || header2.ncasi > 1000000) {
+    printf("\n read_nomi: header2.ncasi=%d non valido: f22 vuoto o corrotto\n",
+           header2.ncasi);
+    return(1);
+}
 row=header2.ncasi+1;
 col=LUN_SIMB+1;
 pdata = (char *) XtCalloc(row * col,  sizeof(char));
@@ -717,7 +746,13 @@ simboli[i][0]=(char)0;
 
 if (linguaggio_eseguibile == F22_FORTRAN)
     {
+    /* Marker di CODA del record nomi/descrizioni scritto da gfortran. La fseek
+       avanzava la posizione ma NON (*offset): off_f22 restava 4 byte indietro
+       (548 invece di 552 su valvol) e i campioni venivano poi riletti
+       disallineati -> tutte le variabili a 0 nel grafico. Posizione e offset
+       devono restare sincronizzati. */
     fseek(fp, 4, SEEK_CUR);
+    (*offset) += 4;
     }
 
 fgetpos(fp,&posizione_iniziale);
@@ -859,6 +894,14 @@ void close_path()
 {
 int i;
 fpPATH=fopen("f22_files.dat","r+");
+/* Se il file non esiste (la cwd al Quit puo' differire da quella di open_path),
+   "r+" ritorna NULL e fseek(NULL)/fwrite segfaultavano al Quit. Lo creiamo con
+   "w"; se neppure cosi' e' apribile, usciamo senza crashare. Stesso fix di
+   graphics/graphics_io.c::close_path. */
+if(fpPATH==NULL)
+	fpPATH=fopen("f22_files.dat","w");
+if(fpPATH==NULL)
+	return;
 fseek(fpPATH,0,0);
 for(i=0;i<NUM_PATH_FILES;i++)
 	fwrite(path[i],LUN_PATH_FILES,1,fpPATH);
@@ -867,10 +910,12 @@ fclose(fpPATH);
                                                   
 
 
-void d2free(prow) 
+void d2free(prow)
 char **prow;
 {
-                             
+/* prow puo' essere NULL se l'allocazione non e' mai avvenuta (es. read_nomi
+   esce prima per header corrotto): XtFree(*prow) dereferenzierebbe NULL. */
+if(prow==(char **)NULL) return;
 XtFree(*prow);
 XtFree((char*)prow);
 }
