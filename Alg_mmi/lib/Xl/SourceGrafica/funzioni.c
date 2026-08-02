@@ -968,9 +968,11 @@ freeza=0;
  inserisce nelle stringhe della scala dei tempi i valori calcolati
  in base all'ultimo tempo acquisito 
 *******************************/
-void prep_str_timGR(t_ini,t_fin,w)
-float t_ini,t_fin;
-Widget w;
+/* Stile prototipo, NON K&R: nel K&R il parametro float e' promosso a double
+   mentre il prototipo (riga ~108) dichiara float -> chiamante e chiamato non
+   concordano e il valore arriva corrotto (in pratica 0). Vedi
+   docs/KR_PROTOTYPE_AUDIT.md. */
+void prep_str_timGR(float t_ini, float t_fin, Widget w)
 {
 int i;
 float t_delta; /* intervallo di tempo per scrittura stringhe
@@ -1023,10 +1025,9 @@ for(i=0;i<7;i++)
  prep_draw
  preparazione del vettore dei punti da disegnare
 */
-void prep_draw(pt_iniziale,pt_finale,pmin_max,ww)
-float pt_iniziale,pt_finale;
-S_MIN_MAX *pmin_max;
-Widget ww;
+/* Stile prototipo, NON K&R: vedi nota su prep_str_timGR e
+   docs/KR_PROTOTYPE_AUDIT.md. */
+void prep_draw(float pt_iniziale, float pt_finale, S_MIN_MAX *pmin_max, Widget ww)
 {
 float f_pix;
 int x_pix,x_pixprec;  /* posizione in pixel del tempo sull-asse delle ascisse */
@@ -2412,9 +2413,10 @@ switch(widget_num)
 
 /******************************
 ******************************/
-void formatta(str,fval)
-char *str;
-float fval;
+/* Stile prototipo, NON K&R: e' lo stesso difetto che in grafics.c faceva uscire
+   tutte le ordinate e i valori a video come "0.000E+00" pur avendo i dati
+   corretti in memoria. Vedi docs/KR_PROTOTYPE_AUDIT.md. */
+void formatta(char *str, float fval)
 {
 if(fval>999999.9 || fval<-99999.9 || (fval<0.01 && fval>-0.01))
         sprintf(str,"%9.3E",fval);

@@ -573,9 +573,10 @@ void CloseConn()
 
 	nessuno
 */
-void InvSlave(mess,lmsg)
-short *mess;
-short lmsg;
+/* Stile prototipo, NON K&R: il prototipo (riga 79) dichiara
+   void InvSlave(short *, short); nel K&R lmsg era promosso a int.
+   Vedi docs/KR_PROTOTYPE_AUDIT.md. */
+void InvSlave(short *mess, short lmsg)
 {
 	QUEUE_PACKET	pack;
 

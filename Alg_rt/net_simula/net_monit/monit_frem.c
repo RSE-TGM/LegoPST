@@ -944,10 +944,10 @@ int attiva_riga_sommario_fr(int n)
 	return(0);
 }
 /***************************************************************/
-int perturba_riga_sommario_fr (n, valore, t)
-int n;
-float valore;
-float t;
+/* Stile prototipo, NON K&R: il prototipo (riga 104) dichiara (int,float,float),
+   il K&R promuoveva i float a double -> valore/t arrivavano corrotti.
+   Vedi docs/KR_PROTOTYPE_AUDIT.md. */
+int perturba_riga_sommario_fr (int n, float valore, float t)
 {
 extern int id_msg_pert;
 int tipo_pert;

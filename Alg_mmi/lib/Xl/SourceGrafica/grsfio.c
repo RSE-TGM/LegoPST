@@ -298,10 +298,10 @@ return(0);
 
 /*************************************************
 *************************************************/
-int read_multi(buf,pXlGraf,ultimo_tempo)
-char *buf;
-S_XLGRAFICO *pXlGraf;
-float ultimo_tempo;
+/* Stile prototipo, NON K&R: il prototipo (riga 68) dichiara float, il K&R lo
+   promuoveva a double -> ultimo_tempo arrivava corrotto.
+   Vedi docs/KR_PROTOTYPE_AUDIT.md. */
+int read_multi(char *buf, S_XLGRAFICO *pXlGraf, float ultimo_tempo)
 {
 char sep[2];
 char *pb;

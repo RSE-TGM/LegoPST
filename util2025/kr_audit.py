@@ -37,6 +37,25 @@ KR = re.compile(
     r'^[A-Za-z_][A-Za-z0-9_ \*]*\s+\*?([A-Za-z_]\w*)\s*'
     r'\(\s*([a-z_]\w*(\s*,\s*[a-z_]\w*)*)\s*\)\s*$')
 DECL = re.compile(r'^\s*(float|short)\b')
+COMMENT = re.compile(r'/\*.*?\*/|//[^\n]*', re.S)
+
+
+def _senza_commenti(src):
+    """Azzera i commenti (conservando i newline) prima di cercare i prototipi:
+    in alcuni file la firma della funzione e' ripetuta dentro un commento di
+    documentazione e verrebbe scambiata per un prototipo vero."""
+    return COMMENT.sub(lambda m: re.sub(r'[^\n]', ' ', m.group(0)), src)
+
+
+def _ha_param_non_puntatore(riga):
+    """True se la dichiarazione K&R contiene almeno un float/short NON puntatore.
+    I puntatori non subiscono la promozione automatica, quindi non danno
+    conflitto: 'float *t;' e' innocuo, 'float t;' no."""
+    corpo = re.sub(r'^\s*(float|short)\b', '', riga).rstrip(';').rstrip()
+    for var in corpo.split(','):
+        if var.strip() and '*' not in var:
+            return True
+    return False
 
 
 def scan(root):
@@ -53,6 +72,7 @@ def scan(root):
                 src = open(path, errors='ignore').read()
             except OSError:
                 continue
+            src_code = _senza_commenti(src)
             lines = src.split('\n')
             for i, line in enumerate(lines):
                 m = KR.match(line)
@@ -62,7 +82,7 @@ def scan(root):
                 # righe seguenti = dichiarazioni dei parametri, fino a '{'
                 j, has_float, n = i + 1, False, 0
                 while j < len(lines) and n < 8 and not lines[j].strip().startswith('{'):
-                    if DECL.match(lines[j]):
+                    if DECL.match(lines[j]) and _ha_param_non_puntatore(lines[j]):
                         has_float = True
                     if lines[j].strip() == '':
                         break
@@ -71,10 +91,11 @@ def scan(root):
                 if not has_float:
                     continue
                 cand += 1
-                # esiste un prototipo che dichiara float/short per questa funzione?
+                # esiste un prototipo (nel CODICE, non nei commenti) che dichiara
+                # float/short per questa funzione?
                 proto = re.search(
                     r'^[^\n]*\b' + re.escape(name) +
-                    r'\s*\([^)]*\b(float|short)\b[^)]*\)\s*;', src, re.M)
+                    r'\s*\([^)]*\b(float|short)\b[^)]*\)\s*;', src_code, re.M)
                 if proto:
                     conflitti.append((path, i + 1, name))
     return cand, conflitti

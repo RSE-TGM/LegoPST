@@ -84,10 +84,12 @@ FILE *fplog;
 float puntonow;
 FILE *fpsave, *fpout;
 
-int viewshr(modo, nomevar, indir, valore, stato, tempo, num_var, forzval)
-int modo, *indir, *stato, *num_var;
-float *valore, *tempo, forzval;
-char *nomevar;
+/* Stile prototipo, NON K&R: main_viewval.c dichiara
+   int viewshr(int,char*,int*,float*,int*,float*,int*,float) e l'ultimo
+   parametro e' un float semplice; nel K&R veniva promosso a double -> forzval
+   arrivava corrotto. Vedi docs/KR_PROTOTYPE_AUDIT.md. */
+int viewshr(int modo, char *nomevar, int *indir, float *valore, int *stato,
+            float *tempo, int *num_var, float forzval)
 {
   int i, j, indirizzo, lun_valore;
   float time[1];

@@ -198,11 +198,12 @@ return;
 /*
 	iodb legge o scrive la tabella passata
 */
-void iodb(fp,flag,ptr,size,n)
-short n, size, flag;
-//MAXchar huge *ptr;
-char *ptr;
-FILE * fp;
+/* Stile prototipo, NON K&R: il prototipo (riga 46) dichiara
+   void iodb(FILE *, short, char *, int, int) mentre il K&R dichiarava
+   "short n, size, flag" promossi a int -> i due lati non concordavano.
+   size/n diventano int come da prototipo (i chiamanti passano sizeof(...) e
+   dimensioni intere). Vedi docs/KR_PROTOTYPE_AUDIT.md. */
+void iodb(FILE *fp, short flag, char *ptr, int size, int n)
 {
 	short i;
 	for(i=0;i<n;i++)

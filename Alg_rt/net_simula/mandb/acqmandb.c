@@ -256,9 +256,10 @@ val= RtDbPGetValueD(dbpunti,indice);
 return(val);
 }
 
-int write_sh(indice,val)
-int indice;
-float val;
+/* Stile prototipo, NON K&R: il prototipo (riga 67) dichiara (int,float), il K&R
+   promuoveva val a double -> il valore scritto in SHM era corrotto.
+   Vedi docs/KR_PROTOTYPE_AUDIT.md. */
+int write_sh(int indice, float val)
 {
 RtDbPPutValue(dbpunti,indice,val);
 printf ("\n variabile indice %d valore : %f \n",indice,val);  

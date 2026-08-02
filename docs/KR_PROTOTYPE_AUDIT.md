@@ -1,7 +1,12 @@
 # Audit K&R — parametri `float` in conflitto con il prototipo
 
-Piano per la bonifica sistematica di un difetto di porting presente in tutto il
-codebase. **Nome della task: `audit K&R`.**
+Bonifica sistematica di un difetto di porting presente in tutto il codebase.
+**Nome della task: `audit K&R`.**
+
+> **ESEGUITA il 2026-08-02 — conflitti azzerati.** 13 funzioni corrette in 10 file,
+> 2 segnalazioni erano falsi positivi (vedi *Esito*). Lo scanner ora riporta
+> `CON prototipo in conflitto : 0`. Questa pagina resta come riferimento: rilanciare
+> `python3 util2025/kr_audit.py` dopo ogni import di codice legacy.
 
 ## Il difetto
 
@@ -46,40 +51,49 @@ conversione di unità erano **tutti corretti in memoria**: sbagliava solo
 | `Alg_rt/grafica/grafics/grafics.c` | `formatta()`, `prep_draw()` |
 | `Alg_rt/grafica/graphics/graphics.c` | `prep_str_tim()` |
 
-## Stato attuale (misurato)
+## Esito (2026-08-02)
 
 ```
-$ python3 util2025/kr_audit.py
-candidati K&R con parametri float/short : 125
-CON prototipo in conflitto (bug reali)  :  15
+prima:  candidati 125  |  conflitti 15
+dopo :  candidati  91  |  conflitti  0
 ```
 
-Solo i **15 con prototipo in conflitto** sono bug. Gli altri 110 sono K&R
-coerenti (nessun prototipo): funzionano, **non vanno toccati**.
+### Corrette (13 funzioni, 10 file)
 
-### I 15 da correggere
+| File | Funzioni |
+|---|---|
+| `Alg_mmi/lib/Xl/SourceGrafica/funzioni.c` | `prep_str_timGR`, `prep_draw`, `formatta` |
+| `Alg_mmi/lib/Xl/SourceGrafica/grsfio.c` | `read_multi` |
+| `legocad/lib/liblegocad/f14.c` | `pr_float`, `spr_float` |
+| `Alg_rt/net_simula/viewval/viewshr.c` | `viewshr` |
+| `Alg_rt/net_simula/net_monit/monit_frem.c` | `perturba_riga_sommario_fr` |
+| `Alg_rt/net_simula/net_monit/monit_malf.c` | `perturba_riga_sommario_mf` |
+| `Alg_rt/net_simula/mandb/acqmandb.c` | `write_sh` |
+| `AlgLib/libsim/nega.c` | `nega` |
+| `scada/libut/rwdbal.c` | `iodb` (parametri `short`) |
+| `scada/scada/aggcfg/taggcfg.c` | `InvSlave` (parametri `short`) |
 
-| File | Riga | Funzione | Priorità |
-|---|---|---|---|
-| `Alg_mmi/lib/Xl/SourceGrafica/funzioni.c` | 971, 1026, 2415 | `prep_str_timGR`, `prep_draw`, `formatta` | **alta** |
-| `Alg_mmi/lib/Xl/SourceGrafica/grsfio.c` | 301 | `read_multi` | **alta** |
-| `legocad/lib/liblegocad/f14.c` | 259, 629 | `pr_float`, `spr_float` | **alta** |
-| `Alg_rt/net_simula/dataserver/viewshr.c` | 104 | `viewshr` | media |
-| `Alg_rt/net_simula/viewval/viewshr.c` | 87 | `viewshr` | media |
-| `Alg_rt/net_simula/new_monit/archiveSess.c` | 359 | `recoveryRangeF22` | media |
-| `Alg_rt/net_simula/net_monit/monit_frem.c` | 947 | `perturba_riga_sommario_fr` | media |
-| `Alg_rt/net_simula/net_monit/monit_malf.c` | 1568 | `perturba_riga_sommario_mf` | media |
-| `Alg_rt/net_simula/mandb/acqmandb.c` | 259 | `write_sh` | media |
-| `AlgLib/libsim/nega.c` | 30 | `nega` | media |
-| `scada/libut/rwdbal.c` | 201 | `iodb` | bassa |
-| `scada/scada/aggcfg/taggcfg.c` | 576 | `InvSlave` | bassa |
+Piu' le tre gia' corrette il 2026-07-31 in `grafics.c`/`graphics.c`.
 
-**Perché quelle priorità.** `funzioni.c`/`grsfio.c` in `Alg_mmi` sono una **terza
-copia** del visualizzatore grafico (`formatta`, `prep_draw`, `read_multi`): hanno
-gli stessi identici bug appena corretti in `grafics`, quindi la MMI mostra
-verosimilmente gli stessi zeri. `f14.c::pr_float`/`spr_float` **scrivono** valori
-nei file `f14`: qui il difetto non falsa solo la visualizzazione ma può corrompere
-i dati salvati.
+### NON toccate: 2 falsi positivi
+
+- **`Alg_rt/net_simula/new_monit/archiveSess.c::recoveryRangeF22`** — i parametri
+  sono `float *`: **i puntatori non subiscono promozione**, nessun conflitto.
+- **`Alg_rt/net_simula/dataserver/viewshr.c::viewshr`** — il "prototipo" trovato
+  era dentro un **blocco di commento**; il chiamante reale (`main_DataServer.c:73`)
+  dichiara `int viewshr();` senza tipi, quindi promuove a `double` coerentemente
+  col K&R. Convertire la definizione qui **introdurrebbe** il bug.
+
+Lo scanner e' stato affinato per non segnalare piu' queste due classi (ignora i
+commenti; richiede almeno un parametro `float`/`short` **non puntatore**).
+
+### Verifica build
+
+Ricompilati senza errori: `AlgLib/libsim`, `legocad/lib/liblegocad`,
+`Alg_rt/net_simula/{viewval,mandb,net_monit}`, `Alg_mmi/lib/Xl/SourceGrafica`,
+`scada/libut`, e `taggcfg.o` dentro `scada/scada`. In `scada/scada` il link finale
+fallisce per `../lib/libUtil.a` mancante: **difetto preesistente**, non correlato
+(nessuna occorrenza di `taggcfg`/`InvSlave` fra gli errori).
 
 ## Procedura
 
@@ -105,7 +119,7 @@ i dati salvati.
 
 ## Note
 
-- **Non toccare** i 110 candidati senza prototipo: sono K&R coerenti e funzionanti.
+- **Non toccare** i 91 candidati senza prototipo: sono K&R coerenti e funzionanti.
   Convertirli sarebbe un rischio inutile su codice numerico che gira.
 - Correggere **un componente per volta**, ricompilando e verificando: sono binari
   di produzione.

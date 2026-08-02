@@ -27,8 +27,11 @@ static char SccsID[] = "@(#)nega.c	5.1\t11/7/95";
 
 int nega(float);
 
-int nega(valore)
-float valore;
+/* Stile prototipo, NON K&R: il prototipo (riga 28, e in AlgLib/libinclude/
+   sim_types.h:787) dichiara int nega(float); nel K&R il float era promosso a
+   double -> valore arrivava corrotto a ogni chiamante della libreria.
+   Vedi docs/KR_PROTOTYPE_AUDIT.md. */
+int nega(float valore)
 {
 int app;
 

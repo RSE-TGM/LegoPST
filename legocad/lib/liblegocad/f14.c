@@ -256,9 +256,11 @@ printf("\n VARIABILI DI INGRESSO ");
         }
 }
 
-void pr_float(fp,val)
-FILE *fp;
-float val;
+/* Stile prototipo, NON K&R: il prototipo (riga 78) dichiara float mentre il K&R
+   lo promuoveva a double -> il valore arrivava corrotto. Qui il difetto non
+   falsava solo la visualizzazione: pr_float SCRIVE i valori nei file f14.
+   Vedi docs/KR_PROTOTYPE_AUDIT.md. */
+void pr_float(FILE *fp, float val)
 {
 if(val<999.99 && val>-99.99)
 	fprintf(fp,"%-7.3f",val);
@@ -626,9 +628,9 @@ fprintf(fp,EOF_F14);
 fprintf(fp,"\n");
 }
 
-void spr_float(string,val)
-char *string;
-float val;
+/* Stile prototipo, NON K&R: come pr_float qui sopra (prototipo a riga 79).
+   Vedi docs/KR_PROTOTYPE_AUDIT.md. */
+void spr_float(char *string, float val)
 {
 if(val<9999.99999 && val>0.1)
         sprintf(string,"%-10.5f",val);

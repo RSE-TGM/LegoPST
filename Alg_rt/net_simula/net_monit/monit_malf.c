@@ -1565,10 +1565,9 @@ float rateo;
 	return(0);
 }
 /***************************************************************/
-int perturba_riga_sommario_mf (n, valore, t)
-int n;
-float valore;
-float t;
+/* Stile prototipo, NON K&R: come perturba_riga_sommario_fr in monit_frem.c
+   (prototipo a riga 104). Vedi docs/KR_PROTOTYPE_AUDIT.md. */
+int perturba_riga_sommario_mf (int n, float valore, float t)
 {
 extern int id_msg_pert;
 int tipo_pert;
