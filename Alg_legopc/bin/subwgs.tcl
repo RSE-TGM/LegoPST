@@ -191,20 +191,12 @@ global env
      set lg5drift $env(LG_TIX)/lg5_drift.inp
      }
 
-     if {$::tcl_platform(os) != "Linux"} {
-        if {$MODE == "drift"} {
-           exec $SLV/lg4_exe <$lg4drift >lg4.out
-        } else {
-           exec $SLV/lg4_exe <lg4.inp >lg4.out
-        }
-     } else {
-        if {$MODE == "drift"} {
-           exec lg4_exe <$lg4drift >lg4.out
-        } else {
-           exec lg4_exe <lg4.inp >lg4.out
-        }
-     }
-
+#    La COSTRUZIONE va PRIMA di lg4_exe, non dopo (stesso fix di execLg5_v2 in
+#    golg3_v2.tcl): crealg5 e' "make -f maketask lg5" e, se f14.dat e' piu'
+#    recente di proc/f04.dat (tipico dopo "Compute Steady State"/"Copy f24 in
+#    f14"), rigenera proc/f04.dat rilanciando lg3b, sovrascrivendo quanto
+#    lg4_exe vi aveva appena preparato. lg5 trovava un f04 troncato e moriva con
+#    "Fortran runtime error: End of file" (main_lg5.f:164).
      if { $::tcl_platform(os) == "Linux" } {
 #        exec make -f $SLV/crea_solver lg5
         set comm1 "crealg5"
@@ -219,6 +211,21 @@ global env
         catch {exec $SLV/lg5.bat}
         catch {exec $SLV/lgser.bat}
      }
+
+     if {$::tcl_platform(os) != "Linux"} {
+        if {$MODE == "drift"} {
+           exec $SLV/lg4_exe <$lg4drift >lg4.out
+        } else {
+           exec $SLV/lg4_exe <lg4.inp >lg4.out
+        }
+     } else {
+        if {$MODE == "drift"} {
+           exec lg4_exe <$lg4drift >lg4.out
+        } else {
+           exec lg4_exe <lg4.inp >lg4.out
+        }
+     }
+
      if {$MODE == "drift"} {
         exec proc/lg5 <$lg5drift >lg5.out
      } else {

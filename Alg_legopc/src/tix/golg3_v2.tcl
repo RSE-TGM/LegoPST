@@ -219,20 +219,15 @@ global env
      set lg5drift $env(LG_TIX)/lg5_drift.inp
      }
 
-     if {$::tcl_platform(os) != "Linux"} {
-        if {$MODE == "drift"} {
-           catch {exec $SLV/lg4_exe <$lg4drift >lg4.out}
-        } else {
-           catch {exec $SLV/lg4_exe <lg4.inp >lg4.out}
-        }
-     } else {
-        if {$MODE == "drift"} {
-           catch {exec lg4_exe <$lg4drift >lg4.out}
-        } else {
-           catch {exec lg4_exe <lg4.inp >lg4.out}
-        }
-     }
-
+#    La COSTRUZIONE va PRIMA di lg4_exe, non dopo.
+#    crealg5 e' "make -f maketask lg5": se f14.dat e' piu' recente di
+#    proc/f04.dat (tipico subito dopo "Compute Steady State" / "Copy f24 in f14")
+#    il make rigenera proc/f04.dat rilanciando lg3b, sovrascrivendo quanto
+#    lg4_exe vi aveva appena preparato per il transitorio. lg5 trovava allora un
+#    f04 troncato e moriva con "Fortran runtime error: End of file" a
+#    main_lg5.f:164, lasciando lg5.out col solo primo prompt. Alla seconda
+#    pressione il make non aveva piu' nulla da fare e funzionava: da qui il
+#    "fallisce solo la prima volta".
      if { $::tcl_platform(os) == "Linux" } {
 #        exec make -f $SLV/crea_solver lg5
         set comm1 "crealg5"
@@ -247,6 +242,21 @@ global env
         catch {exec $SLV/lg5.bat}
         catch {exec $SLV/lgser.bat}
      }
+
+     if {$::tcl_platform(os) != "Linux"} {
+        if {$MODE == "drift"} {
+           catch {exec $SLV/lg4_exe <$lg4drift >lg4.out}
+        } else {
+           catch {exec $SLV/lg4_exe <lg4.inp >lg4.out}
+        }
+     } else {
+        if {$MODE == "drift"} {
+           catch {exec lg4_exe <$lg4drift >lg4.out}
+        } else {
+           catch {exec lg4_exe <lg4.inp >lg4.out}
+        }
+     }
+
      if {$MODE == "drift"} {
         catch {exec proc/lg5 <$lg5drift >lg5.out}
      } else {

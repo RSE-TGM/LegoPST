@@ -319,10 +319,14 @@ proc ssopt_linux {} {
      } else {
         set f [checkopen $::env(LEGO_BIN)/lg3.inp r]
      }
-        gets $f ::stampe
-        gets $f ::tolerance
-	gets $f ::terzo
+#    Conserviamo il file INTERO in ::lg3righe: il dialogo espone solo le prime
+#    tre righe, ma opt_okcmd deve poter riscrivere anche le eventuali righe
+#    successive invece di troncarle (vedi nota li').
+        set ::lg3righe [split [string trimright [read $f] "\n"] "\n"]
         close $f
+        set ::stampe    [lindex $::lg3righe 0]
+        set ::tolerance [lindex $::lg3righe 1]
+        set ::terzo     [lindex $::lg3righe 2]
 
 
     set w .opt_toler
@@ -362,12 +366,19 @@ proc ssopt_linux {} {
 
 proc opt_okcmd {} {
 
-        set f [checkopen lg3.inp w]
-        puts $f $::stampe
-        puts $f $::tolerance
-        puts $f $::terzo
-puts "legopc.tix: tolerance=$::tolerance"
+#       Riscrive il file COMPLETO: aggiorna solo le tre righe che il dialogo
+#       espone e conserva le eventuali successive. Prima venivano scritte sempre
+#       e solo 3 righe, quindi un lg3.inp piu' lungo veniva troncato.
+#       ::lg3righe e' popolata da ssopt_linux; se mancasse (dialogo mai aperto)
+#       si ripiega sulle tre righe note.
+        if {![info exists ::lg3righe]} { set ::lg3righe [list "" "" ""] }
+        while {[llength $::lg3righe] < 3} { lappend ::lg3righe "" }
+        lset ::lg3righe 0 $::stampe
+        lset ::lg3righe 1 $::tolerance
+        lset ::lg3righe 2 $::terzo
 
+        set f [checkopen lg3.inp w]
+        foreach _riga $::lg3righe { puts $f $_riga }
         close $f
 
 }

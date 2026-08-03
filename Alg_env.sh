@@ -426,7 +426,11 @@ export LG_HTML=$LG_BASE/Alg_legopc_help${EXTENSION}
 export LG_TEXTEDITOR=kwrite
 export PATH=$LG_BASE/tcltktix/bin:$PATH
 export LD_LIBRARY_PATH=$LG_BASE/tcltktix/lib:$LD_LIBRARY_PATH
-alias lgpc0='export LG_TIX=$LG_BASE/bin_old; wish $LG_TIX/legopc.tix'  # legopc originale prima delle estensioni windows
+# lgpc0 rimosso (2026-08-02): lanciava la legopc originale da $LG_BASE/bin_old,
+# che veniva generata da src/tix_old. Quel sorgente e' obsoleto ed e' stato
+# escluso dal build (Alg_legopc/Makefile.mk), quindi bin_old non e' piu'
+# aggiornato: usare 'lgpc' (src/tix -> $LG_BIN).
+# alias lgpc0='export LG_TIX=$LG_BASE/bin_old; wish $LG_TIX/legopc.tix'
 alias lgpc='export LG_TIX=$LG_BIN; wish $LG_TIX/legopc.tix'
 export LG_WISH=$LEGOROOT/tcltktix-8.3.5b/tcltktix/bin/wish
 alias lgpcu='$LG_WISH $LG_TIX/legopc.tix'

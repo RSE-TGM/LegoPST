@@ -523,7 +523,12 @@ proc transient_batch {} {
                             -type ok -parent .
            } else {
 #           	tk_messageBox -message "transient_batch" -type ok
-              set listPert {}
+              #  Azzeramento lista perturbazioni all'apertura del dialogo: deve agire sulla
+              #  GLOBALE. I pulsanti Ramp/Tab/Grad fanno "lappend listPert" dentro i loro
+              #  -command, che Tk valuta a scope globale; con un 'set' locale la ::listPert
+              #  non veniva azzerata e le perturbazioni si accumulavano fra un'apertura e
+              #  l'altra di Transient Batch.
+              set ::listPert {}
 	      catch {destroy .trans}
               toplevel .trans
               wm title .trans "Transient Setup"
@@ -569,7 +574,12 @@ proc transient_batch {} {
 	      frame .trans.sep2  -relief ridge -bd 1 -height 2
               pack .trans.sep2 -side top -fill x
 
-	      set transalg 0
+	      #  Variabile GLOBALE (::), non locale alla proc: viene letta dal -command del
+	      #  pulsante Calc, che Tk valuta a scope globale. Su Windows la creavano i
+	      #  radiobutton "-variable transalg" qui sotto, ma su Linux quel blocco e'
+	      #  saltato: restava non definita e Calc falliva con
+	      #  'can't read "transalg": no such variable'.
+	      set ::transalg 0
 	      
   if  { $::tcl_platform(os) != "Linux" } {
 	      frame .trans.algo
