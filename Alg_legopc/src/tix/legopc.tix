@@ -1532,6 +1532,21 @@ proc inputModName {c x y} {
 }
 
 
+#  Riconosce il formato reale di un file immagine dai primi byte (magic number),
+#  indipendentemente dall'estensione. Serve a spiegare all'utente perche' un
+#  ".gif" non e' caricabile: quasi sempre e' un JPEG rinominato.
+proc bg_formato_file {path} {
+    if {[catch {open $path rb} fh]} { return "illeggibile" }
+    set magic [read $fh 8]
+    close $fh
+    binary scan $magic H16 hex
+    if {[string match "ffd8ff*"     $hex]} { return "JPEG" }
+    if {[string match "89504e47*"   $hex]} { return "PNG" }
+    if {[string match "47494638*"   $hex]} { return "GIF" }
+    if {[string match "424d*"       $hex]} { return "BMP" }
+    return "formato sconosciuto"
+}
+
 proc createPal {} {
 	global env palId curLibPath pixmapPath curTool
 	#   Type names		Extension(s)	Mac File Type(s)
@@ -1576,6 +1591,39 @@ set pal [$pal0.canv subwidget window]
 
 	cd "$dirname"
 	set items [glob *.gif]
+
+	#  Fallback sui file non caricabili: prima bastava un solo .gif che Tk non
+	#  sapeva decodificare (tipico: un .jpg rinominato) per far fallire l'INTERA
+	#  createPal con "couldn't recognize data in image file", e la libreria non si
+	#  apriva affatto. Ora li scartiamo qui: la palette si costruisce con gli altri
+	#  e alla fine un unico messaggio dice quali file e perche'.
+	#  Tk 8.6 legge GIF, PNG e PPM/PGM; il JPEG richiederebbe il pacchetto Img,
+	#  non installato ne' incluso nel runtime tcltktix del progetto.
+	set _bg_scartati {}
+	set _bg_buoni {}
+	foreach item $items {
+	    if {[catch {image create photo _bg_probe -file $item}]} {
+		lappend _bg_scartati "  $item  -->  e' un [bg_formato_file $item]"
+	    } else {
+		image delete _bg_probe
+		lappend _bg_buoni $item
+	    }
+	}
+	set items $_bg_buoni
+
+	#  Secondo caso muto: il nome deve finire con l'orientamento (n/s/e/w),
+	#  altrimenti il ciclo sotto non entra in nessun ramo e il file viene
+	#  ignorato senza dire nulla. Per gli elementi di background serve la "n".
+	foreach item $items {
+	    set _o [string index [file rootname $item] end]
+	    if {[lsearch -exact {n s e w} $_o] < 0} {
+		lappend _bg_scartati "  $item  -->  il nome non finisce con n/s/e/w"
+	    }
+	}
+	if {[llength $_bg_scartati] > 0} {
+	    tk_messageBox -icon warning -type ok -title "Immagini non caricabili" \
+		-message "Questi file della libreria sono stati ignorati:\n\n[join $_bg_scartati \n]\n\nRequisiti: un GIF o PNG vero (rinominare un .jpg in .gif non basta) e il\nnome che finisce con l'orientamento, per il background la 'n':\n    @<nome>_0n.gif\nPer convertire:  ffmpeg -i immagine.jpg @nome_0n.gif"
+	}
 	set row 0
 	set column 0
 	foreach item $items {

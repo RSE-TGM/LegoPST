@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>kbin — riferimento comandi LegoPST</title>
+<style>
+  :root{
+    --bg:#eef1f5; --panel:#ffffff; --panel2:#f6f8fb; --ink:#1a2130; --ink-soft:#4a5468;
+    --line:#d9dfe8; --line-soft:#e7ecf2; --accent:#0f8a86; --accent-ink:#0a5f5c;
+    --mono-bg:#eef2f6; --warn:#a8641b;
+    --g-build:#4f5bd5; --g-run:#2f8f4e; --g-scada:#0f8a86; --g-config:#9a6d1a;
+    --g-query:#7a52c9; --g-clean:#b04a63; --g-infra:#5a6577; --g-env:#2f6f9f;
+    --chip-bg:#eef2f6; --chip-ink:#4a5468;
+    --radius:10px;
+    --sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --mono:ui-monospace,"SF Mono","JetBrains Mono",Menlo,Consolas,"Liberation Mono",monospace;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --bg:#0e1218; --panel:#161c26; --panel2:#12171f; --ink:#e6eaf1; --ink-soft:#9aa6b8;
+      --line:#28313f; --line-soft:#1e2632; --accent:#3fc7c0; --accent-ink:#7fe0da;
+      --mono-bg:#1c242f; --warn:#d9954a;
+      --g-build:#7b86ef; --g-run:#5cc57e; --g-scada:#3fc7c0; --g-config:#cda85a;
+      --g-query:#a98ae6; --g-clean:#e2879b; --g-infra:#8b97ab; --g-env:#6cb0e0;
+      --chip-bg:#1e2632; --chip-ink:#9aa6b8;
+    }
+  }
+  :root[data-theme="light"]{
+    --bg:#eef1f5; --panel:#ffffff; --panel2:#f6f8fb; --ink:#1a2130; --ink-soft:#4a5468;
+    --line:#d9dfe8; --line-soft:#e7ecf2; --accent:#0f8a86; --accent-ink:#0a5f5c;
+    --mono-bg:#eef2f6; --warn:#a8641b;
+    --g-build:#4f5bd5; --g-run:#2f8f4e; --g-scada:#0f8a86; --g-config:#9a6d1a;
+    --g-query:#7a52c9; --g-clean:#b04a63; --g-infra:#5a6577; --g-env:#2f6f9f; --chip-bg:#eef2f6; --chip-ink:#4a5468;
+  }
+  :root[data-theme="dark"]{
+    --bg:#0e1218; --panel:#161c26; --panel2:#12171f; --ink:#e6eaf1; --ink-soft:#9aa6b8;
+    --line:#28313f; --line-soft:#1e2632; --accent:#3fc7c0; --accent-ink:#7fe0da;
+    --mono-bg:#1c242f; --warn:#d9954a;
+    --g-build:#7b86ef; --g-run:#5cc57e; --g-scada:#3fc7c0; --g-config:#cda85a;
+    --g-query:#a98ae6; --g-clean:#e2879b; --g-infra:#8b97ab; --g-env:#6cb0e0; --chip-bg:#1e2632; --chip-ink:#9aa6b8;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.55;
+    -webkit-font-smoothing:antialiased;font-size:15px}
+  .wrap{max-width:1080px;margin:0 auto;padding:32px 22px 80px}
+  header.top{display:flex;flex-direction:column;gap:6px;margin-bottom:6px}
+  .eyebrow{font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent-ink);
+    font-weight:600}
+  h1{font-size:30px;line-height:1.1;margin:0;font-weight:700;letter-spacing:-.01em;text-wrap:balance}
+  h1 .mono{font-family:var(--mono);font-weight:600;color:var(--accent-ink)}
+  .lede{color:var(--ink-soft);max-width:64ch;margin:4px 0 0}
+  .lede .mono{font-family:var(--mono);color:var(--accent-ink);font-size:.92em}
+  .stats{display:flex;flex-wrap:wrap;gap:10px;margin:18px 0 4px}
+  .stat{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    padding:9px 14px;display:flex;align-items:baseline;gap:8px}
+  .stat b{font-family:var(--mono);font-size:18px;font-variant-numeric:tabular-nums}
+  .stat span{font-size:12px;color:var(--ink-soft)}
+  .legend{background:var(--panel2);border:1px solid var(--line-soft);border-radius:var(--radius);
+    padding:14px 16px;margin:18px 0 6px;display:flex;flex-wrap:wrap;gap:8px 18px;font-size:13px}
+  .legend b{font-weight:600}
+  .legend .row{display:flex;align-items:center;gap:7px}
+  .controls{position:sticky;top:0;z-index:5;background:linear-gradient(var(--bg) 72%,transparent);
+    padding:14px 0 12px;margin-top:8px}
+  .search{width:100%;font-family:var(--mono);font-size:14px;padding:11px 14px;border-radius:var(--radius);
+    border:1px solid var(--line);background:var(--panel);color:var(--ink)}
+  .search:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:transparent}
+  .hint{font-size:12px;color:var(--ink-soft);margin:7px 2px 0}
+  section.grp{margin-top:26px;border:1px solid var(--line);border-radius:14px;overflow:hidden;
+    background:var(--panel)}
+  .grp-head{display:flex;align-items:center;gap:11px;padding:13px 18px;border-bottom:1px solid var(--line);
+    background:var(--panel2)}
+  .dot{width:11px;height:11px;border-radius:3px;flex:none}
+  .grp-head h2{font-size:15.5px;margin:0;font-weight:650;letter-spacing:-.01em}
+  .grp-head .n{margin-left:auto;font-family:var(--mono);font-size:12px;color:var(--ink-soft);
+    font-variant-numeric:tabular-nums}
+  .rows{display:block}
+  .r{display:grid;grid-template-columns:220px 92px 1fr;gap:14px;align-items:baseline;
+    padding:9px 18px;border-top:1px solid var(--line-soft)}
+  .r:first-child{border-top:none}
+  .r .cmd{font-family:var(--mono);font-size:13.5px;font-weight:600;word-break:break-word}
+  .r .cmd a{color:inherit;text-decoration:none}
+  .chip{font-size:10.5px;font-weight:600;letter-spacing:.03em;text-transform:uppercase;
+    padding:2px 7px;border-radius:20px;background:var(--chip-bg);color:var(--chip-ink);
+    justify-self:start;white-space:nowrap}
+  .chip.main{background:color-mix(in srgb,var(--accent) 20%,transparent);color:var(--accent-ink)}
+  .chip.dep{background:color-mix(in srgb,var(--warn) 22%,transparent);color:var(--warn)}
+  .chip.func{background:color-mix(in srgb,var(--g-env) 24%,transparent);color:var(--g-env)}
+  .r .desc{color:var(--ink-soft);font-size:13.5px}
+  .r .desc code{font-family:var(--mono);font-size:12px;background:var(--mono-bg);padding:1px 5px;
+    border-radius:5px;color:var(--ink)}
+  .empty{padding:40px;text-align:center;color:var(--ink-soft);display:none}
+  footer{margin-top:34px;padding-top:16px;border-top:1px solid var(--line);color:var(--ink-soft);
+    font-size:12.5px;max-width:70ch}
+  mark{background:color-mix(in srgb,var(--accent) 34%,transparent);color:inherit;border-radius:3px;padding:0 1px}
+  @media (max-width:640px){
+    .r{grid-template-columns:1fr;gap:3px;padding:12px 16px}
+    .chip{margin:1px 0}
+    h1{font-size:24px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="eyebrow">LegoPST · kprocedure</div>
+    <h1><span class="mono">kbin/</span> — riferimento dei comandi</h1>
+    <p class="lede">I 189 script Korn-shell dell'ambiente k di LegoPST (build, esecuzione,
+      SCADA/MMI, manutenzione di un simulatore d'impianto). Scopo di ciascuno, raggruppato per
+      funzione. Ricostruito ispezionando header, log e operazioni dei singoli script. In cima,
+      le funzioni d'ambiente <span class="mono">ksetsim</span>/<span class="mono">ksims</span>
+      (definite in <span class="mono">Alg_env.sh</span>, non in <span class="mono">kbin/</span>).</p>
+  </header>
+
+  <div class="stats" id="stats"><div class="stat"><b>189</b><span>script kbin</span></div><div class="stat"><b>78</b><span>comandi principali</span></div><div class="stat"><b>21</b><span>wrapper background</span></div><div class="stat"><b>35</b><span>sotto-passi (slave)</span></div><div class="stat"><b>3</b><span>funzioni ambiente</span></div></div>
+
+  <div class="legend">
+    <span class="row"><b>Convenzioni di nome:</b></span>
+    <span class="row"><span class="chip func">func</span> funzione d'ambiente (in Alg_env.sh)</span>
+    <span class="row"><span class="chip main">main</span> comando principale (CamelCase)</span>
+    <span class="row"><span class="chip">bg</span> wrapper minuscolo → lancia il main in background (<code>… $* &amp;</code>)</span>
+    <span class="row"><span class="chip">slave</span> sotto-passo interno di un main</span>
+    <span class="row"><span class="chip">helper</span> primitiva usata da altri script</span>
+    <span class="row"><span class="chip">util</span> utility a sé</span>
+    <span class="row"><span class="chip">index</span> indicizzatore pagine (<code>xFind*</code>)</span>
+    <span class="row"><span class="chip dep">deprecato</span></span>
+  </div>
+
+  <div class="controls">
+    <input class="search" id="q" type="search" placeholder="Filtra per nome o scopo…  (es. mmi, curve, pulizia, KKS)" autocomplete="off" spellcheck="false" aria-label="Filtra comandi">
+    <div class="hint" id="hint"></div>
+  </div>
+
+  <main id="out"><section class="grp"><div class="grp-head"><span class="dot" style="background:var(--g-env)"></span>
+      <h2>Ambiente — scelta del simulatore (funzioni in Alg_env.sh, non in kbin/)</h2><span class="n">3</span></div><div class="rows"><div class="r"><div class="cmd">ksetsim</div><span class="chip">func</span><div class="desc">Imposta il <b>simulatore corrente</b> (<code>KSIM</code>) sotto <code>$KSKED</code> e <b>ri-deriva tutte le K*</b> (KLOG, KSTATUS, KSCADA, KDATABASES, KPAGES, KGRAF…). Crea <code>status/</code>/<code>log/</code>, sorgia l'override <code>$KSIM/ksim.conf</code>, memorizza la scelta in <code>~/.legosim</code> (sticky). Completion bash.</div></div><div class="r"><div class="cmd">ksims</div><span class="chip">func</span><div class="desc">Elenca i simulatori disponibili (solo directory sotto <code>$KSKED</code>, default <code>$HOME/sked</code>).</div></div><div class="r"><div class="cmd">ksetsim_default</div><span class="chip">func</span><div class="desc">All'avvio (dal profilo) sceglie il simulatore in cascata: <code>~/.legosim</code> → <code>cassano0</code> → primo disponibile; se <code>$KSKED</code> è vuoto avvisa e lascia <code>KSIM</code> non impostata.</div></div></div></section><section class="grp"><div class="grp-head"><span class="dot" style="background:var(--g-build)"></span>
+      <h2>Costruzione &amp; compilazione del simulatore</h2><span class="n">24</span></div><div class="rows"><div class="r"><div class="cmd">kCompile</div><span class="chip main">main</span><div class="desc">Compila il simulatore (invoca <code>net_compi</code>).</div></div><div class="r"><div class="cmd">kCompileSim</div><span class="chip main">main</span><div class="desc">Compila l'intero simulatore.</div></div><div class="r"><div class="cmd">kNetCompi</div><span class="chip main">main</span><div class="desc">Compila il simulatore di rete (<code>net_compi</code>).</div></div><div class="r"><div class="cmd">knetcompi</div><span class="chip">bg</span><div class="desc">Avvia kNetCompi in background.</div></div><div class="r"><div class="cmd">knet_compi</div><span class="chip">bg</span><div class="desc">Avvia kNetCompi in background.</div></div><div class="r"><div class="cmd">kConnex</div><span class="chip main">main</span><div class="desc">Costruisce il database delle connessioni (interconnessioni tra task).</div></div><div class="r"><div class="cmd">kconnex</div><span class="chip">bg</span><div class="desc">Avvia kConnex in background.</div></div><div class="r"><div class="cmd">kConnexSlave1</div><span class="chip">slave</span><div class="desc">Sotto-passo di kConnex.</div></div><div class="r"><div class="cmd">LimpiaConnexCiclo</div><span class="chip">util</span><div class="desc">Ripulisce i cicli nel DB connessioni (filtra <code>connex2.out</code>).</div></div><div class="r"><div class="cmd">kMakeConnDB</div><span class="chip main">main</span><div class="desc">Costruisce il DB delle connessioni.</div></div><div class="r"><div class="cmd">kmakeconndb</div><span class="chip">bg</span><div class="desc">Avvia kMakeConnDB in background.</div></div><div class="r"><div class="cmd">kMakeConnDBSlave1</div><span class="chip">slave</span><div class="desc">Sotto-passo di kMakeConnDB.</div></div><div class="r"><div class="cmd">k_crea_simulatore</div><span class="chip main">main</span><div class="desc">Crea la struttura di un nuovo simulatore.</div></div><div class="r"><div class="cmd">kcreastaz</div><span class="chip main">main</span><div class="desc">Crea la «stazione» (station) del simulatore.</div></div><div class="r"><div class="cmd">kCheckSimulator</div><span class="chip main">main</span><div class="desc">Verifica coerenza e completezza del simulatore.</div></div><div class="r"><div class="cmd">kCheckSimulatorSlave1</div><span class="chip">slave</span><div class="desc">Sotto-passo di kCheckSimulator.</div></div><div class="r"><div class="cmd">kCheckRegoTask</div><span class="chip main">main</span><div class="desc">Verifica le task di regolazione.</div></div><div class="r"><div class="cmd">kDiffS01</div><span class="chip main">main</span><div class="desc">Coerenza dei valori di stazionario delle variabili di interconnessione tra le task (via <code>S01</code>).</div></div><div class="r"><div class="cmd">kDiffS01Slave1</div><span class="chip">slave</span><div class="desc">Costruisce <code>kDiffS01.DB</code> dai <code>f24.dat</code> delle task (LEGO &amp; REGO).</div></div><div class="r"><div class="cmd">kDiffS01Slave2</div><span class="chip">slave</span><div class="desc">Costruisce il DB per le task SID.</div></div><div class="r"><div class="cmd">kDiffS01Slave4</div><span class="chip">slave</span><div class="desc"><code>PROGRAM DIFFS01</code>: legge S01+DB, produce <code>diffs01.out</code> (il motore).</div></div><div class="r"><div class="cmd">kDiffS01Slave5</div><span class="chip">slave</span><div class="desc">Sotto-passo di kDiffS01.</div></div><div class="r"><div class="cmd">kDiffS01Slave6</div><span class="chip">slave</span><div class="desc">Costruisce il DB per le task GIPS.</div></div><div class="r"><div class="cmd">koldlg5</div><span class="chip">util</span><div class="desc">Compila <code>proc/lg5</code> legacy (<code>cad_maketask</code>).</div></div></div></section><section class="grp"><div class="grp-head"><span class="dot" style="background:var(--g-run)"></span>
+      <h2>Esecuzione, avvio &amp; lancio strumenti</h2><span class="n">14</span></div><div class="rows"><div class="r"><div class="cmd">kStart</div><span class="chip main">main</span><div class="desc">Avvia il simulatore.</div></div><div class="r"><div class="cmd">kstart</div><span class="chip">bg</span><div class="desc">Avvia kStart in background.</div></div><div class="r"><div class="cmd">kRun</div><span class="chip main">main</span><div class="desc">Avvia una sessione del simulatore (sorgia <code>~/.profile</code>).</div></div><div class="r"><div class="cmd">kMmi</div><span class="chip main">main</span><div class="desc">Avvia la MMI (<code>mmi</code>/<code>client_mmi</code>).</div></div><div class="r"><div class="cmd">kmmi</div><span class="chip">bg</span><div class="desc">Avvia kMmi in background.</div></div><div class="r"><div class="cmd">kXlego</div><span class="chip main">main</span><div class="desc">Avvia <code>xlego</code> (ambiente grafico legocad) su <code>$KSIM</code>.</div></div><div class="r"><div class="cmd">kxlego</div><span class="chip">bg</span><div class="desc">Avvia kXlego in background.</div></div><div class="r"><div class="cmd">kControlM</div><span class="chip main">main</span><div class="desc">Elaborazione/lancio via ControlM (scheduling).</div></div><div class="r"><div class="cmd">kc</div><span class="chip">util</span><div class="desc">Scorciatoia: lancia <code>config</code> sulla task legocad indicata (con <code>f01.dat</code>).</div></div><div class="r"><div class="cmd">kconfig</div><span class="chip">util</span><div class="desc">Lancia il tool <code>config</code> con gli argomenti dati.</div></div><div class="r"><div class="cmd">kgr</div><span class="chip">util</span><div class="desc">Lancia <code>graphics</code> su <code>$KSIM/f22circ</code> (trend/plot).</div></div><div class="r"><div class="cmd">kmandb</div><span class="chip">util</span><div class="desc">Lancia <code>mandb</code> (database manovre) su <code>$KSIM</code>.</div></div><div class="r"><div class="cmd">kdxstart</div><span class="chip">util</span><div class="desc">Apre un terminale <code>dtterm</code> personalizzato.</div></div><div class="r"><div class="cmd">kdxterm</div><span class="chip">util</span><div class="desc">Apre un terminale <code>dxterm</code> personalizzato.</div></div></div></section><section class="grp"><div class="grp-head"><span class="dot" style="background:var(--g-scada)"></span>
+      <h2>SCADA / MMI — pagine, finestre, curve, navigazione</h2><span class="n">59</span></div><div class="rows"><div class="r"><div class="cmd">kScd</div><span class="chip main">main</span><div class="desc">Build/verifica del sottosistema SCADA.</div></div><div class="r"><div class="cmd">kscd</div><span class="chip">bg</span><div class="desc">Avvia kScd in background.</div></div><div class="r"><div class="cmd">kScadaInit</div><span class="chip main">main</span><div class="desc">Inizializza il database SCADA (previo <code>kclean</code>).</div></div><div class="r"><div class="cmd">kscadainit</div><span class="chip">bg</span><div class="desc">Avvia kScadaInit in background.</div></div><div class="r"><div class="cmd">kMmiConfig</div><span class="chip main">main</span><div class="desc">Configurazione della MMI.</div></div><div class="r"><div class="cmd">kCollect</div><span class="chip main">main</span><div class="desc">Configurazione multi-MMI (raccolta pagine/config).</div></div><div class="r"><div class="cmd">kcollect</div><span class="chip">bg</span><div class="desc">Avvia kCollect in background.</div></div><div class="r"><div class="cmd">kChangeMmiColor</div><span class="chip main">main</span><div class="desc">Cambia le definizioni di colore della MMI.</div></div><div class="r"><div class="cmd">kAddWidget</div><span class="chip">helper</span><div class="desc">Helper MMI: aggiunge un widget nella configurazione.</div></div><div class="r"><div class="cmd">kAddChildrenWidget</div><span class="chip">helper</span><div class="desc">Helper MMI: aggiunge i widget «figli» nella configurazione.</div></div><div class="r"><div class="cmd">kMakeGlobpages</div><span class="chip main">main</span><div class="desc">Costruisce le «global pages» (pagine globali MMI).</div></div><div class="r"><div class="cmd">kGlobContext</div><span class="chip main">main</span><div class="desc">Costruisce il context globale della MMI (<code>Context.ctx</code>).</div></div><div class="r"><div class="cmd">kWinContext</div><span class="chip main">main</span><div class="desc">Costruisce il context delle finestre MMI.</div></div><div class="r"><div class="cmd">kMakeWin</div><span class="chip main">main</span><div class="desc">Costruisce le liste finestre MMI (in <code>$KWIN</code>).</div></div><div class="r"><div class="cmd">kOw</div><span class="chip main">main</span><div class="desc">Costruisce le Operating Window (finestre operative MMI).</div></div><div class="r"><div class="cmd">kPlace</div><span class="chip main">main</span><div class="desc">Piazzamento (placement) di pagine/widget MMI.</div></div><div class="r"><div class="cmd">kpag</div><span class="chip">util</span><div class="desc">Costruisce la lista pagine (<code>Context.ctx</code>) dai <code>????.pag</code>.</div></div><div class="r"><div class="cmd">kRenamePage</div><span class="chip main">main</span><div class="desc">Rinomina una pagina MMI.</div></div><div class="r"><div class="cmd">kMakeCurve</div><span class="chip main">main</span><div class="desc">Costruisce le definizioni di curve/trend (in <code>$KGRAF</code>).</div></div><div class="r"><div class="cmd">kMakeCurveSlave0</div><span class="chip">slave</span><div class="desc">Sotto-passo di kMakeCurve.</div></div><div class="r"><div class="cmd">kMakeCurveSlave1</div><span class="chip">slave</span><div class="desc">Sotto-passo di kMakeCurve.</div></div><div class="r"><div class="cmd">kMakeCurveSlave2</div><span class="chip">slave</span><div class="desc">Sotto-passo di kMakeCurve.</div></div><div class="r"><div class="cmd">kMakeRecorder</div><span class="chip main">main</span><div class="desc">Costruisce la configurazione del recorder (registratore variabili).</div></div><div class="r"><div class="cmd">kMakeRecorderSlave1</div><span class="chip">slave</span><div class="desc">Estrazione variabili da <code>recorder.edf</code>.</div></div><div class="r"><div class="cmd">kMakeRecorderSlave2</div><span class="chip">slave</span><div class="desc">Genera <code>kRecorder_KKS.txt</code>.</div></div><div class="r"><div class="cmd">kMakeRecorderSlave3</div><span class="chip">slave</span><div class="desc">Sotto-passo di kMakeRecorder.</div></div><div class="r"><div class="cmd">kMakeRecorderSlave4</div><span class="chip">slave</span><div class="desc">Genera <code>kRecorder_VAR.txt</code>.</div></div><div class="r"><div class="cmd">kMakeRecorderSlave5</div><span class="chip">slave</span><div class="desc">Elaborazione <code>Recorder.edf.new</code>.</div></div><div class="r"><div class="cmd">kMakeRecorderSlave6</div><span class="chip">slave</span><div class="desc">Sotto-passo di kMakeRecorder.</div></div><div class="r"><div class="cmd">kMakePdList</div><span class="chip main">main</span><div class="desc">Costruisce la lista dei plant display.</div></div><div class="r"><div class="cmd">kcreabasic</div><span class="chip main">main</span><div class="desc">Costruisce la «superlist» plant-display dai <code>win*.list</code> (<code>creasuperlist2</code>).</div></div><div class="r"><div class="cmd">k_crea_cassaforte</div><span class="chip main">main</span><div class="desc">Crea la «cassaforte» grafica (<code>$KCASSAFORTE</code>: curve, plant_display).</div></div><div class="r"><div class="cmd">kCheckCaiVarPD</div><span class="chip main">main</span><div class="desc">Verifica le variabili CAI nel plant display.</div></div><div class="r"><div class="cmd">kMakeCaiVar</div><span class="chip main">main</span><div class="desc">Costruisce il database CaiVar (variabili CAI).</div></div><div class="r"><div class="cmd">kmakecaivar</div><span class="chip">bg</span><div class="desc">Avvia kMakeCaiVar in background.</div></div><div class="r"><div class="cmd">kUpDateNavigation</div><span class="chip main">main</span><div class="desc">Costruisce/aggiorna il DB di navigazione MMI.</div></div><div class="r"><div class="cmd">kupdatenavigation</div><span class="chip">bg</span><div class="desc">Avvia kUpDateNavigation in background.</div></div><div class="r"><div class="cmd">kUpDateNavigationSlave1</div><span class="chip">slave</span><div class="desc">Aggiornamento navigazione di ingresso.</div></div><div class="r"><div class="cmd">kUpDateNavigationSlave2</div><span class="chip">slave</span><div class="desc">Individua le pagine «non in uso».</div></div><div class="r"><div class="cmd">kNavigation</div><span class="chip main">main</span><div class="desc">Capacità di navigazione per una task.</div></div><div class="r"><div class="cmd">kNavigationAll</div><span class="chip main">main</span><div class="desc">Capacità di navigazione per tutte le task.</div></div><div class="r"><div class="cmd">kUpDateCaiHierarchy</div><span class="chip main">main</span><div class="desc">Aggiorna la gerarchia CAI (navigazione + plant display).</div></div><div class="r"><div class="cmd">kUpDateCaiHierarchySlave1</div><span class="chip">slave</span><div class="desc">Aggiorna la Cai Navigation.</div></div><div class="r"><div class="cmd">kUpDateCaiHierarchySlave2</div><span class="chip">slave</span><div class="desc">Aggiorna la gerarchia del PlantDisplay.</div></div><div class="r"><div class="cmd">kUpDatePD</div><span class="chip main">main</span><div class="desc">Aggiorna il plant display (<code>Context.ctx</code>, <code>mmi</code>).</div></div><div class="r"><div class="cmd">kupdatepd</div><span class="chip">bg</span><div class="desc">Avvia kUpDatePD in background.</div></div><div class="r"><div class="cmd">kDirect</div><span class="chip main">main</span><div class="desc">Costruisce i collegamenti diretti (merge <code>DirLinks*.list</code>).</div></div><div class="r"><div class="cmd">kCheckDirect</div><span class="chip main">main</span><div class="desc">Verifica i collegamenti diretti (direct links).</div></div><div class="r"><div class="cmd">kModRtf</div><span class="chip main">main</span><div class="desc">Modifica i file RTF (tabelle operatore).</div></div><div class="r"><div class="cmd">kmodrtf</div><span class="chip">bg</span><div class="desc">Avvia kModRtf in background.</div></div><div class="r"><div class="cmd">kLeeF22</div><span class="chip main">main</span><div class="desc">Legge/verifica il file grafico F22 (variabili di grafica).</div></div><div class="r"><div class="cmd">kLeeF22Slave1</div><span class="chip">slave</span><div class="desc">Verifica (sotto-passo di kLeeF22).</div></div><div class="r"><div class="cmd">kMalfunctionGroupWindow</div><span class="chip main">main</span><div class="desc">Costruisce la finestra dei gruppi di malfunzioni.</div></div><div class="r"><div class="cmd">kMalfunctionGroupWindowSlave2</div><span class="chip">slave</span><div class="desc">Aggiorna l'altezza della finestra.</div></div><div class="r"><div class="cmd">kMalfunctionGroupWindowSlave3</div><span class="chip">slave</span><div class="desc">Sotto-passo di kMalfunctionGroupWindow.</div></div><div class="r"><div class="cmd">kMalfunctionGroupWindowSlave4</div><span class="chip">slave</span><div class="desc">Compone tag/descrizioni delle malfunzioni.</div></div><div class="r"><div class="cmd">kSinottico</div><span class="chip main">main</span><div class="desc">Converte l'attributo «Sinottico» in «Teleperm» nelle pagine.</div></div><div class="r"><div class="cmd">kTeleperm</div><span class="chip main">main</span><div class="desc">Converte l'attributo «Sinottico» in «Teleperm» (come kSinottico).</div></div><div class="r"><div class="cmd">unistaz</div><span class="chip main">main</span><div class="desc">Aggiorna i <code>win*.list</code>/<code>mal*.list</code> globali dalle task di regolazione.</div></div></div></section><section class="grp"><div class="grp-head"><span class="dot" style="background:var(--g-config)"></span>
+      <h2>Configurazione, installazione, archivio, utenti</h2><span class="n">18</span></div><div class="rows"><div class="r"><div class="cmd">kInstall</div><span class="chip main">main</span><div class="desc">Installazione del simulatore.</div></div><div class="r"><div class="cmd">kExport</div><span class="chip main">main</span><div class="desc">Esporta il simulatore in <code>$KEXPORT</code>.</div></div><div class="r"><div class="cmd">kexport</div><span class="chip">bg</span><div class="desc">Avvia kExport in background.</div></div><div class="r"><div class="cmd">kExport_new</div><span class="chip main">main</span><div class="desc">Variante nuova dell'export.</div></div><div class="r"><div class="cmd">kArchive</div><span class="chip main">main</span><div class="desc">Archivia un simulatore in <code>$KARCHIVE</code>.</div></div><div class="r"><div class="cmd">kArchiveDisponibility</div><span class="chip">slave</span><div class="desc">Verifica spazio/disponibilità per l'archiviazione.</div></div><div class="r"><div class="cmd">kBackupSim</div><span class="chip main">main</span><div class="desc">Backup di un simulatore «ready to start» (sked, modelli, …).</div></div><div class="r"><div class="cmd">kMakeRemoteSim</div><span class="chip main">main</span><div class="desc">Prepara un simulatore remoto.</div></div><div class="r"><div class="cmd">kSimMove</div><span class="chip">util</span><div class="desc">Sposta/rinomina un simulatore.</div></div><div class="r"><div class="cmd">kUpDateHostName</div><span class="chip main">main</span><div class="desc">Aggiorna l'hostname nel simulatore (<code>S01</code>).</div></div><div class="r"><div class="cmd">kUpDateLibrary</div><span class="chip main">main</span><div class="desc">Aggiorna le librerie legocad (<code>libut…</code>).</div></div><div class="r"><div class="cmd">kMakeLicense</div><span class="chip main">main</span><div class="desc">Genera la licenza (<code>config</code>).</div></div><div class="r"><div class="cmd">kDiffReport</div><span class="chip main">main</span><div class="desc">Report di confronto/differenze del simulatore.</div></div><div class="r"><div class="cmd">kProcessReport</div><span class="chip main">main</span><div class="desc">Report delle task di processo.</div></div><div class="r"><div class="cmd">kMakeUser</div><span class="chip main">main</span><div class="desc">Crea/inizializza un utente (copia <code>.dt</code>, …).</div></div><div class="r"><div class="cmd">kuser</div><span class="chip">util</span><div class="desc">Imposta la chiave utente di sessione (<code>USR_KEY</code>/<code>SHR_USR_KEY</code>).</div></div><div class="r"><div class="cmd">kUpDateUserName</div><span class="chip main">main</span><div class="desc">Aggiorna il nome utente.</div></div><div class="r"><div class="cmd">kChangeUserLevel</div><span class="chip main">main</span><div class="desc">Cambia il livello utente («Make User Level»).</div></div></div></section><section class="grp"><div class="grp-head"><span class="dot" style="background:var(--g-query)"></span>
+      <h2>Ricerca &amp; interrogazione (KKS, tag, indici pagine)</h2><span class="n">23</span></div><div class="rows"><div class="r"><div class="cmd">Kks</div><span class="chip main">main</span><div class="desc">Cerca un tag KKS nel simulatore (<code>-h</code> per la guida).</div></div><div class="r"><div class="cmd">kks</div><span class="chip">bg</span><div class="desc">Alias/wrapper di Kks.</div></div><div class="r"><div class="cmd">KKS</div><span class="chip">bg</span><div class="desc">Alias/wrapper di Kks.</div></div><div class="r"><div class="cmd">kko</div><span class="chip">util</span><div class="desc">Variante di kks (ricerca KKS in legocad).</div></div><div class="r"><div class="cmd">kFindKks</div><span class="chip main">main</span><div class="desc">Trova un KKS (tag) nel simulatore.</div></div><div class="r"><div class="cmd">kFindDuplicatedTag</div><span class="chip main">main</span><div class="desc">Trova i tag duplicati.</div></div><div class="r"><div class="cmd">Key</div><span class="chip">util</span><div class="desc">Cerca una parola-chiave nei file topologici legocad.</div></div><div class="r"><div class="cmd">tag</div><span class="chip">util</span><div class="desc">Cerca un tag in <code>TAG.list</code>.</div></div><div class="r"><div class="cmd">S01</div><span class="chip">util</span><div class="desc">Cerca una key nel file <code>S01</code>.</div></div><div class="r"><div class="cmd">li</div><span class="chip">util</span><div class="desc">Cerca pagine plant_display «li» per KKS.</div></div><div class="r"><div class="cmd">ow</div><span class="chip">util</span><div class="desc">Cerca le Operating Window per KKS nel plant_display.</div></div><div class="r"><div class="cmd">rp</div><span class="chip">util</span><div class="desc">Cerca le Report Page (<code>F_</code>) per KKS nel plant_display.</div></div><div class="r"><div class="cmd">grepr</div><span class="chip">util</span><div class="desc">grep ricorsivo: cerca una stringa in tutti i file.</div></div><div class="r"><div class="cmd">xFindKks</div><span class="chip">index</span><div class="desc">Indicizza i KKS dai <code>????.pag</code> → <code>KKS.list</code>.</div></div><div class="r"><div class="cmd">xFindTag</div><span class="chip">index</span><div class="desc">Indicizza i tag → <code>TAG.list</code>.</div></div><div class="r"><div class="cmd">xFindTask</div><span class="chip">index</span><div class="desc">Indicizza le pagine per task → <code>TASK.list</code>.</div></div><div class="r"><div class="cmd">xFindDescr</div><span class="chip">index</span><div class="desc">Indicizza le descrizioni → <code>DESCR.list</code>.</div></div><div class="r"><div class="cmd">xFindPdDescr</div><span class="chip">index</span><div class="desc">Indicizza le descrizioni plant display → <code>PDDESCR.list</code>.</div></div><div class="r"><div class="cmd">xFindLi</div><span class="chip">index</span><div class="desc">Indicizza le info «li» → <code>LI.list</code>.</div></div><div class="r"><div class="cmd">xFindOw</div><span class="chip">index</span><div class="desc">Indicizza le Operating Window → <code>OW.list</code>.</div></div><div class="r"><div class="cmd">xFindRp</div><span class="chip">index</span><div class="desc">Indicizza le Report Page → <code>RP.list</code>.</div></div><div class="r"><div class="cmd">xFindRev</div><span class="chip">index</span><div class="desc">Indicizza le revisioni → <code>REV.list</code>.</div></div><div class="r"><div class="cmd">ktaskinfo</div><span class="chip">util</span><div class="desc">Raccoglie i file <code>task.info</code> in una lista.</div></div></div></section><section class="grp"><div class="grp-head"><span class="dot" style="background:var(--g-clean)"></span>
+      <h2>Pulizia &amp; manutenzione</h2><span class="n">18</span></div><div class="rows"><div class="r"><div class="cmd">kClean</div><span class="chip main">main</span><div class="desc">Pulizia del simulatore (status, temporanei).</div></div><div class="r"><div class="cmd">kclean</div><span class="chip">bg</span><div class="desc">Avvia kClean in background.</div></div><div class="r"><div class="cmd">kCleanLoc</div><span class="chip main">main</span><div class="desc">Pulizia «locale» (temporanei nella dir corrente).</div></div><div class="r"><div class="cmd">kcleanloc</div><span class="chip">bg</span><div class="desc">Avvia kCleanLoc in background.</div></div><div class="r"><div class="cmd">kPulirSim</div><span class="chip main">main</span><div class="desc">Pulisce l'intero simulatore.</div></div><div class="r"><div class="cmd">kPulirProc</div><span class="chip main">main</span><div class="desc">Pulisce le task di processo.</div></div><div class="r"><div class="cmd">kPulirProcAll</div><span class="chip main">main</span><div class="desc">Pulisce tutte le task di processo.</div></div><div class="r"><div class="cmd">kPulirProcSid</div><span class="chip main">main</span><div class="desc">Pulisce le task di processo SID (<code>rm -rf proc</code>).</div></div><div class="r"><div class="cmd">kPulirProcSidAll</div><span class="chip main">main</span><div class="desc">Pulisce tutte le task di processo SID.</div></div><div class="r"><div class="cmd">kPulirRego</div><span class="chip main">main</span><div class="desc">Pulisce le task di regolazione (rimuove <code>ow</code>, …).</div></div><div class="r"><div class="cmd">kPulirRegoAll</div><span class="chip main">main</span><div class="desc">Pulisce tutte le task di regolazione.</div></div><div class="r"><div class="cmd">kSuperPipo</div><span class="chip">util</span><div class="desc">Pulisce tutte le task di regolazione <code>r_*</code>.</div></div><div class="r"><div class="cmd">kDangerPipo</div><span class="chip">util</span><div class="desc">Pulizia task di regolazione, protetta da chiave <code>7777</code>.</div></div><div class="r"><div class="cmd">mkill</div><span class="chip">util</span><div class="desc">Pulizia di una simulazione andata male (<code>killsim</code> + <code>kclean</code>).</div></div><div class="r"><div class="cmd">pu</div><span class="chip">util</span><div class="desc">Conta/pulisce i file di backup (<code>*bak</code>, <code>*kold</code>, <code>*tmp</code>).</div></div><div class="r"><div class="cmd">FindCore</div><span class="chip">util</span><div class="desc">Trova i file <code>core</code> (dump) sotto la home.</div></div><div class="r"><div class="cmd">RemoveCore</div><span class="chip">util</span><div class="desc">Rimuove i file <code>core</code> sotto la home.</div></div><div class="r"><div class="cmd">ksosti</div><span class="chip dep">deprecato</span><div class="desc">Deprecato: rimanda a kCheckAlarm (sostituzioni liste win).</div></div></div></section><section class="grp"><div class="grp-head"><span class="dot" style="background:var(--g-infra)"></span>
+      <h2>Infrastruttura interna &amp; helper</h2><span class="n">33</span></div><div class="rows"><div class="r"><div class="cmd">kHelp</div><span class="chip main">main</span><div class="desc">Menu di aiuto interattivo delle procedure k.</div></div><div class="r"><div class="cmd">kTest</div><span class="chip main">main</span><div class="desc">Verifica l'ambiente k (scrive <code>kTest.status</code>).</div></div><div class="r"><div class="cmd">ktest</div><span class="chip">bg</span><div class="desc">Avvia kTest in background.</div></div><div class="r"><div class="cmd">kpresentation</div><span class="chip">helper</span><div class="desc">Stampa il banner/intestazione delle procedure.</div></div><div class="r"><div class="cmd">kAddLog</div><span class="chip">helper</span><div class="desc">Accoda una riga al log della procedura (<code>$KLOG/&lt;proc&gt;.log</code>).</div></div><div class="r"><div class="cmd">kAddScreen</div><span class="chip">helper</span><div class="desc">Stampa a schermo una riga di avanzamento della procedura.</div></div><div class="r"><div class="cmd">kAddStatus</div><span class="chip">helper</span><div class="desc">Scrive lo stato di uno step in <code>$KSTATUS/&lt;x&gt;.status</code>.</div></div><div class="r"><div class="cmd">kAddStatistic</div><span class="chip">helper</span><div class="desc">Registra l'uso di un comando (statistiche).</div></div><div class="r"><div class="cmd">kAddInfo</div><span class="chip">helper</span><div class="desc">Registra informazioni di stato/uso.</div></div><div class="r"><div class="cmd">kSpace</div><span class="chip">helper</span><div class="desc">Ritorna l'indentazione (spazi) per la formattazione.</div></div><div class="r"><div class="cmd">kOk</div><span class="chip">util</span><div class="desc">Resetta/imposta gli stati degli step (<code>kAddStatus … Reset/OK</code>).</div></div><div class="r"><div class="cmd">kStat</div><span class="chip main">main</span><div class="desc">Statistiche d'uso dei comandi.</div></div><div class="r"><div class="cmd">kStatSlave1</div><span class="chip">slave</span><div class="desc">Sotto-passo di kStat.</div></div><div class="r"><div class="cmd">astat</div><span class="chip dep">deprecato</span><div class="desc">Deprecato: rimanda a kStat.</div></div><div class="r"><div class="cmd">kCheckAlarm</div><span class="chip main">main</span><div class="desc">Verifica la configurazione allarmi (7 controlli via Slave0..7).</div></div><div class="r"><div class="cmd">kcheckalarm</div><span class="chip">bg</span><div class="desc">Avvia kCheckAlarm in background.</div></div><div class="r"><div class="cmd">kCheckAlarm_new</div><span class="chip main">main</span><div class="desc">Variante nuova del check allarmi (<code>MMI_K_FA_LIST</code>).</div></div><div class="r"><div class="cmd">kCheckAlarmSlave0</div><span class="chip">slave</span><div class="desc">Verifica allarmi n.0.</div></div><div class="r"><div class="cmd">kCheckAlarmSlave1</div><span class="chip">slave</span><div class="desc">Verifica allarmi n.1.</div></div><div class="r"><div class="cmd">kCheckAlarmSlave2</div><span class="chip">slave</span><div class="desc">Verifica allarmi n.2.</div></div><div class="r"><div class="cmd">kCheckAlarmSlave3</div><span class="chip">slave</span><div class="desc">Verifica allarmi n.3.</div></div><div class="r"><div class="cmd">kCheckAlarmSlave4</div><span class="chip">slave</span><div class="desc">Verifica allarmi n.4.</div></div><div class="r"><div class="cmd">kCheckAlarmSlave5</div><span class="chip">slave</span><div class="desc">Verifica allarmi n.5.</div></div><div class="r"><div class="cmd">kCheckAlarmSlave6</div><span class="chip">slave</span><div class="desc">Verifica allarmi n.6.</div></div><div class="r"><div class="cmd">kCheckAlarmSlave7</div><span class="chip">slave</span><div class="desc">Verifica allarmi n.7.</div></div><div class="r"><div class="cmd">kReadDB</div><span class="chip">util</span><div class="desc">Legge un database k (binario, da <code>kReadDB.c</code>).</div></div><div class="r"><div class="cmd">kDiffusion</div><span class="chip">util</span><div class="desc">Utility minore (richiama <code>kks -h</code>).</div></div><div class="r"><div class="cmd">kdbx</div><span class="chip">util</span><div class="desc">Lancia il debugger (<code>lg5debug</code>).</div></div><div class="r"><div class="cmd">kdu</div><span class="chip">util</span><div class="desc">Uso disco per sottodirectory (<code>du -s</code> formattato).</div></div><div class="r"><div class="cmd">ksortlist</div><span class="chip">util</span><div class="desc">Ordina in-place tutti i file <code>*.list</code>.</div></div><div class="r"><div class="cmd">lr</div><span class="chip">util</span><div class="desc">«list relevant»: <code>ls</code> filtrato (esclude pag/bkg/rtf/reg_err).</div></div><div class="r"><div class="cmd">mye</div><span class="chip">util</span><div class="desc">«my editor»: apre <code>asedit</code>/<code>dtpad</code> su un file.</div></div><div class="r"><div class="cmd">slash</div><span class="chip">util</span><div class="desc">Stampa un backslash (utility banale).</div></div></div></section></main>
+  <div class="empty" id="empty" style="display: none;">Nessun comando corrisponde al filtro.</div>
+
+  <footer>
+    Le descrizioni derivano dall'ispezione del codice (commenti d'intestazione, stringhe
+    <code>kAddScreen</code>, operazioni e tool invocati); alcune voci minori sono inferite dal nome
+    e dal contesto. I comandi minuscoli sono lanciatori in background del corrispondente
+    <code>CamelCase</code>. Ambiente: variabili <code>K*</code> derivate da <code>KSIM</code>
+    (vedi <code>ksetsim</code>).
+  </footer>
+</div>
+
+<script>
+const GROUPS = {
+  env:    {label:"Ambiente — scelta del simulatore (funzioni in Alg_env.sh, non in kbin/)", color:"var(--g-env)"},
+  build:  {label:"Costruzione & compilazione del simulatore", color:"var(--g-build)"},
+  run:    {label:"Esecuzione, avvio & lancio strumenti",       color:"var(--g-run)"},
+  scada:  {label:"SCADA / MMI — pagine, finestre, curve, navigazione", color:"var(--g-scada)"},
+  config: {label:"Configurazione, installazione, archivio, utenti", color:"var(--g-config)"},
+  query:  {label:"Ricerca & interrogazione (KKS, tag, indici pagine)", color:"var(--g-query)"},
+  clean:  {label:"Pulizia & manutenzione",                     color:"var(--g-clean)"},
+  infra:  {label:"Infrastruttura interna & helper",            color:"var(--g-infra)"},
+};
+// [name, group, type, purpose]
+const D = [
+  // ---- env (funzioni in Alg_env.sh, non script kbin) ----
+  ["ksetsim","env","func","Imposta il <b>simulatore corrente</b> (<code>KSIM</code>) sotto <code>$KSKED</code> e <b>ri-deriva tutte le K*</b> (KLOG, KSTATUS, KSCADA, KDATABASES, KPAGES, KGRAF…). Crea <code>status/</code>/<code>log/</code>, sorgia l'override <code>$KSIM/ksim.conf</code>, memorizza la scelta in <code>~/.legosim</code> (sticky). Completion bash."],
+  ["ksims","env","func","Elenca i simulatori disponibili (solo directory sotto <code>$KSKED</code>, default <code>$HOME/sked</code>)."],
+  ["ksetsim_default","env","func","All'avvio (dal profilo) sceglie il simulatore in cascata: <code>~/.legosim</code> → <code>cassano0</code> → primo disponibile; se <code>$KSKED</code> è vuoto avvisa e lascia <code>KSIM</code> non impostata."],
+
+  // ---- build ----
+  ["kCompile","build","main","Compila il simulatore (invoca <code>net_compi</code>)."],
+  ["kCompileSim","build","main","Compila l'intero simulatore."],
+  ["kNetCompi","build","main","Compila il simulatore di rete (<code>net_compi</code>)."],
+  ["knetcompi","build","bg","Avvia kNetCompi in background."],
+  ["knet_compi","build","bg","Avvia kNetCompi in background."],
+  ["kConnex","build","main","Costruisce il database delle connessioni (interconnessioni tra task)."],
+  ["kconnex","build","bg","Avvia kConnex in background."],
+  ["kConnexSlave1","build","slave","Sotto-passo di kConnex."],
+  ["LimpiaConnexCiclo","build","util","Ripulisce i cicli nel DB connessioni (filtra <code>connex2.out</code>)."],
+  ["kMakeConnDB","build","main","Costruisce il DB delle connessioni."],
+  ["kmakeconndb","build","bg","Avvia kMakeConnDB in background."],
+  ["kMakeConnDBSlave1","build","slave","Sotto-passo di kMakeConnDB."],
+  ["k_crea_simulatore","build","main","Crea la struttura di un nuovo simulatore."],
+  ["kcreastaz","build","main","Crea la «stazione» (station) del simulatore."],
+  ["kCheckSimulator","build","main","Verifica coerenza e completezza del simulatore."],
+  ["kCheckSimulatorSlave1","build","slave","Sotto-passo di kCheckSimulator."],
+  ["kCheckRegoTask","build","main","Verifica le task di regolazione."],
+  ["kDiffS01","build","main","Coerenza dei valori di stazionario delle variabili di interconnessione tra le task (via <code>S01</code>)."],
+  ["kDiffS01Slave1","build","slave","Costruisce <code>kDiffS01.DB</code> dai <code>f24.dat</code> delle task (LEGO &amp; REGO)."],
+  ["kDiffS01Slave2","build","slave","Costruisce il DB per le task SID."],
+  ["kDiffS01Slave4","build","slave","<code>PROGRAM DIFFS01</code>: legge S01+DB, produce <code>diffs01.out</code> (il motore)."],
+  ["kDiffS01Slave5","build","slave","Sotto-passo di kDiffS01."],
+  ["kDiffS01Slave6","build","slave","Costruisce il DB per le task GIPS."],
+  ["koldlg5","build","util","Compila <code>proc/lg5</code> legacy (<code>cad_maketask</code>)."],
+
+  // ---- run ----
+  ["kStart","run","main","Avvia il simulatore."],
+  ["kstart","run","bg","Avvia kStart in background."],
+  ["kRun","run","main","Avvia una sessione del simulatore (sorgia <code>~/.profile</code>)."],
+  ["kMmi","run","main","Avvia la MMI (<code>mmi</code>/<code>client_mmi</code>)."],
+  ["kmmi","run","bg","Avvia kMmi in background."],
+  ["kXlego","run","main","Avvia <code>xlego</code> (ambiente grafico legocad) su <code>$KSIM</code>."],
+  ["kxlego","run","bg","Avvia kXlego in background."],
+  ["kControlM","run","main","Elaborazione/lancio via ControlM (scheduling)."],
+  ["kc","run","util","Scorciatoia: lancia <code>config</code> sulla task legocad indicata (con <code>f01.dat</code>)."],
+  ["kconfig","run","util","Lancia il tool <code>config</code> con gli argomenti dati."],
+  ["kgr","run","util","Lancia <code>graphics</code> su <code>$KSIM/f22circ</code> (trend/plot)."],
+  ["kmandb","run","util","Lancia <code>mandb</code> (database manovre) su <code>$KSIM</code>."],
+  ["kdxstart","run","util","Apre un terminale <code>dtterm</code> personalizzato."],
+  ["kdxterm","run","util","Apre un terminale <code>dxterm</code> personalizzato."],
+
+  // ---- scada / mmi ----
+  ["kScd","scada","main","Build/verifica del sottosistema SCADA."],
+  ["kscd","scada","bg","Avvia kScd in background."],
+  ["kScadaInit","scada","main","Inizializza il database SCADA (previo <code>kclean</code>)."],
+  ["kscadainit","scada","bg","Avvia kScadaInit in background."],
+  ["kMmiConfig","scada","main","Configurazione della MMI."],
+  ["kCollect","scada","main","Configurazione multi-MMI (raccolta pagine/config)."],
+  ["kcollect","scada","bg","Avvia kCollect in background."],
+  ["kChangeMmiColor","scada","main","Cambia le definizioni di colore della MMI."],
+  ["kAddWidget","scada","helper","Helper MMI: aggiunge un widget nella configurazione."],
+  ["kAddChildrenWidget","scada","helper","Helper MMI: aggiunge i widget «figli» nella configurazione."],
+  ["kMakeGlobpages","scada","main","Costruisce le «global pages» (pagine globali MMI)."],
+  ["kGlobContext","scada","main","Costruisce il context globale della MMI (<code>Context.ctx</code>)."],
+  ["kWinContext","scada","main","Costruisce il context delle finestre MMI."],
+  ["kMakeWin","scada","main","Costruisce le liste finestre MMI (in <code>$KWIN</code>)."],
+  ["kOw","scada","main","Costruisce le Operating Window (finestre operative MMI)."],
+  ["kPlace","scada","main","Piazzamento (placement) di pagine/widget MMI."],
+  ["kpag","scada","util","Costruisce la lista pagine (<code>Context.ctx</code>) dai <code>????.pag</code>."],
+  ["kRenamePage","scada","main","Rinomina una pagina MMI."],
+  ["kMakeCurve","scada","main","Costruisce le definizioni di curve/trend (in <code>$KGRAF</code>)."],
+  ["kMakeCurveSlave0","scada","slave","Sotto-passo di kMakeCurve."],
+  ["kMakeCurveSlave1","scada","slave","Sotto-passo di kMakeCurve."],
+  ["kMakeCurveSlave2","scada","slave","Sotto-passo di kMakeCurve."],
+  ["kMakeRecorder","scada","main","Costruisce la configurazione del recorder (registratore variabili)."],
+  ["kMakeRecorderSlave1","scada","slave","Estrazione variabili da <code>recorder.edf</code>."],
+  ["kMakeRecorderSlave2","scada","slave","Genera <code>kRecorder_KKS.txt</code>."],
+  ["kMakeRecorderSlave3","scada","slave","Sotto-passo di kMakeRecorder."],
+  ["kMakeRecorderSlave4","scada","slave","Genera <code>kRecorder_VAR.txt</code>."],
+  ["kMakeRecorderSlave5","scada","slave","Elaborazione <code>Recorder.edf.new</code>."],
+  ["kMakeRecorderSlave6","scada","slave","Sotto-passo di kMakeRecorder."],
+  ["kMakePdList","scada","main","Costruisce la lista dei plant display."],
+  ["kcreabasic","scada","main","Costruisce la «superlist» plant-display dai <code>win*.list</code> (<code>creasuperlist2</code>)."],
+  ["k_crea_cassaforte","scada","main","Crea la «cassaforte» grafica (<code>$KCASSAFORTE</code>: curve, plant_display)."],
+  ["kCheckCaiVarPD","scada","main","Verifica le variabili CAI nel plant display."],
+  ["kMakeCaiVar","scada","main","Costruisce il database CaiVar (variabili CAI)."],
+  ["kmakecaivar","scada","bg","Avvia kMakeCaiVar in background."],
+  ["kUpDateNavigation","scada","main","Costruisce/aggiorna il DB di navigazione MMI."],
+  ["kupdatenavigation","scada","bg","Avvia kUpDateNavigation in background."],
+  ["kUpDateNavigationSlave1","scada","slave","Aggiornamento navigazione di ingresso."],
+  ["kUpDateNavigationSlave2","scada","slave","Individua le pagine «non in uso»."],
+  ["kNavigation","scada","main","Capacità di navigazione per una task."],
+  ["kNavigationAll","scada","main","Capacità di navigazione per tutte le task."],
+  ["kUpDateCaiHierarchy","scada","main","Aggiorna la gerarchia CAI (navigazione + plant display)."],
+  ["kUpDateCaiHierarchySlave1","scada","slave","Aggiorna la Cai Navigation."],
+  ["kUpDateCaiHierarchySlave2","scada","slave","Aggiorna la gerarchia del PlantDisplay."],
+  ["kUpDatePD","scada","main","Aggiorna il plant display (<code>Context.ctx</code>, <code>mmi</code>)."],
+  ["kupdatepd","scada","bg","Avvia kUpDatePD in background."],
+  ["kDirect","scada","main","Costruisce i collegamenti diretti (merge <code>DirLinks*.list</code>)."],
+  ["kCheckDirect","scada","main","Verifica i collegamenti diretti (direct links)."],
+  ["kModRtf","scada","main","Modifica i file RTF (tabelle operatore)."],
+  ["kmodrtf","scada","bg","Avvia kModRtf in background."],
+  ["kLeeF22","scada","main","Legge/verifica il file grafico F22 (variabili di grafica)."],
+  ["kLeeF22Slave1","scada","slave","Verifica (sotto-passo di kLeeF22)."],
+  ["kMalfunctionGroupWindow","scada","main","Costruisce la finestra dei gruppi di malfunzioni."],
+  ["kMalfunctionGroupWindowSlave2","scada","slave","Aggiorna l'altezza della finestra."],
+  ["kMalfunctionGroupWindowSlave3","scada","slave","Sotto-passo di kMalfunctionGroupWindow."],
+  ["kMalfunctionGroupWindowSlave4","scada","slave","Compone tag/descrizioni delle malfunzioni."],
+  ["kSinottico","scada","main","Converte l'attributo «Sinottico» in «Teleperm» nelle pagine."],
+  ["kTeleperm","scada","main","Converte l'attributo «Sinottico» in «Teleperm» (come kSinottico)."],
+  ["unistaz","scada","main","Aggiorna i <code>win*.list</code>/<code>mal*.list</code> globali dalle task di regolazione."],
+
+  // ---- config / install / archive / user ----
+  ["kInstall","config","main","Installazione del simulatore."],
+  ["kExport","config","main","Esporta il simulatore in <code>$KEXPORT</code>."],
+  ["kexport","config","bg","Avvia kExport in background."],
+  ["kExport_new","config","main","Variante nuova dell'export."],
+  ["kArchive","config","main","Archivia un simulatore in <code>$KARCHIVE</code>."],
+  ["kArchiveDisponibility","config","slave","Verifica spazio/disponibilità per l'archiviazione."],
+  ["kBackupSim","config","main","Backup di un simulatore «ready to start» (sked, modelli, …)."],
+  ["kMakeRemoteSim","config","main","Prepara un simulatore remoto."],
+  ["kSimMove","config","util","Sposta/rinomina un simulatore."],
+  ["kUpDateHostName","config","main","Aggiorna l'hostname nel simulatore (<code>S01</code>)."],
+  ["kUpDateLibrary","config","main","Aggiorna le librerie legocad (<code>libut…</code>)."],
+  ["kMakeLicense","config","main","Genera la licenza (<code>config</code>)."],
+  ["kDiffReport","config","main","Report di confronto/differenze del simulatore."],
+  ["kProcessReport","config","main","Report delle task di processo."],
+  ["kMakeUser","config","main","Crea/inizializza un utente (copia <code>.dt</code>, …)."],
+  ["kuser","config","util","Imposta la chiave utente di sessione (<code>USR_KEY</code>/<code>SHR_USR_KEY</code>)."],
+  ["kUpDateUserName","config","main","Aggiorna il nome utente."],
+  ["kChangeUserLevel","config","main","Cambia il livello utente («Make User Level»)."],
+
+  // ---- query / index ----
+  ["Kks","query","main","Cerca un tag KKS nel simulatore (<code>-h</code> per la guida)."],
+  ["kks","query","bg","Alias/wrapper di Kks."],
+  ["KKS","query","bg","Alias/wrapper di Kks."],
+  ["kko","query","util","Variante di kks (ricerca KKS in legocad)."],
+  ["kFindKks","query","main","Trova un KKS (tag) nel simulatore."],
+  ["kFindDuplicatedTag","query","main","Trova i tag duplicati."],
+  ["Key","query","util","Cerca una parola-chiave nei file topologici legocad."],
+  ["tag","query","util","Cerca un tag in <code>TAG.list</code>."],
+  ["S01","query","util","Cerca una key nel file <code>S01</code>."],
+  ["li","query","util","Cerca pagine plant_display «li» per KKS."],
+  ["ow","query","util","Cerca le Operating Window per KKS nel plant_display."],
+  ["rp","query","util","Cerca le Report Page (<code>F_</code>) per KKS nel plant_display."],
+  ["grepr","query","util","grep ricorsivo: cerca una stringa in tutti i file."],
+  ["xFindKks","query","index","Indicizza i KKS dai <code>????.pag</code> → <code>KKS.list</code>."],
+  ["xFindTag","query","index","Indicizza i tag → <code>TAG.list</code>."],
+  ["xFindTask","query","index","Indicizza le pagine per task → <code>TASK.list</code>."],
+  ["xFindDescr","query","index","Indicizza le descrizioni → <code>DESCR.list</code>."],
+  ["xFindPdDescr","query","index","Indicizza le descrizioni plant display → <code>PDDESCR.list</code>."],
+  ["xFindLi","query","index","Indicizza le info «li» → <code>LI.list</code>."],
+  ["xFindOw","query","index","Indicizza le Operating Window → <code>OW.list</code>."],
+  ["xFindRp","query","index","Indicizza le Report Page → <code>RP.list</code>."],
+  ["xFindRev","query","index","Indicizza le revisioni → <code>REV.list</code>."],
+  ["ktaskinfo","query","util","Raccoglie i file <code>task.info</code> in una lista."],
+
+  // ---- clean ----
+  ["kClean","clean","main","Pulizia del simulatore (status, temporanei)."],
+  ["kclean","clean","bg","Avvia kClean in background."],
+  ["kCleanLoc","clean","main","Pulizia «locale» (temporanei nella dir corrente)."],
+  ["kcleanloc","clean","bg","Avvia kCleanLoc in background."],
+  ["kPulirSim","clean","main","Pulisce l'intero simulatore."],
+  ["kPulirProc","clean","main","Pulisce le task di processo."],
+  ["kPulirProcAll","clean","main","Pulisce tutte le task di processo."],
+  ["kPulirProcSid","clean","main","Pulisce le task di processo SID (<code>rm -rf proc</code>)."],
+  ["kPulirProcSidAll","clean","main","Pulisce tutte le task di processo SID."],
+  ["kPulirRego","clean","main","Pulisce le task di regolazione (rimuove <code>ow</code>, …)."],
+  ["kPulirRegoAll","clean","main","Pulisce tutte le task di regolazione."],
+  ["kSuperPipo","clean","util","Pulisce tutte le task di regolazione <code>r_*</code>."],
+  ["kDangerPipo","clean","util","Pulizia task di regolazione, protetta da chiave <code>7777</code>."],
+  ["mkill","clean","util","Pulizia di una simulazione andata male (<code>killsim</code> + <code>kclean</code>)."],
+  ["pu","clean","util","Conta/pulisce i file di backup (<code>*bak</code>, <code>*kold</code>, <code>*tmp</code>)."],
+  ["FindCore","clean","util","Trova i file <code>core</code> (dump) sotto la home."],
+  ["RemoveCore","clean","util","Rimuove i file <code>core</code> sotto la home."],
+  ["ksosti","clean","dep","Deprecato: rimanda a kCheckAlarm (sostituzioni liste win)."],
+
+  // ---- infra / helper ----
+  ["kHelp","infra","main","Menu di aiuto interattivo delle procedure k."],
+  ["kTest","infra","main","Verifica l'ambiente k (scrive <code>kTest.status</code>)."],
+  ["ktest","infra","bg","Avvia kTest in background."],
+  ["kpresentation","infra","helper","Stampa il banner/intestazione delle procedure."],
+  ["kAddLog","infra","helper","Accoda una riga al log della procedura (<code>$KLOG/&lt;proc&gt;.log</code>)."],
+  ["kAddScreen","infra","helper","Stampa a schermo una riga di avanzamento della procedura."],
+  ["kAddStatus","infra","helper","Scrive lo stato di uno step in <code>$KSTATUS/&lt;x&gt;.status</code>."],
+  ["kAddStatistic","infra","helper","Registra l'uso di un comando (statistiche)."],
+  ["kAddInfo","infra","helper","Registra informazioni di stato/uso."],
+  ["kSpace","infra","helper","Ritorna l'indentazione (spazi) per la formattazione."],
+  ["kOk","infra","util","Resetta/imposta gli stati degli step (<code>kAddStatus … Reset/OK</code>)."],
+  ["kStat","infra","main","Statistiche d'uso dei comandi."],
+  ["kStatSlave1","infra","slave","Sotto-passo di kStat."],
+  ["astat","infra","dep","Deprecato: rimanda a kStat."],
+  ["kCheckAlarm","infra","main","Verifica la configurazione allarmi (7 controlli via Slave0..7)."],
+  ["kcheckalarm","infra","bg","Avvia kCheckAlarm in background."],
+  ["kCheckAlarm_new","infra","main","Variante nuova del check allarmi (<code>MMI_K_FA_LIST</code>)."],
+  ["kCheckAlarmSlave0","infra","slave","Verifica allarmi n.0."],
+  ["kCheckAlarmSlave1","infra","slave","Verifica allarmi n.1."],
+  ["kCheckAlarmSlave2","infra","slave","Verifica allarmi n.2."],
+  ["kCheckAlarmSlave3","infra","slave","Verifica allarmi n.3."],
+  ["kCheckAlarmSlave4","infra","slave","Verifica allarmi n.4."],
+  ["kCheckAlarmSlave5","infra","slave","Verifica allarmi n.5."],
+  ["kCheckAlarmSlave6","infra","slave","Verifica allarmi n.6."],
+  ["kCheckAlarmSlave7","infra","slave","Verifica allarmi n.7."],
+  ["kReadDB","infra","util","Legge un database k (binario, da <code>kReadDB.c</code>)."],
+  ["kDiffusion","infra","util","Utility minore (richiama <code>kks -h</code>)."],
+  ["kdbx","infra","util","Lancia il debugger (<code>lg5debug</code>)."],
+  ["kdu","infra","util","Uso disco per sottodirectory (<code>du -s</code> formattato)."],
+  ["ksortlist","infra","util","Ordina in-place tutti i file <code>*.list</code>."],
+  ["lr","infra","util","«list relevant»: <code>ls</code> filtrato (esclude pag/bkg/rtf/reg_err)."],
+  ["mye","infra","util","«my editor»: apre <code>asedit</code>/<code>dtpad</code> su un file."],
+  ["slash","infra","util","Stampa un backslash (utility banale)."],
+];
+
+const TYPELABEL = {func:"func",main:"main",bg:"bg",slave:"slave",helper:"helper",util:"util",index:"index",dep:"deprecato"};
+const out = document.getElementById('out');
+const order = Object.keys(GROUPS);
+
+function esc(s){return s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
+
+function render(filter){
+  const f = filter.trim().toLowerCase();
+  out.innerHTML='';
+  let shown=0;
+  for(const g of order){
+    const items = D.filter(d=>d[1]===g).filter(d=>{
+      if(!f) return true;
+      return d[0].toLowerCase().includes(f) || d[3].toLowerCase().replace(/<[^>]+>/g,'').includes(f) || TYPELABEL[d[2]].includes(f);
+    });
+    if(!items.length) continue;
+    shown+=items.length;
+    const sec=document.createElement('section'); sec.className='grp';
+    sec.innerHTML=`<div class="grp-head"><span class="dot" style="background:${GROUPS[g].color}"></span>
+      <h2>${GROUPS[g].label}</h2><span class="n">${items.length}</span></div>`;
+    const rows=document.createElement('div'); rows.className='rows';
+    for(const [name,,type,desc] of items){
+      const r=document.createElement('div'); r.className='r';
+      const chipCls = type==='main'?'chip main':(type==='dep'?'chip dep':'chip');
+      let cmd=esc(name), dsc=desc;
+      if(f){
+        const re=new RegExp('('+f.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','ig');
+        cmd=cmd.replace(re,'<mark>$1</mark>');
+      }
+      r.innerHTML=`<div class="cmd">${cmd}</div><span class="${chipCls}">${TYPELABEL[type]}</span><div class="desc">${dsc}</div>`;
+      rows.appendChild(r);
+    }
+    sec.appendChild(rows); out.appendChild(sec);
+  }
+  document.getElementById('empty').style.display = shown?'none':'block';
+  document.getElementById('hint').textContent = f
+    ? `${shown} comand${shown===1?'o':'i'} corrispondenti` : '';
+}
+
+// stats
+(function(){
+  const n = t => D.filter(d=>d[2]===t).length;
+  const kbin = D.filter(d=>d[1]!=='env').length;
+  const s = document.getElementById('stats');
+  const items=[[kbin,'script kbin'],[n('main'),'comandi principali'],
+    [n('bg'),'wrapper background'],[n('slave'),'sotto-passi (slave)'],
+    [n('func'),'funzioni ambiente']];
+  s.innerHTML=items.map(([v,l])=>`<div class="stat"><b>${v}</b><span>${l}</span></div>`).join('');
+})();
+
+document.getElementById('q').addEventListener('input',e=>render(e.target.value));
+render('');
+</script>
+</body>
+</html>

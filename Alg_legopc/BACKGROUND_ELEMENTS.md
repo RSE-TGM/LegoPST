@@ -32,9 +32,18 @@ Esempio di riferimento già presente: **`@alb_0`** in
 
 ### A) Preparare la libreria — una volta sola
 
-Gli elementi di background vivono in una **libreria dedicata** sotto
-`$LG_LIBRARIES`, separati dai moduli. Serve **una tantum** un solo file, il
-marker `.lib`:
+Gli elementi di background possono stare in **qualsiasi** libreria sotto
+`$LG_LIBRARIES` — anche mescolati ai moduli veri. Ciò che li rende "di sfondo"
+è il **nome che inizia con `@`**, non la directory: `elementScript`
+([fileio.tcl](src/tix/fileio.tcl)) riceve la dir come parametro e applica il gate
+sul nome della classe, e `createPal` fa `glob *.gif` sulla libreria che apri,
+qualunque essa sia. Lo script `bgelement.tcl` è **unico per tutte le librerie**.
+
+Tenerli in una libreria dedicata (`background`, `background_big`, …) è quindi
+solo una **comodità organizzativa**, non un requisito: puoi raggrupparli per
+tema o affiancarli ai moduli della libreria a cui appartengono concettualmente.
+
+Per una libreria nuova serve **una tantum** un solo file, il marker `.lib`:
 
 ```bash
 mkdir -p "$LG_LIBRARIES/background"
@@ -54,6 +63,19 @@ Un file `*.lib` qualsiasi nella directory basta: il browser di legopc
 - Nome file: **`@<nome>_0n.gif`** — la `@` iniziale e il suffisso **`n`** sono
   obbligatori (vedi §Convenzioni). Es. `@alb_0n.gif`.
 - Serve **solo** l'orientamento `n` (nord): niente `e/s/w`.
+- Il file dev'essere un **GIF (o PNG) vero**, non solo di nome: rinominare un
+  `.jpg` in `.gif` **non funziona**. Tk 8.6 legge GIF, PNG e PPM/PGM; il JPEG
+  richiederebbe il pacchetto `Img`, che non è installato né incluso nel runtime
+  `tcltktix` del progetto. Per convertire:
+
+  ```bash
+  ffmpeg -i immagine.jpg "$LG_LIBRARIES/background/@logo_0n.gif"
+  file "$LG_LIBRARIES/background/@logo_0n.gif"   # deve dire "GIF image data"
+  ```
+
+  Se un file non è caricabile, `createPal` lo **scarta e prosegue**, elencando a
+  fine caricamento i file ignorati e il formato reale rilevato (prima invece un
+  singolo file corrotto faceva fallire l'apertura dell'intera libreria).
 
 ```bash
 cp mio_disegno.gif "$LG_LIBRARIES/background/@logo_0n.gif"
@@ -143,6 +165,23 @@ Cosa NON toccare nel template, e perché:
 - **Evita nomi che finiscono per `n`** prima dell'orientamento (es. `@fann_0`):
   il browser ricava il nome-tool con `string trimright` togliendo la `n`, e
   toglierebbe anche quella del nome. `@alb_0`, `@logo_0`, `@cornice_0` sono ok.
+- **La directory è libera.** Qualsiasi libreria sotto `$LG_LIBRARIES` va bene: è
+  la `@` a fare la differenza, non il nome della cartella (vedi §A).
+
+### Diagnostica: i due casi che prima erano muti
+
+`createPal` prova a caricare ogni `*.gif` **prima** di costruire la palette, e
+scarta i file inutilizzabili elencandoli in un unico avviso a fine caricamento,
+invece di far fallire l'apertura dell'intera libreria:
+
+| Causa | Messaggio |
+|---|---|
+| Il file non è un GIF/PNG vero (tipico: `.jpg` rinominato) | `--> e' un JPEG` (formato rilevato dai magic byte) |
+| Il nome non finisce con `n`/`s`/`e`/`w` | `--> il nome non finisce con n/s/e/w` |
+
+Prima, nel primo caso un solo file corrotto abortiva `createPal` con
+`couldn't recognize data in image file`; nel secondo il file spariva senza
+alcuna segnalazione.
 
 ## Cosa NON serve (a differenza dei moduli veri)
 

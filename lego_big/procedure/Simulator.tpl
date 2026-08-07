@@ -10,10 +10,10 @@
 *Simulator.MAX_BACK_TRACK: 30
 # Massimo numero di istanti temporali nel file circolare
 # di archivio
-*Simulator.MAX_CAMPIONI: 7200
+*Simulator.MAX_CAMPIONI: 14400
 # Massimo numero di variabili salvabili per ogni istante di tempo
 # nel file di archivio
-*Simulator.NUM_VAR: 1000
+*Simulator.NUM_VAR: 10000
 # Massimo numero di perturbazioni contemporaneamente attive
 # (e' anche usato come massimo numero delle perturbazioni
 #  in attesa di attivazione per delay)

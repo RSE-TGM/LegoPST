@@ -61,6 +61,42 @@ Dettagli:
   ```
 - **`KCASSAFORTE`** (= "cassaforte" grafica) è la dir delle risorse **curve/trend** (`$KCASSAFORTE/curve` → `KGRAF`) e **plant display** (`$KCASSAFORTE/plant_display` → `KDIRPD`), usata **solo** dalle procedure di generazione grafica/SCADA (`kMakeCurve*`, `kMakePdList`, `k_crea_cassaforte`, …). Non serve a `kDiffS01`/legopc/core; il default `$KSIM/<nome>safe` va bene anche se la dir non esiste.
 
+## Creare un simulatore nuovo — `creasim`
+
+`ksetsim` **pretende che la directory esista già**, e `k_crea_simulatore` lavora su
+`$KSIM`: da zero mancava quindi il primo passo. Lo fa **`creasim`**:
+
+```sh
+creasim <nome-simulatore>      # crea $KSKED/<nome> pronto da configurare
+```
+
+Cosa fa, in ordine:
+
+1. crea `$KSKED/<nome>` (esce con errore se esiste già);
+2. delega a **`k_crea_simulatore`** le 18 sottodirectory (`databases/`, `export/`,
+   `globpages*/`, `log/`, `o_win/`, `plant_display/`, `scada/*`, `statistic/`,
+   `status/`, `tmp/`) passandogli `KSIM`: **la lista sta in un posto solo**;
+3. installa **`al_sim.conf`** da `util97/bin/al_sim.conf.example`, togliendo le
+   righe di README del template;
+4. installa **`Simulator`** da [`lego_big/procedure/Simulator.tpl`](../lego_big/procedure/Simulator.tpl);
+5. stampa i passi successivi.
+
+Poi: `ksetsim <nome>`, adattare `al_sim.conf` (`TITLE`, `BASEPATH`,
+`MMI_HOSTNAME` e l'elenco delle task `P`/`R`) e verificare i dimensionamenti in
+`Simulator`. `creasim` **non** compila e **non** genera l'`S01`.
+
+### I due file di configurazione, da non confondere
+
+| File | Contiene | Template |
+|---|---|---|
+| `al_sim.conf` | **composizione**: titolo, path, host, config MMI, elenco delle task (`P`=processo, `R`=regolazione) con dt e descrizione. È l'input di `connex2`. | `util97/bin/al_sim.conf.example` |
+| `Simulator` | **dimensionamento** runtime: `MAX_CAMPIONI`, `NUM_VAR`, snapshot, backtrack | `lego_big/procedure/Simulator.tpl` |
+
+I default di `Simulator.tpl` sono `MAX_CAMPIONI: 14400` e `NUM_VAR: 10000`. Gli
+stessi valori sono **ripetuti come fallback** in tutti gli script di avvio
+(`startup`, `net_startup`, `simula`, `net_startup_headless`, …), usati quando il
+file `Simulator` manca: cambiando i default vanno allineati anche lì.
+
 ## `kDiffS01` / `diffs01` — coerenza delle variabili di interconnessione
 
 Strumento *kprocedure* che, per un simulatore **composto** (descritto da un file `S01`, vedi la sezione `lghmi`/`S01` più sotto), stampa i **valori di stazionario delle variabili di interconnessione** tra le task dello scheduler: serve a verificare che l'uscita di una task e l'ingresso connesso su un'altra abbiano **valori coerenti**.

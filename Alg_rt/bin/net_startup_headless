@@ -116,8 +116,8 @@ command -v net_sked   >/dev/null 2>&1 || { echo "ERR: net_sked non in PATH"   >&
 # --- Parametri (default Simulator.tpl) --------------------------------
 SNAP_S=60
 BACK_T=30
-CAMPIO=7200
-NUM_VA=1000
+CAMPIO=14400
+NUM_VA=10000
 PERTUR=50
 SPARE_=1
 PERTCL=0
