@@ -12,12 +12,68 @@ tixwish8.x $LG_TIX/legopc.tix
 
 | Variabile | Path tipico | Contenuto |
 |---|---|---|
-| `LG_TIX` | `$LG_BIN/tix` | Script Tcl/Tix dell'applicazione |
+| `LG_TIX` | `$LG_BIN` | Script Tcl/Tix dell'applicazione |
 | `LG_LIBGRAPH` | `$LG_ENTRY/libgraph` | Root delle risorse grafiche utente |
 | `LG_LIBRARIES` | `$LG_LIBGRAPH/libraries` | Librerie di moduli (organizzate per sottodirectory) |
 | `LG_PIXMAPS` | `$LG_LIBGRAPH/pixmaps` | Icone connettori (`.ppm`, `.gif`) |
 | `LG_FILESI5` | `$LG_LIBGRAPH/files_i5` | Directory legacy dei file `.i5` (vedi sotto) |
 | `LG_HELP` | `$LG_LIBGRAPH/help` | File `.tch` di aiuto per ogni modulo |
+| `LG_HTML` | `$LG_BASE/Alg_legopc_help` | Manuale HTML aperto dal menu `?` → Help |
+| `LG_BROWSER` | primo installato | Browser per l'help HTML |
+| `LG_TEXTEDITOR` | primo installato | Editor di testo (file `.inp`, log, sorgenti) |
+| `LG_ICOEDITOR` | primo installato | Editor delle icone dei moduli |
+| `LG_PDFVIEWER` | primo installato | Viewer PDF/PNG |
+| `LG_XTERM` | primo installato | Emulatore di terminale |
+
+## Help in linea (menu `?` → Help)
+
+La voce chiama `open_hlp index` ([src/tix/openhelp.tcl](src/tix/openhelp.tcl)), che
+lancia `$LG_BROWSER $LG_HTML/index.htm`. Due trappole, entrambe risolte:
+
+- **`LG_BROWSER` non è più hardcodato** (vedi *Programmi esterni* qui sotto).
+  Valeva `/usr/bin/mozilla`, che su Linux moderno non esiste: il menu si fermava
+  su *"HTML browser not found"*. `open_hlp` applica la stessa catena di fallback
+  dell'ambiente e ora segnala l'errore anche quando è `exec` a fallire (browser
+  installato ma non avviabile). Su WSL i browser Qt/Chromium (Falkon) tendono a
+  crashare per la GPU non accelerata: `firefox` è la scelta affidabile.
+- **Il menu di navigazione era vuoto.** Le pagine sono generate con FrontPage 4.0
+  e i pulsanti erano **applet Java** (`fphover.class`, gli "Hover Button"):
+  nessun browser esegue più le applet, quindi la prima pagina appariva ma non
+  aveva link cliccabili. I 33 applet delle 7 pagine `menu *.htm` sono stati
+  convertiti in normali `<a href>` con lo stesso testo/destinazione/colori
+  (classe CSS `fphover`, colore di hover nella variabile inline `--hc`).
+- **Il frame di destinazione va dichiarato sul singolo link.** Il
+  `<base target="rtop">` delle pagine di menu manda tutto nella striscia del
+  titolo, alta il 20%: le pagine di secondo livello (che sono a loro volta dei
+  frameset) finivano annidate dentro quel riquadro, con logo e menu duplicati.
+  Ogni link ora porta il proprio `target`: **`_top`** se la destinazione è un
+  frameset (13 link: le voci del menu principale e i "Home"), **`rbottom`** se è
+  una pagina di contenuto (20 link). Regola valida per chiunque aggiunga voci:
+  se il file di destinazione contiene `<frameset>` serve `_top`, altrimenti
+  `rbottom`.
+
+### Programmi esterni (browser, editor, viewer)
+
+Cinque variabili dicono a legopc quali programmi lanciare. Ordine di precedenza:
+
+1. la variabile **esportata a mano prima** di sorgiare `.profile_legoroot` vince;
+2. altrimenti [Alg_env.sh](../Alg_env.sh) (funzione `lg_pick`) prende il **primo
+   installato** di una lista di candidati — nessun nome hardcodato;
+3. all'avvio di legopc, la scelta salvata in **`$LG_ENTRY/legopc_prefs.tcl`**
+   (`::pref_browser`, `::pref_texteditor`, …) **sovrascrive** la variabile: è lì
+   che finisce quello che si imposta da *File → Settings*, ed è lì che va
+   cambiata la preferenza di un utente.
+
+Prima erano hardcodate su programmi non sempre installati (`/usr/bin/mozilla`,
+`kwrite`, più un `export LG_TEXTEDITOR=leafpad` in `.profile_legoroot` che
+arrivava *dopo* Alg_env.sh e ne annullava la scelta), mentre `LG_ICOEDITOR`,
+`LG_PDFVIEWER` e `LG_XTERM` non erano definite affatto — e
+[src/tix/libraria.tix](src/tix/libraria.tix) fa `exec $env(LG_ICOEDITOR)` senza
+guardia, quindi partiva l'errore Tcl sulla variabile inesistente.
+
+Le pagine sono in `windows-1252`: se vanno modificate, non salvarle in UTF-8.
+Le directory `_vti_cnf/`, `_derived/`, `_private/`, `_borders/` sono metadati
+FrontPage, non pagine servite.
 
 ## Struttura delle librerie di moduli
 

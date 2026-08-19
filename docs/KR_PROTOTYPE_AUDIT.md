@@ -95,6 +95,47 @@ Ricompilati senza errori: `AlgLib/libsim`, `legocad/lib/liblegocad`,
 fallisce per `../lib/libUtil.a` mancante: **difetto preesistente**, non correlato
 (nessuna occorrenza di `taggcfg`/`InvSlave` fra gli errori).
 
+## Seconda famiglia: chiamate con il numero di argomenti sbagliato (2026-08-19)
+
+L'audit di agosto ha coperto i **tipi** dei parametri. C'è però un secondo
+difetto che nasce dalla stessa radice — una dichiarazione K&R non descrive i
+parametri — e che l'audit sui `float` non intercetta: **chiamare una funzione con
+meno argomenti di quanti ne ha**.
+
+```c
+extern void malf_proc();          /* dichiarazione K&R: nessuna informazione   */
+
+void malf_proc(w, tag, reason)    /* definizione: tre parametri                */
+Widget w;
+int *tag;
+XmListCallbackStruct *reason;
+{
+int widget_num = *tag;            /* dereferenza il secondo parametro          */
+```
+
+```c
+malf_proc();                      /* chiamata senza argomenti: compila senza   */
+                                  /* un solo warning                           */
+```
+
+`tag` contiene quello che capita di trovare nel registro, e la dereferenza è un
+SIGSEGV. Con un prototipo vero il compilatore avrebbe rifiutato la chiamata.
+
+**Caso reale**: `net_monit` moriva all'avvio, prima ancora di mostrare la
+finestra. `monit.c` chiamava `malf_proc()` e `frem_proc()` senza argomenti per
+pre-creare le finestre malfunzioni e funzioni remote; entrambe sono callback
+Motif a tre parametri. Le due chiamate stanno sotto `#if defined MFFR`, mentre
+gli stub vuoti `void malf_proc() {}` sono sotto `#ifndef MFFR`: la forma senza
+argomenti era quella degli stub, ma finiva per essere applicata alle funzioni
+vere. Risolto passando gli argomenti espliciti e togliendo dalle due funzioni
+la riga `int widget_num = *tag;`, che era l'unico uso dei parametri e per giunta
+assegnava una variabile mai letta.
+
+**Come cercarlo**: non basta un grep, serve il compilatore. Trasformando le
+dichiarazioni `extern void f();` in prototipi veri, ogni chiamata con arità
+sbagliata diventa un errore di compilazione. Da fare per sottosistemi, partendo
+da quelli con molte callback Motif dichiarate `()`.
+
 ## Procedura
 
 1. **Rilevare**: `python3 util2025/kr_audit.py` (exit 1 se trova conflitti).

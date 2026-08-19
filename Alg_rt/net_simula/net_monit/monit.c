@@ -662,8 +662,13 @@ testata("net_monit",SccsID);
 
 
 #if defined MFFR
-        malf_proc();
-        frem_proc();
+        /*  Pre-creazione (iconificata) delle finestre malfunzioni e funzioni
+            remote. Le due funzioni sono callback Motif con firma
+            (Widget, int *, XmListCallbackStruct *) e in K&R la chiamata senza
+            argomenti passava inosservata al compilatore: gli argomenti vanno
+            passati espliciti. I tre parametri non sono usati dal corpo.  */
+        malf_proc(main_window_widget, NULL, NULL);
+        frem_proc(main_window_widget, NULL, NULL);
 #endif
     if ( err_startup == 1 )
             {

@@ -60,7 +60,7 @@ OGGETTI2 = xstaz.o cnewstaz.o gled.o gstringa.o glampada.o gpulsluce.o\
         gsetval.o gdisplayscal.o gsincro.o
 
 SORGENTI = $(SORGENTI1) $(SORGENTI2)                                                                     
-all:  libstaz_r.a $(LEGORT_BIN)/xstaz 
+all:  libstaz_r.a $(LEGORT_BIN)/xstaz $(LEGORT_BIN)/stazpag
 
 
 libstaz_r.a: $(OGGETTI1)
@@ -71,6 +71,10 @@ libstaz_r.a: $(OGGETTI1)
 $(LEGORT_BIN)/xstaz: $(OGGETTI2) $(LIBUTIL) libstaz_r.a
 	cc -o $(LEGORT_BIN)/xstaz $(OGGETTI2) $(LINKER_OPTIONS) libstaz_r.a \
 	$(LIBUTIL) $(C_LIB) $(LIBSVIL)  -lX11 $(STUB_LIBS)  $(OTHER_LIB) -lm
+
+$(LEGORT_BIN)/stazpag: stazpag.c
+	$(CC) $(CFLAGS) stazpag.c
+	cc -o $(LEGORT_BIN)/stazpag stazpag.o
 
 $(LEGORT_BIN)/trypag: trypag.c
 	$(CC) -o $(LEGORT_BIN)/trypag trypag.c libstaz_r.a \

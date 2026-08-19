@@ -80,8 +80,12 @@ unset ALGENV_SET
 # Simulatore corrente all'avvio: ~/.legosim -> cassano0 -> primo disponibile.
 # Cambialo in qualsiasi momento con:  ksetsim <nome-sim>   (ksims per l'elenco).
 ksetsim_default
-#export LG_TEXTEDITOR=nedit
-export LG_TEXTEDITOR=leafpad
+#  LG_TEXTEDITOR (e LG_BROWSER/LG_ICOEDITOR/LG_PDFVIEWER/LG_XTERM) le imposta
+#  Alg_env.sh scegliendo il primo programma installato. Qui c'era un
+#  'export LG_TEXTEDITOR=leafpad' che, arrivando DOPO, annullava quella
+#  scelta anche su macchine senza leafpad. Per forzarne uno: esportare la
+#  variabile PRIMA di sorgiare questo profilo; dentro legopc si cambia da
+#  File->Settings (la scelta finisce in $LG_ENTRY/legopc_prefs.tcl).
 #############PRODUCTINSTEND##########
 ######     NET_COMPI E LEGO PARAMETERS    ######
 ####  GUAG2025: Nuovi parametri (cambiare lg_parameter.fh, sim_param.h e qui .profile_legoroot)

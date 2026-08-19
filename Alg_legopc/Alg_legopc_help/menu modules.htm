@@ -8,6 +8,18 @@
 <title></title>
 <base target="rtop">
 <meta name="Microsoft Theme" content="copy_of_industrial 011, default">
+<style type="text/css">
+/* Gli "Hover Button" di FrontPage erano applet Java (fphover.class): nessun
+   browser esegue piu' le applet, quindi il menu appariva vuoto e la
+   documentazione non era navigabile. Sostituiti con link HTML equivalenti,
+   stessi testi/destinazioni/colori. Il colore di hover viaggia nella
+   variabile --hc impostata inline su ogni link. */
+a.fphover { display:inline-block; box-sizing:border-box; text-align:center;
+            font-family:"Trebuchet MS",Arial,Helvetica,sans-serif;
+            font-size:13px; font-weight:bold; text-decoration:none;
+            border:0; padding:4px 6px; }
+a.fphover:hover { background-color:var(--hc); }
+</style>
 </head>
 
 <body background="_themes/copy_of_industrial/lego_bg_studs.gif" bgcolor="#FFFFFF" text="#000000" link="#3366CC" vlink="#666666" alink="#996600"><!--mstheme--><font face="Trebuchet MS, Arial, Helvetica">
@@ -15,46 +27,15 @@
 <img border="0" src="images/lego_img.jpg" width="127" height="96">
 </p>
 <p>
-<applet code="fphover.class" width="156" height="24">
-  <param name="textcolor" value="#FFFFFF">
-  <param name="effect" value="glow">
-  <param name="color" value="#006699">
-  <param name="hovercolor" value="#FF9933">
-  <param name="url" valuetype="ref" value="modules%20usage.htm">
-  <param name="target" value="rbottom">
-  <param name="text" value="Modules usage">
-</applet>
+<a class="fphover" target="rbottom" href="modules%20usage.htm" style="width:156px; height:24px; line-height:16px; background-color:#006699; color:#FFFFFF; --hc:#FF9933;">Modules usage</a>
 </p>
 <p>
-<applet code="fphover.class" width="156" height="24">
-  <param name="textcolor" value="#FFFFFF">
-  <param name="effect" value="glow">
-  <param name="color" value="#006699">
-  <param name="hovercolor" value="#FF9933">
-  <param name="text" value="General theory">
-  <param name="url" valuetype="ref" value="general%20theory.htm">
-  <param name="target" value="rbottom">
-</applet>
+<a class="fphover" target="rbottom" href="general%20theory.htm" style="width:156px; height:24px; line-height:16px; background-color:#006699; color:#FFFFFF; --hc:#FF9933;">General theory</a>
 </p>
 <p>
-<applet code="fphover.class" width="156" height="24">
-  <param name="textcolor" value="#FFFFFF">
-  <param name="color" value="#006699">
-  <param name="target" value="rbottom">
-  <param name="effect" value="glow">
-  <param name="hovercolor" value="#FF9933">
-  <param name="text" value="Modules theory">
-  <param name="url" valuetype="ref" value="modules%20theory.htm">
-</applet>
+<a class="fphover" target="rbottom" href="modules%20theory.htm" style="width:156px; height:24px; line-height:16px; background-color:#006699; color:#FFFFFF; --hc:#FF9933;">Modules theory</a>
 </p>
-<p><applet code="fphover.class" width="156" height="24">
-  <param name="textcolor" value="#FFFFFF">
-  <param name="effect" value="glow">
-  <param name="text" value="Home">
-  <param name="url" valuetype="ref" value="index.htm">
-  <param name="color" value="#006699">
-  <param name="hovercolor" value="#FF9933">
-</applet>
+<p><a class="fphover" target="_top" href="index.htm" style="width:156px; height:24px; line-height:16px; background-color:#006699; color:#FFFFFF; --hc:#FF9933;">Home</a>
 </p>
 <!--mstheme--></font></body>
 

@@ -7,6 +7,18 @@
 <title></title>
 <base target="rtop">
 <meta name="Microsoft Theme" content="copy_of_industrial 011, default">
+<style type="text/css">
+/* Gli "Hover Button" di FrontPage erano applet Java (fphover.class): nessun
+   browser esegue piu' le applet, quindi il menu appariva vuoto e la
+   documentazione non era navigabile. Sostituiti con link HTML equivalenti,
+   stessi testi/destinazioni/colori. Il colore di hover viaggia nella
+   variabile --hc impostata inline su ogni link. */
+a.fphover { display:inline-block; box-sizing:border-box; text-align:center;
+            font-family:"Trebuchet MS",Arial,Helvetica,sans-serif;
+            font-size:13px; font-weight:bold; text-decoration:none;
+            border:0; padding:4px 6px; }
+a.fphover:hover { background-color:var(--hc); }
+</style>
 </head>
 
 <body background="_themes/copy_of_industrial/lego_bg_studs.gif" bgcolor="#FFFFFF" text="#000000" link="#3366CC" vlink="#666666" alink="#996600"><!--mstheme--><font face="Trebuchet MS, Arial, Helvetica">
@@ -16,54 +28,19 @@
 </p>
 
 <p>
-<applet code="fphover.class" codebase="./" width="156" height="24">
-  <param name="textcolor" value="#FFFFFF">
-  <param name="text" value="Introduction">
-  <param name="url" valuetype="ref" value="lego%20introduction.htm">
-  <param name="color" value="#006699">
-  <param name="effect" value="glow">
-  <param name="hovercolor" value="#FF9933">
-</applet>
+<a class="fphover" target="_top" href="lego%20introduction.htm" style="width:156px; height:24px; line-height:16px; background-color:#006699; color:#FFFFFF; --hc:#FF9933;">Introduction</a>
 </p>
 <p>
-<applet code="fphover.class" codebase="./" width="156" height="24">
-  <param name="textcolor" value="#FFFFFF">
-  <param name="color" value="#006699">
-  <param name="url" valuetype="ref" value="lego%20activities.htm">
-  <param name="hovercolor" value="#FF9933">
-  <param name="effect" value="glow">
-  <param name="text" value="Main activities">
-</applet>
+<a class="fphover" target="_top" href="lego%20activities.htm" style="width:156px; height:24px; line-height:16px; background-color:#006699; color:#FFFFFF; --hc:#FF9933;">Main activities</a>
 </p>
 <p>
-<applet code="fphover.class" codebase="./" width="156" height="24">
-  <param name="textcolor" value="#FFFFFF">
-  <param name="effect" value="glow">
-  <param name="text" value="Modules library">
-  <param name="color" value="#006699">
-  <param name="hovercolor" value="#FF9933">
-  <param name="url" valuetype="ref" value="lego%20modules.htm">
-</applet>
+<a class="fphover" target="_top" href="lego%20modules.htm" style="width:156px; height:24px; line-height:16px; background-color:#006699; color:#FFFFFF; --hc:#FF9933;">Modules library</a>
 </p>
 <p>
-<applet code="fphover.class" codebase="./" width="156" height="27">
-  <param name="textcolor" value="#FFFFFF">
-  <param name="effect" value="glow">
-  <param name="color" value="#006699">
-  <param name="hovercolor" value="#FF9933">
-  <param name="text" value="Library managing">
-  <param name="url" valuetype="ref" value="lego%20library%20managing.htm">
-</applet>
+<a class="fphover" target="_top" href="lego%20library%20managing.htm" style="width:156px; height:27px; line-height:19px; background-color:#006699; color:#FFFFFF; --hc:#FF9933;">Library managing</a>
 </p>
 <p>
-<applet code="fphover.class" codebase="./" width="156" height="27">
-  <param name="textcolor" value="#FFFFFF">
-  <param name="effect" value="glow">
-  <param name="text" value="Legosim">
-  <param name="color" value="#006699">
-  <param name="hovercolor" value="#FF9933">
-  <param name="url" valuetype="ref" value="lego%20legosim.htm">
-</applet>
+<a class="fphover" target="_top" href="lego%20legosim.htm" style="width:156px; height:27px; line-height:19px; background-color:#006699; color:#FFFFFF; --hc:#FF9933;">Legosim</a>
 </p>
 
 <!--mstheme--></font></body>

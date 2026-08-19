@@ -397,11 +397,20 @@ piccolo: font('-adobe-helvetica-medium-r-normal--14-140-75-75-p-77-iso8859-1');
 bold : font('-adobe-helvetica-bold-r-normal--14-140-75-75-p-82-iso8859-1');
 bbold : font('-adobe-times-medium-r-normal--34-240-100-100-p-170-iso8859-1');
 normal : font('-adobe-helvetica-medium-r-normal--17-120-100-100-p-88-iso8859-1');
+!  Come 'normal' ma in grassetto: le voci di menu abilitate devono staccare
+!  nettamente da quelle disabilitate, che Motif disegna sbiadite.
+grassetto : font('-adobe-helvetica-bold-r-normal--17-120-100-100-p-92-iso8859-1');
 
 ! Colors, color tables, and icons.
 
         black                     : color('black', background);
         blue                      : color('navy blue', foreground);
+!  Testo delle voci di menu. Senza un foreground esplicito Motif ne sceglie
+!  uno suo, che su questi sfondi chiari e' BIANCO: le voci ABILITATE
+!  risultavano quasi invisibili, mentre quelle DISABILITATE - disegnate con
+!  le ombre grigio scuro - si vedevano benissimo, con l'effetto di colori
+!  invertiti rispetto all'aspettativa.
+        testo_menu                : color('black', foreground);
         gray                      : color('light gray', background);
         sfondo                    : color('MediumAquamarine', background);
        sfondo_menu               : color('MediumSpringGreen', background);
@@ -915,6 +924,7 @@ object
                 XmNmnemonic = keysym("C");
                 XmNfontList = bold;
                 XmNbackground = sfondo_menu;
+                XmNforeground = testo_menu;
             };
             controls {
                 XmPulldownMenu stato_menu;
@@ -942,8 +952,9 @@ object
         fermata_button : XmCascadeButton {
             arguments {
                XmNlabelString = k_stop_label;
-               XmNfontList = normal;
+               XmNfontList = grassetto;
                XmNbackground = sfondo_tasti;
+               XmNforeground = testo_menu;
                      };
             controls {
                XmPulldownMenu fermata_menu;
@@ -969,8 +980,9 @@ object
                   azzera_button : XmCascadeButton {
                                 arguments {
                                         XmNlabelString = k_clear_label;
-                                        XmNfontList = normal;
+                                        XmNfontList = grassetto;
                XmNbackground = sfondo_tasti;
+               XmNforeground = testo_menu;
                      };
 	    callbacks{
 		MrmNcreateCallback = procedure create_proc(k_azzera_cascade);
@@ -999,8 +1011,9 @@ object
         initialize_button : XmPushButton {
             arguments {
                 XmNlabelString = k_initialize_label ;
-                XmNfontList = normal;
+                XmNfontList = grassetto;
             	XmNbackground = sfondo_tasti;
+            	XmNforeground = testo_menu;
             	      };
 	    callbacks{
 		MrmNcreateCallback = procedure create_proc(k_initialize);
@@ -1012,8 +1025,9 @@ object
         run_button : XmPushButton {
             arguments {
                 XmNlabelString = k_run_label ;
-                XmNfontList = normal;
+                XmNfontList = grassetto;
             	XmNbackground = sfondo_tasti;
+            	XmNforeground = testo_menu;
                       };
 	    callbacks{
 		MrmNcreateCallback = procedure create_proc(k_run);
@@ -1025,8 +1039,9 @@ object
         freeze_button : XmPushButton {
             arguments {
                 XmNlabelString = k_freeze_label ;
-                XmNfontList = normal;
+                XmNfontList = grassetto;
             	XmNbackground = sfondo_tasti;
+            	XmNforeground = testo_menu;
                       };
 	    callbacks{
 		MrmNcreateCallback = procedure create_proc(k_freeze);
@@ -1038,8 +1053,9 @@ object
         backtrack_button : XmPushButton {
             arguments {
                 XmNlabelString = k_backtrack_label ;
-                XmNfontList = normal;
+                XmNfontList = grassetto;
             	XmNbackground = sfondo_tasti;
+            	XmNforeground = testo_menu;
                       };
 	    callbacks{
 		MrmNcreateCallback = procedure create_proc(k_backtrack);
@@ -1051,8 +1067,9 @@ object
         clear_button : XmPushButton {
             arguments {
                 XmNlabelString = "Conferma" ;
-                XmNfontList = normal;
+                XmNfontList = grassetto;
                 XmNbackground = sfondo_tasti;
+                XmNforeground = testo_menu;
                       };
             callbacks{
                 MrmNcreateCallback = procedure create_proc(k_clear);
@@ -1064,8 +1081,9 @@ object
         stop_button : XmPushButton {
             arguments {
                 XmNlabelString = k_stop_label ;
-                XmNfontList = normal;
+                XmNfontList = grassetto;
             	XmNbackground = sfondo_tasti;
+            	XmNforeground = testo_menu;
                       };
 	    callbacks{
 		MrmNcreateCallback = procedure create_proc(k_stop);
@@ -1077,8 +1095,9 @@ object
         quit_button : XmPushButton {
             arguments {
                 XmNlabelString = k_quit_label ;
-                XmNfontList = normal;
+                XmNfontList = grassetto;
             	XmNbackground = sfondo_tasti;
+            	XmNforeground = testo_menu;
                       };
 	    callbacks{
 		MrmNcreateCallback = procedure create_proc(k_quit);
@@ -1097,6 +1116,7 @@ object
                 XmNmnemonic = keysym("o");
                 XmNfontList = bold;
                 XmNbackground = sfondo_menu;
+                XmNforeground = testo_menu;
             };
             controls {
                 XmPulldownMenu configure_menu;
@@ -1122,8 +1142,9 @@ object
         timescaling_button : XmPushButton {
             arguments {
                 XmNlabelString = k_timescaling_label ;
-                XmNfontList = normal;
+                XmNfontList = grassetto;
             	XmNbackground = sfondo_tasti;
+            	XmNforeground = testo_menu;
                       };
 	    callbacks{
 		MrmNcreateCallback = procedure create_proc(k_timescaling);
@@ -1135,8 +1156,9 @@ object
         stepscaling_button : XmPushButton {
             arguments {
                 XmNlabelString = k_stepscaling_label ;
-                XmNfontList = normal;
+                XmNfontList = grassetto;
             	XmNbackground = sfondo_tasti;
+            	XmNforeground = testo_menu;
                       };
 	    callbacks{
 		MrmNcreateCallback = procedure create_proc(k_stepscaling);
@@ -1148,8 +1170,9 @@ object
         stepcr_button : XmPushButton {
             arguments {
                 XmNlabelString = k_stepcr_label ;
-                XmNfontList = normal;
+                XmNfontList = grassetto;
             	XmNbackground = sfondo_tasti;
+            	XmNforeground = testo_menu;
                       };
 	    callbacks{
 		MrmNcreateCallback = procedure create_proc(k_stepcr);
@@ -1163,8 +1186,9 @@ object
         conflg_button : XmPushButton {
             arguments {
                 XmNlabelString = k_conflg_label ;
-                XmNfontList = normal;
+                XmNfontList = grassetto;
             	XmNbackground = sfondo_tasti;
+            	XmNforeground = testo_menu;
                       };
 	    callbacks{
 		MrmNcreateCallback = procedure create_proc(k_conflg);
@@ -1177,8 +1201,9 @@ object
 object confcr_popup : XmCascadeButton {
 		arguments {
 			XmNlabelString = k_confcr_label ;
-                	XmNfontList = normal;
+                	XmNfontList = grassetto;
             		XmNbackground = sfondo_tasti;
+            		XmNforeground = testo_menu;
 			};
 	controls {
                        XmPulldownMenu confcr_menu;
@@ -1208,8 +1233,9 @@ object
         confcr_button : XmPushButton {
             arguments {
                 XmNlabelString = "By selection";
-                XmNfontList = normal;
+                XmNfontList = grassetto;
             	XmNbackground = sfondo_tasti;
+            	XmNforeground = testo_menu;
                       };
 	    callbacks{
 		MrmNcreateCallback = procedure create_proc(k_confcr);
@@ -1221,8 +1247,9 @@ object
         confcrall_button : XmPushButton {
             arguments {
                 XmNlabelString = "All variables";
-                XmNfontList = normal;
+                XmNfontList = grassetto;
             	XmNbackground = sfondo_tasti;
+            	XmNforeground = testo_menu;
                       };
 	    callbacks{
 		MrmNcreateCallback = procedure create_proc(k_confcrall);
@@ -1235,8 +1262,9 @@ object
         set_ftime_button : XmPushButton {
             arguments {
                 XmNlabelString = k_set_ftime_label ;
-                XmNfontList = normal;
+                XmNfontList = grassetto;
             	XmNbackground = sfondo_tasti;
+            	XmNforeground = testo_menu;
                       };
 	    callbacks{
 		MrmNcreateCallback = procedure create_proc(k_set_ftime);
@@ -1255,6 +1283,7 @@ object
                 XmNmnemonic = keysym("I");
                 XmNfontList = bold;
                 XmNbackground = sfondo_menu;
+                XmNforeground = testo_menu;
             };
             controls {
                 XmPulldownMenu ci_menu;
@@ -1274,8 +1303,9 @@ object
         load_button : XmPushButton {
             arguments {
                 XmNlabelString = k_load_label ;
-                XmNfontList = normal;
+                XmNfontList = grassetto;
             	XmNbackground = sfondo_tasti;
+            	XmNforeground = testo_menu;
                       };
 	    callbacks{
 		MrmNcreateCallback = procedure create_proc(k_load);
@@ -1287,8 +1317,9 @@ object
         save_button : XmPushButton {
             arguments {
                 XmNlabelString = k_save_label ;
-                XmNfontList = normal;
+                XmNfontList = grassetto;
             	XmNbackground = sfondo_tasti;
+            	XmNforeground = testo_menu;
                       };
 	    callbacks{
 		MrmNcreateCallback = procedure create_proc(k_save);
@@ -1300,8 +1331,9 @@ object
         edit_button : XmPushButton {
             arguments {
                 XmNlabelString = k_edit_label ;
-                XmNfontList = normal;
+                XmNfontList = grassetto;
             	XmNbackground = sfondo_tasti;
+            	XmNforeground = testo_menu;
                       };
 	    callbacks{
 		MrmNcreateCallback = procedure create_proc(k_edit);
@@ -1320,6 +1352,7 @@ object
                 XmNmnemonic = keysym("t");
                 XmNfontList = bold;
                 XmNbackground = sfondo_menu;
+                XmNforeground = testo_menu;
             };
             controls {
                 XmPulldownMenu statistics_menu;
@@ -1338,8 +1371,9 @@ object
         statistics_button : XmPushButton {
             arguments {
                 XmNlabelString = k_statistics_label ;
-                XmNfontList = normal;
+                XmNfontList = grassetto;
             	XmNbackground = sfondo_tasti;
+            	XmNforeground = testo_menu;
                       };
 	    callbacks{
 		MrmNcreateCallback = procedure create_proc(k_statistics);
@@ -1353,8 +1387,9 @@ object
         procstat_button : XmPushButton {
             arguments {
                 XmNlabelString = k_procstat_label;
-                XmNfontList = normal;
+                XmNfontList = grassetto;
                 XmNbackground = sfondo_tasti;
+                XmNforeground = testo_menu;
                       };
             callbacks{
                 MrmNcreateCallback = procedure create_proc(k_procstat);
@@ -1377,6 +1412,7 @@ object
                 XmNmnemonic = keysym("n");
                 XmNfontList = bold;
                 XmNbackground = sfondo_menu;
+                XmNforeground = testo_menu;
             };
             controls {
                 XmPulldownMenu input_menu;
@@ -1400,8 +1436,9 @@ object
         input_button : XmPushButton {
             arguments {
                 XmNlabelString = "Aing" ;
-                XmNfontList = normal;
+                XmNfontList = grassetto;
             	XmNbackground = sfondo_tasti;
+            	XmNforeground = testo_menu;
                       };
 	    callbacks{
 		MrmNcreateCallback = procedure create_proc(k_input);
@@ -1414,8 +1451,9 @@ object
         staz_button : XmPushButton {
             arguments {
                 XmNlabelString = "Staz";
-                XmNfontList = normal;
+                XmNfontList = grassetto;
                 XmNbackground = sfondo_tasti;
+                XmNforeground = testo_menu;
                       };
             callbacks{
                 MrmNcreateCallback = procedure create_proc(k_staz_button);
@@ -1427,8 +1465,9 @@ object
         edit_pert : XmPushButton {
             arguments {
                 XmNlabelString = "Edit Input";
-                XmNfontList = normal;
+                XmNfontList = grassetto;
                 XmNbackground = sfondo_tasti;
+                XmNforeground = testo_menu;
                       };
             callbacks{
                 MrmNcreateCallback = procedure create_proc(k_editpert);
@@ -1441,8 +1480,9 @@ object
         input_stat : XmPushButton {
             arguments {
                 XmNlabelString = "Statistics";
-                XmNfontList = normal;
+                XmNfontList = grassetto;
                 XmNbackground = sfondo_tasti;
+                XmNforeground = testo_menu;
                       };
             callbacks{
                 MrmNcreateCallback = procedure create_proc(k_inputstat);
@@ -1463,6 +1503,7 @@ object
                                         XmNmnemonic = keysym("M");
                XmNfontList = bold;
                XmNbackground = sfondo_menu;
+               XmNforeground = testo_menu;
                                 };
                       controls {
                 XmPulldownMenu mf_fr_menu;
@@ -1574,8 +1615,9 @@ object
         data_button : XmPushButton {
             arguments {
                 XmNlabelString = k_modify_data_label;
-                XmNfontList = normal;
+                XmNfontList = grassetto;
                 XmNbackground = sfondo_tasti;
+                XmNforeground = testo_menu;
                       };
             callbacks{
                 MrmNcreateCallback = procedure create_proc(k_data_button);
@@ -1594,6 +1636,7 @@ object
                 XmNmnemonic = keysym("G");
                 XmNfontList = bold;
                 XmNbackground = sfondo_menu;
+                XmNforeground = testo_menu;
             };
             controls {
                 XmPulldownMenu go_menu;
@@ -1610,8 +1653,9 @@ object
         go_button : XmPushButton {
             arguments {
                 XmNlabelString = k_graphics_label ;
-                XmNfontList = normal;
+                XmNfontList = grassetto;
             	XmNbackground = sfondo_tasti;
+            	XmNforeground = testo_menu;
                       };
 	    callbacks{
 		MrmNcreateCallback = procedure create_proc(k_graphics);
@@ -1629,6 +1673,7 @@ object
                 XmNmnemonic = keysym("A");
                 XmNfontList = bold;
                 XmNbackground = sfondo_menu;
+                XmNforeground = testo_menu;
             };
             controls {
                 XmPulldownMenu about_menu;
@@ -3173,6 +3218,7 @@ object
                 XmNmnemonic = keysym("H");
                 XmNfontList = bold;
                 XmNbackground = sfondo_menu;
+                XmNforeground = testo_menu;
             };
                         controls {
             XmPulldownMenu      bt_help_menu;
@@ -3249,6 +3295,7 @@ object
                 XmNmnemonic = keysym("S");
                 XmNfontList = bold;
                 XmNbackground = sfondo_menu;
+                XmNforeground = testo_menu;
             };
 !   callbacks {
 !   MrmNcreateCallback = procedure create_proc(k_stato_bt);
@@ -3269,8 +3316,9 @@ object
                         replay_button : XmCascadeButton {
                                         arguments {
                 XmNlabelString = k_replay_label ;
-                XmNfontList = normal;
+                XmNfontList = grassetto;
                XmNbackground = sfondo_tasti;
+               XmNforeground = testo_menu;
                       };
        callbacks{
       MrmNcreateCallback = procedure create_proc(k_replay);
@@ -3281,8 +3329,9 @@ object
          stop_replay_button : XmCascadeButton {
                arguments {
                 XmNlabelString = k_stop_replay_label ;
-                XmNfontList = normal;
+                XmNfontList = grassetto;
                XmNbackground = sfondo_tasti;
+               XmNforeground = testo_menu;
                       };
        callbacks{
       MrmNcreateCallback = procedure create_proc(k_stop_replay);
@@ -3300,6 +3349,7 @@ object
                 XmNmnemonic = keysym("M");
                 XmNfontList = bold;
                 XmNbackground = sfondo_menu;
+                XmNforeground = testo_menu;
             };
             controls {
                 XmPulldownMenu modo_menu;
@@ -3316,8 +3366,9 @@ object
 object auto_man_popup : XmCascadeButton {
       arguments {
          XmNlabelString = k_bt_automan_label ;
-                  XmNfontList = normal;
+                  XmNfontList = grassetto;
                   XmNbackground = sfondo_tasti;
+                  XmNforeground = testo_menu;
          };
    controls {
                        XmPulldownMenu automan_menu;
@@ -3361,8 +3412,9 @@ object automan_menu : XmPulldownMenu {
 object direzione_popup : XmCascadeButton {
       arguments {
          XmNlabelString = k_bt_direction_label ;
-                  XmNfontList = normal;
+                  XmNfontList = grassetto;
                   XmNbackground = sfondo_tasti;
+                  XmNforeground = testo_menu;
          };
    controls {
                        XmPulldownMenu direzione_menu;

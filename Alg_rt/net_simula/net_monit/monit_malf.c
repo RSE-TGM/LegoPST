@@ -150,7 +150,11 @@ void malf_proc(w, tag, reason)
     int *tag;
     XmListCallbackStruct *reason;
 {
-int     widget_num = *tag;
+/*  La variabile non era usata da nessuna parte: l'unico effetto della riga
+    era dereferenziare 'tag'. Con la chiamata di apertura fatta da monit.c
+    (che non passava argomenti) il puntatore conteneva spazzatura e net_monit
+    moriva di SIGSEGV appena avviato, prima di mostrare la finestra.
+    int     widget_num = *tag;   */
 int i;
 static Screen *screen;
 static Pixmap pixmap;

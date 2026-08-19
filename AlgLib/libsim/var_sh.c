@@ -669,6 +669,20 @@ buf_var = (struct stat *) malloc (sizeof (struct stat));
 	shr_usr_key = atoi ((char *) getenv ("SHR_USR_KEY"));
 
 	ind = (char *) sim_shvar (shr_usr_key, size);
+	if (ind == NULL)
+	{
+	    /*  crea_shrmem() ha gia' stampato la diagnosi dettagliata. Senza
+	        questo controllo si proseguiva dereferenziando NULL poche righe
+	        piu' sotto (memcpy su ind), e l'utente vedeva solo un SIGSEGV.  */
+	    fprintf (stderr,
+	             "IMPOSSIBILE agganciare la shared memory della topologia\n"
+	             "  chiave  : %d (SHR_USR_KEY %d + ID_SHM_VAR %d)\n"
+	             "  servono : %d byte, cioe' la dimensione di variabili.rtf\n"
+	             "La compilazione non puo' proseguire.\n",
+	             shr_usr_key + ID_SHM_VAR, shr_usr_key, ID_SHM_VAR, size);
+	    fclose (fp_var);
+	    exit (1);
+	}
 	*p_ind = ind;
 
 	/* carica il file nella shared memory */

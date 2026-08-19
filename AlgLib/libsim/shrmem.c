@@ -50,6 +50,59 @@ void elimina_shrmem();   /* nuova chiamata per l'eliminazione della shared
 int sgancia_shrmem();
 
 
+
+/* ------------------------------------------------------------------------
+   Diagnostica dei fallimenti sulla shared memory.
+
+   Storicamente qui si stampava solo "ERRORE:shmget-EINVAL" seguito da
+   "impossibile agganciarsi a shm gia' es. che ha dim inf": nessuna
+   indicazione di quale chiave, quale dimensione, chi occupa il segmento.
+   Peggio, il NULL restituito non veniva controllato da alcuni chiamanti
+   (p.es. costruisci_var), che lo dereferenziavano subito: il sintomo che
+   arrivava all'utente era un SIGSEGV senza spiegazione.
+
+   Qui si stampa quel che serve a capire, incluso lo stato del segmento
+   gia' presente alla stessa chiave, che e' la causa tipica: la topologia
+   in memoria appartiene a un altro modello.
+   ------------------------------------------------------------------------ */
+static void diagnostica_shm(const char *fase, int key, int size, int errsv)
+{
+    int idesist;
+    struct shmid_ds info;
+
+    fflush(stdout);
+    fprintf(stderr, "\n=========== ERRORE SHARED MEMORY (%s) ===========\n", fase);
+    fprintf(stderr, "  chiave richiesta ...: %d (0x%x)\n", key, (unsigned)key);
+    fprintf(stderr, "  dimensione richiesta: %d byte\n", size);
+    if (errsv)
+        fprintf(stderr, "  errore di sistema ..: %s (errno=%d)\n", strerror(errsv), errsv);
+
+    /* shmget con size 0 e senza IPC_CREAT: interroga senza creare nulla */
+    idesist = shmget(key, 0, 0);
+    if (idesist >= 0 && shmctl(idesist, IPC_STAT, &info) == 0)
+    {
+        fprintf(stderr, "  ALLA STESSA CHIAVE ESISTE GIA' UN SEGMENTO:\n");
+        fprintf(stderr, "    shmid %d - dimensione %d byte - agganciati %d processi - creato dal pid %d\n",
+                idesist, (int) info.shm_segsz, (int) info.shm_nattch, (int) info.shm_cpid);
+        if ((int) info.shm_segsz < size)
+            fprintf(stderr, "    e' PIU' PICCOLO di quanto serve: quasi certamente contiene la\n"
+                            "    topologia di un ALTRO modello o di una sessione precedente.\n");
+        else if ((int) info.shm_segsz > size)
+            fprintf(stderr, "    e' PIU' GRANDE di quanto serve: contiene un altro modello.\n");
+    }
+    else
+    {
+        fprintf(stderr, "  nessun segmento presente a quella chiave.\n");
+    }
+
+    fprintf(stderr, "  COSA FARE: verificare con 'ipcs -m' chi occupa la chiave e chiudere la\n");
+    fprintf(stderr, "             sessione che la tiene; in alternativa 'killsim', che pero' su\n");
+    fprintf(stderr, "             Linux cancella TUTTE le SHM dell'utente (nessun filtro per\n");
+    fprintf(stderr, "             chiave): non usarlo con altre sessioni o GUI aperte.\n");
+    fprintf(stderr, "================================================================\n\n");
+    fflush(stderr);
+}
+
 char *crea_shrmem(key,size,shmid)
 int key;
 int size;
@@ -68,30 +121,9 @@ Controllo se la shmem esiste gia'
         *shmid   = shmget(key, size+sizeof(int), 0777 | IPC_CREAT );
         if((*shmid) <0)
                 {
-		switch(errno)
-			{
-			case EINVAL:
-			printf("ERRORE:shmget-EINVAL\n");
-			break;
-			case EACCES:
-			printf("ERRORE:shmget-EACCES\n");
-			break;
-			case ENOENT:
-			printf("ERRORE:shmget-ENOENT\n");
-			break;
-			case ENOSPC:
-			printf("ERRORE:shmget-ENOSPC\n");
-			break;
-			case ENOMEM:
-			printf("ERRORE:shmget-ENOMEM\n");
-			break;
-			case EEXIST:
-			printf("ERRORE:shmget-EEXIST\n");
-			break;
 
-			}
-
-                printf("ERRORE:impossibile agganciarsi a shm gia' es. che ha dim inf\n");
+                diagnostica_shm("aggancio a segmento esistente", key,
+                                size + (int) sizeof(int), errno);
                 return(NULL); 
 		}
         else
@@ -99,7 +131,8 @@ Controllo se la shmem esiste gia'
                 ind = shmat(*shmid, 0, ! ( SHM_RND & SHM_RDONLY ));
                         if(((int)ind) == -1)
                                 {
-				printf("ERRORE:shmat fallita\n");
+				diagnostica_shm("shmat sul segmento esistente", key,
+                                                size + (int) sizeof(int), errno);
                                 return(NULL);
                                 }
 /*
@@ -108,7 +141,13 @@ Modifica dovuta alla parte di integrazione Scada
 		appo=(int *)ind;
                 if(!(*appo==size))
                         {
-                        printf("ERRORE: SHM %d esiste ed ha dim %d superiori a %d !!!\n",*shmid, appo, size);
+                        fflush(stdout);
+                        fprintf(stderr,
+                                "ERRORE: il segmento alla chiave %d (shmid %d) e' stato creato per\n"
+                                "        %d byte, ma ne servono %d: contiene un ALTRO modello.\n",
+                                key, *shmid, *appo, size);
+                        diagnostica_shm("dimensione registrata incompatibile", key,
+                                        size + (int) sizeof(int), 0);
                         return(NULL);
                         }
                 else
@@ -123,25 +162,8 @@ else
         ind = shmat(*shmid, 0, ! ( SHM_RND & SHM_RDONLY ));
         if(((int)ind) == -1)
                 {
-		switch(errno)
-			{
-			case EACCES:
-			printf("ERRORE:shmatEACCESS\n");
-			break;
-			case ENOMEM:
-			printf("ERRORE:shmat ENOMEM\n");
-			break;
-			case EINVAL:
-			printf("ERRORE:shmat EINVAL\n");
-			break;
-			case EMFILE:
-			printf("ERRORE:shmat EMFILE\n");
-			break;
-			case ENOSYS:
-			printf("ERRORE:shmat ENOSYS\n");
-			break;
-			}
-                printf("ERRORE: Non si attacca alla shm per errore: |ind=%x| |errno=%d| !! \n", ind, errno);
+                diagnostica_shm("shmat sul segmento appena creato", key,
+                                size + (int) sizeof(int), errno);
                 return (NULL);
                 }
 /*

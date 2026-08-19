@@ -420,10 +420,38 @@ export LG_LIBRARIES=$LG_LIBGRAPH/libraries
 export LG_XBM=$LG_LIBGRAPH/xbm
 export LG_CONCIL=$LG_BIN%/lgconcil
 export LG_SIMULATORS=$LG_ENTRY
-export LG_BROWSER=/usr/bin/mozilla
 export LG_HTML=$LG_BASE/Alg_legopc_help${EXTENSION}
-#export LG_ICOEDITOR=C:/PROGRA~1/JASC~1/PAINT~1/PSP.EXE
-export LG_TEXTEDITOR=kwrite
+
+#  ---- Programmi esterni usati da legopc (File->Settings) -------------------
+#  Questi sono solo il FALLBACK: la scelta dell'utente sta in
+#  $LG_ENTRY/legopc_prefs.tcl (::pref_browser, ::pref_texteditor, ...) e
+#  legopc.tix la applica all'avvio SOVRASCRIVENDO queste variabili.
+#  Erano hardcodate su programmi non sempre installati (/usr/bin/mozilla,
+#  kwrite), mentre LG_ICOEDITOR/LG_PDFVIEWER/LG_XTERM non erano definite
+#  affatto: `exec $env(LG_ICOEDITOR)` in libraria.tix finiva su una variabile
+#  inesistente. Ora si prende il primo programma davvero presente; per
+#  forzarne uno basta esportare la variabile prima di sorgiare il profilo.
+lg_pick() {
+    _lg_var=$1; shift
+    eval "_lg_val=\${$_lg_var:-}"
+    if [ -z "$_lg_val" ]; then
+        _lg_val=$1                     # segnaposto se non ce n'e' nessuno
+        for _lg_c in "$@"; do
+            if command -v "$_lg_c" >/dev/null 2>&1; then _lg_val=$_lg_c; break; fi
+        done
+    fi
+    eval "export $_lg_var=\"\$_lg_val\""
+    unset _lg_val _lg_c _lg_var
+}
+
+lg_pick LG_BROWSER    firefox falkon chromium chromium-browser google-chrome epiphany xdg-open
+lg_pick LG_TEXTEDITOR mousepad gedit kate kwrite xed pluma leafpad gvim xdg-open
+lg_pick LG_ICOEDITOR  gimp krita drawing kolourpaint pinta mtpaint xdg-open
+lg_pick LG_PDFVIEWER  evince atril okular qpdfview zathura xpdf xdg-open
+lg_pick LG_XTERM      xterm konsole gnome-terminal xfce4-terminal lxterminal
+
+unset -f lg_pick
+#  ---------------------------------------------------------------------------
 export PATH=$LG_BASE/tcltktix/bin:$PATH
 export LD_LIBRARY_PATH=$LG_BASE/tcltktix/lib:$LD_LIBRARY_PATH
 # lgpc0 rimosso (2026-08-02): lanciava la legopc originale da $LG_BASE/bin_old,
