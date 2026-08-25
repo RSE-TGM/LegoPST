@@ -224,6 +224,8 @@ typedef	struct
 	Widget	Uxseparator2;
 	Widget	UxselVarAing;
 	Widget	UxstatisticheDisplayTask;
+	Widget	UxtastieraHmipb;
+	Widget	UxmasterKeyboardHmipb;
 } _UxCmasterMenu;
 
 static _UxCmasterMenu          *UxMasterMenuContext;
@@ -348,6 +350,8 @@ static _UxCmasterMenu          *UxMasterMenuContext;
 #define separator2              UxMasterMenuContext->Uxseparator2
 #define selVarAing              UxMasterMenuContext->UxselVarAing
 #define statisticheDisplayTask  UxMasterMenuContext->UxstatisticheDisplayTask
+#define tastieraHmipb           UxMasterMenuContext->UxtastieraHmipb
+#define masterKeyboardHmipb     UxMasterMenuContext->UxmasterKeyboardHmipb
 
 
 /*******************************************************************************
@@ -1403,6 +1407,38 @@ static void  activateCB_masterMenuRunpb( UxWidget, UxClientData, UxCallbackArg )
 	UxMasterMenuContext = UxSaveCtx;
 }
 
+static void  activateCB_tastieraHmipb( UxWidget, UxClientData, UxCallbackArg )
+	Widget		UxWidget;
+	XtPointer	UxClientData, UxCallbackArg;
+
+{
+	_UxCmasterMenu          *UxSaveCtx, *UxContext;
+
+	UxSaveCtx = UxMasterMenuContext;
+	UxMasterMenuContext = UxContext =
+			(_UxCmasterMenu *) UxGetContext( UxWidget );
+	{
+	attiva_lghmi(UxGetWidget(masterMenu));
+	}
+	UxMasterMenuContext = UxSaveCtx;
+}
+
+static void  activateCB_masterKeyboardHmipb( UxWidget, UxClientData, UxCallbackArg )
+	Widget		UxWidget;
+	XtPointer	UxClientData, UxCallbackArg;
+
+{
+	_UxCmasterMenu          *UxSaveCtx, *UxContext;
+
+	UxSaveCtx = UxMasterMenuContext;
+	UxMasterMenuContext = UxContext =
+			(_UxCmasterMenu *) UxGetContext( UxWidget );
+	{
+	attiva_lghmi(UxGetWidget(masterMenu));
+	}
+	UxMasterMenuContext = UxSaveCtx;
+}
+
 static void  activateCB_tastieraButton5( UxWidget, UxClientData, UxCallbackArg )
 	Widget		UxWidget;
 	XtPointer	UxClientData, UxCallbackArg;
@@ -1967,6 +2003,29 @@ static Widget	_Uxbuild_masterMenu()
 		(XtPointer) UxMasterMenuContext );
 
 	UxPutContext( masterKeyboardMalfpb, (char *) UxMasterMenuContext );
+
+
+	/* Creation of masterKeyboardHmipb */
+	masterKeyboardHmipb = XtVaCreateManagedWidget( "masterKeyboardHmipb",
+			xmPushButtonWidgetClass,
+			masterKeyboardTasti,
+			XmNx, 306,
+			XmNy, 0,
+			XmNwidth, 30,
+			XmNheight, 20,
+			RES_CONVERT( XmNlabelString, "H" ),
+			XmNbottomAttachment, XmATTACH_FORM,
+			XmNtopOffset, 0,
+			XmNtopAttachment, XmATTACH_FORM,
+			XmNleftAttachment, XmATTACH_WIDGET,
+			XmNleftOffset, 0,
+			XmNleftWidget, masterKeyboardMalfpb,
+			NULL );
+	XtAddCallback( masterKeyboardHmipb, XmNactivateCallback,
+		(XtCallbackProc) activateCB_masterKeyboardHmipb,
+		(XtPointer) UxMasterMenuContext );
+
+	UxPutContext( masterKeyboardHmipb, (char *) UxMasterMenuContext );
 
 
 	/* Creation of masterKeyboardRemFuncpb */
@@ -3191,6 +3250,23 @@ static Widget	_Uxbuild_masterMenu()
 		(XtPointer) UxMasterMenuContext );
 
 	UxPutContext( tastieraButton5, (char *) UxMasterMenuContext );
+
+
+	/* Creation of tastieraHmipb */
+	tastieraHmipb = XtVaCreateManagedWidget( "tastieraHmipb",
+			xmPushButtonWidgetClass,
+			tastieraMaster,
+			XmNx, 55,
+			XmNy, 40,
+			XmNwidth, 45,
+			XmNheight, 25,
+			RES_CONVERT( XmNlabelString, "HMI" ),
+			NULL );
+	XtAddCallback( tastieraHmipb, XmNactivateCallback,
+		(XtCallbackProc) activateCB_tastieraHmipb,
+		(XtPointer) UxMasterMenuContext );
+
+	UxPutContext( tastieraHmipb, (char *) UxMasterMenuContext );
 
 
 	/* Creation of tastieraButton4 */

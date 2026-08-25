@@ -55,6 +55,7 @@ int tempo_finale_impostato;	/* = 1 e' stato imposto un limite di tempo */
 
 int exist_Widget (Widget);
 int attiva_graphics();
+int attiva_lghmi();
 int attiva_sommario (Widget,int);
 int read_options();
 int DistruggiInterfaccia (Widget );

@@ -159,6 +159,8 @@ typedef	struct
 	Widget	Uxseparator2;
 	Widget	UxselVarAing;
 	Widget	UxstatisticheDisplayTask;
+	Widget	UxtastieraHmipb;
+	Widget	UxmasterKeyboardHmipb;
 } _UxCmasterMenu;
 
 #ifdef CONTEXT_MACRO_ACCESS
@@ -284,6 +286,8 @@ static _UxCmasterMenu          *UxMasterMenuContext;
 #define separator2              UxMasterMenuContext->Uxseparator2
 #define selVarAing              UxMasterMenuContext->UxselVarAing
 #define statisticheDisplayTask  UxMasterMenuContext->UxstatisticheDisplayTask
+#define tastieraHmipb           UxMasterMenuContext->UxtastieraHmipb
+#define masterKeyboardHmipb     UxMasterMenuContext->UxmasterKeyboardHmipb
 
 #endif /* CONTEXT_MACRO_ACCESS */
 

@@ -2127,6 +2127,35 @@ printf ("ATTIVAZIONE: [%s]\n",comando);
 	return (esito);
 }
 /**********************************************************/
+/*
+ * attiva_lghmi: lancia il selettore HMI (lghmi) in background.
+ * Nessun dialogo di display: parte sempre sul DISPLAY corrente e ogni
+ * pressione ne apre una nuova istanza.
+ */
+int attiva_lghmi (w)
+Widget w;                     /* chiamante */
+{
+char *path_com;
+char comando[400];
+char *messaggio;
+
+	set_cursor (w,CLOCK);
+	path_com = getenv("LEGORT_BIN");
+	if ((path_com == NULL) || (path_com[0] == '\0'))
+		sprintf (comando,"%s &",HMI_PROGRAM);
+	else
+		sprintf (comando,"%s/%s &",path_com,HMI_PROGRAM);
+printf ("ATTIVAZIONE: [%s]\n",comando);
+	system(comando);
+	messaggio = malloc (strlen(PROGRAM_ACT)+strlen(HMI_PROGRAM)+20);
+	sprintf (messaggio,"%s : %s",PROGRAM_ACT,HMI_PROGRAM);
+	add_message (areaMessaggi,messaggio,LIVELLO_1);
+	free (messaggio);
+	set_cursor (w,NORMALE);
+
+	return (0);
+}
+/**********************************************************/
 int loadas_cr (w,modo,tipo)
 Widget w;         /* chiamante        */
 int modo; /* lettura scrittura              */

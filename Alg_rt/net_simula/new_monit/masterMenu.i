@@ -566,6 +566,26 @@ attiva_sommario (masterMenu,SOMMARIO_MALF);\
 *masterKeyboardMalfpb.leftOffset: 0
 *masterKeyboardMalfpb.leftWidget: "masterKeyboardAingpb"
 
+*masterKeyboardHmipb.class: pushButton
+*masterKeyboardHmipb.static: true
+*masterKeyboardHmipb.name: masterKeyboardHmipb
+*masterKeyboardHmipb.parent: masterKeyboardTasti
+*masterKeyboardHmipb.x: 306
+*masterKeyboardHmipb.y: 0
+*masterKeyboardHmipb.width: 30
+*masterKeyboardHmipb.height: 20
+*masterKeyboardHmipb.labelString: "H"
+*masterKeyboardHmipb.activateCallback: {\
+attiva_lghmi(UxGetWidget(masterMenu));\
+}
+*masterKeyboardHmipb.createManaged: "true"
+*masterKeyboardHmipb.bottomAttachment: "attach_form"
+*masterKeyboardHmipb.topOffset: 0
+*masterKeyboardHmipb.topAttachment: "attach_form"
+*masterKeyboardHmipb.leftAttachment: "attach_widget"
+*masterKeyboardHmipb.leftOffset: 0
+*masterKeyboardHmipb.leftWidget: "masterKeyboardMalfpb"
+
 *masterKeyboardRemFuncpb.class: pushButton
 *masterKeyboardRemFuncpb.static: true
 *masterKeyboardRemFuncpb.name: masterKeyboardRemFuncpb
@@ -1479,6 +1499,20 @@ switch_to_run(masterMenu);\
 *tastieraMaster.bottomAttachment: "attach_form"
 *tastieraMaster.leftAttachment: "attach_widget"
 *tastieraMaster.leftWidget: "rowColumn1"
+
+*tastieraHmipb.class: pushButton
+*tastieraHmipb.static: true
+*tastieraHmipb.name: tastieraHmipb
+*tastieraHmipb.parent: tastieraMaster
+*tastieraHmipb.x: 55
+*tastieraHmipb.y: 40
+*tastieraHmipb.width: 45
+*tastieraHmipb.height: 25
+*tastieraHmipb.labelString: "HMI"
+*tastieraHmipb.activateCallback: {\
+attiva_lghmi(UxGetWidget(masterMenu));\
+}
+*tastieraHmipb.createManaged: "true"
 
 *tastieraButton5.class: pushButton
 *tastieraButton5.static: true

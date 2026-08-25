@@ -16,6 +16,7 @@
 #define FILE_REC_DEFAULT	"recorder.edf"  
 #define FILE_DATA_DEFAULT  "f22circ"
 #define VIEW_PROGRAM       "graphics"
+#define HMI_PROGRAM        "lghmi"
 
 #define NO_MOD				-1 /* per selezione totale */
 #define NO_BLOCK        -1 /* per selezione totale */
