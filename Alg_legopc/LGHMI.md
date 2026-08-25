@@ -40,7 +40,13 @@ Nella finestra:
   per dare più spazio all'uno o all'altro. L'intestazione di ogni riquadro porta
   il numero di voci; se una delle due non ha nulla da mostrare resta vuota, e la
   riga di stato lo dice per entrambe.
+- La finestra parte **680x328**, la stessa larghezza del **banco** (`new_monit`),
+  con le due liste di pari larghezza: le due finestre si usano insieme, una sopra
+  l'altra, e allineate stanno meglio. Il divisorio resta trascinabile e la
+  finestra ridimensionabile (minimo 560x300).
 - **Refresh** → rilegge l'elenco delle task.
+- **mmi** → lancia l'**applicazione MMI** (`Alg_mmi`), indipendente dalle due
+  liste: vedi sotto.
 - **Quit** (o **Esc**) → chiude **solo** il selettore. Le HMI già aperte
   **restano vive** (le chiudi tu dalla loro finestra).
 
@@ -186,6 +192,73 @@ partire dal `lg_cosim.json`; è `lg_cosim` stesso ad aprire il selettore quando
 `settings.hmi` è attivo. Vedi
 [Alg_rt/lg_fmu/lg_cosim/lg_cosim_manual.md](../Alg_rt/lg_fmu/lg_cosim/lg_cosim_manual.md).
 
+## Il pulsante `mmi`
+
+**Al centro** della barra in basso, largo il doppio degli altri e con lo sfondo
+**verde `#50a050`**, lo stesso della finestra dell'MMI: non agisce sulle liste,
+lancia l'**MMI** (`Alg_mmi/run_time`, le pagine sinottiche SCADA-like), non una
+HMI di task. È centrato con `place -relx 0.5 -anchor center`, quindi sul centro
+della finestra e non su quello dello spazio lasciato libero da *Refresh* e *Quit*,
+che hanno larghezze diverse.
+
+`mmi` non ha opzioni per dire dove stanno le pagine: legge `Context.ctx` **nella
+directory da cui parte** e da lì ricava tutto (vedi
+[Alg_mmi/README.md](../Alg_mmi/README.md)). Il pulsante quindi sceglie la
+directory di lavoro in quest'ordine:
+
+| # | condizione | comando |
+|---|---|---|
+| 1 | *Set Sim path* attivo e `$LG_SIM_PATH/globpages` esiste | `cd $LG_SIM_PATH/globpages && mmi &` |
+| 2 | altrimenti `$KPAGES` definita ed esistente | `cd $KPAGES && mmi &` |
+| 3 | altrimenti, esiste `./globpages` sotto la cwd | `cd ./globpages && mmi &` |
+| 4 | altrimenti | `mmi &` (dalla cwd; sarà `mmi` a dire che manca il Context) |
+
+L'ordine mette il **Set Sim path davanti a `$KPAGES`**: se hai lanciato
+`lghmi -loc DIR` (o `lghmi` dalla directory di una simulazione) è quello il
+simulatore che ti interessa, e può non essere quello selezionato con `ksetsim`.
+Con `-noloc` il caso 1 non si applica.
+
+`$KPAGES` è di norma `$KSIM/globpages` e la definisce il profilo LegoPST: il caso
+2 è quello normale con un simulatore selezionato (`ksetsim`), il caso 3 serve
+quando `lghmi` parte dalla directory di un simulatore senza profilo sorgiato.
+
+**Quando è disabilitato.** Se nella directory scelta non c'è niente da aprire il
+pulsante è **grigio-verde e inattivo**, e la riga di stato dice perché. Il
+controllo replica le regole di `mmi` invece di limitarsi a contare i file:
+
+1. manca `Context.ctx` nella directory → `mmi` uscirebbe subito
+   (*"mmi: nessun Context.ctx in DIR"*);
+2. il Context c'è: da esso si leggono `*pages` (dove stanno le pagine, anche
+   altrove) e `*page_list` (quali sono), e si contano i `<NOME>.rtf` presenti. Se
+   nessuno esiste → *"mmi: nessuna pagina compilata (.rtf) in DIR"*.
+
+Contare i `*.rtf` della directory non basterebbe: la directory di un simulatore
+ne contiene altri che pagine non sono (`variabili.rtf`, `recorder.rtf`,
+`stato_cr.rtf`) e il Context può dichiarare le pagine in un'altra directory — è
+il caso delle `globpages_<id>` generate da `kMmiConfig`, che contengono il solo
+Context e puntano alle pagine condivise.
+
+Lo stato è ricalcolato a ogni **Refresh**: se compili le pagine mentre il
+selettore è aperto, un Refresh riabilita il pulsante.
+
+**Segnalazione degli errori.** Il lancio è in background, quindi l'esito non torna
+da `exec`: il selettore controlla che `mmi` non sia trovabile nel `PATH` (errore
+immediato) e, tre secondi dopo il lancio, che sia comparsa davvero una nuova
+istanza. Se non c'è, apre un dialogo con la directory usata, il percorso del log e
+le **ultime righe del log** con la causa reale — tipicamente:
+
+```
+Error on GetFileDatabase Context.ctx - Exit.
+```
+
+L'output va in **`/tmp/lghmi_mmi.log`**. Come le HMI, `mmi` parte con `setsid` e
+sopravvive al *Quit* del selettore.
+
+> Su un simulatore locale l'MMI va lanciato così (o a mano con `cd $KPAGES && mmi &`),
+> **non** con `kMmi`: quella procedura configura la strada client/SCADA e su una
+> macchina sola si blocca in timeout. Il perché è in
+> [Alg_mmi/README.md](../Alg_mmi/README.md).
+
 ## Comportamento dei processi
 
 - Ogni HMI è lanciata in un **processo indipendente** (`setsid`), quindi
@@ -202,8 +275,9 @@ partire dal `lg_cosim.json`; è `lg_cosim` stesso ad aprire il selettore quando
 | Variabile | Effetto |
 |---|---|
 | `LG_TASKROOT` | directory delle task in modalità dir-scan (default `$HOME/legocad`) |
-| `LG_SIM_PATH` | dir sim pre-impostata per *Set Sim path* (la imposta `lghmi`; `-noloc` la omette) |
+| `LG_SIM_PATH` | dir sim pre-impostata per *Set Sim path* (la imposta `lghmi`; `-noloc` la omette); il pulsante *mmi* ne prova per primo il `globpages` |
 | `LG_TIX` | dir di `draw2gr.tcl`/`lghmi.tcl` (dal profilo LegoPST) |
+| `KPAGES` | dir delle pagine MMI usata dal pulsante *mmi* (di norma `$KSIM/globpages`) |
 
 ## Troubleshooting
 
@@ -217,6 +291,11 @@ partire dal `lg_cosim.json`; è `lg_cosim` stesso ad aprire il selettore quando
   un'altra directory → lancia `lghmi` dalla dir della sim, oppure usa *View → Set
   Sim path* nella HMI. Vedi la sezione *Set Sim path* in
   [README.md](README.md#set-sim-path--animazioneplotcommand-su-una-simulazione-in-unaltra-directory).
+- **Il pulsante *mmi* dice "mmi non e' partito"**: le ultime righe del log nel
+  dialogo dicono il motivo. `Error on GetFileDatabase Context.ctx` significa che
+  la directory scelta non contiene un `Context.ctx`: seleziona un simulatore con
+  `ksetsim` (così `$KPAGES` punta alle sue pagine) oppure lancia `lghmi` dalla
+  directory del simulatore, che contiene `globpages`.
 - **Caratteri strani nelle scritte**: usare solo ASCII negli script Tk lanciati
   così: con `LANG=POSIX` Tcl non decodifica i file come UTF-8 (un em-dash
   comparirebbe come `â` + riquadri).

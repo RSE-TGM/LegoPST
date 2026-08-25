@@ -19,6 +19,11 @@
 # scelta con xstaz. Serve a chi gestisce la simulazione con net_startup, che
 # monta il banco (new_monit) e non ha il dialogo delle stazioni di net_monit.
 #
+# La barra in basso ha anche un pulsante "mmi" che lancia l'applicazione MMI
+# (Alg_mmi): non dipende dalle liste, sceglie la directory di lavoro fra $KPAGES,
+# $LG_SIM_PATH/globpages, $KPAGES, ./globpages e la cwd, perche' mmi legge il
+# Context.ctx della dir da cui parte.
+#
 # In entrambe, selezionando una task la HMI viene lanciata in un processo
 # INDIPENDENTE (detached):
 #     cd <task> ; wish $LG_TIX/draw2gr.tcl 1 f22circ
@@ -331,6 +336,8 @@ proc refresh_list {} {
     set msg {}
     if {$mostra_proc} { lappend msg [riempi_proc] }
     if {$mostra_staz} { lappend msg [riempi_staz] }
+    set nota [aggiorna_stato_mmi]
+    if {$nota ne ""} { lappend msg $nota }
     .status configure -text [join $msg "   |   "]
     if {$doppia} { aggiorna_intestazioni }
 }
@@ -398,10 +405,149 @@ proc launch_hmi {} {
     .status configure -text "HMI avviata per '$name'  (log: $log)"
 }
 
+#  Quante istanze di mmi sono vive adesso. Serve per capire se il lancio e'
+#  riuscito: mmi parte in background, quindi l'esito non torna da exec.
+proc conta_mmi {} {
+    if {[catch {exec pgrep -x mmi} out]} { return 0 }
+    return [llength [split [string trim $out] "\n"]]
+}
+
+#  Lancia l'applicazione MMI (LegoMMI, Alg_mmi/run_time).
+#  La directory di lavoro e' tutto: mmi legge ./Context.ctx e da li' ricava dove
+#  stanno le pagine, senza cercare altrove (vedi Alg_mmi/README.md). Ordine:
+#     1) $LG_SIM_PATH/globpages  il Set Sim path (-loc) vince: e' il simulatore
+#                                che l'utente ha indicato a QUESTO selettore, e
+#                                puo' non essere quello scelto con ksetsim
+#     2) $KPAGES                 (di norma $KSIM/globpages, dal profilo)
+#     3) ./globpages             (simulatore sotto la cwd, profilo non sorgiato)
+#     4) nessuna                 (si lancia dalla cwd, sara' mmi a lamentarsi
+#                                 del Context mancante)
+proc dir_mmi {} {
+    global env SIMPATH
+    if {$SIMPATH ne "" && [file isdirectory [file join $SIMPATH globpages]]} {
+        return [list [file join $SIMPATH globpages] "Set Sim path"]
+    }
+    if {[info exists env(KPAGES)] && $env(KPAGES) ne "" \
+        && [file isdirectory $env(KPAGES)]} {
+        return [list $env(KPAGES) "KPAGES"]
+    }
+    if {[file isdirectory globpages]} {
+        return [list [file normalize globpages] "./globpages"]
+    }
+    return [list "" ""]
+}
+
+#  Quante pagine mmi potrebbe davvero aprire partendo da $dir, applicando le sue
+#  stesse regole: il Context.ctx della dir di lancio dichiara in *pages DOVE
+#  stanno le pagine compilate e in *page_list QUALI sono; mmi apre poi
+#  <pages>/<NOME>.rtf (vedi Alg_mmi/README.md). Non basta contare i *.rtf della
+#  directory: la dir di un simulatore ne contiene altri che pagine non sono
+#  (variabili.rtf, recorder.rtf...), e il Context puo' puntare le pagine altrove.
+#  Ritorna -1 se manca il Context (mmi uscirebbe subito), altrimenti il numero di
+#  pagine elencate che hanno il .rtf al suo posto.
+proc pagine_mmi {dir} {
+    set ctx [file join $dir Context.ctx]
+    if {![file exists $ctx]} { return -1 }
+    if {[catch {open $ctx r} fp]} { return -1 }
+    set testo [read $fp] ; close $fp
+    set pagdir $dir
+    set elenco {}
+    foreach riga [split $testo "\n"] {
+        if {[regexp {^\*pages:[ \t]*(.*)$} $riga -> v]} {
+            set v [string trim $v]
+            if {$v ne ""} {
+                set pagdir [expr {[string index $v 0] eq "/" ? $v : [file join $dir $v]}]
+            }
+        } elseif {[regexp {^\*page_list:[ \t]*(.*)$} $riga -> v]} {
+            # Il valore inizia con "\ " (continuazione delle risorse X): via il
+            # backslash, poi i nomi separati da spazi.
+            set elenco [regexp -all -inline {\S+} [string map {"\\" " "} $v]]
+        }
+    }
+    set n 0
+    foreach nome $elenco {
+        if {[file exists [file join $pagdir $nome.rtf]]} { incr n }
+    }
+    return $n
+}
+
+#  Abilita/disabilita il pulsante mmi: senza pagine apribili non ha senso.
+#  Ritorna il motivo (stringa vuota se tutto a posto) da mostrare nella riga di
+#  stato insieme ai conteggi delle liste.
+proc aggiorna_stato_mmi {} {
+    lassign [dir_mmi] dir via
+    set d [expr {$dir eq "" ? [pwd] : $dir}]
+    set n [pagine_mmi $d]
+    if {$n > 0} {
+        .btn.mmi configure -state normal -background "#50a050"
+        return ""
+    }
+    .btn.mmi configure -state disabled -background "#9ab89a"
+    if {$n < 0} { return "mmi: nessun Context.ctx in $d" }
+    return "mmi: nessuna pagina compilata (.rtf) in $d"
+}
+
+proc launch_mmi {} {
+    lassign [dir_mmi] dir via
+    # Senza profilo LegoPST sorgiato l'eseguibile non e' raggiungibile.
+    if {[auto_execok mmi] eq ""} {
+        tk_messageBox -icon error -title "mmi" -parent . -message \
+            "Eseguibile 'mmi' non trovato nel PATH.\nAvvia lghmi da un ambiente LegoPST (profilo sorgiato)."
+        .status configure -text "mmi non trovato nel PATH."
+        return
+    }
+    set log [file join /tmp "lghmi_mmi.log"]
+    if {$dir ne ""} {
+        set sh "cd [list $dir] && exec mmi >[list $log] 2>&1"
+    } else {
+        set sh "exec mmi >[list $log] 2>&1"
+    }
+    set prima [conta_mmi]
+    # Processo INDIPENDENTE come per la HMI: setsid lo mette in una nuova
+    # sessione, cosi' sopravvive al Quit del selettore.
+    if {[catch {exec setsid sh -c $sh &} err]} {
+        if {[catch {exec sh -c $sh &} err2]} {
+            tk_messageBox -icon error -title "Lancio mmi" -parent . \
+                -message "Impossibile lanciare mmi:\n$err2"
+            .status configure -text "mmi NON avviato."
+            return
+        }
+    }
+    .status configure -text [expr {$dir eq "" ? "mmi in avvio dalla cwd..." \
+                                              : "mmi in avvio da $dir ($via)..."}]
+    after 3000 [list verifica_mmi $prima $dir $log]
+}
+
+#  Controllo differito dell'esito: se non e' comparsa una nuova istanza, mmi e'
+#  morto subito e il motivo sta nelle ultime righe del log.
+proc verifica_mmi {prima dir log} {
+    if {[conta_mmi] > $prima} {
+        .status configure -text [expr {$dir eq "" ? "mmi avviato (log: $log)" \
+                                                  : "mmi avviato da $dir (log: $log)"}]
+        return
+    }
+    set coda ""
+    if {[file exists $log]} {
+        catch {
+            set fp [open $log r] ; set testo [read $fp] ; close $fp
+            set righe [split [string trimright $testo "\n"] "\n"]
+            if {[llength $righe] > 12} { set righe [lrange $righe end-11 end] }
+            set coda [join $righe "\n"]
+        }
+    }
+    tk_messageBox -icon error -title "Lancio mmi" -parent . -message \
+        "mmi non e' partito.\n\nDirectory: [expr {$dir eq "" ? "(cwd)" : $dir}]\nLog: $log\n\n$coda"
+    .status configure -text "mmi NON avviato - vedi $log"
+}
+
 # --- Interfaccia ---------------------------------------------------------
 if {$doppia} {
     wm title . "LegoPST - HMI e faceplate"
-    wm minsize . 860 320
+    # Stessa larghezza del banco (new_monit, 680 px): le due finestre si usano
+    # insieme, una sopra l'altra, e allineate stanno meglio. L'altezza e' quella
+    # che serve a 12 righe di lista.
+    wm geometry . 680x328
+    wm minsize . 560 300
 } elseif {$stazmode} {
     wm title . "LegoPST - Faceplate launcher (xstaz)"
     wm minsize . 520 280
@@ -440,8 +586,17 @@ if {!$doppia} {
 }
 button .btn.refresh -text "Refresh" -command refresh_list
 button .btn.quit    -text "Quit"    -command exit
-pack .btn.refresh -side left  -padx 4 -pady 6
-pack .btn.quit    -side right -padx 4 -pady 6
+# Lancio di un'altra applicazione, non un'azione sulla lista: sta al centro
+# della barra, largo il doppio e con il verde della finestra dell'MMI, cosi' si
+# riconosce a colpo d'occhio. Centratura con `place` (non pack -expand): il
+# centro e' quello della finestra, non della porzione lasciata libera da
+# Refresh e Quit, che hanno larghezze diverse.
+button .btn.mmi -text "mmi" -width 11 -command launch_mmi \
+                -background "#50a050" -activebackground "#60c060" \
+                -foreground black -activeforeground black
+pack  .btn.refresh -side left  -padx 4 -pady 6
+pack  .btn.quit    -side right -padx 4 -pady 6
+place .btn.mmi -relx 0.5 -rely 0.5 -anchor center
 pack .btn -side bottom -fill x
 
 label .status -text "" -anchor w -relief sunken -bd 1 -padx 4
@@ -470,14 +625,15 @@ proc crea_riquadro {parent titolo larghezza testo_bottone azione} {
 }
 
 if {$doppia} {
-    # Due liste affiancate, divisorio trascinabile: i faceplate hanno etichette
-    # piu' lunghe, quindi partono con piu' spazio.
+    # Due liste affiancate a meta' schermo ciascuna (39 caratteri -> ~328 px):
+    # e' la ripartizione che sta in 680 px, la larghezza del banco. I faceplate
+    # hanno etichette piu' lunghe, ma il divisorio si trascina.
     panedwindow .pw -orient horizontal -sashrelief raised -sashwidth 6
     pack .pw -side top -fill both -expand 1 -padx 6 -pady 2
-    set LB_PROC [crea_riquadro .pw.proc "Pagine di processo" 30 "Launch HMI"     launch_hmi]
-    set LB_STAZ [crea_riquadro .pw.staz "Faceplate xstaz"    68 "Apri faceplate" apri_faceplate]
+    set LB_PROC [crea_riquadro .pw.proc "Pagine di processo" 39 "Launch HMI"     launch_hmi]
+    set LB_STAZ [crea_riquadro .pw.staz "Faceplate xstaz"    39 "Apri faceplate" apri_faceplate]
     .pw add .pw.proc -minsize 180
-    .pw add .pw.staz -minsize 260
+    .pw add .pw.staz -minsize 180
     bind $LB_PROC <Double-1> { launch_hmi }
     bind $LB_PROC <Return>   { launch_hmi }
     bind $LB_STAZ <Double-1> { apri_faceplate }
