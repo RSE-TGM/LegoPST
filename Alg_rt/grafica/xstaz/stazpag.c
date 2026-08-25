@@ -11,6 +11,8 @@
  *
  *      Uso:
  *          stazpag              elenca le pagine definite in ./r02.dat
+ *          stazpag -m           stesso elenco in formato macchina:
+ *                               NOME|DESCRIZIONE|NUM_STAZIONI  (una per riga)
  *          stazpag <NOME>       chiede a xstaz di visualizzare la pagina
  *
  *      Va lanciato nella directory che contiene r02.dat, come xstaz.
@@ -38,6 +40,7 @@ static void uso(const char *prog)
 {
     fprintf(stderr, "\nuso:  %s [nome_pagina]\n\n", prog);
     fprintf(stderr, "  senza argomenti   elenca le pagine definite in ./r02.dat\n");
+    fprintf(stderr, "  -m                elenco in formato macchina: NOME|DESCRIZIONE|STAZIONI\n");
     fprintf(stderr, "  <nome_pagina>     chiede a xstaz di visualizzare quella pagina\n\n");
     fprintf(stderr, "Da eseguire nella directory che contiene r02.dat.\n");
     fprintf(stderr, "xstaz deve essere gia' in esecuzione:  xstaz 1 &\n\n");
@@ -100,13 +103,38 @@ int main(int argc, char **argv)
     char *env;
     int shr_usr_key, id_coda, npag, i, trovata;
 
-    if (argc > 2 || (argc == 2 && argv[1][0] == '-'))
+    if (argc > 2 || (argc == 2 && argv[1][0] == '-' && strcmp(argv[1], "-m")))
         uso(argv[0]);
 
     if ((npag = leggi_pagine(&pagine)) < 0)
         exit(2);
 
-    /* ---- senza argomenti: elenco ---- */
+    /* ---- -m: elenco in formato macchina, per lghmi -staz e affini ----
+           Una riga per pagina, campi separati da '|', senza intestazioni:
+           il chiamante non deve indovinare le colonne dell'elenco leggibile. */
+    if (argc == 2 && !strcmp(argv[1], "-m"))
+    {
+        for (i = 0; i < npag; i++)
+        {
+            char nome[LUN_NOM_PAG + 1], descr[LUN_DES_PAG + 1];
+            int  k;
+
+            memset(nome, 0, sizeof(nome));
+            memset(descr, 0, sizeof(descr));
+            strncpy(nome,  pagine[i].nome,        LUN_NOM_PAG);
+            strncpy(descr, pagine[i].descrizione, LUN_DES_PAG);
+            /* le descrizioni sono riempite di blank fino a LUN_DES_PAG */
+            for (k = (int) strlen(descr) - 1; k >= 0 && descr[k] == ' '; k--)
+                descr[k] = '\0';
+            for (k = (int) strlen(nome) - 1; k >= 0 && nome[k] == ' '; k--)
+                nome[k] = '\0';
+            printf("%s|%s|%d\n", nome, descr, pagine[i].num_staz);
+        }
+        free(pagine);
+        exit(0);
+    }
+
+    /* ---- senza argomenti: elenco leggibile ---- */
     if (argc == 1)
     {
         printf("\nPagine definite in r02.dat: %d\n\n", npag);

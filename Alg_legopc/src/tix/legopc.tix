@@ -3282,7 +3282,7 @@ if { $pastemod_to != "" && $pastemod_to != "" } {ffconnect $c $pastemod_from   $
 proc AddRemark {c} {
 	
 global progNumb env
-set lpath $env(LG_LIBRARIES)/remark
+set lpath [remarkLibPath]
 set ctool "@com_0"
 set ori n
 
@@ -3307,7 +3307,7 @@ itemAddFromfile $c $x $y $ctool $lpath $prnum $ori $curname
 proc AddDisplay {c} {
 
 global progNumb env
-set lpath $env(LG_LIBRARIES)/remark
+set lpath [remarkLibPath]
 set ctool "@val_0"
 set ori n
 

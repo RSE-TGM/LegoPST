@@ -65,7 +65,10 @@ char *px, saveriga[80];
   separa_str( riga, lun, nstr=10, string);
   if (strncmp(string[0].stringa,s_etic,strlen(s_etic))) errore(ERR_ETIC,riga);
   memset(p_r02->etic_0,0,LUNG_ETICHETTA+1);
-  if (strlen(string[1].stringa)) 
+  /*  separa_str() lascia .stringa a NULL quando la riga non ha quel campo:
+    una ETICHETTA senza testo faceva strlen(NULL) e mandava compstaz in
+    SIGSEGV. Si controlla la lunghezza, come fa gia' c_setval.c.  */
+  if (string[1].lun_stringa)
   {
   	px=strstr(saveriga,string[1].stringa);
 fprintf(fo,"\n px %s \n",px);
@@ -77,7 +80,7 @@ fprintf(fo,"\n px %s \n",px);
   separa_str( riga, lun, nstr=10, string);
   if (strncmp(string[0].stringa,s_etic,strlen(s_etic))) errore(ERR_ETIC,riga);
   memset(p_r02->etic_1,0,LUNG_ETICHETTA+1);
-  if (strlen(string[1].stringa))
+  if (string[1].lun_stringa)
   {
         px=strstr(saveriga,string[1].stringa);
         strncpy(p_r02->etic_1,px,LUNG_ETICHETTA);

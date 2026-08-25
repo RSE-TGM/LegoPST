@@ -181,7 +181,11 @@ if(XmStringCompare(c_str1,c_str2)==0)
 	XtSetArg(args[i],XmNlabelString,c_str1);i++;
 	XtSetValues(p_refr->w,args,i); 
 	}
-XtFree((char*)c_str1);
-XtFree((char*)c_str2);
+/*  Le XmString vanno liberate con XmStringFree: XtFree() rilascia solo
+    il blocco esterno e lascia in giro le strutture interne di Motif,
+    corrompendone le tabelle di rendition. Il sintomo era un SIGSEGV in
+    _XmStringIsCurrentCharset durante il disegno.  */
+	XmStringFree(c_str1);
+XmStringFree(c_str2);
 }
 

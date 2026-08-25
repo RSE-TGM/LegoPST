@@ -132,7 +132,11 @@ XtSetArg(args[i],XmNbackground,excolor[1].pixel); i++;
 XtSetArg(args[i],XmNborderWidth,0); i++;
 XtSetArg(args[i],XmNlabelString,c_str); i++;
 wText=XmCreateLabel(wDraw,"text",args,i);
-XtFree((char*)c_str);
+/*  Le XmString vanno liberate con XmStringFree: XtFree() rilascia solo
+    il blocco esterno e lascia in giro le strutture interne di Motif,
+    corrompendone le tabelle di rendition. Il sintomo era un SIGSEGV in
+    _XmStringIsCurrentCharset durante il disegno.  */
+	XmStringFree(c_str);
 wstaz[*is-1].w[k_text_dig]=wText;
 XtManageChild(wText);
 

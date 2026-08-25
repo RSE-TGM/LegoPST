@@ -23,9 +23,17 @@ img/legopc2.gif img/conn_e.ppm img/conn_e.xbm img/conn_n.ppm img/conn_n.xbm \
 img/conn_s.ppm img/conn_s.xbm img/conn_w.ppm img/conn_w.xbm img/conne.gif \
 img/connn.gif img/conns.gif img/connw.gif img/black.gif img/bulloni.bmp img/mat.gif
 
+# 4. Libreria degli elementi di annotazione (testo e display dinamici).
+#    Vive qui e non piu' nelle librerie grafiche dell'utente
+#    (libgraph/libraries/remark): sono elementi generali di legopc, non devono
+#    dipendere dall'assetto delle librerie di un particolare impianto.
+#    Il wildcard evita di dover elencare i file uno per uno.
+REMARK_FILES = $(wildcard remark/*)
+
 # Creiamo le vere dipendenze finali
 TARGETS = $(SHELLFILES:%=$(PREFIXBIN)/%) \
           $(IMGFILE:%=$(PREFIXBIN)/%) \
+          $(REMARK_FILES:%=$(PREFIXBIN)/%) \
           $(PREINST_FILES:%=$(PREFIXBIN)/preinst/%)
 
 # --- REGOLE ---

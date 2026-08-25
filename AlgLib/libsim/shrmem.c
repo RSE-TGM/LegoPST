@@ -180,15 +180,20 @@ int shmid;
 {
 struct shmid_ds buf;
 
+    /*  Il segmento si rimuove SOLO se non lo usa nessun altro. Trovarlo
+        occupato non e' un errore: e' la condizione normale a simulazione
+        avviata (compstaz aggancia la topologia creata da net_sked e alla
+        fine non deve certo cancellarla). Prima si stampava comunque
+        "impossibile cancellare ... n_attac=N", che in mezzo all'output
+        di compilazione sembrava un guasto: ora si segnala solo cio' che
+        e' davvero andato storto.  */
     if(shmctl(shmid,IPC_STAT,&buf)<0)
-        printf("shmctl: impossibile cancellare %d\n",shmid);
+        fprintf(stderr,"shmem %d: IPC_STAT fallita: %s\n",shmid,strerror(errno));
     else if(buf.shm_nattch<=1)
 	{
         if(shmctl(shmid,IPC_RMID,&buf)<0)
-          printf("shmctl: impossibile cancellare %d\n",shmid);
+          fprintf(stderr,"shmem %d: rimozione fallita: %s\n",shmid,strerror(errno));
 	}
-    else
-	printf("shmctl: impossibile cancellare  %d n_attac=%d\n",shmid,buf.shm_nattch);
 }
 
 int sgancia_shrmem(char *addr)
@@ -209,13 +214,18 @@ int size;
 {
 struct shmid_ds buf;
 
+    /*  Il segmento si rimuove SOLO se non lo usa nessun altro. Trovarlo
+        occupato non e' un errore: e' la condizione normale a simulazione
+        avviata (compstaz aggancia la topologia creata da net_sked e alla
+        fine non deve certo cancellarla). Prima si stampava comunque
+        "impossibile cancellare ... n_attac=N", che in mezzo all'output
+        di compilazione sembrava un guasto: ora si segnala solo cio' che
+        e' davvero andato storto.  */
     if(shmctl(shmid,IPC_STAT,&buf)<0)
-        printf("shmctl: impossibile cancellare %d\n",shmid);
+        fprintf(stderr,"shmem %d: IPC_STAT fallita: %s\n",shmid,strerror(errno));
     else if(buf.shm_nattch<=1)
 	{
         if(shmctl(shmid,IPC_RMID,&buf)<0)
-          printf("shmctl: impossibile cancellare %d\n",shmid);
+          fprintf(stderr,"shmem %d: rimozione fallita: %s\n",shmid,strerror(errno));
 	}
-   else 
-	printf("shmctl: impossibile cancellare  %d n_attac=%d\n",shmid,buf.shm_nattch);
 }

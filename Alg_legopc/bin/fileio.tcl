@@ -9,8 +9,41 @@
 # con <cls>.tcl mancante ritorna il path originale -> 'source' da' errore, come prima.
 # DEVE stare qui (in fileio.tcl) e non in legopc.tix: topRead la usa, e fileio.tcl
 # e' sorgiato anche da draw2gr/legodat/edit_simulx/select (che NON hanno legopc.tix).
+# remarkLibPath: dove vivono gli elementi di annotazione (@com_0 testo,
+# @val_0 display dinamico). Stanno con legopc, in $LG_TIX/remark, e non piu'
+# nelle librerie grafiche dell'utente (LG_LIBRARIES/remark): sono elementi
+# generali del CAD, non devono dipendere dall'assetto delle librerie di un
+# particolare impianto. Il vecchio percorso resta come ripiego, per
+# installazioni in cui il deploy non e' ancora stato rifatto.
+proc remarkLibPath {} {
+	global env
+	if {[info exists env(LG_TIX)]} {
+		set p [file join $env(LG_TIX) remark]
+		if {[file isdirectory $p]} { return $p }
+	}
+	if {[info exists env(LG_LIBRARIES)]} {
+		return [file join $env(LG_LIBRARIES) remark]
+	}
+	return remark
+}
+
+# elementDir: la directory da cui prendere i file dell'elemento di classe $cls.
+# Normalmente e' quella salvata nel modello; se pero' li' l'elemento non c'e'
+# piu' e la libreria degli elementi di annotazione lo ha, si usa quella. Serve
+# ai modelli salvati prima dello spostamento di remark, che portano nei tag il
+# vecchio percorso assoluto (LG_LIBRARIES/remark). La usano sia elementScript
+# sia checkImage: devono guardare la STESSA directory, altrimenti si prende lo
+# script da una parte e le immagini dall'altra.
+proc elementDir {dir cls} {
+	if {[file exists [file join $dir $cls.tcl]]} { return $dir }
+	set r [remarkLibPath]
+	if {[file exists [file join $r $cls.tcl]]} { return $r }
+	return $dir
+}
+
+
 proc elementScript {dir cls} {
-	set f [file join $dir $cls.tcl]
+	set f [file join [elementDir $dir $cls] $cls.tcl]
 	if {[file exists $f]} { return $f }
 	if {[string match {@*} [file tail $cls]] && [info exists ::env(LG_TIX)]} {
 		set bg [file join $::env(LG_TIX) bgelement.tcl]
@@ -494,6 +527,9 @@ proc topRead {c model} {
 
 proc checkImage {name path} {
       global GIForient
+#  Stessa risoluzione di elementScript: se all'lpath salvato l'elemento non
+#  c'e' piu', anche le IMMAGINI si prendono dalla libreria installata.
+      set path [elementDir $path $name]
 #     check per l'icona senza orientazioni
       set filen [file join $path ${name}n.gif]
       set filee [file join $path ${name}e.gif]
@@ -512,7 +548,15 @@ proc checkImage {name path} {
        }
 	} else {
 	 set chk [catch {set result [image type $name]} retval]
-	 if {$chk != 0} {image create photo $name -file [file join $path $name.gif]}	               
+	 if {$chk != 0} {
+		 set fimg [file join $path $name.gif]
+#  Gli elementi non topologici ('@...') possono legittimamente non avere icona:
+#  @com_0/@val_0 sono testo, non immagini. Per un modulo VERO l'assenza resta un
+#  errore rumoroso, com'era prima.
+		 if {[file exists $fimg] || ![string match {@*} [file tail $name]]} {
+			 image create photo $name -file $fimg
+		 }
+	 }
 	}
 }
 

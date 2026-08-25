@@ -191,7 +191,7 @@ void load_selection_from_file(const char* filename, SelezioneMultipla* sel) {
 static const char *RIGHELLO =
     "----------------------------------------------------------------------------------------";
 
-typedef enum { MODO_VISTA, MODO_EDIT } ModoTabella;
+typedef enum { MODO_VISTA, MODO_EDIT, MODO_SALVA } ModoTabella;
 
 static long ora_ms(void) {
     struct timeval tv;
@@ -282,11 +282,110 @@ static float da_visuale_a_interno(int iumis, int defumis, float visuale) {
 }
 
 /*  Ritorna 1 se l'utente vuole tornare al selettore ('i'), 0 per uscire.  */
-static int tabella_interattiva(char **nomi, char **descr, int *indirizzi, int n) {
+
+/*  Lista delle variabili monitorate. Vive per tutta la sessione interattiva:
+    premendo 'i' si torna al selettore e le nuove scelte si AGGIUNGONO a questa,
+    invece di sostituirla; 'd' toglie la riga corrente.  */
+typedef struct {
+    char **nomi;
+    char **descr;
+    int   *indirizzi;
+    int    n;
+    int    cap;
+} LISTA_VAR;
+
+static void lista_init(LISTA_VAR *L) {
+    L->nomi = NULL; L->descr = NULL; L->indirizzi = NULL; L->n = 0; L->cap = 0;
+}
+
+static int lista_contiene(LISTA_VAR *L, const char *nome) {
+    int i;
+    for (i = 0; i < L->n; i++)
+        if (strncmp(L->nomi[i], nome, MAX_LUN_NOME_VAR) == 0) return 1;
+    return 0;
+}
+
+/*  Aggiunge una variabile risolvendone indirizzo e descrizione.
+    Ritorna 1 se aggiunta, 0 se sconosciuta o gia' presente (niente doppioni:
+    due righe sullo stesso punto confonderebbero e basta).  */
+static int lista_aggiungi(LISTA_VAR *L, const char *nome) {
+    int indirizzo, j;
+    char nome_l[MAX_LUN_NOME_VAR + 1];
+
+    memset(nome_l, 0, sizeof(nome_l));
+    strncpy(nome_l, nome, MAX_LUN_NOME_VAR);
+    if (lista_contiene(L, nome_l)) return 0;
+    if (!viewshr(GETIND, nome_l, &indirizzo, NULL, NULL, NULL, NULL, 0)) return 0;
+
+    if (L->n == L->cap) {
+        int nc = L->cap ? L->cap * 2 : 16;
+        char **nn = realloc(L->nomi,      nc * sizeof(char *));
+        char **nd = realloc(L->descr,     nc * sizeof(char *));
+        int   *ni = realloc(L->indirizzi, nc * sizeof(int));
+        if (!nn || !nd || !ni) return 0;
+        L->nomi = nn; L->descr = nd; L->indirizzi = ni; L->cap = nc;
+    }
+    L->nomi[L->n]      = strdup(nome_l);
+    L->indirizzi[L->n] = indirizzo;
+    L->descr[L->n]     = NULL;
+    for (j = 0; j < tot_variabili; j++)
+        if (strncmp(nome_l, variabili[j].nome, MAX_LUN_NOME_VAR) == 0) {
+            L->descr[L->n] = strdup(variabili[j].descr);
+            break;
+        }
+    if (!L->descr[L->n]) L->descr[L->n] = strdup("");
+    L->n++;
+    return 1;
+}
+
+static void lista_togli(LISTA_VAR *L, int i) {
+    int k;
+    if (i < 0 || i >= L->n) return;
+    free(L->nomi[i]);
+    free(L->descr[i]);
+    for (k = i; k < L->n - 1; k++) {
+        L->nomi[k]      = L->nomi[k + 1];
+        L->descr[k]     = L->descr[k + 1];
+        L->indirizzi[k] = L->indirizzi[k + 1];
+    }
+    L->n--;
+}
+
+static void lista_libera(LISTA_VAR *L) {
+    int i;
+    for (i = 0; i < L->n; i++) { free(L->nomi[i]); free(L->descr[i]); }
+    free(L->nomi); free(L->descr); free(L->indirizzi);
+    lista_init(L);
+}
+
+/*  Salva la lista monitorata in un file riutilizzabile con "viewval -L".
+    Il caricamento legge SOLO il primo token di ogni riga, quindi accanto al
+    nome si possono mettere valore, unita' e descrizione senza disturbare.  */
+static int lista_salva(LISTA_VAR *L, const char *nomefile) {
+    FILE *f;
+    int i, iu, du;
+    float v, vconv;
+
+    if ((f = fopen(nomefile, "w")) == NULL) return 0;
+    for (i = 0; i < L->n; i++) {
+        v = 0.0f;
+        viewshr(GETVAR, L->nomi[i], &L->indirizzi[i], &v, &stato, &tempo, &num_var, 0);
+        iu    = cerca_umis(L->nomi[i], 1);
+        du    = uni_mis[iu].sel;
+        vconv = uni_mis[iu].A[du] * v + uni_mis[iu].B[du];
+        fprintf(f, "%-*s %14.4f %-8s %s\n", MAX_LUN_NOME_VAR, L->nomi[i],
+                vconv, uni_mis[iu].codm[du], L->descr[i] ? L->descr[i] : "");
+    }
+    fclose(f);
+    return 1;
+}
+
+static int tabella_interattiva(LISTA_VAR *L) {
     ModoTabella modo = MODO_VISTA;
     int   cursore = 0, finestra = 0, riseleziona = 0, esci = 0;
     long  prossimo = 0;
     char  input[MAX_INPUT] = "";
+    char  nomefile[256] = "";
     char  msg[200] = "";
     float *val;
     float tempo_vis = 0.0f;
@@ -295,7 +394,7 @@ static int tabella_interattiva(char **nomi, char **descr, int *indirizzi, int n)
     int   sorveglia = -1;
     float sorveglia_val = 0.0f, sorveglia_tempo = 0.0f;
 
-    val = calloc(n, sizeof(float));
+    val = calloc(L->n, sizeof(float));
     if (!val) return 0;
 
     setvbuf(stdin, NULL, _IONBF, 0);
@@ -321,8 +420,8 @@ static int tabella_interattiva(char **nomi, char **descr, int *indirizzi, int n)
         /*  Rilettura dei valori: sospesa durante l'edit, cosi' la tabella non
             si muove sotto le dita mentre si digita.  */
         if (modo == MODO_VISTA && adesso >= prossimo) {
-            for (i = 0; i < n; i++)
-                viewshr(GETVAR, nomi[i], &indirizzi[i], &val[i], &stato, &tempo, &num_var, 0);
+            for (i = 0; i < L->n; i++)
+                viewshr(GETVAR, L->nomi[i], &L->indirizzi[i], &val[i], &stato, &tempo, &num_var, 0);
             tempo_vis = tempo;
             prossimo  = adesso + (long)timemilli;
 
@@ -331,7 +430,7 @@ static int tabella_interattiva(char **nomi, char **descr, int *indirizzi, int n)
                     1e-6f * (fabsf(sorveglia_val) + 1.0f))
                     snprintf(msg, sizeof(msg),
                              "%s ricalcolata dal modello: non e' un ingresso, "
-                             "il valore forzato non resta.", nomi[sorveglia]);
+                             "il valore forzato non resta.", L->nomi[sorveglia]);
                 sorveglia = -1;
             }
         }
@@ -339,14 +438,14 @@ static int tabella_interattiva(char **nomi, char **descr, int *indirizzi, int n)
         /* ---- finestra visibile ---- */
         if (cursore < finestra) finestra = cursore;
         if (cursore >= finestra + righe) finestra = cursore - righe + 1;
-        if (finestra > n - righe) finestra = n - righe;
+        if (finestra > L->n - righe) finestra = L->n - righe;
         if (finestra < 0) finestra = 0;
 
         /* ---- disegno (niente system("clear"): niente fork e niente sfarfallio) ---- */
         printf("\033[?25l\033[H");
         printf("viewval - Tempo Sim: %.2f   %s   [%d/%d]\033[K\n",
                tempo_vis, (stato == STATO_FREEZE) ? "FREEZE" : "RUN   ",
-               cursore + 1, n);
+               cursore + 1, L->n);
         printf("%s\033[K\n", RIGHELLO);
         printf("%-12s | %-40s | %-15s | %s\033[K\n",
                "Variabile", "Descrizione", "Valore", "Unita'");
@@ -356,8 +455,8 @@ static int tabella_interattiva(char **nomi, char **descr, int *indirizzi, int n)
             int r = finestra + i;
             char cella[MAX_INPUT + 16];
 
-            if (r >= n) { printf("\033[K\n"); continue; }
-            iu = cerca_umis(nomi[r], 1);
+            if (r >= L->n) { printf("\033[K\n"); continue; }
+            iu = cerca_umis(L->nomi[r], 1);
             du = uni_mis[iu].sel;
             if (modo == MODO_EDIT && r == cursore)
                 snprintf(cella, sizeof(cella), "%-15s", input);
@@ -367,22 +466,24 @@ static int tabella_interattiva(char **nomi, char **descr, int *indirizzi, int n)
 
             if (r == cursore) printf("%s", ANSI_REVERSE);
             printf("%-12s | %-40.40s | %s | %s",
-                   nomi[r], descr[r] ? descr[r] : "", cella, uni_mis[iu].codm[du]);
+                   L->nomi[r], L->descr[r] ? L->descr[r] : "", cella, uni_mis[iu].codm[du]);
             if (r == cursore) printf("%s", ANSI_RESET);
             printf("\033[K\n");
         }
 
         printf("%s\033[K\n", RIGHELLO);
-        iu = cerca_umis(nomi[cursore], 1);
+        iu = cerca_umis(L->nomi[cursore], 1);
         du = uni_mis[iu].sel;
         if (modo == MODO_EDIT)
             printf("Nuovo valore per %s (attuale %.4f %s) - Invio scrive, ESC annulla\033[K\n",
-                   nomi[cursore],
+                   L->nomi[cursore],
                    uni_mis[iu].A[du] * val[cursore] + uni_mis[iu].B[du],
                    uni_mis[iu].codm[du]);
+        else if (modo == MODO_SALVA)
+            printf("Salva l'elenco nel file: %s\033[K\n", nomefile);
         else
-            printf("Frecce/PgUp/PgDn/Home/End: scorri | f o Invio: modifica | "
-                   "i: riseleziona | q: esci\033[K\n");
+            printf("Frecce: scorri | f/Invio: modifica | d: togli riga | "
+                   "s: salva | i: aggiungi altre | q: esci\033[K\n");
         printf("%s\033[K\033[J", msg);
 
         /*  In edit il cursore vero del terminale va dove si sta scrivendo,
@@ -390,6 +491,8 @@ static int tabella_interattiva(char **nomi, char **descr, int *indirizzi, int n)
         if (modo == MODO_EDIT)
             printf("\033[%d;%dH\033[?25h",
                    RIGA_PRIMA + (cursore - finestra), COL_VALORE + (int)strlen(input));
+        else if (modo == MODO_SALVA)
+            printf("\033[?25h");
         fflush(stdout);
 
         /* ---- tastiera ---- */
@@ -400,18 +503,53 @@ static int tabella_interattiva(char **nomi, char **descr, int *indirizzi, int n)
         if (modo == MODO_VISTA) {
             switch (key) {
                 case KEY_UP:   if (cursore > 0) cursore--;     break;
-                case KEY_DOWN: if (cursore < n - 1) cursore++; break;
+                case KEY_DOWN: if (cursore < L->n - 1) cursore++; break;
                 case KEY_PGUP: cursore -= righe; if (cursore < 0) cursore = 0;          break;
-                case KEY_PGDN: cursore += righe; if (cursore > n - 1) cursore = n - 1;  break;
+                case KEY_PGDN: cursore += righe; if (cursore > L->n - 1) cursore = L->n - 1;  break;
                 case KEY_HOME: cursore = 0;     break;
-                case KEY_END:  cursore = n - 1; break;
+                case KEY_END:  cursore = L->n - 1; break;
                 case 'f': case KEY_ENTER: case 13:
                     modo = MODO_EDIT;
                     input[0] = '\0';
                     msg[0] = '\0';
                     break;
+                case 'd':
+                    /*  Toglie dall'elenco la riga corrente: la variabile resta
+                        nel simulatore, sparisce solo dal monitor.  */
+                    snprintf(msg, sizeof(msg), "%s tolta dall'elenco.", L->nomi[cursore]);
+                    lista_togli(L, cursore);
+                    if (L->n == 0) { riseleziona = 1; break; }
+                    if (cursore >= L->n) cursore = L->n - 1;
+                    prossimo = 0;
+                    break;
+                case 's':
+                    modo = MODO_SALVA;
+                    nomefile[0] = '\0';
+                    msg[0] = '\0';
+                    break;
                 case 'i': riseleziona = 1; break;
                 case 'q': esci = 1;        break;
+            }
+        } else if (modo == MODO_SALVA) {
+            size_t l = strlen(nomefile);
+            if (key == KEY_ESCAPE) {
+                modo = MODO_VISTA; nomefile[0] = '\0';
+                snprintf(msg, sizeof(msg), "Salvataggio annullato.");
+            } else if (key == KEY_ENTER || key == 13) {
+                modo = MODO_VISTA;
+                if (l == 0)
+                    snprintf(msg, sizeof(msg), "Nessun nome di file: niente salvato.");
+                else if (lista_salva(L, nomefile))
+                    snprintf(msg, sizeof(msg),
+                             "%d variabili salvate in '%s'  (si rilegge con: viewval -L %s)",
+                             L->n, nomefile, nomefile);
+                else
+                    snprintf(msg, sizeof(msg), "Impossibile scrivere '%s'.", nomefile);
+                nomefile[0] = '\0';
+            } else if (key == KEY_BACKSPACE || key == 8) {
+                if (l) nomefile[l - 1] = '\0';
+            } else if (l < sizeof(nomefile) - 1 && key > 0 && key < 256 && isprint(key)) {
+                nomefile[l] = (char)key; nomefile[l + 1] = '\0';
             }
         } else {
             size_t l = strlen(input);
@@ -435,21 +573,21 @@ static int tabella_interattiva(char **nomi, char **descr, int *indirizzi, int n)
                         float vecchio_int = val[cursore];
                         float vecchio_vis, nuovo_int;
 
-                        iu = cerca_umis(nomi[cursore], 1);
+                        iu = cerca_umis(L->nomi[cursore], 1);
                         du = uni_mis[iu].sel;
                         vecchio_vis = uni_mis[iu].A[du] * vecchio_int + uni_mis[iu].B[du];
                         nuovo_int   = da_visuale_a_interno(iu, du, (float)v);
 
-                        viewshr(PUTVAR, nomi[cursore], &indirizzi[cursore],
+                        viewshr(PUTVAR, L->nomi[cursore], &L->indirizzi[cursore],
                                 &valore, &stato, &tempo, &num_var, nuovo_int);
-                        viewshr(GETVAR, nomi[cursore], &indirizzi[cursore],
+                        viewshr(GETVAR, L->nomi[cursore], &L->indirizzi[cursore],
                                 &val[cursore], &stato, &tempo, &num_var, 0);
 
                         snprintf(msg, sizeof(msg),
                                  "%s scritta: %.4f -> %.4f %s   (interno %g)",
-                                 nomi[cursore], vecchio_vis, (float)v,
+                                 L->nomi[cursore], vecchio_vis, (float)v,
                                  uni_mis[iu].codm[du], nuovo_int);
-                        traccia_scrittura(nomi[cursore], vecchio_int, nuovo_int,
+                        traccia_scrittura(L->nomi[cursore], vecchio_int, nuovo_int,
                                           vecchio_vis, (float)v,
                                           uni_mis[iu].codm[du], tempo);
                         sorveglia       = cursore;
@@ -487,102 +625,75 @@ int main(int argc, char **argv) {
     viewshr(INIZIALIZZA, nomevar, &indir, &valore, &stato, &tempo, &num_var, forzval);
     apri_log();
 
-    // ================== LOGICA INTERATTIVA COMPLETAMENTE RISTRUTTURATA ==================
+    // ================== MODALITA' INTERATTIVA ==================
+    //  L'elenco monitorato VIVE per tutta la sessione: premendo 'i' si torna al
+    //  selettore e le nuove scelte si AGGIUNGONO a quelle gia' a video (prima le
+    //  sostituivano in blocco, perdendo il lavoro fatto). 'd' toglie una riga,
+    //  's' salva l'elenco in un file rileggibile con -L.
     if (interactive_mode) {
-        int return_to_select = 1;
+        LISTA_VAR lista;
+        int riseleziona = 1;
 
-        while(return_to_select) {
-            return_to_select = 0; // Default: non tornare alla selezione
+        lista_init(&lista);
+
+        while (riseleziona) {
             SelezioneMultipla scelta = {NULL, 0};
+            int aggiunte = 0, gia_presenti = 0, ignote = 0;
+            char nome_temp[MAX_LUN_NOME_VAR + 1];
 
-            // 1. Carica la selezione da file o avvia il selettore interattivo
+            /* 1. Sorgente delle variabili: il file di -L la prima volta,
+                  il selettore a schermo pieno tutte le altre. */
             if (load_selection_file) {
                 load_selection_from_file(load_selection_file, &scelta);
-                load_selection_file = NULL; // Carica solo una volta
+                load_selection_file = NULL;
             } else {
-                const char* tmp_filename = "viewval_vars.tmp";
-                FILE* tmp_file = fopen(tmp_filename, "w");
+                const char *tmp_filename = "viewval_vars.tmp";
+                FILE *tmp_file = fopen(tmp_filename, "w");
                 if (tmp_file) {
-                    // *** MODIFICA 1: Scrive nome E descrizione nel file temporaneo ***
-                    for (int i = 0; i < tot_variabili; i++) {
-                        // Allinea il nome a sinistra e poi aggiunge la descrizione
-                        fprintf(tmp_file, "%-12.*s %s\n", 
-                                MAX_LUN_NOME_VAR, variabili[i].nome, 
-                                variabili[i].descr);
-                    }
+                    for (int i = 0; i < tot_variabili; i++)
+                        fprintf(tmp_file, "%-12.*s %s\n",
+                                MAX_LUN_NOME_VAR, variabili[i].nome, variabili[i].descr);
                     fclose(tmp_file);
                     scelta = choose_from_file(tmp_filename, 1, 1);
                     remove(tmp_filename);
                 }
             }
 
-            if (scelta.count == 0) {
-                printf("Nessuna variabile da visualizzare. Uscita.\n");
-                break; // Esce dal loop while(return_to_select)
-            }
-            
-            // 2. Prepara le variabili valide per la visualizzazione
-            int* indirizzi = malloc(scelta.count * sizeof(int));
-            char** nomi_validi = malloc(scelta.count * sizeof(char*));
-            char** descrizioni_valide = calloc(scelta.count, sizeof(char*));
-            int valid_vars_count = 0;
-            
-            char nome_temp[MAX_LUN_NOME_VAR + 1];
-
+            /* 2. Le scelte si aggiungono all'elenco: i doppioni si ignorano,
+                  i nomi sconosciuti si contano per dirlo all'utente. */
             for (int i = 0; i < scelta.count; i++) {
-                // Estrae solo il nome dalla riga selezionata (es. "NOME   DESCRIZIONE")
-                sscanf(scelta.nomi[i], "%s", nome_temp);
-
-                if (viewshr(GETIND, nome_temp, &indirizzi[valid_vars_count], NULL, NULL, NULL, NULL, 0)) {
-                    nomi_validi[valid_vars_count] = strdup(nome_temp);
-                    
-                    // Descrizione dall'array globale 'variabili'. Il confronto e'
-                    // esatto: con strncmp(.., strlen(nome)) un tag corto
-                    // agganciava la descrizione di uno piu' lungo che iniziava
-                    // allo stesso modo.
-                    for (int j = 0; j < tot_variabili; j++) {
-                        if (strncmp(nome_temp, variabili[j].nome, MAX_LUN_NOME_VAR) == 0) {
-                             descrizioni_valide[valid_vars_count] = strdup(variabili[j].descr);
-                             break;
-                        }
-                    }
-                    if (!descrizioni_valide[valid_vars_count])
-                        descrizioni_valide[valid_vars_count] = strdup("");
-                    valid_vars_count++;
-                }
-            }
-            if (save_selection_file) { // Salva dopo aver validato
-                save_selection_to_file(save_selection_file, nomi_validi, valid_vars_count);
-                save_selection_file = NULL; // Salva solo una volta
+                if (sscanf(scelta.nomi[i], "%s", nome_temp) != 1) continue;
+                if (lista_contiene(&lista, nome_temp))      { gia_presenti++; continue; }
+                if (lista_aggiungi(&lista, nome_temp))        aggiunte++;
+                else                                          ignote++;
             }
             free_selection(&scelta);
 
-            if (valid_vars_count == 0) { printf("Nessuna variabile valida trovata. Uscita.\n"); break; }
+            if (save_selection_file) {
+                save_selection_to_file(save_selection_file, lista.nomi, lista.n);
+                save_selection_file = NULL;
+            }
+
+            if (lista.n == 0) {
+                printf("Nessuna variabile da visualizzare. Uscita.\n");
+                break;
+            }
+            if (ignote)
+                printf("%d nome/i non presente/i nella simulazione: ignorato/i.\n", ignote);
 
             if (timeloop <= 0) timeloop = TIMELOOP;
             timemilli = (unsigned int)(timeloop * 1000.);
-            
-            // 3. Loop di visualizzazione + editing (vedi tabella_interattiva)
+
             #ifndef _WIN32
             enable_raw_mode();
             #endif
-
-            return_to_select = tabella_interattiva(nomi_validi, descrizioni_valide,
-                                                   indirizzi, valid_vars_count);
-            // Pulizia prima di un eventuale nuovo ciclo di selezione
-            // *** RIPRISTINO MODALITA' NORMALE DEL TERMINALE ***
+            riseleziona = tabella_interattiva(&lista);
             #ifndef _WIN32
             disable_raw_mode();
             #endif
-
-            for(int i = 0; i < valid_vars_count; i++) {
-                free(nomi_validi[i]);
-                free(descrizioni_valide[i]); // Pulisce la memoria della descrizione
-            }
-            free(nomi_validi);
-            free(descrizioni_valide);
-            free(indirizzi);
         }
+
+        lista_libera(&lista);
         exit(0);
     }
 

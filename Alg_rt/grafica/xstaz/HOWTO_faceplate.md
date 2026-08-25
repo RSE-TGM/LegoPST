@@ -9,6 +9,8 @@ simulatore LegoPST: si scrive un file di testo `r01.dat`, lo si compila con
 > cd $KSIM/<task-di-regolazione>     # qui stanno r01.dat e variabili.rtf
 > compstaz                           # compila -> r02.dat  (+ compstaz.log)
 > grep -i attenzione compstaz.log    # zero righe = compilazione pulita
+> lghmi                              # selettore: processo + faceplate
+> #   ...oppure a mano:
 > xstaz 1 &                          # visualizzatore (parte iconificato)
 > stazpag                            # elenca le pagine
 > stazpag RISCBP                     # ne apre una
@@ -197,13 +199,137 @@ Senza argomenti = mai inibito.
 
 ### `NOT`
 
-Nega la condizione logica dell'ingresso a cui si riferisce.
+Si scrive come **quarto campo della riga `INPUT` o `INPUT_BLINK`**, dopo
+variabile e modello, e inverte la condizione logica:
+
+```
+LED
+COLORE       VERDE
+ETICHETTA    in servizio
+INPUT        JA2S00CI   CICA          <- acceso quando la variabile vale 1
+INPUT_BLINK
+LED
+COLORE       ROSSO
+ETICHETTA    fuori servizio
+INPUT        JA2S00CI   CICA   NOT    <- acceso quando vale 0
+INPUT_BLINK
+```
+
+**Vale solo per i quattro oggetti che leggono in logica**: `LED`, `LAMPADA`,
+`LUCE`, `PULS_LUCE`. Sono gli unici che chiamano `estr_sh(indice, 1+neg)`, cioè
+riducono il valore a 0/1 (`val = |(int)val % 2|`) e, con `NOT`, lo invertono.
+Tutti gli altri — `DISPLAY`, `DISPLAY_SCALATO`, `INDICATORE`, `SET_VALORE`,
+`SELETTORE`, `INDICATORE_SINCRO` — leggono il valore **analogico** (`funct = 0`)
+e un `NOT` lì non ha alcun effetto.
+
+Il confronto è **esatto e maiuscolo**: `is_neg()` accetta solo `NOT`, non `not`
+né `Not`. Un campo assente o diverso vale semplicemente "nessuna negazione", e
+non produce errore di compilazione: attenzione ai refusi, passano inosservati.
+
+Attenzione anche a un caso che sembra ovvio e non lo è: su un ingresso
+**scollegato** (riga vuota o `#`, indice -1) `estr_sh()` restituisce 0 **prima**
+di applicare la negazione. Un `NOT` su un riferimento scollegato quindi non
+accende nulla.
+
+### Costruire una pagina per gradi: riferimenti non collegati
+
+`compstaz` risolve ogni `INPUT`/`OUTPUT` contro la topologia e si ferma al primo
+nome che non esiste. Per mettere a punto una pagina prima di avere le variabili
+ci sono due strade, e **non sono equivalenti**.
+
+**1. Lasciare la riga senza argomenti — è la strada giusta.** Ogni riga di
+variabile ammette la forma nuda:
+
+```
+LED
+COLORE       VERDE
+ETICHETTA    AUTO
+INPUT
+INPUT_BLINK
+```
+
+Il compilatore registra l'indice **-1**, e a runtime `estr_sh()` ha la guardia
+esplicita `if (indice == -1) return(0.);`: l'oggetto mostra **zero** (LED spento,
+display a 0). Sul lato comando i lettori fanno `if (p_r02->out.indice == -1)
+return;`, quindi il pulsante c'è, si preme e **non fa nulla**. Nessun effetto
+collaterale sulla simulazione.
+
+Vale per tutti gli oggetti: `INPUT`, `INPUT_ERR`, `INPUT_BLINK`, `OUTPUT`,
+`INIBIZIONE`. Attenzione: la scappatoia scatta solo se la riga è **davvero**
+priva di argomenti — variabile *e* modello. Se ne scrivi uno solo, il
+compilatore prende l'altro ramo e pretende nomi validi.
+
+**2. Commentare il nome con `#` — quando il nome lo vuoi tenere.** Un `#` come
+primo carattere annulla il riferimento esattamente come la riga vuota (indice
+-1), ma lascia scritto in chiaro quale variabile ci andrà:
+
+```
+LED
+COLORE       GIALLO
+ETICHETTA    AUTO
+INPUT        #U1094FSL   CICA
+INPUT_BLINK
+```
+
+Vale sia per il nome della **variabile** sia per quello del **modello**, e basta
+commentarne uno: se è commentato il modello il riferimento resta scollegato
+comunque, perché senza modello la variabile non è risolvibile. Quando poi la
+variabile esiste, togli il `#` e ricompili.
+
+Il `#` **non allenta i controlli**: un nome non commentato che non esiste ferma
+la compilazione come sempre. Il marcatore è riconosciuto sia da `compstaz` sia
+dal compilatore gemello `convstaz`, così lo stesso `r01.dat` si comporta allo
+stesso modo con entrambi.
+
+**3. I due nomi segnaposto storici**, per quando un pezzo lo vuoi già scritto:
+
+| Segnaposto | Dove va | Effetto |
+|---|---|---|
+| `variabil` | al posto del nome della variabile | l'indice diventa **0** |
+| `modello` | al posto del nome del modello | il modello diventa **0** |
+
+Sono riconosciuti da `check_input`, `check_output` e `check_model`
+([checkvar.c](../compstaz/checkvar.c)) con un confronto **esatto**: minuscoli e
+scritti così, `variabil` senza la "e" finale.
+
+```
+DISPLAY_SCALATO
+INPUT        variabil   modello
+SCALAMENTO      1.
+OFFSET          0.
+```
+
+**Ma l'indice 0 è un indirizzo vero**, non un "non collegato": a runtime
+l'oggetto legge il primo punto del database e mostra quel valore, che non
+significa nulla. Sono rimasti per compatibilità con i file storici: per un
+faceplate non ancora cablato usa la riga vuota o il `#`, che danno -1.
+
+**Cosa continua a essere verificato comunque.** Restare "scollegati" non salta
+gli altri controlli: i tipi di stazione devono esistere, i blocchi degli oggetti
+essere completi e nell'ordine giusto, le pagine citate essere dichiarate, e la
+geometria non deve sovrapporsi — `compstaz` rifiuta con *"ATTENZIONE:
+sovrapposizione di stazioni"* due stazioni che si pestano i piedi, tenendo conto
+dell'ingombro in celle di ciascun tipo (capitolo 7).
 
 ## 7. Catalogo delle stazioni
+
+> **Come si vedono davvero.** Ogni famiglia qui sotto si apre con la cattura di
+> schermo dei suoi tipi, ognuno col nome scritto sotto. Sono immagini reali di
+> `xstaz`, non disegni: le produce il `r01.dat` di sola consultazione in
+> [catalogo/](catalogo/), che si compila in qualsiasi task perché ha tutti i
+> riferimenti scollegati (nessun modello richiesto). Per vederlo dal vivo:
+> `compstaz` e poi `lghmi -staz`.
 
 54 tipi. La tabella riassume composizione e ingombro; sotto, il template pronto
 da copiare per ognuno. Nei template `<...>` sono i valori da sostituire e
 `[...]` indica una riga che può restare senza argomenti.
+
+> **Nota sui sottotipi.** `INDICATORE` è l'unico oggetto le cui righe dipendono
+> dal sottotipo fissato dal tipo di stazione: `SCALAMENTO_ERR`, `MINMAX_ERR` e
+> `INPUT_ERR` si leggono **solo** con `INDIC_AGO_ERR`, cioè in `IAGOERR` e
+> `AGERSETV`. In `IBARRA1`, `IBARRA2`, `IAGO`, `AGOSETV` e `SINCRONO`
+> l'indicatore ha le sole `SCALAMENTO`, `MINMAX`, `OFFSET`, `INPUT`. I template
+> qui sotto ne tengono conto.
 
 | Tipo | Celle (L x A) | Oggetti che lo compongono |
 |---|---|---|
@@ -263,6 +389,9 @@ da copiare per ognuno. Nei template `<...>` sono i valori da sostituire e
 | `SINCRONO` | 12 x 4 | STRINGA, STRINGA, INDICATORE, INDICATORE, INDICATORE, INDICATORE, INDICATORE_SINCRO |
 
 ### Segnalazioni a LED
+
+![Segnalazioni a LED](catalogo/pag_LED.png)
+![Segnalazioni a LED, seguito](catalogo/pag_LED2.png)
 
 #### `LEDS2` — 2 oggetti, 2x1 celle
 
@@ -673,6 +802,9 @@ INPUT_BLINK  [<var> <modello>]
 ```
 
 ### Pulsanti con spie
+
+![Pulsanti con spie](catalogo/pag_PULS.png)
+![Pulsanti con spie, seguito](catalogo/pag_PULS2.png)
 
 #### `P3L3` — 7 oggetti, 2x1 celle
 
@@ -1211,6 +1343,8 @@ OUTPUT       <var> <modello> STEP
 
 ### Testi fissi
 
+![Display e testi](catalogo/pag_DISP.png)
+
 #### `TESTO` — 1 oggetti, 8x1 celle
 
 ```
@@ -1240,6 +1374,8 @@ ETICHETTA    <testo>
 ```
 
 ### Lampade
+
+![Selettori, lampade e comandi](catalogo/pag_VARIE.png)
 
 #### `LAMP1` — 2 oggetti, 2x1 celle
 
@@ -1317,6 +1453,8 @@ INPUT_BLINK  [<var> <modello>]
 ```
 
 ### Display e impostatori numerici
+
+![Display e testi](catalogo/pag_DISP.png)
 
 #### `DISPLAY` — 2 oggetti, 2x1 celle
 
@@ -1400,6 +1538,9 @@ OFFSET       0.
 
 ### Indicatori analogici e impostatori a indice
 
+![Indicatori e impostatori](catalogo/pag_INDIC.png)
+![Indicatori, seguito](catalogo/pag_INDIC2.png)
+
 #### `IBARRA1` — 2 oggetti, 2x1 celle
 
 ```
@@ -1416,10 +1557,7 @@ INDICATORE
 SCALAMENTO   1.
 MINMAX       0. 100.
 OFFSET       0.
-SCALAMENTO_ERR 1.
-MINMAX_ERR   0. 100.
 INPUT        <var> <modello>
-INPUT_ERR    [<var> <modello>]
 ```
 
 #### `IBARRA2` — 2 oggetti, 2x1 celle
@@ -1438,10 +1576,7 @@ INDICATORE
 SCALAMENTO   1.
 MINMAX       0. 100.
 OFFSET       0.
-SCALAMENTO_ERR 1.
-MINMAX_ERR   0. 100.
 INPUT        <var> <modello>
-INPUT_ERR    [<var> <modello>]
 ```
 
 #### `IAGO` — 2 oggetti, 2x2 celle
@@ -1460,10 +1595,7 @@ INDICATORE
 SCALAMENTO   1.
 MINMAX       0. 100.
 OFFSET       0.
-SCALAMENTO_ERR 1.
-MINMAX_ERR   0. 100.
 INPUT        <var> <modello>
-INPUT_ERR    [<var> <modello>]
 ```
 
 #### `IAGOERR` — 2 oggetti, 2x2 celle
@@ -1510,10 +1642,7 @@ INDICATORE
 SCALAMENTO   1.
 MINMAX       0. 100.
 OFFSET       0.
-SCALAMENTO_ERR 1.
-MINMAX_ERR   0. 100.
 INPUT        <var> <modello>
-INPUT_ERR    [<var> <modello>]
 ```
 
 #### `AGERSETV` — 2 oggetti, 2x2 celle
@@ -1545,6 +1674,8 @@ INPUT_ERR    [<var> <modello>]
 ```
 
 ### Selettori
+
+![Selettori, lampade e comandi](catalogo/pag_VARIE.png)
 
 #### `SELET_A` — 2 oggetti, 2x1 celle
 
@@ -1585,6 +1716,8 @@ INPUT        <var> <modello>
 ```
 
 ### Comandi elementari
+
+![Selettori, lampade e comandi](catalogo/pag_VARIE.png)
 
 #### `LUCE` — 2 oggetti, 2x1 celle
 
@@ -1639,6 +1772,8 @@ OUTPUT       <var> <modello> STEP
 ```
 
 ### Miscellanea
+
+![Selettori, lampade e comandi](catalogo/pag_VARIE.png)
 
 #### `MIXER` — 7 oggetti, 2x1 celle
 
@@ -1729,34 +1864,22 @@ INDICATORE
 SCALAMENTO   1.
 MINMAX       0. 100.
 OFFSET       0.
-SCALAMENTO_ERR 1.
-MINMAX_ERR   0. 100.
 INPUT        <var> <modello>
-INPUT_ERR    [<var> <modello>]
 INDICATORE
 SCALAMENTO   1.
 MINMAX       0. 100.
 OFFSET       0.
-SCALAMENTO_ERR 1.
-MINMAX_ERR   0. 100.
 INPUT        <var> <modello>
-INPUT_ERR    [<var> <modello>]
 INDICATORE
 SCALAMENTO   1.
 MINMAX       0. 100.
 OFFSET       0.
-SCALAMENTO_ERR 1.
-MINMAX_ERR   0. 100.
 INPUT        <var> <modello>
-INPUT_ERR    [<var> <modello>]
 INDICATORE
 SCALAMENTO   1.
 MINMAX       0. 100.
 OFFSET       0.
-SCALAMENTO_ERR 1.
-MINMAX_ERR   0. 100.
 INPUT        <var> <modello>
-INPUT_ERR    [<var> <modello>]
 INDICATORE_SINCRO
 INPUT        <var> <modello>
 INPUT        <var> <modello>
@@ -1767,6 +1890,7 @@ INPUT        <var> <modello>
 OUTPUT       <var> <modello> STEP
 OUTPUT       <var> <modello> STEP
 ```
+
 
 ## 8. Le stazioni "storiche"
 
@@ -2024,6 +2148,10 @@ Note di lettura:
       - se è partita con **`net_startup`** l'interfaccia è il `banco`, che quel
         dialogo non ce l'ha: si usa `stazpag`.
       ```sh
+      lghmi                   # selettore grafico (avvia xstaz da se'); -staz = soli faceplate
+      ```
+      oppure, a riga di comando:
+      ```sh
       stazpag                 # elenco delle pagine disponibili
       xstaz 1 &               # il visualizzatore parte iconificato
       stazpag RISCBP          # apre la pagina
@@ -2067,6 +2195,18 @@ Note di lettura:
 | `la pagina p evocata dalla stazione s non e' stata definita` | `PAGINA` cita un numero mai dichiarato |
 | `IL MODELLO x CITATO ALLA RIGA n NON ESISTE` | nome del modello sbagliato su `INPUT`/`OUTPUT`, **oppure** la topologia caricata è di un altro impianto. Capita con un `r01.dat` ripreso da un altro simulatore: verificare con `strings variabili.rtf \| head` quali modelli contiene davvero |
 | `Stazione nome X non congruente con le precedenti definizioni` | stesso nome di stazione usato con definizioni diverse |
+
+### `shmctl: impossibile cancellare N n_attac=5`
+
+Messaggio dei binari **precedenti** ad agosto 2026, comparso in coda alla
+compilazione e del tutto innocuo. A fine lavoro `compstaz` prova a rimuovere il
+segmento della topologia; `distruggi_shrmem()` lo cancella **solo se non lo sta
+usando nessun altro**, e a simulazione avviata gli altri ci sono eccome
+(`dispatcher`, `net_sked`, i vari `lg5sk`, `net_prepf22`, `xstaz`). Non
+cancellarlo era quindi la cosa giusta: sbagliata era la parola "impossibile",
+che in mezzo all'output faceva pensare a un guasto. Ora quel caso non stampa
+nulla, e restano segnalati soltanto i fallimenti veri, su `stderr` e con
+`strerror()`.
 
 ### Conflitto sulla shared memory della topologia
 

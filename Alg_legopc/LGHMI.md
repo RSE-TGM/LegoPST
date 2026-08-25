@@ -1,11 +1,18 @@
-# `lghmi` — selettore grafico delle task che lancia la HMI draw2gr
+# `lghmi` — selettore grafico di HMI di processo e faceplate di comando
 
-`lghmi` apre una finestra con l'elenco delle task LegoPST; selezionandone una
-lancia la HMI di supervisione/plot **draw2gr** per quella task. Sostituisce il
-comando manuale:
+`lghmi` apre una finestra da cui si aprono le due interfacce di una simulazione:
+
+- le **pagine di processo**, cioè le task LegoPST, ognuna con la sua HMI di
+  supervisione/plot **draw2gr**;
+- i **faceplate di comando**, cioè le pagine di stazioni descritte in `r01.dat` e
+  compilate in `r02.dat`, visualizzate da **xstaz**.
+
+Senza opzioni mostra **entrambe le liste affiancate**; con `-proc` o `-staz` si
+limita a una sola. Sostituisce i comandi manuali:
 
 ```bash
-cd $HOME/legocad/<task> ; wish $LG_TIX/draw2gr.tcl 1 f22circ
+cd $HOME/legocad/<task> ; wish $LG_TIX/draw2gr.tcl 1 f22circ   # HMI di processo
+cd <dir con r02.dat>   ; xstaz 1 & ; stazpag <PAGINA>          # faceplate
 ```
 
 File: helper [`Alg_rt/bin/lghmi`](../Alg_rt/bin/lghmi) (nel PATH via profilo) +
@@ -15,22 +22,74 @@ selettore Tk [`Alg_legopc/src/tix/lghmi.tcl`](src/tix/lghmi.tcl) (deployato in
 ## Uso
 
 ```bash
-lghmi              # apre il selettore (pre-imposta il Set Sim path: vedi sotto)
+lghmi              # due liste affiancate: processo + faceplate
+lghmi -proc        # solo le pagine di processo (task -> draw2gr)
 lghmi -loc         # esplicito, identico al default
 lghmi -loc DIR     # usa DIR come dir della simulazione
 lghmi -noloc       # NON pre-imposta alcun sim path
+lghmi -staz        # solo i faceplate (pagine di r02.dat -> xstaz)
 lghmi -h           # aiuto
 ```
 
 Nella finestra:
 
-- **Doppio-click** su una task (oppure selezione + **Launch HMI**, oppure
-  **Invio**) → lancia la HMI per quella task.
+- **Doppio-click** su una voce (oppure selezione + il pulsante del suo riquadro,
+  oppure **Invio**) → apre quella pagina. Nel modo a due liste ogni riquadro ha
+  il **suo** pulsante — *Launch HMI* a sinistra, *Apri faceplate* a destra — così
+  non c'è ambiguità su cosa si sta aprendo, e il divisorio fra i due si trascina
+  per dare più spazio all'uno o all'altro. L'intestazione di ogni riquadro porta
+  il numero di voci; se una delle due non ha nulla da mostrare resta vuota, e la
+  riga di stato lo dice per entrambe.
 - **Refresh** → rilegge l'elenco delle task.
 - **Quit** (o **Esc**) → chiude **solo** il selettore. Le HMI già aperte
   **restano vive** (le chiudi tu dalla loro finestra).
 
-## Quali task compaiono — due modalità
+## Faceplate di comando (lista di destra, o `-staz`)
+
+La lista di destra (o l'intera finestra con `-staz`) elenca le **pagine di
+faceplate** — le stazioni di comando descritte in `r01.dat` e compilate in
+`r02.dat` da `compstaz` — e apre quella scelta con **`xstaz`**.
+
+```bash
+cd <dir della regolazione>   # quella con r02.dat
+lghmi                        # oppure lghmi -staz per la sola lista faceplate
+```
+
+Serve soprattutto a chi gestisce la simulazione con **`net_startup`**: quello
+script monta il `banco` (da `new_monit`), che **non ha** il dialogo delle
+stazioni: quel dialogo esiste solo in `net_monit`, avviato da `net_simula` e
+`simula`. Prima di `-staz` le pagine si potevano aprire solo da lì o a mano da
+riga di comando con `stazpag`.
+
+**Dove cerca le pagine**, in quest'ordine:
+
+1. la directory corrente, se contiene già un `r02.dat`;
+2. in modalità S01, tutte le task del simulatore — **regolazione compresa**
+   (`r01.dat`/`r02.dat` vivono nelle task `R`, non nelle `P`);
+3. altrimenti le sottodirectory di `$LG_TASKROOT`.
+
+Se le pagine provengono da più directory, il nome della directory compare in
+coda a ogni voce. Ogni riga mostra nome pagina, descrizione e numero di
+stazioni; l'elenco è letto da `stazpag -m`, che conosce il formato binario di
+`r02.dat`.
+
+**Cosa fa all'apertura**: se `xstaz` non è in esecuzione lo avvia
+(`xstaz 1`, processo indipendente, cwd = la directory del `r02.dat`; parte
+iconificato, con la sola finestrella *Quit*), poi gli manda la richiesta della
+pagina con `stazpag`. La richiesta resta in coda finché `xstaz` non la scoda,
+quindi non ci sono corse di avvio.
+
+**Un solo `xstaz` per simulazione.** La coda delle richieste
+(`SHR_USR_KEY + ID_MSG_STAZ`) è unica: due `xstaz` avviati su `r02.dat` diversi
+si ruberebbero i messaggi a vicenda. Se ne trova già uno attivo su un'altra
+directory, `lghmi -staz` non ne avvia un secondo e lo segnala, chiedendo di
+chiudere quello.
+
+Perché i faceplate mostrino valori veri la simulazione deve essere avviata **e
+inizializzata**; il dettaglio del formato `r01.dat` e del ciclo di vita sta in
+[Alg_rt/grafica/xstaz/HOWTO_faceplate.md](../Alg_rt/grafica/xstaz/HOWTO_faceplate.md).
+
+## Quali task di processo compaiono — S01 o dir-scan
 
 La sorgente della lista dipende dalla **directory da cui lanci `lghmi`**:
 

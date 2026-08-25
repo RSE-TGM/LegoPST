@@ -46,6 +46,8 @@ static char SccsID[] = "@(#)xstaz.c	1.13\t9/13/95";
 #include <Xm/PushB.h>
 #include <Xm/Form.h>
 #include <Xm/RowColumn.h>
+#include <Xm/Protocols.h>              /* XmAddWMProtocolCallback */
+#include <Xm/AtomMgr.h>                /* XmInternAtom            */
 
 #if defined UNIX
 # include <sys/ipc.h>
@@ -378,13 +380,18 @@ for(i=0;i<header.tot_staz*MAX_WIDGET_STAZ;i++)
 		{  /* test per vecchie stazioni  */
 		tipo_oggetto=(int)(t_call[i].closure);
 		}
+	/*  Le funzioni registrate da add_refresh() prendono UN solo argomento
+	    (la DATI_REFRESH), pur essendo memorizzate in un XtCallbackRec:
+	    vanno quindi chiamate con il cast alla loro vera firma. Qui le
+	    chiamate erano commentate e sostituite da "t_call[i].callback;",
+	    un'espressione senza effetto: nessun oggetto veniva mai aggiornato,
+	    e i display restavano sull'etichetta iniziale "----", i led spenti,
+	    gli indicatori fermi.  */
 	if(cont_ref==DELTA_REF)
-		/*t_call[i].callback(t_call[i].closure);*/
-		t_call[i].callback;
+		((void (*)(caddr_t))t_call[i].callback)(t_call[i].closure);
 	else
 		if(tipo_oggetto==INDICATORE_SINCRO)
-			t_call[i].callback;
-			/*t_call[i].callback(t_call[i].closure);*/
+			((void (*)(caddr_t))t_call[i].callback)(t_call[i].closure);
 	}
 time2_id=XtAppAddTimeOut(XtWidgetToApplicationContext(topLevel),
                                   (unsigned long)TREFRESH_FAST,timer_proc,NULL);
@@ -601,7 +608,18 @@ app[LUN_DES_PAG]='\0';
 */
 XtSetArg(args[i],XmNiconName,pagina[ipag].descrizione);
 XtSetArg(args[i],XmNtitle,pagina[ipag].descrizione); i++;
+/*  Chiusura dalla X del window manager: senza questo, il default Motif
+    (XmNdeleteResponse = XmDESTROY) distruggeva la finestra SENZA passare da
+    pag_del_callback, quindi pagvis[].attiva restava a 1 e pagvis[].w diventava
+    un puntatore penzolante: la pagina risultava ancora "aperta" e non si
+    poteva piu' riaprire (cnew_staz la scartava) fino al riavvio di xstaz.
+    Con XmDO_NOTHING la chiusura la gestiamo noi, con la stessa callback del
+    "quit" del menu popup.  */
+XtSetArg(args[i],XmNdeleteResponse,XmDO_NOTHING); i++;
 wTopLev=XtCreateManagedWidget(pagina[ipag].descrizione,topLevelShellWidgetClass,topLevel,args,i);
+XmAddWMProtocolCallback(wTopLev,
+                        XmInternAtom(XtDisplay(wTopLev),"WM_DELETE_WINDOW",False),
+                        (XtCallbackProc)pag_del_callback,(XtPointer)ip3);
 /* wform=XmCreateFormDialog(topLevel,"form_staz",args,i); */
 i=0;
 wform=XmCreateForm(wTopLev,"form_staz",args,i);   

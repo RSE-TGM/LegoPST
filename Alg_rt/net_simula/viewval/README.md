@@ -43,8 +43,28 @@ STOP o in ERRORE.
 |---|---|
 | ↑ ↓ / PgUp PgDn / Home End | sposta il cursore (la finestra segue, altezza presa dal terminale) |
 | `f` o `Invio` | apre la modifica del valore sulla riga selezionata |
-| `i` | torna al selettore |
+| `d` | toglie dall'elenco la riga corrente |
+| `s` | chiede un nome di file e vi salva l'elenco |
+| `i` | torna al selettore per **aggiungere** altre variabili |
 | `q` | esce |
+
+**L'elenco vive per tutta la sessione.** Premendo `i` si torna al selettore e le
+nuove scelte si **aggiungono** a quelle già a video: prima le sostituivano in
+blocco, perdendo il lavoro fatto. I doppioni vengono ignorati e i nomi che il
+simulatore non conosce sono contati e segnalati. `d` toglie la riga sotto il
+cursore — la variabile resta nel simulatore, sparisce solo dal monitor; se
+l'elenco si svuota si torna da soli al selettore.
+
+**`s` salva l'elenco** in un file riutilizzabile con `-L`:
+
+```
+A1EQTS4A          0.0700 p.u.     --UA--BL.(VCT0TS4A) LIFT OF EQUIVALENT VALVE
+ADSHRCSA          1.0000 p.u.     --IN--BL.(DSR1RCSA) DESUPERHEATING HEAT TRANSFER
+```
+
+Nome, valore corrente nelle unità visualizzate, unità e descrizione. Il
+caricamento legge **solo il primo token** di ogni riga, quindi le altre colonne
+sono lì per chi legge il file, non disturbano `viewval -L`.
 
 **Modifica di un valore.** Con `f` il cursore si porta nella cella del valore,
 che diventa un campo vuoto (il valore attuale resta scritto nel prompt in

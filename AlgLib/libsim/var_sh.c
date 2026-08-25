@@ -22,6 +22,7 @@ static char SccsID[] = "@(#)var_sh.c	5.3\t3/27/96";
    reserved @(#)var_sh.c	5.3
 */
 # include <stdio.h>
+# include <unistd.h>              /* _exit() */
 # include <math.h>
 # include <errno.h>
 # include <string.h>
@@ -681,7 +682,14 @@ buf_var = (struct stat *) malloc (sizeof (struct stat));
 	             "La compilazione non puo' proseguire.\n",
 	             shr_usr_key + ID_SHM_VAR, shr_usr_key, ID_SHM_VAR, size);
 	    fclose (fp_var);
-	    exit (1);
+	    /*  Uscita con _exit(): la exit() ordinaria si impianta in
+	        _IO_flush_all() girando a vuoto (il processo resta in stato R
+	        finche' non lo si uccide). Gli stream che ci interessano li
+	        svuotiamo a mano subito prima, cosi' la diagnosi arriva
+	        comunque e il comando termina all'istante.  */
+	    fflush (stdout);
+	    fflush (stderr);
+	    _exit (1);
 	}
 	*p_ind = ind;
 

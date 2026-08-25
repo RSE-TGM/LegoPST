@@ -98,6 +98,14 @@ mostrati dai faceplate restano fermi finché la simulazione non è inizializzata
 
 ### Aprire una pagina senza `net_monit`
 
+Il modo più comodo è **`lghmi`**: apre un selettore grafico con, a destra,
+l'elenco delle pagine (nome, descrizione, numero di stazioni); avvia `xstaz` se
+non è già attivo e gli manda la richiesta. A sinistra ci sono le pagine di
+processo, così le due interfacce della simulazione si aprono dalla stessa
+finestra; con `-staz` si limita ai faceplate, con `-proc` al processo. Vedi
+[Alg_legopc/LGHMI.md](../../../Alg_legopc/LGHMI.md). Sotto, il meccanismo a riga
+di comando su cui si appoggia.
+
 `xstaz` da solo non serve a niente: all'avvio crea unicamente una finestrella
 **iconificata** con il tasto *Quit* e poi aspetta un messaggio sulla coda
 `SHR_USR_KEY + ID_MSG_STAZ` (= `+12`), tipo `RIC_STAZ`, con il nome della
@@ -272,6 +280,34 @@ pagina, `MAX3_PAG` 20 pagine aperte insieme.
   (dimensione, processi agganciati, pid del creatore), e il chiamante esce con
   un messaggio invece di schiantarsi. Dettagli e rimedi nel capitolo 11 del
   [HOWTO](HOWTO_faceplate.md).
+- **I valori non si aggiornavano affatto** (corretto in agosto 2026): display
+  fermi sulla loro etichetta iniziale `----`, led spenti, indicatori immobili.
+  Erano due difetti in fila.
+  1. In `timer_proc()` ([xstaz.c](xstaz.c)) le due chiamate alle funzioni di
+     refresh erano **commentate** e sostituite da `t_call[i].callback;`, cioè
+     un'espressione senza effetto che il compilatore non segnala. Le funzioni
+     registrate da `add_refresh()` prendono un solo argomento pur essendo
+     conservate in un `XtCallbackRec`, quindi vanno chiamate con il cast alla
+     loro vera firma: `((void (*)(caddr_t))t_call[i].callback)(t_call[i].closure)`.
+  2. Ripristinate le chiamate, `xstaz` andava in **SIGSEGV** dentro
+     `XmStringDraw` → `_XmStringIsCurrentCharset`. Causa: sei punti fra
+     `gdisplayscal.c`, `gdisplay.c`, `sd1_r.c` e `amd_r.c` liberavano le
+     `XmString` con `XtFree()` invece di `XmStringFree()`. `XtFree` rilascia
+     solo il blocco esterno e lascia in giro le strutture interne di Motif,
+     corrompendone le tabelle di rendition. Con il refresh disattivato quel
+     codice non girava mai: disabilitando l'aggiornamento si era tolto il
+     sintomo insieme alla funzione.
+- **Chiudere una pagina con la X del window manager** non la rendeva più
+  riapribile fino al riavvio di `xstaz` (correzione di agosto 2026). Le pagine
+  aperte sono registrate in `pagvis[]`, e solo il *quit* del menu contestuale
+  passava da `pag_del_callback`, che azzera `attiva` e il puntatore al widget.
+  La X del window manager seguiva invece il default Motif
+  (`XmNdeleteResponse = XmDESTROY`): distruggeva la finestra senza toccare la
+  registrazione, così la pagina restava marcata come aperta — e `cnew_staz` la
+  scartava — con in più un puntatore penzolante in `pagvis[].w`. Ora la shell
+  della pagina è creata con `XmDO_NOTHING` e un `XmAddWMProtocolCallback` su
+  `WM_DELETE_WINDOW` che richiama la stessa callback del *quit*: le due chiusure
+  sono equivalenti.
 - **`compstaz` non ha un codice di uscita affidabile** su tutti i percorsi: si
   controlla `compstaz.log`.
 - `xstaz` e `compstaz` lavorano **entrambi nella directory corrente**: nessuna

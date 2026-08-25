@@ -13,7 +13,23 @@
 #     e' lanciata dalla propria dir modello (path relativo risolto sul S01).
 #   - altrimenti (default): sottodir di $LG_TASKROOT ($HOME/legocad) con *.tom.
 #
-# Uso:   lghmi [-loc [DIR] | -noloc]
+# Uso:   lghmi [-proc | -staz] [-loc [DIR] | -noloc]
+#   (senza -proc/-staz)
+#                 mostra DUE liste affiancate: a sinistra le pagine di processo
+#                 (task -> HMI draw2gr), a destra i faceplate di comando
+#                 (pagine di r02.dat -> xstaz). Ogni lista ha il suo pulsante;
+#                 se una delle due non ha nulla da mostrare resta vuota e lo
+#                 dice la riga di stato.
+#   -proc, --proc
+#                 solo le pagine di processo (la lista delle task).
+#   -staz, --staz
+#                 modalita' FACEPLATE: invece delle task elenca le pagine di
+#                 stazioni di comando compilate in r02.dat (da r01.dat con
+#                 compstaz) e apre quella scelta con xstaz, avviandolo se non
+#                 e' gia' attivo. Utile con net_startup, che monta il banco e
+#                 non ha il dialogo delle stazioni di net_monit. Le pagine
+#                 vengono cercate nella cwd, poi nelle task del file S01
+#                 (regolazione compresa) o nelle sottodir di $LG_TASKROOT.
 #   -loc, --loc [DIR]
 #                 pre-imposta il "Set Sim path" (menu View) delle HMI lanciate
 #                 (via LG_SIM_PATH). Senza DIR usa la directory CORRENTE da cui
@@ -44,6 +60,8 @@ WISH_ARGS=()
 while [ "$#" -gt 0 ]; do
     a="$1"
     case "$a" in
+        -staz|--staz)   WISH_ARGS+=("-staz") ;;
+        -proc|--proc)   WISH_ARGS+=("-proc") ;;
         -noloc|--noloc) LOC=0 ;;
         -loc|--loc)
             LOC=1
@@ -52,7 +70,7 @@ while [ "$#" -gt 0 ]; do
                 LOC_DIR="$2"; shift
             fi
             ;;
-        -h|--help)  sed -n '3,33p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+        -h|--help)  sed -n '3,50p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
         *)          WISH_ARGS+=("$a") ;;
     esac
     shift

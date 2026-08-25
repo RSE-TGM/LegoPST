@@ -135,7 +135,20 @@ File di topologia salvato da legopc (`fileio.tcl`). Formato testuale, contiene p
 
 ## Elementi della libreria `remark` — testo e display dinamici
 
-La libreria `LG_LIBRARIES/remark/` contiene elementi di annotazione (non moduli di simulazione). Sul canvas hanno il tag `remarkdescr` e vengono salvati nel `.tom` come testo + font (nessuna porta). Tipi:
+La libreria **`$LG_TIX/remark/`** contiene elementi di annotazione (non moduli di
+simulazione). **Sta con legopc, non con le librerie grafiche dell'utente**:
+sorgente in [src/tix/remark/](src/tix/remark/), deployata in `Alg_legopc/bin/remark`
+dal makefile di `src/tix`. Prima viveva in `LG_LIBRARIES/remark`, cioè dentro
+`libgraph/libraries` del singolo impianto, il che legava elementi generali del CAD
+all'assetto delle librerie di un modello.
+
+**Compatibilità con i modelli già salvati**: il percorso della libreria finisce
+nei tag del canvas (indice 5, `<path>.lpath`) e quindi **dentro il `.tom`** come
+percorso assoluto. `elementScript` ([src/tix/fileio.tcl](src/tix/fileio.tcl))
+intercetta il caso: se allo `lpath` salvato l'elemento non c'è, lo cerca in
+`[remarkLibPath]` **prima** di ripiegare su `bgelement.tcl` — senza quel controllo
+un `@com_0`/`@val_0` di un modello vecchio diventerebbe un decoro di sfondo,
+perdendo testo e animazione. Non serve quindi toccare i modelli esistenti. Sul canvas hanno il tag `remarkdescr` e vengono salvati nel `.tom` come testo + font (nessuna porta). Tipi:
 
 | Elemento | Classe | Inserimento | Comportamento |
 |---|---|---|---|

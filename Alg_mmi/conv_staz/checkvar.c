@@ -32,6 +32,15 @@ extern	char *ind_sh_top;
 extern  int id_sh;
 extern VARIABILI *variabili;
 
+
+/*  Stesso trattamento del compilatore gemello Alg_rt/grafica/compstaz: un '#'
+    come primo carattere "commenta" il nome, e il riferimento resta SCOLLEGATO
+    (-1), lasciando il nome in chiaro nel r01.dat. Tenuto allineato qui perche'
+    lo stesso r01.dat puo' essere compilato con compstaz (-> r02.dat per xstaz)
+    o con convstaz (-> pagine LEGOMMI): non deve comportarsi in due modi.  */
+#define COMMENTATO(s)   ((s) != NULL && (s)[0] == '#')
+#define NON_COLLEGATO   (-1)
+
 #ifdef ORIGINALE
 check_model(
  char *stringa,
@@ -39,6 +48,12 @@ check_model(
 {
 int i;
 NOMI_MODELLI *p_modelli;
+
+if (COMMENTATO(stringa))
+{
+	*imu = NON_COLLEGATO;
+	return(0);
+}
 
 if (strcmp(stringa,"modello"))  
 {
@@ -75,6 +90,12 @@ int i;
 NOMI_MODELLI *p_modelli;
 int ier;
 char nvar[MAX_LUN_NOME_VAR];
+
+if (COMMENTATO(nomevar) || imu == NON_COLLEGATO)
+{
+	*iu = NON_COLLEGATO;
+	return(0);
+}
 
 if (strcmp(nomevar,"variabil"))
 {
@@ -117,6 +138,12 @@ int i;
 NOMI_MODELLI *p_modelli;
 char nvar[MAX_LUN_NOME_VAR];
 
+
+if (COMMENTATO(nomevar) || imu == NON_COLLEGATO)
+{
+	*iu = NON_COLLEGATO;
+	return(0);
+}
 
 if (strcmp(nomevar,"variabil"))
 {

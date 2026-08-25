@@ -46,12 +46,37 @@ extern  int id_sh;
 extern VARIABILI *variabili;
 
 
+/*  Nome "commentato": un '#' come primo carattere annulla il riferimento, che
+    resta SCOLLEGATO, lasciando pero' il nome in chiaro nel file r01.dat. Serve
+    a mettere a punto una pagina prima di avere le variabili nel modello, senza
+    perdere l'informazione di quale variabile ci andra':
+
+        INPUT        #U1094FSL   CICA      -> come se la riga fosse vuota
+
+    Vale sia per il nome della variabile sia per quello del modello: se e'
+    commentato il modello il riferimento e' scollegato comunque, perche' senza
+    modello la variabile non e' risolvibile.
+
+    Si usa -1, non 0 come il segnaposto storico "variabil": -1 e' il valore che
+    i lettori riconoscono come "non collegato" (estr_sh() ritorna 0 e i comandi
+    non agiscono), mentre 0 e' un indirizzo VERO - il primo punto del database -
+    e farebbe mostrare un valore casuale.  */
+#define COMMENTATO(s)   ((s) != NULL && (s)[0] == '#')
+#define NON_COLLEGATO   (-1)
+
+
 int check_model(
  char *stringa,
  int *imu)
 {
 int i;
 NOMI_MODELLI *p_modelli;
+
+if (COMMENTATO(stringa))
+{
+	*imu = NON_COLLEGATO;
+	return(0);
+}
 
 if (strcmp(stringa,"modello"))  
 {
@@ -88,6 +113,12 @@ int i;
 NOMI_MODELLI *p_modelli;
 int ier;
 char nvar[MAX_LUN_NOME_VAR];
+
+if (COMMENTATO(nomevar) || imu == NON_COLLEGATO)
+{
+	*iu = NON_COLLEGATO;
+	return(0);
+}
 
 if (strcmp(nomevar,"variabil"))
 {
@@ -130,6 +161,12 @@ int i;
 NOMI_MODELLI *p_modelli;
 char nvar[MAX_LUN_NOME_VAR];
 
+
+if (COMMENTATO(nomevar) || imu == NON_COLLEGATO)
+{
+	*iu = NON_COLLEGATO;
+	return(0);
+}
 
 if (strcmp(nomevar,"variabil"))
 {

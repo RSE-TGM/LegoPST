@@ -1,0 +1,21 @@
+COLN_0                                                                          
+COLN                                                                            
+COLN - Collettore 1 ingresso 1 uscita                                           
+                                                                                
+NSTAT = 0
+NUSCI = 3
+NINGR = 6
+ 
+NCONF = 1
+ 
+HCOL      --UA-- FLUID ENTHALPY IN THE MANIFOLD                                 
+PCOL      --UA-- FLUID PRESSURE IN THE MANIFOLD                                 
+TCOL      --UA-- METAL TEMPERATURE IN THE MANIFOLD                              
+WE_1      --IN-- FLOW RATE IN THE ENTERING BRANCH N. 1                          
+HE_1      --IN-- ENTHALPY IN THE ENTERING BRANCH N. 1                           
+WU_1      --IN-- FLOW RATE IN THE COMING OUT BRANCH N. 1                        
+HU_1      --IN-- ENTHALPY IN THE COMING OUT BRANCH N. 1 (W<0)                   
+TEST      --IN-- FLUID TEMPERATURE OUTSIDE THE MANIFOLD                         
+GEST      --IN-- THERMAL EXCHANGE COEFF. OUTSIDE THE MANIFOLD                   
+==============================                                                  
+EOF                                                                             

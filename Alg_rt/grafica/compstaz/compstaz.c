@@ -520,6 +520,20 @@ int ipag, istaz,  j, m, k, ipx0, ipy0, ipx1, ipy1;
 			ipy0 =scomp[ipag].posiy0[j];
 			ipx1 =scomp[ipag].posix1[j];
 			ipy1 =scomp[ipag].posiy1[j];
+			/*  fill_pag e' una bitmap MAX_CEL x MAX_CEL (50x50): una pagina piu'
+			    estesa la scriveva FUORI dai limiti, corrompendo la memoria e
+			    producendo per giunta falsi "sovrapposizione di stazioni".
+			    Meglio fermarsi dicendo qual e' il limite.  */
+			if (ipx1 > MAX_CEL || ipy1 > MAX_CEL)
+			{
+				printf("\n ATTENZIONE: la pagina %d eccede le %d celle",ipag+1,MAX_CEL);
+				printf("\n la stazione %d arriva a x=%d y=%d: ridurre la pagina",
+				       scomp[ipag].staz[j],ipx1,ipy1);
+				fprintf(fo,"\n ATTENZIONE: la pagina %d eccede le %d celle (staz %d: x=%d y=%d)",
+				        ipag+1,MAX_CEL,scomp[ipag].staz[j],ipx1,ipy1);
+				distruggi_var(id_sh);
+				exit (puts("\nIl programma COMPSTAZ termina per errore"));
+			}
 			for (k=ipx0; k<ipx1; k++)
 			{
 				for (m=ipy0; m<ipy1; m++)
