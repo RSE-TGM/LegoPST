@@ -185,9 +185,10 @@ $KSIM/kMmi.cfg            ← quali istanze esistono, su quale host e per quale 
 | passo | procedura | cosa fa |
 |---|---|---|
 | 0 | [Alg_env.sh:336](../Alg_env.sh#L336) | definisce `KPAGES=$KSIM/globpages` |
-| 1 | [kGlobContext](../kprocedure/kGlobContext.sh) | `cd $KPAGES`, elenca i `*.pag` con `ls \| grep pag$`, estrae da ciascuno gli attributi e **rigenera** `Context.ctx` (con `*pages: $KPAGES`, `*simulator: $KSIM`, le librerie in `$HOME/legocad/libut_reg/libreg`). Il vecchio finisce in `Context.ctx.kold` |
-| 2 | [kMmiConfig](../kprocedure/kMmiConfig.sh) | `rm -rf ${KPAGES}_*`; per ogni riga di `kMmi.cfg` relativa a questo host/utente crea `${KPAGES}_<id>/Context.ctx`, copia del globale con il solo `*hostNameS` completato con l'id SCADA |
-| 3 | [kMmi](../kprocedure/kMmi.sh) `[id]` | mostra le istanze disponibili, poi `cd ${KPAGES}_<id>`, imposta `MMI_ULEVEL`, `. kuser 77<idScada>` e lancia `mmi &` |
+| 1 | [kMakeGlobpages](../kprocedure/kMakeGlobpages.sh) | popola `$KPAGES` a partire dalle task di regolazione dichiarate in `al_sim.conf`: riloca i `.rtf` con posizione e offset del modello e scrive un primo `Context.ctx`. Quali pagine appartengono a quale task lo dice la colonna `filespec` ([docs/AL_SIM_CONF.md](../docs/AL_SIM_CONF.md)) |
+| 2 | [kGlobContext](../kprocedure/kGlobContext.sh) | `cd $KPAGES`, elenca i `*.pag` con `ls \| grep pag$`, estrae da ciascuno gli attributi e **rigenera** `Context.ctx` (con `*pages: $KPAGES`, `*simulator: $KSIM`, le librerie in `$HOME/legocad/libut_reg/libreg`). Il vecchio finisce in `Context.ctx.kold` |
+| 3 | [kMmiConfig](../kprocedure/kMmiConfig.sh) | `rm -rf ${KPAGES}_*`; per ogni riga di `kMmi.cfg` relativa a questo host/utente crea `${KPAGES}_<id>/Context.ctx`, copia del globale con il solo `*hostNameS` completato con l'id SCADA |
+| 4 | [kMmi](../kprocedure/kMmi.sh) `[id]` | mostra le istanze disponibili, poi `cd ${KPAGES}_<id>`, imposta `MMI_ULEVEL`, `. kuser 77<idScada>` e lancia `mmi &` |
 
 Formato di `$KSIM/kMmi.cfg` — un'istanza per riga, campi separati da `;`:
 

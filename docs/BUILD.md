@@ -89,7 +89,7 @@ Poi: `ksetsim <nome>`, adattare `al_sim.conf` (`TITLE`, `BASEPATH`,
 
 | File | Contiene | Template |
 |---|---|---|
-| `al_sim.conf` | **composizione**: titolo, path, host, config MMI, elenco delle task (`P`=processo, `R`=regolazione) con dt e descrizione. È l'input di `connex2`. | `util97/bin/al_sim.conf.example` |
+| `al_sim.conf` | **composizione**: titolo, path, host, config MMI, elenco delle task (`P`=processo, `R`=regolazione) con dt e descrizione. È l'input di `connex2`. Come si compila: [AL_SIM_CONF.md](AL_SIM_CONF.md). | `util97/bin/al_sim.conf.example` |
 | `Simulator` | **dimensionamento** runtime: `MAX_CAMPIONI`, `NUM_VAR`, snapshot, backtrack | `lego_big/procedure/Simulator.tpl` |
 
 I default di `Simulator.tpl` sono `MAX_CAMPIONI: 14400` e `NUM_VAR: 10000`. Gli

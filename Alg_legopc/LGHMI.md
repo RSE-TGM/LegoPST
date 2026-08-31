@@ -33,13 +33,19 @@ lghmi -h           # aiuto
 
 Nella finestra:
 
-- **Doppio-click** su una voce (oppure selezione + il pulsante del suo riquadro,
-  oppure **Invio**) → apre quella pagina. Nel modo a due liste ogni riquadro ha
-  il **suo** pulsante — *Launch HMI* a sinistra, *Apri faceplate* a destra — così
-  non c'è ambiguità su cosa si sta aprendo, e il divisorio fra i due si trascina
-  per dare più spazio all'uno o all'altro. L'intestazione di ogni riquadro porta
-  il numero di voci; se una delle due non ha nulla da mostrare resta vuota, e la
-  riga di stato lo dice per entrambe.
+- **Per aprire una pagina** ci sono tre strade, tutte sulla voce della lista:
+  **doppio-click**, **Invio** sulla voce selezionata, oppure **tasto destro**, che
+  apre un popup minuscolo con il solo pulsante *Open page*. Non ci sono pulsanti
+  di apertura nella finestra: l'azione sta dove sta l'oggetto, e nel modo a due
+  liste questo toglie ogni ambiguità su cosa si sta aprendo.
+- Il **tasto destro seleziona prima la voce sotto il cursore**, quindi il popup
+  agisce su quella che hai puntato e non sulla selezione precedente. Si chiude
+  con **Esc** o con un click fuori dal pulsante; finché è aperto tiene un grab
+  locale, così un click altrove lo congeda invece di finire sulla lista.
+- L'intestazione di ogni riquadro porta il numero di voci; se una delle due liste
+  non ha nulla da mostrare resta vuota, e la riga di stato lo dice per entrambe.
+  Il divisorio fra i due riquadri si trascina per dare più spazio all'uno o
+  all'altro.
 - La finestra parte **680x328**, la stessa larghezza del **banco** (`new_monit`),
   con le due liste di pari larghezza: le due finestre si usano insieme, una sopra
   l'altra, e allineate stanno meglio. Il divisorio resta trascinabile e la

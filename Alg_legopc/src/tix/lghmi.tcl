@@ -540,6 +540,51 @@ proc verifica_mmi {prima dir log} {
     .status configure -text "mmi NON avviato - vedi $log"
 }
 
+#  Popup minimo del tasto destro: una finestrella senza decorazioni con il solo
+#  pulsante "Open page". Il tasto destro prima SELEZIONA la voce sotto il
+#  cursore, cosi' il popup agisce su quella puntata e non sulla selezione
+#  precedente; poi la apre con la stessa azione del doppio click.
+proc chiudi_popup {} {
+    if {[winfo exists .popup_open]} {
+        catch {grab release .popup_open}
+        destroy .popup_open
+    }
+}
+
+#  Un click fuori dal pulsante chiude il popup. Il grab e' LOCALE: i figli di
+#  .popup_open ricevono i loro eventi normalmente (il pulsante funziona), tutto
+#  il resto arriva qui.
+proc popup_fuori {X Y} {
+    if {[winfo containing $X $Y] ne ".popup_open.b"} { chiudi_popup }
+}
+
+proc esegui_popup {azione} {
+    chiudi_popup
+    uplevel #0 $azione
+}
+
+proc popup_open_page {lb azione y X Y} {
+    chiudi_popup
+    if {[$lb size] == 0} { return }
+    set i [$lb nearest $y]
+    if {$i < 0} { return }
+    $lb selection clear 0 end
+    $lb selection set $i
+    $lb activate $i
+    toplevel .popup_open -bd 1 -relief solid
+    wm overrideredirect .popup_open 1
+    wm geometry .popup_open +[expr {$X + 2}]+[expr {$Y + 2}]
+    button .popup_open.b -text "Open page" -padx 6 -pady 2 \
+                         -command [list esegui_popup $azione]
+    pack .popup_open.b
+    bind .popup_open <Escape>      { chiudi_popup }
+    bind .popup_open <ButtonPress> { popup_fuori %X %Y }
+    update idletasks
+    raise .popup_open
+    focus .popup_open
+    grab set .popup_open
+}
+
 # --- Interfaccia ---------------------------------------------------------
 if {$doppia} {
     wm title . "LegoPST - HMI e faceplate"
@@ -558,9 +603,12 @@ if {$doppia} {
 
 label .head -anchor w -padx 6 -pady 4 -text [expr {
         $doppia   ? "A sinistra le pagine di processo (draw2gr), a destra i faceplate di comando (xstaz)" :
-        $stazmode ? "Seleziona una pagina di faceplate e aprila (xstaz)" :
-                    "Seleziona una task e lancia la HMI (draw2gr)"}]
+        $stazmode ? "Le pagine di faceplate di comando (xstaz)" :
+                    "Le task di processo e la loro HMI (draw2gr)"}]
+label .hint -anchor w -padx 6 -foreground "#505050" -text \
+    "Per aprire: doppio click sulla voce, oppure tasto destro -> Open page"
 pack .head -side top -fill x
+pack .hint -side top -fill x
 
 if {$s01mode} {
     # Intestazione simulatore (testo impostato da riempi_proc dopo il parsing).
@@ -576,14 +624,9 @@ if {$SIMPATH ne ""} {
     pack .loc -side top -fill x
 }
 
-# Barra in basso: Refresh e Quit sono comuni; il pulsante d'azione sta qui solo
-# quando la lista e' una sola (in modalita' doppia ogni riquadro ha il suo).
+# Barra in basso: Refresh, mmi e Quit. Le pagine si aprono dalla lista (doppio
+# click o tasto destro), non da un pulsante.
 frame .btn
-if {!$doppia} {
-    button .btn.launch -text [expr {$stazmode ? "Apri faceplate" : "Launch HMI"}] \
-                       -command [expr {$stazmode ? "apri_faceplate" : "launch_hmi"}]
-    pack .btn.launch -side left -padx 4 -pady 6
-}
 button .btn.refresh -text "Refresh" -command refresh_list
 button .btn.quit    -text "Quit"    -command exit
 # Lancio di un'altra applicazione, non un'azione sulla lista: sta al centro
@@ -604,7 +647,7 @@ pack .status -side bottom -fill x
 
 #  Costruisce un riquadro "intestazione + lista + pulsante". Ritorna il path
 #  della listbox.
-proc crea_riquadro {parent titolo larghezza testo_bottone azione} {
+proc crea_riquadro {parent titolo larghezza} {
     frame $parent
     if {$titolo ne ""} {
         label $parent.h -text $titolo -anchor w -padx 4 -pady 2 -foreground "#000080"
@@ -617,10 +660,6 @@ proc crea_riquadro {parent titolo larghezza testo_bottone azione} {
     pack $parent.f.sb -side right -fill y
     pack $parent.f.lb -side left -fill both -expand 1
     pack $parent.f -side top -fill both -expand 1
-    if {$testo_bottone ne ""} {
-        button $parent.b -text $testo_bottone -command $azione
-        pack   $parent.b -side bottom -fill x -padx 4 -pady 4
-    }
     return $parent.f.lb
 }
 
@@ -630,24 +669,28 @@ if {$doppia} {
     # hanno etichette piu' lunghe, ma il divisorio si trascina.
     panedwindow .pw -orient horizontal -sashrelief raised -sashwidth 6
     pack .pw -side top -fill both -expand 1 -padx 6 -pady 2
-    set LB_PROC [crea_riquadro .pw.proc "Pagine di processo" 39 "Launch HMI"     launch_hmi]
-    set LB_STAZ [crea_riquadro .pw.staz "Faceplate xstaz"    39 "Apri faceplate" apri_faceplate]
+    set LB_PROC [crea_riquadro .pw.proc "Pagine di processo" 39]
+    set LB_STAZ [crea_riquadro .pw.staz "Faceplate xstaz"    39]
     .pw add .pw.proc -minsize 180
     .pw add .pw.staz -minsize 180
     bind $LB_PROC <Double-1> { launch_hmi }
     bind $LB_PROC <Return>   { launch_hmi }
     bind $LB_STAZ <Double-1> { apri_faceplate }
     bind $LB_STAZ <Return>   { apri_faceplate }
+    bind $LB_PROC <Button-3> [list popup_open_page $LB_PROC launch_hmi     %y %X %Y]
+    bind $LB_STAZ <Button-3> [list popup_open_page $LB_STAZ apri_faceplate %y %X %Y]
 } elseif {$stazmode} {
-    set LB_STAZ [crea_riquadro .f "" 68 "" ""]
+    set LB_STAZ [crea_riquadro .f "" 68]
     pack .f -side top -fill both -expand 1 -padx 6 -pady 2
     bind $LB_STAZ <Double-1> { apri_faceplate }
     bind . <Return>          { apri_faceplate }
+    bind $LB_STAZ <Button-3> [list popup_open_page $LB_STAZ apri_faceplate %y %X %Y]
 } else {
-    set LB_PROC [crea_riquadro .f "" 34 "" ""]
+    set LB_PROC [crea_riquadro .f "" 34]
     pack .f -side top -fill both -expand 1 -padx 6 -pady 2
     bind $LB_PROC <Double-1> { launch_hmi }
     bind . <Return>          { launch_hmi }
+    bind $LB_PROC <Button-3> [list popup_open_page $LB_PROC launch_hmi %y %X %Y]
 }
 
 bind . <Escape> { exit }
