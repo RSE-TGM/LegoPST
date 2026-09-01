@@ -6,7 +6,7 @@ sono raggruppate in **pagine**. Due programmi:
 
 | Programma | Dove | Ruolo |
 |---|---|---|
-| **`compstaz`** | `Alg_rt/bin` ([sorgente](compstaz.c) in `Alg_rt/grafica/compstaz/`) | compila il file di configurazione `r01.dat` e produce `r02.dat` |
+| **`compstaz`** | `Alg_rt/bin` ([sorgente](../compstaz/compstaz.c) in `Alg_rt/grafica/compstaz/`) | compila il file di configurazione `r01.dat` e produce `r02.dat` |
 | **`xstaz`** | `Alg_rt/bin` ([xstaz.c](xstaz.c)) | applicazione Motif che legge `r02.dat` e disegna le pagine di stazioni |
 | **`stazpag`** | `Alg_rt/bin` ([stazpag.c](stazpag.c)) | elenca le pagine di `r02.dat` e ne chiede la visualizzazione a `xstaz` |
 
@@ -22,6 +22,11 @@ compstaz                        # -> r02.dat + compstaz.log
 xstaz 1                         # visualizzatore (di norma lo lancia net_monit)
 ```
 
+In una catena di aggiornamento conviene usare la procedura
+[`kCompStaz`](../../../kprocedure/kCompStaz.sh) invece del binario nudo: fa la
+stessa cosa in `$KSIM`, ma restituisce un **exit status utilizzabile** (vedi
+*Trappole*) e controlla che `variabili.rtf` ci sia.
+
 `compstaz` **non prende argomenti** e lavora interamente nella directory
 corrente. Prima di leggere `r01.dat` aggancia la **shared memory della topologia**
 (chiave `SHR_USR_KEY + 5`) dimensionandola su `variabili.rtf`: serve perché ogni
@@ -31,6 +36,31 @@ la topologia del simulatore. Se `variabili.rtf` manca si ferma subito con
 
 Gli errori di compilazione finiscono in **`compstaz.log`** oltre che a video, e
 sono fatali: alla prima riga malformata il programma esce.
+
+### Il gemello `convstaz`, per l'MMI
+
+Lo **stesso `r01.dat`** può essere compilato anche da
+[`convstaz`](../../../Alg_mmi/conv_staz/), che appartiene al mondo `Alg_mmi`: è un
+fork di `compstaz` — stesso parser, stessi moduli per tipo di oggetto — che invece
+del binario produce **una pagina `<NOME>.pag` per ogni blocco `PAGINA`**, cioè lo
+stesso faceplate reso dall'MMI anziché da `xstaz`.
+
+Le due strade sono indipendenti e non vanno confuse:
+
+| | `compstaz` | `convstaz` |
+|---|---|---|
+| uscita | `r02.dat` (binario) | `<NOME>.pag` (risorse X, `*top_tipo: Stazioni`) |
+| la legge | `xstaz`, `net_monit` | l'MMI, dopo compilazione in `.rtf` |
+| serve `variabili.rtf` | **sì**, risolve gli indici delle variabili | no: i suoi `check_*` sono stub |
+
+`convstaz` **non** scrive `r02.dat` (la scrittura, ereditata dal progenitore e
+per giunta con indici sempre a 1, è stata rimossa nel settembre 2026): il file
+binario lo produce solo `compstaz`.
+
+Con l'opzione `-d <dir>` `convstaz` deposita pagina e sfondo dove serve, e la
+procedura [`kStazPages`](../../../kprocedure/kStazPages.sh) porta i faceplate
+descritti nei `r01.dat` fin dentro l'MMI. Il dettaglio è in
+[Alg_mmi/README.md](../../../Alg_mmi/README.md#5-da-dove-vengono-le-pagine-i-tre-generatori).
 
 `xstaz` prende **un solo argomento**, `tipo_staz`:
 
@@ -267,8 +297,28 @@ Gli oggetti elementari che compongono un tipo sono `LED`, `PULSANTE`,
 `MAX_PAG` 500 pagine, `MAX_STAZ` 2000 stazioni, `MAX_OGG` 200 stazioni per
 pagina, `MAX3_PAG` 20 pagine aperte insieme.
 
+Nomi: `LUN_NOM_PAG` e `LUN_NOM_STAZ` valgono **8 caratteri**, `LUN_DES_PAG` 50.
+Il `NOME` di una pagina piu' lungo di 8 caratteri sforava nel campo descrizione
+che segue nella struttura; da settembre 2026 `compstaz` e `convstaz` lo rifiutano
+con un messaggio.
+
 ## Trappole
 
+- **`compstaz` restituisce 24 anche quando va bene.** Termina con
+  `exit(puts("\nFine corretta COMPSTAZ"))`, e `puts` restituisce il numero di
+  caratteri stampati: 24 in caso di successo, 42 in caso di errore di sintassi.
+  Due conseguenze: in una catena `cmd1 && compstaz && cmd2` la catena **si ferma
+  dopo `compstaz`** anche se è andato tutto bene, e l'exit status non distingue
+  il successo dall'errore. L'unico segnale affidabile è l'output (`Fine corretta`
+  contro `termina per errore`): è così che lo verifica
+  [`kCompStaz`](../../../kprocedure/kCompStaz.sh), che espone 0 o 1 come si deve.
+  Lo stesso vale per `convstaz`, che condivide il codice.
+- **`r02.dat` va rigenerato dopo aver ricompilato le task.** `net_compi` riscrive
+  `variabili.rtf`, e `compstaz` risolve gli indici delle variabili contro quel
+  file: se le task vengono ricompilate e i faceplate no, gli indici possono non
+  corrispondere più e le stazioni leggono punti sbagliati. Il sintomo è muto —
+  nessun errore, solo valori inattesi. Un `ls -l r02.dat variabili.rtf` dice
+  subito se il primo è più vecchio del secondo.
 - **Topologia di un altro modello in memoria.** Se alla chiave
   `SHR_USR_KEY + 5` c'è già un segmento che non corrisponde al modello da
   compilare, `compstaz` non può proseguire. Fino ad agosto 2026 il sintomo era un

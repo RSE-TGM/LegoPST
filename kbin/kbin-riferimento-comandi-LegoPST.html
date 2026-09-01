@@ -105,14 +105,14 @@
   <header class="top">
     <div class="eyebrow">LegoPST · kprocedure</div>
     <h1><span class="mono">kbin/</span> — riferimento dei comandi</h1>
-    <p class="lede">I 189 script Korn-shell dell'ambiente k di LegoPST (build, esecuzione,
+    <p class="lede">I 191 script Korn-shell dell'ambiente k di LegoPST (build, esecuzione,
       SCADA/MMI, manutenzione di un simulatore d'impianto). Scopo di ciascuno, raggruppato per
       funzione. Ricostruito ispezionando header, log e operazioni dei singoli script. In cima,
       le funzioni d'ambiente <span class="mono">ksetsim</span>/<span class="mono">ksims</span>
       (definite in <span class="mono">Alg_env.sh</span>, non in <span class="mono">kbin/</span>).</p>
   </header>
 
-  <div class="stats" id="stats"><div class="stat"><b>189</b><span>script kbin</span></div><div class="stat"><b>78</b><span>comandi principali</span></div><div class="stat"><b>21</b><span>wrapper background</span></div><div class="stat"><b>35</b><span>sotto-passi (slave)</span></div><div class="stat"><b>3</b><span>funzioni ambiente</span></div></div>
+  <div class="stats" id="stats"><div class="stat"><b>191</b><span>script kbin</span></div><div class="stat"><b>80</b><span>comandi principali</span></div><div class="stat"><b>21</b><span>wrapper background</span></div><div class="stat"><b>35</b><span>sotto-passi (slave)</span></div><div class="stat"><b>3</b><span>funzioni ambiente</span></div></div>
 
   <div class="legend">
     <span class="row"><b>Convenzioni di nome:</b></span>
@@ -227,6 +227,8 @@ const D = [
   ["kWinContext","scada","main","Costruisce il context delle finestre MMI."],
   ["kMakeWin","scada","main","Costruisce le liste finestre MMI (in <code>$KWIN</code>)."],
   ["kOw","scada","main","Costruisce le Operating Window (finestre operative MMI)."],
+  ["kStazPages","scada","main","Porta in <code>$KWIN</code> i faceplate dei <code>r01.dat</code> (via <code>convstaz -d</code>) col prefisso <code>O_</code>, pronti per kWinContext + compilazione + kCollect."],
+  ["kCompStaz","build","main","Compila i faceplate (<code>r01.dat</code> &rarr; <code>r02.dat</code>) per xstaz, con exit status utilizzabile: <code>compstaz</code> da solo esce con 24 anche quando riesce."],
   ["kPlace","scada","main","Piazzamento (placement) di pagine/widget MMI."],
   ["kpag","scada","util","Costruisce la lista pagine (<code>Context.ctx</code>) dai <code>????.pag</code>."],
   ["kRenamePage","scada","main","Rinomina una pagina MMI."],

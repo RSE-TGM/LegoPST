@@ -97,6 +97,46 @@ stessi valori sono **ripetuti come fallback** in tutti gli script di avvio
 (`startup`, `net_startup`, `simula`, `net_startup_headless`, …), usati quando il
 file `Simulator` manca: cambiando i default vanno allineati anche lì.
 
+## Aggiornare la configurazione di un simulatore
+
+Dopo aver modificato modelli, schemi o faceplate, la configurazione si riallinea
+con questa catena — è l'alias `upsim` definito in [Alg_env.sh](../Alg_env.sh):
+
+```sh
+cd $KSIM && kConnex && net_compi && kCompStaz && kStazPages && kWinContext && kCompileSim && kCollect
+```
+
+| passo | cosa rifà |
+|---|---|
+| `kConnex` | topologia e connessioni fra task → `S01` |
+| `net_compi` | compilazione delle task → `variabili.rtf` |
+| `kCompStaz` | faceplate per `xstaz` → `r02.dat` |
+| `kStazPages` | gli stessi faceplate come pagine MMI → `$KWIN/O_*.pag` |
+| `kWinContext` | `Context.ctx` di `$KWIN` |
+| `kCompileSim` | compila le pagine di `$KWIN` → `.rtf` |
+| `kCollect` | raccolta in `globpages` + `kMmiConfig` |
+
+Chi non porta i faceplate nell'MMI usa la variante corta, `upsimx`:
+`kConnex && net_compi && kCompStaz && kCollect`.
+
+Due cose da sapere, entrambe imparate sul campo:
+
+- **I comandi vanno scritti in CamelCase.** Le versioni minuscole (`kconnex`,
+  `kcollect`, `knetcompi`…) sono wrapper di tre righe che lanciano il comando in
+  **background** (`. $KBIN/kConnex $* &`): ritornano subito, quindi in una catena
+  `&&` non sequenziano niente e l'exit status è sempre 0.
+- **`kCompStaz` esiste per rimediare a un exit status inutilizzabile.**
+  `compstaz` termina con `exit(puts(...))`, cioè restituisce il numero di
+  caratteri stampati: 24 quando riesce, 42 quando fallisce. Messo in una catena
+  `&&` la interrompe anche dopo un successo. La procedura ricava l'esito
+  dall'output e restituisce 0 o 1. Vale lo stesso per `convstaz`, che infatti
+  viene lanciato da `kStazPages`.
+
+L'ordine non è arbitrario: `net_compi` riscrive `variabili.rtf`, e `kCompStaz`
+risolve gli indici delle variabili contro quel file — ricompilare le task senza
+ricompilare i faceplate lascia `r02.dat` con indici che possono non corrispondere
+più, senza alcun messaggio d'errore.
+
 ## `kDiffS01` / `diffs01` — coerenza delle variabili di interconnessione
 
 Strumento *kprocedure* che, per un simulatore **composto** (descritto da un file `S01`, vedi la sezione `lghmi`/`S01` più sotto), stampa i **valori di stazionario delle variabili di interconnessione** tra le task dello scheduler: serve a verificare che l'uscita di una task e l'ingresso connesso su un'altra abbiano **valori coerenti**.

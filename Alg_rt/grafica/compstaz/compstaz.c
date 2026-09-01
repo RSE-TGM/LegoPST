@@ -262,6 +262,12 @@ numbyte=sscanf(string[1].stringa,"%3d",&ipag);
 	 strcpy(aux,"la riga seguente non e' del tipo: NOME aaaaaaaa");
   		goto errore;
 	}
+  if (string[1].lun_stringa > LUN_NOM_PAG)
+  {
+	sprintf(aux,"il NOME della pagina supera %d caratteri: %s",
+		LUN_NOM_PAG,string[1].stringa);
+	goto errore;
+  }
   strcpy(pag.p[numero_pag].nome,string[1].stringa);
 
 /* cerca la descrizione della pagina  */

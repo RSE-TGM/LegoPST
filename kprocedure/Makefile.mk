@@ -58,6 +58,8 @@ $(ALTERLEGO_BIN)/kConnexSlave1 \
 $(ALTERLEGO_BIN)/kControlM \
 $(ALTERLEGO_BIN)/kcreabasic \
 $(ALTERLEGO_BIN)/kcreastaz \
+$(ALTERLEGO_BIN)/kStazPages \
+$(ALTERLEGO_BIN)/kCompStaz \
 $(ALTERLEGO_BIN)/kc \
 $(ALTERLEGO_BIN)/kDangerPipo \
 $(ALTERLEGO_BIN)/kdbx \
@@ -381,6 +383,14 @@ $(ALTERLEGO_BIN)/kcreabasic: kcreabasic.sh
 	chmod 755 $@
 
 $(ALTERLEGO_BIN)/kcreastaz: kcreastaz.sh
+	cp $? $@
+	chmod 755 $@
+
+$(ALTERLEGO_BIN)/kStazPages: kStazPages.sh
+	cp $? $@
+	chmod 755 $@
+
+$(ALTERLEGO_BIN)/kCompStaz: kCompStaz.sh
 	cp $? $@
 	chmod 755 $@
 

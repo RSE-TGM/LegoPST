@@ -96,7 +96,7 @@ DESCRIZIONE  Livello RISCALDATORI BP
 | Riga | Obbligo | Significato |
 |---|---|---|
 | `NUMERO` | sì | identificatore 1..500 citato dalle stazioni. **Non serve che i numeri siano contigui**: `compstaz` tiene una tabella di svincolo fra numero dichiarato e indice reale. Numero ripetuto = errore |
-| `NOME` | sì | nome della pagina; è quello che `net_monit` invia a `xstaz` per aprirla |
+| `NOME` | sì | nome della pagina; è quello che `net_monit` invia a `xstaz` per aprirla. **Massimo 8 caratteri**: il campo è `char nome[LUN_NOM_PAG+1]` e oltre quella lunghezza la copia sfora nella descrizione che segue nella struttura. Da settembre 2026 `compstaz` e `convstaz` se ne accorgono e si fermano con un messaggio |
 | `DESCRIZIONE` | sì | testo libero mostrato nell'elenco di `net_monit` accanto al nome |
 
 Tutte le pagine vanno dichiarate **prima** delle stazioni che le citano? No: si

@@ -67,7 +67,7 @@ delle colonne, che è lì solo per chi legge.
 > `*hostNameS`. Se valorizzata, `mmi` conclude che deve collegarsi a uno SCADA,
 > lancia `client_scada` e si blocca in timeout aspettando un server che non
 > esiste. Il meccanismo è spiegato in
-> [Alg_mmi/README.md](../Alg_mmi/README.md#6-due-configurazioni-mmi-locale-o-mmi-clientscada).
+> [Alg_mmi/README.md](../Alg_mmi/README.md#7-due-configurazioni-mmi-locale-o-mmi-clientscada).
 
 `kMakeGlobpages` fa `eval` di **ogni** riga che comincia per `MMI`, quindi da
 `al_sim.conf` si possono sovrascrivere anche i suoi default interni:

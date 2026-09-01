@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LegoPST &mdash; indice ragionato della documentazione</title>
+<style>
+:root{
+  --fg:#1c1f23; --fg-soft:#5a6472; --bg:#ffffff; --bg-alt:#f5f7fa;
+  --line:#dde3ea; --accent:#12507e; --accent-soft:#e8f0f7;
+  --warn:#8a5300; --warn-bg:#fdf3e2; --ok:#2f6b3a; --ok-bg:#e9f4ec;
+  --hist:#5c4b8a; --hist-bg:#efeaf7;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --fg:#e6e9ee; --fg-soft:#a3adbb; --bg:#15181c; --bg-alt:#1c2126;
+    --line:#2c333b; --accent:#7fb8e6; --accent-soft:#1d2c38;
+    --warn:#e0b070; --warn-bg:#33280f; --ok:#8fd0a0; --ok-bg:#172a1c;
+    --hist:#b7a6e0; --hist-bg:#241d33;
+  }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);
+  font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}
+.wrap{max-width:1080px;margin:0 auto;padding:0 20px 80px}
+header{border-bottom:1px solid var(--line);background:var(--bg-alt);margin-bottom:26px}
+header .wrap{padding-top:28px;padding-bottom:22px}
+h1{margin:0 0 6px;font-size:26px;letter-spacing:-.01em}
+.sub{color:var(--fg-soft);margin:0 0 16px;max-width:70ch}
+h2{font-size:19px;margin:38px 0 4px;padding-top:14px;border-top:2px solid var(--line);
+   scroll-margin-top:16px}
+h2 .n{color:var(--fg-soft);font-weight:400;font-size:14px;margin-left:8px}
+.scopo{color:var(--fg-soft);margin:2px 0 14px;max-width:78ch;font-size:14px}
+nav.toc{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 8px}
+nav.toc a{font-size:13px;text-decoration:none;color:var(--accent);
+  background:var(--accent-soft);border:1px solid var(--line);border-radius:20px;padding:3px 11px}
+nav.toc a:hover{border-color:var(--accent)}
+#filtro{width:100%;max-width:420px;padding:9px 12px;font-size:14px;color:var(--fg);
+  background:var(--bg);border:1px solid var(--line);border-radius:6px}
+#filtro:focus{outline:2px solid var(--accent);outline-offset:-1px}
+.conta{color:var(--fg-soft);font-size:13px;margin-left:10px}
+.scheda{border:1px solid var(--line);border-radius:8px;padding:12px 14px;margin:0 0 10px;background:var(--bg)}
+.scheda:hover{border-color:var(--accent)}
+.scheda .riga1{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px}
+.scheda a.tit{font-weight:600;color:var(--accent);text-decoration:none;font-size:15px}
+.scheda a.tit:hover{text-decoration:underline}
+.path{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px;
+  color:var(--fg-soft);word-break:break-all}
+.b{font-size:11px;font-weight:700;letter-spacing:.03em;padding:1px 7px;border-radius:4px;
+   text-transform:uppercase;white-space:nowrap}
+.b.md{background:var(--ok-bg);color:var(--ok)} .b.html{background:var(--accent-soft);color:var(--accent)}
+.b.pdf{background:var(--warn-bg);color:var(--warn)} .b.doc{background:var(--warn-bg);color:var(--warn)}
+.b.txt{background:var(--bg-alt);color:var(--fg-soft)}
+.b.storico{background:var(--hist-bg);color:var(--hist)}
+.b.locale{background:var(--warn-bg);color:var(--warn)}
+.scheda p{margin:7px 0 0;font-size:14px}
+.scheda p.uso{color:var(--fg-soft)}
+.scheda p.uso b{color:var(--fg)}
+.nota{background:var(--bg-alt);border-left:3px solid var(--accent);padding:11px 14px;
+      margin:14px 0;font-size:14px;border-radius:0 6px 6px 0}
+.nota.attenzione{border-left-color:var(--warn)}
+ul.piatta{margin:8px 0 0;padding-left:20px;font-size:14px;color:var(--fg-soft)}
+ul.piatta code{color:var(--fg)}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px;
+     background:var(--bg-alt);padding:1px 5px;border-radius:4px}
+footer{margin-top:44px;padding-top:16px;border-top:1px solid var(--line);
+       color:var(--fg-soft);font-size:13px}
+.vuoto{display:none;color:var(--fg-soft);padding:14px 0}
+</style>
+</head>
+<body>
+
+<header>
+<div class="wrap">
+  <h1>LegoPST &mdash; indice ragionato della documentazione</h1>
+  <p class="sub">La documentazione di LegoPST si è stratificata in trent'anni: manuali Word e
+  help ipertestuali degli anni '90, note di porting, e i documenti Markdown scritti di recente
+  accanto al codice che descrivono. Questa pagina li mette in fila per <b>ambito</b> e dice
+  <b>quando serve</b> ciascuno.</p>
+  <input id="filtro" type="search" placeholder="Filtra: scrivi xstaz, mmi, porting, fmu&hellip;"
+         autocomplete="off"><span class="conta" id="conta"></span>
+</div>
+</header>
+
+<div class="wrap">
+
+<nav class="toc">
+  <a href="#orient">1. Orientamento</a>
+  <a href="#config">2. Configurare un simulatore</a>
+  <a href="#cad">3. CAD legopc</a>
+  <a href="#runtime">4. Run-time e HMI</a>
+  <a href="#mmi">5. MMI SCADA-like</a>
+  <a href="#fmu">6. FMU e co-simulazione</a>
+  <a href="#help">7. Help ipertestuale storico</a>
+  <a href="#storici">8. Manuali Word e PDF</a>
+  <a href="#porting">9. Porting e container</a>
+  <a href="#note">10. Note di lavoro</a>
+  <a href="#fuori">11. Fuori dal repository</a>
+  <a href="#escluso">12. Cosa non è qui</a>
+</nav>
+
+<div class="nota">
+  <b>Come leggere le voci.</b> I badge dicono il formato e lo stato:
+  <span class="b md">md</span> testo Markdown &mdash; nel browser si apre come testo semplice, la
+  resa formattata la dà l'editor;
+  <span class="b html">html</span> ipertesto navigabile;
+  <span class="b doc">doc</span> Word (serve LibreOffice);
+  <span class="b pdf">pdf</span>;
+  <span class="b txt">txt</span>;
+  <span class="b storico">storico</span> materiale d'epoca, valido come riferimento ma non
+  aggiornato al presente;
+  <span class="b locale">solo working copy</span> file in <code>.gitignore</code>, non arriva a chi
+  clona il repository.
+</div>
+
+<!-- ============================================================ -->
+<h2 id="orient">1. Orientamento generale <span class="n">5 documenti</span></h2>
+<p class="scopo">Da leggere prima di toccare qualsiasi cosa: che cos'è LegoPST, come si mette in
+piedi l'ambiente, come si compila.</p>
+
+<div class="scheda">
+  <div class="riga1"><a class="tit" href="README.md">Panoramica del progetto</a>
+    <span class="b md">md</span><span class="path">README.md</span></div>
+  <p><b>Ambito:</b> architettura, componenti core, librerie, sistema di configurazione,
+  glossario dei pezzi che compongono un simulatore.</p>
+  <p class="uso"><b>Quando serve:</b> è la porta d'ingresso. Se non sai cosa siano una
+  <i>task</i>, un <i>modello</i>, lo <i>scheduler</i> o la <i>SHM dei punti</i>, si comincia da qui.</p>
+</div>
+
+<div class="scheda">
+  <div class="riga1"><a class="tit" href="Environment_setup.md">Preparazione dell'ambiente</a>
+    <span class="b md">md</span><span class="path">Environment_setup.md</span></div>
+  <p><b>Ambito:</b> dipendenze e compilatori, convenzioni sulle directory, threading e IPC.</p>
+  <p class="uso"><b>Quando serve:</b> installazione su una macchina nuova, o quando una
+  compilazione fallisce per una libreria mancante.</p>
+</div>
+
+<div class="scheda">
+  <div class="riga1"><a class="tit" href="docs/BUILD.md">Compilazione e gestione dei simulatori</a>
+    <span class="b md">md</span><span class="path">docs/BUILD.md</span></div>
+  <p><b>Ambito:</b> <code>make -f Makefile.mk</code>, versioning, i comandi
+  <code>ksetsim</code>/<code>ksims</code> per scegliere il simulatore attivo,
+  <code>creasim</code>, <code>kDiffS01</code>.</p>
+  <p class="uso"><b>Quando serve:</b> ogni volta che si compila. Contiene anche il tranello più
+  costoso del progetto: senza <code>source .profile_legoroot</code> gli include path restano vuoti
+  e il build fallisce in modo incomprensibile.</p>
+</div>
+
+<div class="scheda">
+  <div class="riga1"><a class="tit" href="CONVENTIONS.md">Convenzioni di codice</a>
+    <span class="b md">md</span><span class="b locale">solo working copy</span>
+    <span class="path">CONVENTIONS.md</span></div>
+  <p><b>Ambito:</b> stile e convenzioni da rispettare scrivendo codice in questo repository.</p>
+  <p class="uso"><b>Quando serve:</b> prima di aggiungere codice. <b>Attenzione:</b> è in
+  <code>.gitignore</code> (gruppo <i>Claude debug</i>), quindi vive solo in questa copia di lavoro:
+  chi clona il repository non lo trova.</p>
+</div>
+
+<div class="scheda">
+  <div class="riga1"><a class="tit" href="CLAUDE.md">Mappa e tranelli (per assistenti AI)</a>
+    <span class="b md">md</span><span class="b locale">solo working copy</span>
+    <span class="path">CLAUDE.md</span></div>
+  <p><b>Ambito:</b> indice dei documenti e lista dei tranelli operativi (profilo da sorgiare,
+  <code>ksh88</code> negli script <code>kbin</code>, <code>killsim</code> al posto di
+  <code>pkill</code>, alias <code>test</code>, solo ASCII negli script Tk&hellip;).</p>
+  <p class="uso"><b>Quando serve:</b> è scritto per Claude Code, ma la sezione dei tranelli è la
+  lista più densa di cose che fanno perdere tempo. Anch'esso non tracciato in git.</p>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="config">2. Configurare e far girare un simulatore <span class="n">4 documenti</span></h2>
+<p class="scopo">Dalla composizione del simulatore ai comandi con cui lo si avvia e lo si governa.</p>
+
+<div class="scheda">
+  <div class="riga1"><a class="tit" href="docs/AL_SIM_CONF.md">al_sim.conf &mdash; come si compila</a>
+    <span class="b md">md</span><span class="path">docs/AL_SIM_CONF.md</span></div>
+  <p><b>Ambito:</b> il file di composizione del simulatore: tutte le opzioni con i default, la
+  tabella delle task (tipi <code>P</code>/<code>R</code>/<code>N</code>, directory, passo) e la
+  colonna <code>filespec</code>, che decide quali pagine MMI appartengono a quale task di regolazione.</p>
+  <p class="uso"><b>Quando serve:</b> creando un simulatore nuovo, aggiungendo o togliendo una task,
+  o quando le pagine non compaiono nell'MMI. Chiude con gli errori tipici e il messaggio che li rivela.</p>
+</div>
+
+<div class="scheda">
+  <div class="riga1"><a class="tit" href="kbin/README.md">I comandi <code>kprocedure</code></a>
+    <span class="b md">md</span><span class="path">kbin/README.md</span></div>
+  <p><b>Ambito:</b> i 191 comandi <code>k*</code> che governano un simulatore: avvio, arresto,
+  compilazione, archiviazione, connessioni, MMI, statistiche.</p>
+  <p class="uso"><b>Quando serve:</b> per sapere quale comando fa cosa. Ricorda che questi tool
+  fanno <code>cd $KSIM</code> e ignorano la directory corrente: si sceglie <b>prima</b> il
+  simulatore con <code>ksetsim</code>.</p>
+</div>
+
+<div class="scheda">
+  <div class="riga1"><a class="tit" href="kbin/kbin-riferimento-comandi-LegoPST.html">kbin &mdash; riferimento comandi (ipertesto)</a>
+    <span class="b html">html</span><span class="path">kbin/kbin-riferimento-comandi-LegoPST.html</span></div>
+  <p><b>Ambito:</b> gli stessi comandi in forma di pagina navigabile.</p>
+  <p class="uso"><b>Quando serve:</b> consultazione rapida col browser, senza aprire l'editor.</p>
+</div>
+
+<div class="scheda">
+  <div class="riga1"><a class="tit" href="Alg_rt/net_simula/new_monit/README.md">Master Monitor (<code>new_monit</code> / banco)</a>
+    <span class="b md">md</span><span class="path">Alg_rt/net_simula/new_monit/README.md</span></div>
+  <p><b>Ambito:</b> il monitor principale della sessione: opzioni persistite in
+  <code>.bi_options</code>, <i>User Programs</i> (fino a 8 comandi shell lanciabili dal menù) e il
+  comportamento di Save/Load nell'editor <code>optionSet</code>.</p>
+  <p class="uso"><b>Quando serve:</b> per agganciare un proprio script ai pulsanti del banco, o
+  quando le opzioni di sessione non si salvano come ci si aspetta.</p>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="cad">3. CAD e modellazione &mdash; <code>legopc</code> <span class="n">6 documenti</span></h2>
+<p class="scopo">Il disegno dei modelli: schemi, librerie di moduli, topologia, e il selettore che
+lancia le interfacce di esercizio.</p>
+
+<div class="scheda">
+  <div class="riga1"><a class="tit" href="Alg_legopc/README.md">legopc &mdash; il CAD grafico</a>
+    <span class="b md">md</span><span class="path">Alg_legopc/README.md</span></div>
+  <p><b>Ambito:</b> librerie di moduli, i formati <code>.i5</code>/<code>.tom</code>/<code>.remap</code>/<code>.lstyle</code>,
+  remark e sfondi, Command Mode, <i>Set Sim path</i>, unità di misura.</p>
+  <p class="uso"><b>Quando serve:</b> disegnando o modificando uno schema, e per capire quale file
+  viene prodotto da quale passo della catena.</p>
+</div>
+
+<div class="scheda">
+  <div class="riga1"><a class="tit" href="Alg_legopc/BACKGROUND_ELEMENTS.md">Elementi di sfondo (<code>bgimage</code>)</a>
+    <span class="b md">md</span><span class="path">Alg_legopc/BACKGROUND_ELEMENTS.md</span></div>
+  <p><b>Ambito:</b> ricetta passo-passo per aggiungere elementi grafici di sfondo agli schemi.</p>
+  <p class="uso"><b>Quando serve:</b> è una procedura, non una spiegazione: si segue mentre si lavora.</p>
+</div>
+
+<div class="scheda">
+  <div class="riga1"><a class="tit" href="Alg_legopc/LGHMI.md"><code>lghmi</code> &mdash; selettore di HMI e faceplate</a>
+    <span class="b md">md</span><span class="path">Alg_legopc/LGHMI.md</span></div>
+  <p><b>Ambito:</b> il selettore che apre le pagine di processo (<code>draw2gr</code>) e i faceplate
+  di comando (<code>xstaz</code>), il pulsante che lancia l'MMI, e il formato del file
+  <code>S01</code> che descrive un simulatore composto.</p>
+  <p class="uso"><b>Quando serve:</b> per aprire le interfacce di un simulatore senza ricordare i
+  comandi a mano, e come riferimento sul formato <code>S01</code>.</p>
+</div>
+
+<div class="scheda">
+  <div class="riga1"><a class="tit" href="Alg_legopc/Readme.txt">Note di versione Alg_legopc</a>
+    <span class="b txt">txt</span><span class="b storico">storico</span>
+    <span class="path">Alg_legopc/Readme.txt</span></div>
+  <p><b>Ambito:</b> note sulla release <code>Alg_legopc-2006ASP1_RHE4</code>.</p>
+  <p class="uso"><b>Quando serve:</b> archeologia su cosa cambiò in quella versione.</p>
+</div>
+
+<div class="scheda">
+  <div class="riga1"><a class="tit" href="Alg_legopc/install/relnotes.txt">Release notes LegoPc 5.0</a>
+    <span class="b txt">txt</span><span class="b storico">storico</span>
+    <span class="path">Alg_legopc/install/relnotes.txt</span></div>
+  <p><b>Ambito:</b> note di rilascio della versione 5.0 del CAD.</p>
+  <p class="uso"><b>Quando serve:</b> riferimento storico sulle funzionalità introdotte.</p>
+</div>
+
+<div class="scheda">
+  <div class="riga1"><a class="tit" href="Alg_legopc/install/vardef.txt">Variabili d'ambiente d'installazione</a>
+    <span class="b txt">txt</span><span class="path">Alg_legopc/install/vardef.txt</span></div>
+  <p><b>Ambito:</b> esempio di definizione delle variabili (<code>LG_BASE</code> e seguenti).</p>
+  <p class="uso"><b>Quando serve:</b> confronto quando l'ambiente del CAD non si comporta come atteso.</p>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="runtime">4. Run-time: grafici, valori, faceplate <span class="n">7 documenti</span></h2>
+<p class="scopo">Quello che si usa a simulatore acceso: guardare gli andamenti, leggere e scrivere
+i punti, comandare gli attuatori.</p>
+
+<div class="scheda">
+  <div class="riga1"><a class="tit" href="Alg_rt/grafica/graphics/README.md"><code>graphics</code> &mdash; visualizzatore di andamenti</a>
+    <span class="b md">md</span><span class="path">Alg_rt/grafica/graphics/README.md</span></div>
+  <p><b>Ambito:</b> il programma che disegna le curve leggendo il file circolare <code>f22</code>.</p>
+  <p class="uso"><b>Quando serve:</b> per guardare l'andamento delle variabili registrate.
+  Attenzione all'omonimia: <code>graphics</code> (f22 circolare) e <code>grafics</code> senza h
+  (f22 sequenziale, usato da drift/crealg5) sono due binari con formati incompatibili.</p>
+</div>
+
+<div class="scheda">
+  <div class="riga1"><a class="tit" href="Alg_rt/grafica/graphics/f22circ_format.md">Formato binario di <code>f22circ.dat</code></a>
+    <span class="b md">md</span><span class="path">Alg_rt/grafica/graphics/f22circ_format.md</span></div>
+  <p><b>Ambito:</b> il tracciato del file circolare: intestazione, record, indici.</p>
+  <p class="uso"><b>Quando serve:</b> scrivendo un programma che legge o produce quei dati, o
+  quando i grafici escono a zero e bisogna guardare dentro il file.</p>
+</div>
+
+<div class="scheda">
+  <div class="riga1"><a class="tit" href="doc/struttura_f22_fortran.txt">Struttura di <code>f22.dat</code> lato Fortran</a>
+    <span class="b txt">txt</span><span class="path">doc/struttura_f22_fortran.txt</span></div>
+  <p><b>Ambito:</b> come il Fortran (<code>proc/lg5</code>) scrive il file dei campioni.</p>
+  <p class="uso"><b>Quando serve:</b> complemento del documento precedente, dal lato di chi
+  produce i dati anziché di chi li legge.</p>
+</div>
+
+<div class="scheda">
+  <div class="riga1"><a class="tit" href="Alg_rt/net_simula/viewval/README.md"><code>viewval</code> &mdash; leggere e scrivere i punti</a>
+    <span class="b md">md</span><span class="path">Alg_rt/net_simula/viewval/README.md</span></div>
+  <p><b>Ambito:</b> ispezione della memoria condivisa: selezione delle variabili, modalità
+  interattiva con editing dei valori, log delle scritture.</p>
+  <p class="uso"><b>Quando serve:</b> diagnosi rapida &mdash; vedere quanto vale una variabile o
+  forzarla a mano senza passare da un'interfaccia grafica.</p>
+</div>
+
+<div class="scheda">
+  <div class="riga1"><a class="tit" href="Alg_rt/grafica/xstaz/README.md">Faceplate di comando: <code>compstaz</code> e <code>xstaz</code></a>
+    <span class="b md">md</span><span class="path">Alg_rt/grafica/xstaz/README.md</span></div>
+  <p><b>Ambito:</b> la catena dei faceplate: <code>r01.dat</code> (sorgente) compilato da
+  <code>compstaz</code> in <code>r02.dat</code>, visualizzato da <code>xstaz</code>.</p>
+  <p class="uso"><b>Quando serve:</b> per capire l'architettura prima di mettere le mani sui file.</p>
+</div>
+
+<div class="scheda">
+  <div class="riga1"><a class="tit" href="Alg_rt/grafica/xstaz/HOWTO_faceplate.md">HOWTO faceplate &mdash; il manuale operativo</a>
+    <span class="b md">md</span><span class="path">Alg_rt/grafica/xstaz/HOWTO_faceplate.md</span></div>
+  <p><b>Ambito:</b> il documento più esteso del progetto (oltre 2000 righe): formato di
+  <code>r01.dat</code> riga per riga, catalogo di tutte le 54 stazioni con il loro codice, ciclo di
+  vita completo e checklist.</p>
+  <p class="uso"><b>Quando serve:</b> ogni volta che si configura un faceplate. È scritto per
+  essere usato mentre si lavora, con esempi copiabili.</p>
+</div>
+
+<div class="scheda">
+  <div class="riga1"><a class="tit" href="Alg_rt/grafica/xstaz/catalogo/README.md">Catalogo visivo dei tipi di stazione</a>
+    <span class="b md">md</span><span class="path">Alg_rt/grafica/xstaz/catalogo/README.md</span></div>
+  <p><b>Ambito:</b> le immagini di ogni tipo di faceplate con il nome sotto, più
+  l'<code>r01.dat</code> che le genera.</p>
+  <p class="uso"><b>Quando serve:</b> per scegliere il tipo di stazione guardandolo, invece di
+  dedurlo dal nome. Le stesse immagini sono incorporate nell'HOWTO.</p>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="mmi">5. MMI &mdash; l'interfaccia SCADA-like <span class="n">3 documenti</span></h2>
+<p class="scopo">Le pagine sinottiche animate: un mondo con file, directory e convenzioni tutte sue,
+separato dal CAD e dalle pagine di processo.</p>
+
+<div class="scheda">
+  <div class="riga1"><a class="tit" href="Alg_mmi/README.md">Alg_mmi &mdash; Context, pagine, catena di generazione</a>
+    <span class="b md">md</span><span class="path">Alg_mmi/README.md</span></div>
+  <p><b>Ambito:</b> il file <code>Context.ctx</code> come unico punto di verità, come
+  <code>mmi</code> trova le pagine a run-time e come le trova (diversamente) il configuratore, il
+  ciclo di vita <code>.pag</code> &rarr; <code>.rtf</code>/<code>.bkg</code>, i <b>tre generatori</b>
+  delle pagine (<code>config</code>, <code>convstaz</code>, <code>mkstaz</code>/<code>kcreastaz</code>)
+  e la catena
+  <code>kMakeGlobpages</code>/<code>kGlobContext</code>/<code>kMmiConfig</code>/<code>kMmi</code>.</p>
+  <p class="uso"><b>Quando serve:</b> quando una pagina non compare, quando l'MMI non parte, o
+  quando si sposta un simulatore su un'altra macchina. Contiene la spiegazione del blocco più
+  insidioso: su una macchina sola <code>kMmi</code> configura la strada client/SCADA e l'MMI
+  aspetta in timeout un server che non esiste.</p>
+</div>
+
+<div class="scheda">
+  <div class="riga1"><a class="tit" href="Alg_mmi/config/CONNESSIONI.md">Collegare porte e variabili in <code>config</code></a>
+    <span class="b md">md</span><span class="path">Alg_mmi/config/CONNESSIONI.md</span></div>
+  <p><b>Ambito:</b> come si collegano fra loro gli schemi nell'editor delle pagine.</p>
+  <p class="uso"><b>Quando serve:</b> mentre si disegna o si corregge una pagina di regolazione.</p>
+</div>
+
+<div class="scheda">
+  <div class="riga1"><a class="tit" href="Alg_mmi/config/COPIA_INCOLLA.md">Copia e incolla nei campi di testo di <code>config</code></a>
+    <span class="b md">md</span><span class="path">Alg_mmi/config/COPIA_INCOLLA.md</span></div>
+  <p><b>Ambito:</b> il comportamento (non ovvio, Motif) del copia/incolla nell'editor.</p>
+  <p class="uso"><b>Quando serve:</b> nota breve e pratica, da leggere una volta sola.</p>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="fmu">6. FMU e co-simulazione <span class="n">2 documenti</span></h2>
+<p class="scopo">Esportare una task LegoPST come FMU standard e farla girare insieme ad altri
+simulatori.</p>
+
+<div class="scheda">
+  <div class="riga1"><a class="tit" href="Alg_rt/lg_fmu/USAGE.md">lg_fmu &mdash; build, bundle, HMI, diagnostica</a>
+    <span class="b md">md</span><span class="path">Alg_rt/lg_fmu/USAGE.md</span></div>
+  <p><b>Ambito:</b> la guida completa (oltre 900 righe): come si costruisce una FMU da una task,
+  come si impacchetta un bundle autoconsistente, come si collega l'HMI, come si diagnostica.</p>
+  <p class="uso"><b>Quando serve:</b> per tutto ciò che riguarda le FMU. Nota operativa: provare
+  un bundle da una shell col profilo LegoPST sorgiato <b>non prova nulla</b>, perché le variabili
+  <code>LG_*</code> trapelano e mascherano ciò che manca nel bundle; si usa <code>env -i</code>.</p>
+</div>
+
+<div class="scheda">
+  <div class="riga1"><a class="tit" href="Alg_rt/lg_fmu/lg_cosim/lg_cosim_manual.md">Manuale del master <code>lg_cosim</code></a>
+    <span class="b md">md</span><span class="path">Alg_rt/lg_fmu/lg_cosim/lg_cosim_manual.md</span></div>
+  <p><b>Ambito:</b> il master di co-simulazione: file di configurazione, uso di FMU standard di
+  terze parti, limiti noti.</p>
+  <p class="uso"><b>Quando serve:</b> quando si mettono in comunicazione più FMU, ognuna con la
+  propria chiave e il proprio passo.</p>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="help">7. Help ipertestuale storico <span class="n">2 alberi, ~330 pagine</span></h2>
+<p class="scopo">Due alberi HTML degli anni '90&ndash;2000, prodotti da documenti Word e ancora
+consultabili col browser. Sono la fonte più completa sulla <b>teoria</b> e sulla <b>libreria dei
+moduli</b>, aree che la documentazione recente non copre.</p>
+
+<div class="scheda">
+  <div class="riga1"><a class="tit" href="Alg_help/html/alterlego.htm">Alg_help &mdash; manuale generale del simulatore</a>
+    <span class="b html">html</span><span class="b storico">storico</span>
+    <span class="path">Alg_help/html/alterlego.htm</span></div>
+  <p><b>Ambito:</b> l'indice generale (intitolato <i>Puertollano Dynamic Simulator Project</i>) da
+  cui si raggiungono sei aree: Legocad, Regommi, Executive, MMI, Scada, AlgDB.</p>
+  <p class="uso"><b>Quando serve:</b> è il punto d'ingresso da aprire nel browser. Sotto-alberi:</p>
+  <ul class="piatta">
+    <li><code>legocad/</code> &mdash; 9 pagine: documentazione, dati elementari, glossario, grafica,
+        librerie, simulazione, stazionario, <b>topologia</b></li>
+    <li><code>legocad/lib_proc/</code> &mdash; <b>53 pagine: la libreria dei moduli di processo</b>
+        (<code>adiv</code>, <code>aext</code>, <code>amme</code>, <code>attu</code>&hellip;), una
+        scheda per modulo</li>
+    <li><code>legocad/models/</code> &mdash; 16 pagine sui modelli</li>
+    <li><code>legocad/lpteoria/</code> &mdash; 16 pagine di <b>teoria</b> (termoidraulica, metodi)</li>
+    <li><code>istr_sta/</code> &mdash; 11 pagine sulla stazione istruttore</li>
+    <li><code>legommi/</code> 6, <code>regommi/</code> 7, <code>scada/</code> 1</li>
+    <li><code>Alg_help/rtf/</code> &mdash; i 20 sorgenti RTF delle stesse pagine</li>
+  </ul>
+</div>
+
+<div class="scheda">
+  <div class="riga1"><a class="tit" href="Alg_legopc/Alg_legopc_help/index.htm">Help in linea del CAD legopc</a>
+    <span class="b html">html</span><span class="b storico">storico</span>
+    <span class="path">Alg_legopc/Alg_legopc_help/index.htm</span></div>
+  <p><b>Ambito:</b> 218 pagine con la guida del CAD: attività, introduzione, funzionalità
+  principali, gestione delle librerie, moduli, <code>legosim</code>.</p>
+  <p class="uso"><b>Quando serve:</b> è l'help richiamato da <b>? &rarr; Help</b> dentro
+  <code>legopc.tix</code>, ma si apre anche direttamente col browser. I 33 applet Java originali
+  sono stati sostituiti da link, quindi oggi funziona senza plugin.</p>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="storici">8. Manuali Word e PDF <span class="n">~40 documenti</span></h2>
+<p class="scopo">Materiale d'epoca in formati chiusi: si aprono con LibreOffice. Restano l'unica
+fonte su alcuni strumenti <code>util97</code> e sulla teoria di base.</p>
+
+<div class="scheda">
+  <div class="riga1"><a class="tit" href="util97/doc_user/">Manuali degli strumenti util97</a>
+    <span class="b doc">doc</span><span class="b storico">storico</span>
+    <span class="path">util97/doc_user/ &mdash; 13 file</span></div>
+  <p><b>Ambito:</b> un manuale per strumento: <code>CAP</code>, <code>COLLECT2</code>,
+  <code>CONNEX</code> e <code>CONNEX2</code>, <code>DFD_SKL</code>, <code>ELENCO</code>,
+  <code>F01</code>, <code>PAGMOD</code>, <code>S01</code>, <code>S01TOF01</code>. Word 6.0, 1997.</p>
+  <p class="uso"><b>Quando serve:</b> sono i programmi che costruiscono l'<code>S01</code> e
+  manipolano i file di interfaccia. Per <code>connex2</code> e il formato <code>S01</code> la
+  descrizione aggiornata e verificata sta in <a href="docs/AL_SIM_CONF.md">docs/AL_SIM_CONF.md</a>;
+  questi restano utili per gli strumenti non ancora ridocumentati.</p>
+</div>
+
+<div class="scheda">
+  <div class="riga1"><a class="tit" href="lego_big/doclego/">Teoria e corsi</a>
+    <span class="b pdf">pdf</span><span class="b storico">storico</span>
+    <span class="path">lego_big/doclego/ &mdash; 4 file</span></div>
+  <p><b>Ambito:</b> <code>LegoTeoriaPrincipiGenerali.pdf</code> (principi generali),
+  <code>ALG_rev16.pdf</code>, <code>Corso REGO_3.pdf</code> (materiale di corso sulla regolazione),
+  <code>GrigliaTestNuovaVersioneALTERLEGO.pdf</code>.</p>
+  <p class="uso"><b>Quando serve:</b> per il <i>perché</i> anziché il <i>come</i>: i principi su cui
+  è costruito il motore di simulazione. Il corso REGO è il riferimento sulla regolazione.</p>
+</div>
+
+<div class="scheda">
+  <div class="riga1"><a class="tit" href="Alg_legopc/etc/articoli/">Articoli su LegoPC e LegoSim</a>
+    <span class="b doc">doc</span><span class="b storico">storico</span>
+    <span class="path">Alg_legopc/etc/articoli/ &mdash; 5 file</span></div>
+  <p><b>Ambito:</b> <i>Il Model Builder LegoPC</i>, <code>LegoPC.en</code>, <code>legosim_en</code> e
+  altri articoli divulgativi/commerciali.</p>
+  <p class="uso"><b>Quando serve:</b> per una descrizione discorsiva del prodotto, utile a
+  presentarlo a chi non lo conosce.</p>
+</div>
+
+<div class="scheda">
+  <div class="riga1"><a class="tit" href="scada/docs/">Integrazione SCADA</a>
+    <span class="b doc">doc</span><span class="b storico">storico</span>
+    <span class="path">scada/docs/ &mdash; 5 file</span></div>
+  <p><b>Ambito:</b> <code>integr.doc</code>, <code>modscada.doc</code>, <code>tagcons.doc</code> e
+  altri: modello dati SCADA e consistenza delle tag.</p>
+  <p class="uso"><b>Quando serve:</b> lavorando sul collegamento fra simulatore e sistema SCADA.</p>
+</div>
+
+<div class="scheda">
+  <div class="riga1"><a class="tit" href="Alg_rt/net_simula/doc_devel/">Note di sviluppo net_simula</a>
+    <span class="b doc">doc</span><span class="b storico">storico</span>
+    <span class="path">Alg_rt/net_simula/doc_devel/ &mdash; 3 file</span></div>
+  <p><b>Ambito:</b> istruttore/stato (<code>ist_stat_fd</code>, <code>ist_stat_fs</code>) e
+  malfunzioni (<code>malf_fs</code>): specifiche funzionali e di dettaglio.</p>
+  <p class="uso"><b>Quando serve:</b> modificando la gestione di malfunzioni e stati istruttore.</p>
+</div>
+
+<div class="scheda">
+  <div class="riga1"><a class="tit" href="util97/doc_devel/">Note di sviluppo util97</a>
+    <span class="b doc">doc</span><span class="b txt">txt</span><span class="b storico">storico</span>
+    <span class="path">util97/doc_devel/</span></div>
+  <p><b>Ambito:</b> materiale eterogeneo di sviluppo: <code>name_rules.doc</code> (regole sui nomi),
+  gli <code>EXTERNALREF*</code> (riferimenti esterni X11/Motif), <code>rgb.txt</code>.</p>
+  <p class="uso"><b>Quando serve:</b> raramente; <code>name_rules.doc</code> è l'unico con valore
+  ancora attuale, sulle convenzioni dei nomi.</p>
+</div>
+
+<div class="scheda">
+  <div class="riga1"><a class="tit" href="doc/legopst_overview.doc">Panoramica LegoPST (Word)</a>
+    <span class="b doc">doc</span><span class="path">doc/legopst_overview.doc</span></div>
+  <p><b>Ambito:</b> descrizione d'insieme del sistema in formato Word.</p>
+  <p class="uso"><b>Quando serve:</b> in buona parte sovrapposto al <a href="README.md">README.md</a>,
+  che è più aggiornato; utile se serve un documento da distribuire.</p>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="porting">9. Porting, piattaforme, container <span class="n">7 documenti</span></h2>
+<p class="scopo">Come LegoPST è stato portato dalle macchine originali a Linux moderni, e come lo si
+fa girare in un container.</p>
+
+<div class="scheda">
+  <div class="riga1"><a class="tit" href="doc/portingWSL_Ubuntu_Debian.txt">Porting su WSL / Ubuntu / Debian</a>
+    <span class="b txt">txt</span><span class="path">doc/portingWSL_Ubuntu_Debian.txt</span></div>
+  <p><b>Ambito:</b> passi e correzioni per portare <code>legoroot</code> su Ubuntu e su WSL.</p>
+  <p class="uso"><b>Quando serve:</b> è la piattaforma di riferimento attuale: da leggere prima di
+  installare su una macchina nuova.</p>
+</div>
+
+<div class="scheda">
+  <div class="riga1"><a class="tit" href="portingFedora41.txt">Porting su Fedora 41 (WSL)</a>
+    <span class="b txt">txt</span><span class="path">portingFedora41.txt</span></div>
+  <p><b>Ambito:</b> note specifiche per Fedora 41 sotto WSL.</p>
+  <p class="uso"><b>Quando serve:</b> è la piattaforma su cui si lavora oggi. Include i problemi
+  di font X11 e le librerie da aggiungere.</p>
+</div>
+
+<div class="scheda">
+  <div class="riga1"><a class="tit" href="doc/porting64bit.txt">Passaggio a 64 bit</a>
+    <span class="b txt">txt</span><span class="path">doc/porting64bit.txt</span></div>
+  <p><b>Ambito:</b> come la versione a 64 bit è gestita con la variabile <code>PLATFORM</code>.</p>
+  <p class="uso"><b>Quando serve:</b> compilando su architetture diverse, o quando qualcosa si
+  comporta diversamente fra 32 e 64 bit.</p>
+</div>
+
+<div class="scheda">
+  <div class="riga1"><a class="tit" href="doc/README_RHE6.txt">Installazione su Red Hat Enterprise</a>
+    <span class="b txt">txt</span><span class="b storico">storico</span>
+    <span class="path">doc/README_RHE6.txt</span></div>
+  <p><b>Ambito:</b> istruzioni d'installazione su RHEL 4 e simili.</p>
+  <p class="uso"><b>Quando serve:</b> sistemi legacy; superato dai due documenti di porting sopra.</p>
+</div>
+
+<div class="scheda">
+  <div class="riga1"><a class="tit" href="docker/README_INSTALLER.md">Installazione via Docker</a>
+    <span class="b md">md</span><span class="path">docker/README_INSTALLER.md</span></div>
+  <p><b>Ambito:</b> l'installer containerizzato: immagine, volumi, avvio.</p>
+  <p class="uso"><b>Quando serve:</b> per far girare LegoPST senza installarlo sulla macchina host.</p>
+</div>
+
+<div class="scheda">
+  <div class="riga1"><a class="tit" href="docker/lancio_lgdock_noinst.md">Lancio senza installazione (<code>lgdock.sh</code>)</a>
+    <span class="b md">md</span><span class="path">docker/lancio_lgdock_noinst.md</span></div>
+  <p><b>Ambito:</b> lo script di avvio del container, opzione per opzione.</p>
+  <p class="uso"><b>Quando serve:</b> uso quotidiano del container, dopo aver letto l'installer.</p>
+</div>
+
+<div class="scheda">
+  <div class="riga1"><a class="tit" href="docker/simple_inst_lgdock/readme.md">Installazione semplificata in container</a>
+    <span class="b md">md</span><span class="path">docker/simple_inst_lgdock/readme.md</span></div>
+  <p><b>Ambito:</b> variante minima della procedura Docker.</p>
+  <p class="uso"><b>Quando serve:</b> prova rapida, o macchina su cui non si vuole installare nulla.</p>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="note">10. Note di lavoro e strumenti di manutenzione <span class="n">6 documenti</span></h2>
+<p class="scopo">Appunti nati durante interventi specifici. Non sono manuali: valgono come traccia di
+cosa è stato fatto e perché.</p>
+
+<div class="scheda">
+  <div class="riga1"><a class="tit" href="docs/KR_PROTOTYPE_AUDIT.md">Audit dei prototipi K&amp;R</a>
+    <span class="b md">md</span><span class="path">docs/KR_PROTOTYPE_AUDIT.md</span></div>
+  <p><b>Ambito:</b> la caccia ai parametri <code>float</code> in conflitto con il prototipo, un
+  difetto silenzioso tipico del C K&amp;R; comprende lo scanner che lo rileva.</p>
+  <p class="uso"><b>Quando serve:</b> toccando funzioni vecchie senza prototipo, o quando un valore
+  arriva sbagliato senza motivo apparente.</p>
+</div>
+
+<div class="scheda">
+  <div class="riga1"><a class="tit" href="util2025/lglinux2win.md">Conversione sorgenti Linux &rarr; Windows</a>
+    <span class="b md">md</span><span class="path">util2025/lglinux2win.md</span></div>
+  <p><b>Ambito:</b> lo script <code>lglinux2win.py</code>: cosa converte e con quali limiti.</p>
+  <p class="uso"><b>Quando serve:</b> allineando il ramo Windows del codice.</p>
+</div>
+
+<div class="scheda">
+  <div class="riga1"><a class="tit" href="util2025/lgwin2linux.md">Conversione sorgenti Windows &rarr; Linux</a>
+    <span class="b md">md</span><span class="path">util2025/lgwin2linux.md</span></div>
+  <p><b>Ambito:</b> lo script inverso, <code>lgwin2linux.py</code>.</p>
+  <p class="uso"><b>Quando serve:</b> importando su Linux modifiche fatte sul ramo Windows.</p>
+</div>
+
+<div class="scheda">
+  <div class="riga1"><a class="tit" href="util2025/add_cast_v6_readme.md">Aggiunta dei cast a <code>set_something</code></a>
+    <span class="b md">md</span><span class="path">util2025/add_cast_v6_readme.md &mdash; e add_cast.md</span></div>
+  <p><b>Ambito:</b> gli script awk che aggiungono i cast espliciti alle chiamate variadiche.
+  <code>add_cast.md</code> è la trascrizione grezza della sessione di lavoro; il
+  <code>_v6_readme</code> è la versione ordinata.</p>
+  <p class="uso"><b>Quando serve:</b> rieseguendo o adattando quella trasformazione di massa.
+  Partire dal <code>_v6_readme</code>.</p>
+</div>
+
+<div class="scheda">
+  <div class="riga1"><a class="tit" href="AlgLib/libutilx/usare_get_set_something_val.md">Uso di <code>get/set_something_val</code></a>
+    <span class="b md">md</span><span class="path">AlgLib/libutilx/usare_get_set_something_val.md</span></div>
+  <p><b>Ambito:</b> appunti sulle varianti che gestiscono correttamente i tipi.</p>
+  <p class="uso"><b>Quando serve:</b> nota di lavoro in forma discorsiva, da leggere con
+  l'header alla mano.</p>
+</div>
+
+<div class="scheda">
+  <div class="riga1"><a class="tit" href="util2025/risorse/Readme.md">Esempio di risorse X</a>
+    <span class="b md">md</span><span class="path">util2025/risorse/Readme.md</span></div>
+  <p><b>Ambito:</b> file di risorse X di esempio e il ruolo di <code>XAPPLRESDIR</code>.</p>
+  <p class="uso"><b>Quando serve:</b> quando un'applicazione Motif non prende i colori o i font
+  attesi.</p>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="fuori">11. Documentazione fuori dal repository <span class="n">7 documenti</span></h2>
+<p class="scopo">Vivono accanto ai sorgenti Fortran dei moduli, in
+<code>~/legocad/libut_reg/libreg/</code>: non sono nel repository LegoPST ma fanno parte a tutti gli
+effetti della documentazione con cui si lavora.</p>
+
+<div class="scheda">
+  <div class="riga1"><a class="tit" href="/home/antonio/legocad/libut_reg/libreg/programmatori_setpoint.md">Programmatori di set point &mdash; guida comparativa</a>
+    <span class="b md">md</span><span class="path">~/legocad/libut_reg/libreg/programmatori_setpoint.md</span></div>
+  <p><b>Ambito:</b> tabella di confronto fra i moduli <code>past</code>, <code>pmsp</code>,
+  <code>pmss</code>, <code>pmst</code>, <code>pmia</code>: ingressi, uscite, modi di funzionamento.</p>
+  <p class="uso"><b>Quando serve:</b> per <b>scegliere</b> quale modulo usare in uno schema di
+  regolazione. È il documento da leggere per primo dei sette.</p>
+</div>
+
+<div class="scheda">
+  <div class="riga1"><a class="tit" href="/home/antonio/legocad/libut_reg/libreg/past.md">Schede dei singoli moduli</a>
+    <span class="b md">md</span><span class="path">~/legocad/libut_reg/libreg/{past,pmsp,pmss,pmst,pmia}.md</span></div>
+  <p><b>Ambito:</b> una scheda per modulo, con lo stesso schema a dieci sezioni: variabili,
+  parametri, logica interna, diagramma di flusso, esempi di taratura.</p>
+  <p class="uso"><b>Quando serve:</b> configurando quel modulo in uno schema, per capire
+  esattamente cosa fa ciascun ingresso.</p>
+</div>
+
+<div class="scheda">
+  <div class="riga1"><a class="tit" href="/home/antonio/legocad/libut_reg/libreg/migrazione_past_pmss.md">Migrazione da <code>past</code> a <code>pmss</code></a>
+    <span class="b md">md</span><span class="path">~/legocad/libut_reg/libreg/migrazione_past_pmss.md</span></div>
+  <p><b>Ambito:</b> mappa delle corrispondenze fra i due moduli, ingresso per ingresso.</p>
+  <p class="uso"><b>Quando serve:</b> sostituendo un <code>past</code> esistente in uno schema già
+  funzionante, per non perdere pezzi per strada.</p>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="escluso">12. Cosa non è indicizzato qui</h2>
+<p class="scopo">Per completezza, i file che sembrano documentazione ma non lo sono, o che non
+riguardano LegoPST.</p>
+<ul class="piatta">
+  <li><code>.aider/*.md</code> e <code>.aider.chat.history.md</code> &mdash; memoria di un
+      assistente AI, non documentazione di progetto</li>
+  <li><code>Alg_legopc/Alg_legopc_help/_vti_*</code> &mdash; 218 file di metadati FrontPage, copie
+      di servizio delle pagine dell'help</li>
+  <li><code>AlgLib/dcethreads_lib_no/**/readme</code> &mdash; README di terze parti (DCE RPC)</li>
+  <li><code>kdefaults/scada/start_txt/*.txt</code> &mdash; dati di avvio dello SCADA, non testi</li>
+  <li>i bundle FMU sotto <code>Alg_rt/lg_fmu/lg_cosim/example/*_bundle/</code> &mdash; contengono
+      copie della documentazione già indicizzata</li>
+</ul>
+
+<div class="nota attenzione">
+  <b>Dove mettere un documento nuovo.</b> La regola seguita finora: la documentazione sta
+  <b>accanto al codice che descrive</b> (<code>Alg_mmi/README.md</code>,
+  <code>Alg_rt/grafica/xstaz/HOWTO_faceplate.md</code>), e in <code>docs/</code> solo quando
+  riguarda l'intero progetto (<code>BUILD.md</code>, <code>AL_SIM_CONF.md</code>). Aggiungendone
+  uno, va inserita una riga nella tabella di <code>CLAUDE.md</code> e una voce qui.
+</div>
+
+<footer>
+  Pagina statica: si apre con un doppio click, non richiede server. I collegamenti sono relativi
+  alla radice del repository, quindi vanno seguiti tenendo il file dove si trova
+  (<code>LegoPST/INDICE_DOCUMENTAZIONE.html</code>). I file <code>.md</code> nel browser si vedono
+  come testo semplice; per la resa formattata conviene aprirli nell'editor.
+</footer>
+
+</div>
+
+<script>
+(function(){
+  var box = document.getElementById('filtro');
+  var conta = document.getElementById('conta');
+  var schede = Array.prototype.slice.call(document.querySelectorAll('.scheda'));
+  var sezioni = Array.prototype.slice.call(document.querySelectorAll('h2'));
+  var totale = schede.length;
+
+  function testo(el){ return (el.textContent || '').toLowerCase(); }
+  schede.forEach(function(s){ s.dataset.testo = testo(s); });
+
+  function filtra(){
+    var q = box.value.trim().toLowerCase();
+    var visti = 0;
+    schede.forEach(function(s){
+      var ok = (q === '' || s.dataset.testo.indexOf(q) !== -1);
+      s.style.display = ok ? '' : 'none';
+      if (ok) visti++;
+    });
+    // nasconde le sezioni rimaste senza schede
+    sezioni.forEach(function(h){
+      var n = 0, el = h.nextElementSibling;
+      while (el && el.tagName !== 'H2') {
+        if (el.classList.contains('scheda') && el.style.display !== 'none') n++;
+        el = el.nextElementSibling;
+      }
+      var vuota = (q !== '' && n === 0);
+      h.style.display = vuota ? 'none' : '';
+      el = h.nextElementSibling;
+      while (el && el.tagName !== 'H2') {
+        if (!el.classList.contains('scheda')) el.style.display = vuota ? 'none' : '';
+        el = el.nextElementSibling;
+      }
+    });
+    conta.textContent = (q === '') ? (totale + ' documenti') : (visti + ' di ' + totale);
+  }
+  box.addEventListener('input', filtra);
+  filtra();
+})();
+</script>
+
+</body>
+</html>

@@ -98,7 +98,7 @@ cwd ──► Context.ctx ──► risorsa *pages ──► LEGOMMI_PAGINE ─�
 
 **Il run-time non fa nessuna `chdir` e nessuna conversione relativo→assoluto.**
 Un `*pages: ./` significa letteralmente "la directory da cui è stato lanciato
-`mmi`". Per questo `kMmi` fa una `cd` prima di lanciarlo (§5).
+`mmi`". Per questo `kMmi` fa una `cd` prima di lanciarlo (§6).
 
 ### Opzioni di lancio ([run_time/other.h](run_time/other.h#L30))
 
@@ -169,7 +169,158 @@ regolazioni ([comp_all.c:715](config/comp_all.c#L715)).
 
 ---
 
-## 5. La catena operativa in LegoPST (kprocedure)
+## 5. Da dove vengono le pagine: i tre generatori
+
+I `.pag` non nascono in un modo solo. Tre strade, che convergono tutte sulla
+stessa compilazione descritta sopra:
+
+| generatore | ingresso | uscita | a cosa serve |
+|---|---|---|---|
+| `config` (pagedit) | disegno interattivo | `<NOME>.pag` + `.bkg` | sinottici e pagine di regolazione disegnate a mano |
+| `convstaz` | `r01.dat` | una `<NOME>.pag` per blocco `PAGINA` | portare nell'MMI i faceplate di comando gia' descritti per `xstaz` |
+| `mkstaz`, via `kcreastaz` o `kOw` | `<base>.templ` + `<base>.list` | una `.pag` + `.bkg` per riga della lista | finestre di malfunzione e operating window, generate in serie dal database d'impianto |
+
+### `convstaz` — dallo stesso `r01.dat` dei faceplate
+
+Sorgenti in [conv_staz/](conv_staz/), binario `bin/convstaz`. È un **fork di
+`compstaz`** ([Alg_rt/grafica/xstaz](../Alg_rt/grafica/xstaz/README.md)): stesso
+parser, stessi moduli per tipo di oggetto, con innestata la scrittura delle
+pagine MMI. Si vede ancora dalla firma, che è rimasta quella del progenitore
+(*"Fine corretta COMPSTAZ"*).
+
+Si lancia dalla directory che contiene il file:
+
+```sh
+cd <dir con r01.dat> && convstaz            # scrive nella dir corrente
+cd <dir con r01.dat> && convstaz -d $KWIN   # scrive direttamente in o_win
+```
+
+| | file |
+|---|---|
+| ingresso | `r01.dat` (l'unico) |
+| uscite | `convstaz.log` + per ogni blocco `PAGINA` una **`<NOME>.pag`** (risorse X, `*top_tipo: Stazioni`) e una **`<NOME>.bkg`** |
+
+L'opzione **`-d <dir>`** dice dove depositare pagina e sfondo; senza, restano
+nella directory corrente come è sempre stato.
+
+Lo sfondo generato è "vuoto" (bounding box degenere, zero oggetti disegnati) ed è
+quello che serve a un faceplate, il cui fondo è il colore di
+`*drawing_background`. Ma **deve esistere**: la raccolta collega sempre il `.bkg`
+accanto al `.rtf` con un `ln -sf` che non verifica il target, e senza il file
+l'MMI segnala *"Errore lettura file di background"*.
+
+Il nome del file viene dal campo `NOME` del blocco `PAGINA` e **non può superare
+gli 8 caratteri** (`LUN_NOM_PAG` in [xstaz.h](../AlgLib/libinclude/xstaz.h#L44)):
+oltre, la `strcpy` sfora nel campo descrizione che segue nella struttura. Dal
+2026-09 il programma se ne accorge e si ferma con un messaggio, invece di
+produrre un file dal nome assurdo.
+
+Due cose da sapere, che lo distinguono dal gemello:
+
+- **non produce `r02.dat`.** Quel file serve solo a `xstaz` e a `net_monit`, e lo
+  fa `compstaz`. `convstaz` lo scriveva per eredità, per giunta sbagliato (vedi
+  il punto seguente): la scrittura è stata rimossa, così lanciarlo nella
+  directory del simulatore non può più sovrascrivere quello buono.
+- **non risolve le variabili, e non è un problema.** `check_model`,
+  `check_input` e `check_output` sono stub che ritornano sempre indice 1 — le
+  implementazioni vere stanno sotto `#ifdef ORIGINALE`, che il makefile non
+  definisce ([checkvar.c:176](conv_staz/checkvar.c#L176)). Nelle pagine però
+  `convstaz` scrive riferimenti **simbolici**, non indici:
+
+  ```
+  *1w1c.varInputCambioColore1: U1094FSL BLOCCO R_PCS NOP 1.0 0.0 ---
+  ```
+
+  che vengono risolti dopo, in compilazione, contro `variabili.rtf`, esattamente
+  come per una pagina disegnata a mano. Gli indici fasulli finivano solo nel
+  `r02.dat`, che infatti non viene più scritto. Conseguenza pratica: `convstaz`
+  gira ovunque col solo `r01.dat`, mentre `compstaz` pretende `variabili.rtf`
+  nella directory e senza si ferma.
+
+### `mkstaz` — da un template e una lista
+
+[Alg_mmi/procedure/mkstaz.sh](procedure/mkstaz.sh) genera pagine **in serie**
+sostituendo segnaposto dentro un modello. Servono tre file:
+
+| file | dove |
+|---|---|
+| `<base>.list` | directory di lavoro — l'elenco delle istanze |
+| `<base>.templ` | `$HOME/legocad/libut_mmi/` — la pagina modello |
+| `<base>.tebkg` | `$HOME/legocad/libut_mmi/` — lo sfondo modello |
+
+La lista è posizionale: **la prima riga contiene i segnaposto**, le righe
+successive i valori. Esempio reale da `malDES.list`:
+
+```
+@#L@TITLE       @#L@REFSTA              @#V@SACT
+F_0LCA20AA001   O_0LCA20AA001           0208M_-XREG08M_-LEGOCAD
+```
+
+Per ogni riga di dati `mkstaz` fa una `sed` dei segnaposto sul template (fino a
+20 colonne) e scrive **`<primo valore>.pag`**, più una copia del `.tebkg` come
+`.bkg`. Nei valori i trattini diventano spazi, così si scrivono stringhe con
+spazi in un campo separato da spazi.
+
+Il primo valore, che dà il nome al file, deve rispettare i **prefissi** che
+`kMakeGlobpages` cerca in `$MMI_WINDIR`: `O_` operating window, `F_` finestra di
+malfunzione, `M_` plant display ([kMakeGlobpages.sh:522](../kprocedure/kMakeGlobpages.sh#L522)).
+
+Due procedure lo pilotano:
+
+- [`kcreastaz`](../kprocedure/kcreastaz.sh) — la versione spiccia: `mkstaz` su
+  tutti i `mal*.list` e `N_win*.list` della directory corrente, log locale,
+  nessun controllo;
+- [`kOw`](../kprocedure/kOw.sh) — quella completa: verifica che le liste non
+  contengano `/` (romperebbe i nomi di file), poi `mkstaz` per le operating
+  window, `mkdtw` per le finestre di dettaglio e `mkstaz2 mgw` per la finestra
+  di gruppo delle malfunzioni, scrivendo nei log standard.
+
+Si lavora in `$KWIN`, cioè `$KSIM/o_win`, la stessa directory che `al_sim.conf`
+dichiara come `MMI_WINDIR`.
+
+---
+
+### Portare i faceplate nell'MMI: `kStazPages`
+
+`convstaz` produce le pagine, ma per anni nessuno andava a prenderle: la raccolta
+guarda solo dentro `$MMI_WINDIR` (`o_win`) i file con prefisso `O_`, `F_`, `M_`, e
+le directory delle task `R` tramite `filespec`. Una `POWCTRL.pag` nella directory
+del `r01.dat` non rientrava in nessuno dei due criteri.
+
+Il ponte è [`kStazPages`](../kprocedure/kStazPages.sh): cerca un `r01.dat` in
+`$KSIM` e nelle directory delle task `R` dichiarate in `al_sim.conf` (risolte via
+`BASEPATH`), lancia `convstaz -d` in una directory temporanea e deposita pagina e
+sfondo in `$KWIN` **anteponendo `O_`** al nome — lasciandolo com'è se comincia già
+per `O_`, `F_` o `M_`.
+
+Il prefisso non consuma gli 8 caratteri del campo `NOME`: a valle i limiti sono
+molto più larghi (`MAXCHAR_PAGNAME` 60, `L_NOME_PAGINE` 200), e in un impianto
+reale i nomi di pagina arrivano a 24 caratteri.
+
+Da lì in poi vale la catena che già esisteva per le operating window:
+
+```
+kStazPages           →  $KWIN/O_<nome>.pag + O_<nome>.bkg
+kWinContext          →  $KWIN/Context.ctx           (gemello di kGlobContext, per o_win)
+kconfig -c compall   →  O_<nome>.rtf                (risolve le variabili contro variabili.rtf)
+kCollect             →  kMakeGlobpages collega gli O_*.rtf in globpages
+```
+
+Esempio verificato su `SLaurent_0`: da un `r01.dat` con una pagina `POWCTRL` si
+ottiene `o_win/O_POWCTRL.pag` + `.bkg`, un `Context.ctx` con descrizione,
+`refresh_freq` e `top_tipo: Stazioni`, un `.rtf` di 18 KB compilato senza errori
+con i riferimenti risolti (`compiled: # … | 2 11977 1 0 4 …`), e infine i symlink
+in `globpages`.
+
+> **`$?` non dice se `convstaz` è andato bene.** Il programma esce con
+> `exit(puts("\nFine corretta COMPSTAZ"))`, cioè con il numero di caratteri
+> stampati (24). `kStazPages` verifica l'esito guardando se ha davvero prodotto
+> pagine, e lo fa con `ls`, non con `[ -f <glob> ]`: senza corrispondenze il
+> pattern resterebbe letterale.
+
+---
+
+## 6. La catena operativa in LegoPST (kprocedure)
 
 Nell'uso reale non si tocca il Context a mano: lo generano le procedure.
 
@@ -226,7 +377,7 @@ comunque, anche se scaduta.
 
 ---
 
-## 6. Due configurazioni: MMI locale o MMI client/SCADA
+## 7. Due configurazioni: MMI locale o MMI client/SCADA
 
 `mmi` decide da solo come collegarsi ai punti, guardando **`*hostName` e
 `*hostNameS`** del Context ([OlDatabasePunti.c:208](lib/Ol/OlDatabasePunti.c#L208)):
@@ -294,7 +445,7 @@ con id SCADA distinti.
 
 ---
 
-## 7. Diagnostica
+## 8. Diagnostica
 
 ### `mmi` parte e si blocca su `TIMEOUT SCADUTO`
 
@@ -306,7 +457,26 @@ ATTIVA CLIENT: Errore ricevimento msg ACK su richiesta pag.TEMPO per client_scad
 
 L'MMI sta cercando un server SCADA che non esiste, perché `*hostNameS` non è
 vuoto. Su un simulatore locale va lanciato senza `kMmi`, con `cd $KPAGES && mmi &`
-(§6).
+(§7).
+
+### Nella directory del simulatore compare un file chiamato `*mf`
+
+Un symlink penzolante con l'asterisco nel nome, che punta a `$KWIN/*mf`. Lo
+creava [`kCollect`](../kprocedure/kCollect.sh), che collega in `$KSIM` i file
+dell'interfaccia malfunzioni con `ln -fs $KWIN/*mf $KSIM`: se in `o_win` non c'è
+nessun `*mf` — interfaccia malfunzioni non configurata — il glob resta
+**letterale** e `ln` crea il link con quel nome.
+
+Si toglie con le virgolette, altrimenti la shell espande il pattern:
+
+```sh
+cd $KSIM && rm -- '*mf'
+```
+
+Da settembre 2026 la riga è protetta da un `if ls … > /dev/null 2>&1` e al suo
+posto compare un warning nel log. I file veri sono `component.mf`,
+`malf_set.mf` e `tipo_comp_malf.mf`, che porta in `$KWIN` la procedura
+`kExport`.
 
 ### `kMmi` mostra una lista vuota
 
@@ -347,7 +517,7 @@ da `${KPAGES}_<id>` (lo fa `kMmi`) o con `-Context <file>`.
 
 ---
 
-## 8. Tranelli
+## 9. Tranelli
 
 - **Non esiste un search path.** Una sola directory per categoria, presa dal
   Context. Se il path è sbagliato, l'MMI non prova nessuna alternativa.
@@ -368,7 +538,7 @@ da `${KPAGES}_<id>` (lo fa `kMmi`) o con `-Context <file>`.
   corretti voce per voce.
 - **`kMmiConfig` scrive sempre l'id SCADA in `*hostNameS`**, anche quando il
   campo era vuoto: basta questo a far passare `mmi` dalla modalità locale a
-  quella client/SCADA, con blocco su timeout (§6).
+  quella client/SCADA, con blocco su timeout (§7).
 - **Solo l'editor conosce `iconlib_list`**, la lista di librerie di icone: è per
   la palette, non è un path di ricerca a run-time. Per le pagine una lista
   analoga non esiste.

@@ -39,7 +39,16 @@ kAddLog kCollect "Multi MMI Configuration"
 kMmiConfig
 kAddScreen kCollect "Malfunction Interface Configuration"
 kAddLog kCollect "Malfunction Interface Configuration"
+#  Il glob va protetto: se in $KWIN non c'e' nessun file *mf (interfaccia
+#  malfunzioni non configurata) la shell passa il pattern LETTERALE e
+#  `ln -s` crea in $KSIM un link penzolante chiamato "*mf".
+if ls $KWIN/*mf > /dev/null 2>&1
+then
 ln -fs $KWIN/*mf $KSIM
+else
+print "WARNING : nessun file *mf in $KWIN - interfaccia malfunzioni non configurata"
+print "WARNING : nessun file *mf in $KWIN" >> $KLOG/kCollect.log
+fi
 ###############################################################################
 cd ${KSIM}
 #cp al_sim.conf al_sim.conf.tmp

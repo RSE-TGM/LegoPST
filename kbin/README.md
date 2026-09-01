@@ -72,6 +72,7 @@ kDiffS01               # ora cd $KSIM trova l'S01
 | `kDiffS01Slave5` | slave | Sotto-passo di kDiffS01. |
 | `kDiffS01Slave6` | slave | Costruisce il DB per le task GIPS. |
 | `koldlg5` | util | Compila `proc/lg5` legacy (`cad_maketask`). |
+| `kCompStaz` | main | Compila i faceplate (`r01.dat` -> `r02.dat`) per `xstaz`, con un exit status utilizzabile: `compstaz` da solo esce con 24 anche quando riesce. |
 
 ## 2. Esecuzione, avvio & lancio strumenti
 
@@ -111,6 +112,7 @@ kDiffS01               # ora cd $KSIM trova l'S01
 | `kWinContext` | main | Costruisce il context delle finestre MMI. |
 | `kMakeWin` | main | Costruisce le liste finestre MMI (in `$KWIN`). |
 | `kOw` | main | Costruisce le Operating Window (finestre operative MMI). |
+| `kStazPages` | main | Porta in `$KWIN` i faceplate descritti nei `r01.dat` (via `convstaz -d`), col prefisso `O_`, pronti per `kWinContext` + compilazione + `kCollect`. |
 | `kPlace` | main | Piazzamento (placement) di pagine/widget MMI. |
 | `kpag` | util | Costruisce la lista pagine (`Context.ctx`) dai `????.pag`. |
 | `kRenamePage` | main | Rinomina una pagina MMI. |
@@ -270,6 +272,6 @@ kDiffS01               # ora cd $KSIM trova l'S01
 
 ---
 
-*Totale: 189 file — comandi principali (CamelCase), wrapper background (minuscoli),
+*Totale: 191 file — comandi principali (CamelCase), wrapper background (minuscoli),
 sotto-passi (`*SlaveN`), helper e utility. Versione navigabile con ricerca disponibile
 come Artifact.*

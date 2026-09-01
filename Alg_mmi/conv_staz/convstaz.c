@@ -93,16 +93,38 @@ char nomi_ogg_pag[MAX_PAG][MAX_LUN_RIGA_ELENCO_WID];
 
 FILE *fo;
 
-int main()
+/*  Directory in cui scrivere le pagine (.pag e .bkg): opzione -d. Vuota =
+    directory corrente, come e' sempre stato. Serve per generare direttamente
+    in $KWIN (o_win), dove la catena kWinContext -> compilazione -> kCollect
+    va a prenderle.  */
+char dir_uscita[512] = "";
+
+int main(argc,argv)
+int argc;
+char **argv;
 {
 char aux[80];
 char file [50];
+int iarg;
 
 int  i, j,  i1, i2, ncoll, lun, ier;
-FILE *fp;
 S_COMP_PAGINA *scomp;
-HEAD_R02 header;
 
+
+/* opzioni della riga di comando */
+
+	for (iarg=1; iarg<argc; iarg++)
+	{
+		if (!strcmp(argv[iarg],"-d") && (iarg+1) < argc)
+		{
+			strncpy(dir_uscita,argv[++iarg],sizeof(dir_uscita)-1);
+			continue;
+		}
+		printf("uso: convstaz [-d <dir di uscita per .pag e .bkg>]\n");
+		exit(1);
+	}
+	if (dir_uscita[0])
+		printf("Le pagine saranno scritte in %s\n",dir_uscita);
 
 /* apre file di output compstaz.log */
 
@@ -168,38 +190,12 @@ for (;;)
 				fill_pagina(scomp);
 				check_pagina(scomp);
 
-				/* scrive il file r02.dat */
-
-				fp=fopen("r02.dat","w");
-				memset(header.data,0,sizeof (HEAD_R02));
-				header.tot_pagine=numero_pag;
-				header.tot_staz=numero_staz;
-				fwrite(header.data,sizeof (HEAD_R02), 1, fp);
-				
-				/* scrive la struttura S_PAGINA per tutte le
-				pagine definite */
-
-				lun=sizeof (S_PAGINA);
-				for (i=0; i< numero_pag; i++)
-                                {
-/*		printf (" pag. %d  offset %d  num.staz %d\n",i,pag.p[i].offset_staz,pag.p[i].num_staz);*/
-				
-				fwrite(&pag.p[i].attiva,sizeof (S_PAGINA), 1, fp);
-				}
-
-				/* scrive l'array degli indici delle
-				stazioni di ogni pagina */
-
-				lun=sizeof (int) * numero_staz;
-				fwrite(offset_staz, lun , 1, fp);
-				
-				/* scrive la struttura stazione per tutte
-				quelle definite */
-
-				lun=sizeof (S_STAZIONE);
-				for (i=0; i< numero_staz; i++)
-				fwrite((char *) staz.s[i].nome,sizeof (S_STAZIONE), 1, fp);
-				fclose(fp);
+				/* NIENTE r02.dat: quel file serve solo a xstaz/net_monit e lo
+				   produce compstaz, che risolve davvero gli indici delle
+				   variabili contro variabili.rtf. Qui i check_* sono stub e
+				   ritornerebbero sempre indice 1: scriverlo significava solo
+				   poter sovrascrivere quello buono con uno inservibile.
+				   convstaz produce le pagine LEGOMMI, e basta. */
 				fclose(fp_s01);
 				ChiudiFileMMI();
 			 	exit(puts("\nFine corretta COMPSTAZ"));
@@ -251,6 +247,12 @@ numbyte=sscanf(string[1].stringa,"%3d",&ipag);
 	 strcpy(aux,"la riga seguente non e' del tipo: NOME aaaaaaaa");
   		goto errore;
 	}
+  if (string[1].lun_stringa > LUN_NOM_PAG)
+  {
+	sprintf(aux,"il NOME della pagina supera %d caratteri: %s",
+		LUN_NOM_PAG,string[1].stringa);
+	goto errore;
+  }
   strcpy(pag.p[numero_pag].nome,string[1].stringa);
 
 /* cerca la descrizione della pagina  */
