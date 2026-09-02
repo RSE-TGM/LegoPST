@@ -60,6 +60,7 @@ $(ALTERLEGO_BIN)/kcreabasic \
 $(ALTERLEGO_BIN)/kcreastaz \
 $(ALTERLEGO_BIN)/kStazPages \
 $(ALTERLEGO_BIN)/kCompStaz \
+$(ALTERLEGO_BIN)/kUpSim \
 $(ALTERLEGO_BIN)/kc \
 $(ALTERLEGO_BIN)/kDangerPipo \
 $(ALTERLEGO_BIN)/kdbx \
@@ -391,6 +392,10 @@ $(ALTERLEGO_BIN)/kStazPages: kStazPages.sh
 	chmod 755 $@
 
 $(ALTERLEGO_BIN)/kCompStaz: kCompStaz.sh
+	cp $? $@
+	chmod 755 $@
+
+$(ALTERLEGO_BIN)/kUpSim: kUpSim.sh
 	cp $? $@
 	chmod 755 $@
 

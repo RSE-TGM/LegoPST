@@ -12,6 +12,7 @@ raggruppato per funzione.
 
 | Marca | Significato |
 |---|---|
+| **func** | funzione o alias di shell definiti in `Alg_env.sh`, non script in `kbin/` |
 | **main** | comando principale (CamelCase), es. `kExport`, `kCompile`, `kMmi` |
 | **bg** | wrapper minuscolo di 3 righe che lancia il main **in background** (`. $KBIN/kExport $* &`) |
 | **slave** | sotto-passo interno di un main (es. `kDiffS01Slave1..6`) |
@@ -35,6 +36,8 @@ Ambiente: le variabili `K*` derivano da `KSIM` (vedi `ksetsim` qui sotto).
 | `ksetsim <nome\|/path>` | func | Imposta il **simulatore corrente** (`KSIM`) sotto `$KSKED` e **ri-deriva tutte le `K*`** (`KLOG`, `KSTATUS`, `KSCADA`, `KDATABASES`, `KPAGES`, `KGRAF`, …). Crea `status/`/`log/` mancanti, sorgia l'override per-sim `$KSIM/ksim.conf`, e memorizza la scelta in `~/.legosim` (sticky tra shell). Completion bash sui nomi disponibili. |
 | `ksims` | func | Elenca i simulatori disponibili (solo directory sotto `$KSKED`, default `$HOME/sked`). |
 | `ksetsim_default` | func | Chiamata dal profilo all'avvio: sceglie il simulatore in cascata `~/.legosim` → `cassano0` → **primo disponibile** (`ksims`); se `$KSKED` è vuoto avvisa e lascia `KSIM` non impostata. |
+| `lgupsim` | func | **Alias** di `kUpSim`: riallinea tutta la configurazione del simulatore corrente. |
+| `lgupsimx` | func | **Alias** di `kUpSim -nommi`: come sopra, senza le pagine MMI dei faceplate. |
 
 ```bash
 ksetsim SLaurentB1     # passa a $KSKED/SLaurentB1 e riallinea tutte le K*
@@ -73,6 +76,7 @@ kDiffS01               # ora cd $KSIM trova l'S01
 | `kDiffS01Slave6` | slave | Costruisce il DB per le task GIPS. |
 | `koldlg5` | util | Compila `proc/lg5` legacy (`cad_maketask`). |
 | `kCompStaz` | main | Compila i faceplate (`r01.dat` -> `r02.dat`) per `xstaz`, con un exit status utilizzabile: `compstaz` da solo esce con 24 anche quando riesce. |
+| `kUpSim [-nommi\|-n]` | main | **Orchestratore**: riallinea tutta la configurazione del simulatore — `kConnex` → `kNetCompi` → `kCompStaz` → (`kStazPages` → `kWinContext` → `kCompileSim`) → `kCollect`. Si ferma al primo passo fallito dicendo quale; `-nommi` salta le pagine MMI dei faceplate, `-n` è un dry run. |
 
 ## 2. Esecuzione, avvio & lancio strumenti
 
@@ -272,6 +276,6 @@ kDiffS01               # ora cd $KSIM trova l'S01
 
 ---
 
-*Totale: 191 file — comandi principali (CamelCase), wrapper background (minuscoli),
+*Totale: 192 file — comandi principali (CamelCase), wrapper background (minuscoli),
 sotto-passi (`*SlaveN`), helper e utility. Versione navigabile con ricerca disponibile
 come Artifact.*

@@ -105,14 +105,14 @@
   <header class="top">
     <div class="eyebrow">LegoPST · kprocedure</div>
     <h1><span class="mono">kbin/</span> — riferimento dei comandi</h1>
-    <p class="lede">I 191 script Korn-shell dell'ambiente k di LegoPST (build, esecuzione,
+    <p class="lede">I 192 script Korn-shell dell'ambiente k di LegoPST (build, esecuzione,
       SCADA/MMI, manutenzione di un simulatore d'impianto). Scopo di ciascuno, raggruppato per
       funzione. Ricostruito ispezionando header, log e operazioni dei singoli script. In cima,
       le funzioni d'ambiente <span class="mono">ksetsim</span>/<span class="mono">ksims</span>
       (definite in <span class="mono">Alg_env.sh</span>, non in <span class="mono">kbin/</span>).</p>
   </header>
 
-  <div class="stats" id="stats"><div class="stat"><b>191</b><span>script kbin</span></div><div class="stat"><b>80</b><span>comandi principali</span></div><div class="stat"><b>21</b><span>wrapper background</span></div><div class="stat"><b>35</b><span>sotto-passi (slave)</span></div><div class="stat"><b>3</b><span>funzioni ambiente</span></div></div>
+  <div class="stats" id="stats"><div class="stat"><b>192</b><span>script kbin</span></div><div class="stat"><b>81</b><span>comandi principali</span></div><div class="stat"><b>21</b><span>wrapper background</span></div><div class="stat"><b>35</b><span>sotto-passi (slave)</span></div><div class="stat"><b>3</b><span>funzioni ambiente</span></div></div>
 
   <div class="legend">
     <span class="row"><b>Convenzioni di nome:</b></span>
@@ -168,6 +168,8 @@ const D = [
   ["ksetsim","env","func","Imposta il <b>simulatore corrente</b> (<code>KSIM</code>) sotto <code>$KSKED</code> e <b>ri-deriva tutte le K*</b> (KLOG, KSTATUS, KSCADA, KDATABASES, KPAGES, KGRAF…). Crea <code>status/</code>/<code>log/</code>, sorgia l'override <code>$KSIM/ksim.conf</code>, memorizza la scelta in <code>~/.legosim</code> (sticky). Completion bash."],
   ["ksims","env","func","Elenca i simulatori disponibili (solo directory sotto <code>$KSKED</code>, default <code>$HOME/sked</code>)."],
   ["ksetsim_default","env","func","All'avvio (dal profilo) sceglie il simulatore in cascata: <code>~/.legosim</code> → <code>cassano0</code> → primo disponibile; se <code>$KSKED</code> è vuoto avvisa e lascia <code>KSIM</code> non impostata."],
+  ["lgupsim","env","func","Alias di <code>kUpSim</code>: riallinea tutta la configurazione del simulatore corrente."],
+  ["lgupsimx","env","func","Alias di <code>kUpSim -nommi</code>: come lgupsim, senza le pagine MMI dei faceplate."],
 
   // ---- build ----
   ["kCompile","build","main","Compila il simulatore (invoca <code>net_compi</code>)."],
@@ -229,6 +231,7 @@ const D = [
   ["kOw","scada","main","Costruisce le Operating Window (finestre operative MMI)."],
   ["kStazPages","scada","main","Porta in <code>$KWIN</code> i faceplate dei <code>r01.dat</code> (via <code>convstaz -d</code>) col prefisso <code>O_</code>, pronti per kWinContext + compilazione + kCollect."],
   ["kCompStaz","build","main","Compila i faceplate (<code>r01.dat</code> &rarr; <code>r02.dat</code>) per xstaz, con exit status utilizzabile: <code>compstaz</code> da solo esce con 24 anche quando riesce."],
+  ["kUpSim","build","main","<b>Orchestratore</b>: riallinea tutta la configurazione del simulatore — kConnex &rarr; kNetCompi &rarr; kCompStaz &rarr; (kStazPages &rarr; kWinContext &rarr; kCompileSim) &rarr; kCollect. Si ferma al primo passo fallito dicendo quale; <code>-nommi</code> salta le pagine MMI, <code>-n</code> e' un dry run."],
   ["kPlace","scada","main","Piazzamento (placement) di pagine/widget MMI."],
   ["kpag","scada","util","Costruisce la lista pagine (<code>Context.ctx</code>) dai <code>????.pag</code>."],
   ["kRenamePage","scada","main","Rinomina una pagina MMI."],

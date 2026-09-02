@@ -100,24 +100,42 @@ file `Simulator` manca: cambiando i default vanno allineati anche lì.
 ## Aggiornare la configurazione di un simulatore
 
 Dopo aver modificato modelli, schemi o faceplate, la configurazione si riallinea
-con questa catena — è l'alias `upsim` definito in [Alg_env.sh](../Alg_env.sh):
+con **`kUpSim`**, che orchestra i sette passi e si ferma al primo che fallisce
+dicendo quale:
 
 ```sh
-cd $KSIM && kConnex && net_compi && kCompStaz && kStazPages && kWinContext && kCompileSim && kCollect
+kUpSim              # catena completa
+kUpSim -nommi       # senza le pagine MMI dei faceplate
+kUpSim -n           # dry run: mostra i passi senza eseguirli
+```
+
+In [Alg_env.sh](../Alg_env.sh) ci sono le due scorciatoie:
+`lgupsim` per la catena completa e `lgupsimx` per quella senza pagine MMI.
+
+I sette passi, per esteso:
+
+```sh
+cd $KSIM && kConnex && kNetCompi && kCompStaz && kStazPages && kWinContext && kCompileSim && kCollect
 ```
 
 | passo | cosa rifà |
 |---|---|
 | `kConnex` | topologia e connessioni fra task → `S01` |
-| `net_compi` | compilazione delle task → `variabili.rtf` |
+| `kNetCompi` | compilazione delle task → `variabili.rtf` |
 | `kCompStaz` | faceplate per `xstaz` → `r02.dat` |
 | `kStazPages` | gli stessi faceplate come pagine MMI → `$KWIN/O_*.pag` |
 | `kWinContext` | `Context.ctx` di `$KWIN` |
 | `kCompileSim` | compila le pagine di `$KWIN` → `.rtf` |
 | `kCollect` | raccolta in `globpages` + `kMmiConfig` |
 
-Chi non porta i faceplate nell'MMI usa la variante corta, `upsimx`:
-`kConnex && net_compi && kCompStaz && kCollect`.
+Chi non porta i faceplate nell'MMI usa `kUpSim -nommi` (alias `lgupsimx`), che
+esegue solo `kConnex`, `kNetCompi`, `kCompStaz` e `kCollect`.
+
+`kUpSim` non fa niente di diverso dalla catena a mano, ma scrive in
+`$KLOG/kUpSim.log`, aggiorna schermata e stato come le altre procedure, e dopo
+`kConnex` e `kNetCompi` verifica che `S01` e `variabili.rtf` siano stati davvero
+riscritti — un controllo che serve perché quasi tutte le `kprocedure` terminano
+con una `print` e restituiscono 0 comunque.
 
 Due cose da sapere, entrambe imparate sul campo:
 

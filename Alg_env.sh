@@ -388,22 +388,17 @@ alias kpages='cd $KPAGES; pwd'
 alias kwin='cd $KWIN; pwd'
 alias kscada='cd $KSCADA; pwd'
 alias kbasic='cd $KBASIC; pwd'
-#  Aggiornamento completo della configurazione di un simulatore, in ordine:
-#    kConnex     topologia e connessioni fra task -> S01
-#    net_compi   compilazione delle task         -> variabili.rtf
-#    kCompStaz   faceplate per xstaz             -> r02.dat   (dopo net_compi:
-#                gli indici si risolvono contro variabili.rtf)
-#    kStazPages  gli stessi faceplate come pagine MMI -> $KWIN/O_*.pag
-#    kWinContext Context.ctx di $KWIN
-#    kCompileSim compila le pagine di $KWIN       -> .rtf
-#    kCollect    raccolta in globpages + kMmiConfig
-#  I comandi vanno usati in CamelCase: le versioni minuscole (kconnex,
-#  kcollect...) sono wrapper che lanciano in background, e con && non
-#  sequenziano nulla. kCompStaz sostituisce compstaz nudo, che esce con 24
-#  anche quando riesce e fermerebbe la catena.
-alias upsim='cd $KSIM && kConnex && net_compi && kCompStaz && kStazPages && kWinContext && kCompileSim && kCollect'
-#  Variante senza pagine MMI dei faceplate (solo xstaz):
-alias upsimx='cd $KSIM && kConnex && net_compi && kCompStaz && kCollect'
+#  Aggiornamento completo della configurazione di un simulatore dopo una
+#  modifica a modelli, schemi o faceplate. La catena (kConnex, kNetCompi,
+#  kCompStaz, kStazPages, kWinContext, kCompileSim, kCollect) sta dentro
+#  kUpSim, che si ferma al primo passo fallito e scrive in $KLOG/kUpSim.log.
+#  Vedi docs/BUILD.md, sezione "Aggiornare la configurazione di un simulatore".
+alias lgupsim='kUpSim'
+#  Variante senza le pagine MMI dei faceplate (solo xstaz):
+alias lgupsimx='kUpSim -nommi'
+# erano
+#alias lgupsim='cd $KSIM && kConnex && net_compi && kCompStaz && kStazPages && kWinContext && kCompileSim && kCollect'
+#alias lgupsimx='cd $KSIM && kConnex && net_compi && kCompStaz && kCollect'
 #
 # Sezione per generazione curve: KGRAF/KDIRGR/KDIRPD/KDISPLAY e KPAGES sono
 # ora derivate da KSIM/KCASSAFORTE dentro ksetsim() (vedi sopra).
