@@ -85,10 +85,10 @@ fprintf(fp_staz[pagina],"*%dw%dc.height0: %d\n",num_w,*cont_f,35);
 fprintf(fp_staz[pagina],"*%dw%dc.tipoInd: 2\n",num_w,*cont_f);
 fprintf(fp_staz[pagina],"*%dw%dc.assRotate: 0\n",num_w,*cont_f);
 fprintf(fp_staz[pagina],"*%dw%dc.borderWidth: 1\n",num_w,*cont_f);
-fprintf(fp_staz[pagina],"*%dw%dc.normFg: black\n",num_w,*cont_f);
-fprintf(fp_staz[pagina],"*%dw%dc.background: %s\n",num_w,*cont_f,SFONDO_STAZ);
+fprintf(fp_staz[pagina],"*%dw%dc.normFg: white\n",num_w,*cont_f);
+ScriviSfondoFiglio(pagina,num_w,*cont_f,SFONDO_DISPLAY);
 fprintf(fp_staz[pagina],"*%dw%dc.normalFont: %s\n",num_w,*cont_f,FONT_GRANDE);
-fprintf(fp_staz[pagina],"*%dw%dc.agoFg: black\n",num_w,*cont_f);
+fprintf(fp_staz[pagina],"*%dw%dc.agoFg: white\n",num_w,*cont_f);
 fprintf(fp_staz[pagina],"*%dw%dc.scalamento: 1\n",num_w,*cont_f);
 fprintf(fp_staz[pagina],"*%dw%dc.valoreMinimo: -10000\n",num_w,*cont_f);
 fprintf(fp_staz[pagina],"*%dw%dc.valoreMassimo: 10000\n",num_w,*cont_f);
@@ -98,6 +98,11 @@ fprintf(fp_staz[pagina],"*%dw%dc.numeroDec: 1\n",num_w,*cont_f);
 if(input_ago!=NULL)
   fprintf(fp_staz[pagina],"*%dw%dc.varInputCambioColore1: %s\n",
         num_w,*cont_f,input_ago);
+/*
+	il valore e' scritto col colore dello stato del punto: la finestrella
+	e' scura (SFONDO_DISPLAY), quindi vuole la tavolozza satura
+*/
+ScriviCambioColore(pagina,num_w,*cont_f,CC_SU_FONDO_SCURO);
 sprintf(elenco,"%s %dw%dc Indic",elenco,num_w,*cont_f);
 *cont_f +=1;
 

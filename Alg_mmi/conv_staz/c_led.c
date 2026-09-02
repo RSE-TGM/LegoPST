@@ -175,7 +175,7 @@ if(strlen(p_r02->etic)>0)
   fprintf(fp_staz[pagina],"*%dw%dc.borderWidth: 0\n",num_w,*cont_f);
   fprintf(fp_staz[pagina],"*%dw%dc.normalFont: %s\n",num_w,*cont_f,FONT_PICCOLO);
   fprintf(fp_staz[pagina],"*%dw%dc.labelText: %s\n",num_w,*cont_f,p_r02->etic);
-  fprintf(fp_staz[pagina],"*%dw%dc.background: %s\n",num_w,*cont_f,SFONDO_STAZ);
+  ScriviSfondoFiglio(pagina,num_w,*cont_f,SFONDO_STAZ);
   sprintf(elenco,"%s %dw%dc Label",elenco,num_w,*cont_f);
   *cont_f +=1;
   }

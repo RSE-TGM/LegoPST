@@ -119,7 +119,7 @@ fprintf(fp_staz[pagina],"*%dw%dc.width0: %d\n",num_w,*cont_f,W_LAMPADA);
 fprintf(fp_staz[pagina],"*%dw%dc.height0: %d\n",num_w,*cont_f,H_LAMPADA);
 fprintf(fp_staz[pagina],"*%dw%dc.borderWidth: 0\n",num_w,*cont_f);
 fprintf(fp_staz[pagina],"*%dw%dc.tipoLed: 1\n",num_w,*cont_f);
-fprintf(fp_staz[pagina],"*%dw%dc.background: %s\n",num_w,*cont_f,SFONDO_STAZ);
+ScriviSfondoFiglio(pagina,num_w,*cont_f,SFONDO_STAZ);
 fprintf(fp_staz[pagina],"*%dw%dc.colorNorm: %s\n",num_w,*cont_f,
                 RetColore(colore_led));
 fprintf(fp_staz[pagina],"*%dw%dc.colorBlink: %s\n",num_w,*cont_f,

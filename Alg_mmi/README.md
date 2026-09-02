@@ -237,6 +237,72 @@ Due cose da sapere, che lo distinguono dal gemello:
   gira ovunque col solo `r01.dat`, mentre `compstaz` pretende `variabili.rtf`
   nella directory e senza si ferma.
 
+#### I colori della pagina generata
+
+I tre sfondi sono quelli del faceplate `xstaz`
+([xstaz.c:139-143](../Alg_rt/grafica/xstaz/xstaz.c#L139-L143)), perché la pagina
+MMI deve somigliare al pannello che l'operatore conosce:
+
+| `conv_mmi.h` | valore | in `xstaz` |
+|---|---|---|
+| `SFONDO_WINDOW` | `#cce5e5` verdino pallido | `sfondo_window` |
+| `SFONDO_STAZ` | `#d5e5d5` verdino grigio | `sfondo_staz` |
+| `SFONDO_LABEL` | `#cce5cb` verdino chiaro | `sfondo_label` |
+| `SFONDO_DISPLAY` | `#101c2c` blu notte | *non esiste* |
+
+`SFONDO_DISPLAY` è l'unico che si stacca dall'originale, e serve perché le due
+viste **colorano le cifre in modo diverso**. In `xstaz` il display è una
+`XmLabel` con foreground fisso: nero, sempre
+([gdisplay.c:111-120](../Alg_rt/grafica/xstaz/gdisplay.c#L111-L120)). Nell'MMI è
+un `XlIndic`, e il colore delle cifre lo sceglie
+[`XlFlagToGC`](lib/Xl/XlWidgetUtil.c#L855) in base ai flag del punto — fuori
+scansione, automatico, fuori attendibilità, stimato, e le quattro soglie
+`hs`/`ls`/`hc`/`lc`. Il colore **è** l'informazione, e quella tavolozza nasce
+satura, per fondo scuro: su un fondo chiaro il giallo "stimato" dà un rapporto di
+contrasto di 1,2, cioè è invisibile. Da qui la finestrella scura, che per giunta
+somiglia al display dello strumento vero.
+
+Le risorse `colore*1` le scrive `ScriviCambioColore` in due tarature, scelte in
+base allo sfondo dell'oggetto:
+
+| stato | risorsa | su fondo scuro (display) | su fondo chiaro (barra) |
+|---|---|---|---|
+| stimato | `coloreStimato1` | `#ffff00` | `#7a5c00` |
+| in conduzione | `coloreBassoAlto1` | `#00ff00` | `#006400` |
+| automatico | `coloreAutomatico1` | `#00ffff` | `#006a6a` |
+| fuori scansione | `coloreFuoriScansione1` | `#6699ff` | `#0000b3` |
+| non attendibile | `coloreFuoriAttendib1` | `#ff66ff` | `#8b008b` |
+| fuori sicurezza | `coloreBassissimo1`, `coloreAltissimo1` | `#ff5555` | `#b30000` |
+
+I due valori corretti rispetto ai default di Xl sono il blu e il rosso: `blue` su
+fondo scuro darebbe 2,0 di contrasto e `red` 4,3.
+
+#### `inheritBackground: 0`, senza il quale niente di tutto questo si vede
+
+**Dichiarare `background` in una pagina MMI non basta.** La risorsa
+`inheritBackground` vale `True` per default
+([XlCore.c:154-161](lib/Xl/XlCore.c#L154-L161), idem
+[XlManager.c:159-167](lib/Xl/XlManager.c#L159-L167)) e la `Initialize` del widget
+copia il background del **padre** sopra quello letto dal file:
+
+```c
+/* se inhertiBackground == 1 setta il background del padre */
+if(new->xlcore.inheritBackground == 1)
+    {
+    XtSetArg(arg[i],XmNbackground,&back_parent);i++;
+    XtGetValues(XtParent(tnew),arg,i);
+    new->core.background_pixel=back_parent;
+    }
+```
+
+L'ereditarietà risale tutta la gerarchia — figli → composite → drawing area — e
+la pagina finisce **uniformemente al colore di `drawing_background`**. Fino al
+settembre 2026 `convstaz` non scriveva mai quella riga: dei suoi tre colori se ne
+vedeva uno solo, e per la via indiretta dello sfondo pagina. Ora ogni sfondo lo
+scrive `ScriviSfondoFiglio` ([conv_staz/conv_mmi.c](conv_staz/conv_mmi.c)), che
+emette sempre le due righe insieme. Le pagine disegnate con `legopc` non hanno
+mai avuto il problema perché il CAD scrive `inheritBackground` per ogni oggetto.
+
 ### `mkstaz` — da un template e una lista
 
 [Alg_mmi/procedure/mkstaz.sh](procedure/mkstaz.sh) genera pagine **in serie**
@@ -539,6 +605,10 @@ da `${KPAGES}_<id>` (lo fa `kMmi`) o con `-Context <file>`.
 - **`kMmiConfig` scrive sempre l'id SCADA in `*hostNameS`**, anche quando il
   campo era vuoto: basta questo a far passare `mmi` dalla modalità locale a
   quella client/SCADA, con blocco su timeout (§7).
+- **`background` da solo non colora niente**: `inheritBackground` vale 1 di
+  default e la `Initialize` di `XlCore`/`XlManager` ci copia sopra lo sfondo del
+  padre. Vanno scritte sempre le due righe insieme, altrimenti la pagina esce
+  tutta del colore di `drawing_background` senza un solo messaggio d'errore (§5).
 - **Solo l'editor conosce `iconlib_list`**, la lista di librerie di icone: è per
   la palette, non è un path di ricerca a run-time. Per le pagine una lista
   analoga non esiste.

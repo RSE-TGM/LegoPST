@@ -48,7 +48,10 @@ Il capitolo 6 elenca tutti i tipi con il loro template.
 Entrambi lavorano **solo nella directory corrente**: non esiste un'opzione per
 indicare i file altrove. Il compilatore si chiama `compstaz` (non *xcompstz*);
 esiste anche `Alg_mmi/bin/convstaz`, che mangia lo stesso `r01.dat` ma genera le
-pagine per LEGOMMI invece del binario per `xstaz`.
+pagine per LEGOMMI invece del binario per `xstaz`. Lo stesso faceplate reso
+dall'MMI non è identico: gli sfondi sono gli stessi, ma la finestrella del
+display numerico è scura, perché lì le cifre cambiano colore con lo stato del
+punto ([Alg_mmi/README.md](../../../Alg_mmi/README.md#i-colori-della-pagina-generata)).
 
 **Perché serve `variabili.rtf`**: ogni riga `INPUT`/`OUTPUT` cita una variabile e
 un modello, che `compstaz` risolve contro la **topologia del simulatore**, tenuta

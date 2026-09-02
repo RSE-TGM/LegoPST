@@ -146,7 +146,7 @@ fprintf(fp_staz[pagina],"*%dw%dc.y0: %d\n",num_w,*cont_f,y);
 fprintf(fp_staz[pagina],"*%dw%dc.width0: %d\n",num_w,*cont_f,W_SELETTORE);
 fprintf(fp_staz[pagina],"*%dw%dc.height0: %d\n",num_w,*cont_f,H_SELETTORE);
 fprintf(fp_staz[pagina],"*%dw%dc.borderWidth: 0\n",num_w,*cont_f);
-fprintf(fp_staz[pagina],"*%dw%dc.background: %s\n",num_w,*cont_f,SFONDO_STAZ);
+ScriviSfondoFiglio(pagina,num_w,*cont_f,SFONDO_STAZ);
 fprintf(fp_staz[pagina],"*%dw%dc.normBg: %s\n",num_w,*cont_f,SFONDO_STAZ);
 if(sottotipo==SELET_TIPO_A)
   fprintf(fp_staz[pagina],"*%dw%dc.tipoSel: 0\n",num_w,*cont_f);
@@ -175,7 +175,7 @@ if(strlen(p_r02->etic_0)>0)
   fprintf(fp_staz[pagina],"*%dw%dc.borderWidth: 0\n",num_w,*cont_f);
   fprintf(fp_staz[pagina],"*%dw%dc.normalFont: fixed\n",num_w,*cont_f);
   fprintf(fp_staz[pagina],"*%dw%dc.labelText: %s\n",num_w,*cont_f,p_r02->etic_0);
-  fprintf(fp_staz[pagina],"*%dw%dc.background: %s\n",num_w,*cont_f,SFONDO_STAZ);
+  ScriviSfondoFiglio(pagina,num_w,*cont_f,SFONDO_STAZ);
   sprintf(elenco,"%s %dw%dc Label",elenco,num_w,*cont_f);
   *cont_f +=1;
   }
@@ -189,7 +189,7 @@ if(strlen(p_r02->etic_1)>0)
   fprintf(fp_staz[pagina],"*%dw%dc.borderWidth: 0\n",num_w,*cont_f);
   fprintf(fp_staz[pagina],"*%dw%dc.normalFont: fixed\n",num_w,*cont_f);
   fprintf(fp_staz[pagina],"*%dw%dc.labelText: %s\n",num_w,*cont_f,p_r02->etic_0);
-  fprintf(fp_staz[pagina],"*%dw%dc.background: %s\n",num_w,*cont_f,SFONDO_STAZ);
+  ScriviSfondoFiglio(pagina,num_w,*cont_f,SFONDO_STAZ);
   sprintf(elenco,"%s %dw%dc Label",elenco,num_w,*cont_f);
   *cont_f +=1;
   }

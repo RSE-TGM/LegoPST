@@ -62,6 +62,14 @@ procedura [`kStazPages`](../../../kprocedure/kStazPages.sh) porta i faceplate
 descritti nei `r01.dat` fin dentro l'MMI. Il dettaglio è in
 [Alg_mmi/README.md](../../../Alg_mmi/README.md#5-da-dove-vengono-le-pagine-i-tre-generatori).
 
+La pagina MMI riusa **la stessa tavolozza di `xstaz`** (`sfondo_window`,
+`sfondo_staz`, `sfondo_label` di [xstaz.c:139-143](xstaz.c#L139-L143)), con una
+sola eccezione: la finestrella del display numerico è **scura**. Qui il valore è
+una `XmLabel` con foreground nero fisso, là è un `XlIndic` che colora le cifre
+secondo lo stato del punto, con una tavolozza satura pensata per fondo scuro.
+Dettaglio e tabelle in
+[Alg_mmi/README.md](../../../Alg_mmi/README.md#i-colori-della-pagina-generata).
+
 `xstaz` prende **un solo argomento**, `tipo_staz`:
 
 - **`xstaz 1`** — dialogo con **MONIT**: aggancia il DB punti condiviso

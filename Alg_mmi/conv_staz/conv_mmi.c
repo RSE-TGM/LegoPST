@@ -130,6 +130,7 @@ fprintf(fp_staz[pagina],"*%dw.height0:    %d\n",num,
 		height*HEIGHT_COMPOSITE-2*BORDER_COMPOSITE);
 fprintf(fp_staz[pagina],"*%dw.borderWidth:    %d\n",num,BORDER_COMPOSITE);
 fprintf(fp_staz[pagina],"*%dw.background: %s\n",num,SFONDO_STAZ);
+fprintf(fp_staz[pagina],"*%dw.inheritBackground: 0\n",num);
 
 
 }
@@ -148,6 +149,53 @@ int j;
         if (!strcmp(old,conv_colori[j].old_colore))
                 break;
 return(conv_colori[j].colore);
+}
+
+/*  Scrive lo sfondo di un oggetto figlio di una stazione.
+    La riga inheritBackground NON e' facoltativa: la risorsa vale 1 per
+    default (XlCore.c e XlManager.c, lista resources[]) e la Initialize
+    del widget copia il background del PADRE sopra quello letto dal file
+    (XlCore.c "se inhertiBackground == 1 setta il background del padre").
+    Senza spegnerla, "background" e' una risorsa morta: tutta la pagina
+    finisce al colore di drawing_background e i colori qui sotto non si
+    vedono mai.  */
+void ScriviSfondoFiglio(int pagina,int num_w,int cont_f,char *colore)
+{
+fprintf(fp_staz[pagina],"*%dw%dc.background: %s\n",num_w,cont_f,colore);
+fprintf(fp_staz[pagina],"*%dw%dc.inheritBackground: 0\n",num_w,cont_f);
+}
+
+/*  Tavolozza del cambio colore.
+    Il colore delle cifre di un display non e' normFg: e' il GC scelto dai
+    flag del punto (XlWidgetUtil.c, XlFlagToGC) fra le risorse colore*1.
+    Se non le scriviamo valgono i default di Xl - giallo, verde, ciano,
+    blu, magenta, rosso - pensati per fondo scuro: su fondo chiaro il
+    giallo su verdino da' un rapporto di contrasto di 1.2, cioe' invisibile.
+    Quindi due tavolozze, scelte in base allo sfondo dell'oggetto.  */
+static COLORE_STATO colori_stato[]={
+	/* risorsa                   su fondo scuro   su fondo chiaro */
+	{"coloreStimato1",         "#ffffffff0000","#7a005c000000"},
+	{"coloreBassoAlto1",       "#0000ffff0000","#000064000000"},
+	{"coloreAutomatico1",      "#0000ffffffff","#00006a006a00"},
+	{"coloreFuoriScansione1",  "#666699009900","#00000000b300"},
+	{"coloreFuoriAttendib1",   "#ffff6666ffff","#8b0000008b00"},
+	{"coloreBassissimo1",      "#ffff55555555","#b30000000000"},
+	{"coloreBassissimoBasso1", "#ffffffff0000","#7a005c000000"},
+	{"coloreAltoAltissimo1",   "#ffffffff0000","#7a005c000000"},
+	{"coloreAltissimo1",       "#ffff55555555","#b30000000000"},
+	{"coloreDigSet1",          "#ffff55555555","#b30000000000"},
+	{NULL,NULL,NULL}
+	};
+
+void ScriviCambioColore(int pagina,int num_w,int cont_f,int fondo)
+{
+int j;
+
+for (j=0; colori_stato[j].risorsa!=NULL; j++)
+	fprintf(fp_staz[pagina],"*%dw%dc.%s: %s\n",num_w,cont_f,
+		colori_stato[j].risorsa,
+		(fondo==CC_SU_FONDO_CHIARO) ? colori_stato[j].su_chiaro
+					    : colori_stato[j].su_scuro);
 }
 
 char *RetColoreBlink(char *old)

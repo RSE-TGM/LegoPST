@@ -130,6 +130,8 @@ char *CostruisciRigaInput(char *, char *,int );
 char *CostruisciRigaOutput(char *, char *,char *,char *);
 char *RetColore(char *);
 char *RetColoreBlink(char *);
+void ScriviSfondoFiglio(int,int,int,char *);
+void ScriviCambioColore(int,int,int,int);
 float get_valore(char*);
 void crea_sfondo(Widget,Dimension,Dimension);
 int crea_sfondoP(Pixmap *,char *,int,int);

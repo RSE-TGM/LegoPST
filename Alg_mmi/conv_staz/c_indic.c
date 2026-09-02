@@ -219,7 +219,7 @@ else
    sprintf(elenco,"%s %dw%dc Indic",elenco,num_w,*cont_f);
    }
 fprintf(fp_staz[pagina],"*%dw%dc.normFg: black\n",num_w,*cont_f);
-fprintf(fp_staz[pagina],"*%dw%dc.background: %s\n",num_w,*cont_f,SFONDO_STAZ);
+ScriviSfondoFiglio(pagina,num_w,*cont_f,SFONDO_STAZ);
 fprintf(fp_staz[pagina],"*%dw%dc.normalFont: %s\n",num_w,*cont_f,FONT_PICCOLO);
 fprintf(fp_staz[pagina],"*%dw%dc.agoFg: red\n",num_w,*cont_f);
 fprintf(fp_staz[pagina],"*%dw%dc.scalamento: %f\n",num_w,*cont_f,
@@ -243,6 +243,11 @@ fprintf(fp_staz[pagina],"*%dw%dc.numeroDec: 0\n",num_w,*cont_f);
       {
       fprintf(fp_staz[pagina],"*%dw%dc.varInputCambioColore1: %s\n",
               num_w,*cont_f,input_ago);
+/*
+	la barra resta sul fondo chiaro della stazione (SFONDO_STAZ),
+	quindi vuole la tavolozza scurita e non quella satura
+*/
+      ScriviCambioColore(pagina,num_w,*cont_f,CC_SU_FONDO_CHIARO);
       }
    }
 *cont_f +=1;

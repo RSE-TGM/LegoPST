@@ -51,30 +51,30 @@ kDiffS01               # ora cd $KSIM trova l'S01
 
 | Comando | Tipo | Scopo |
 |---|---|---|
-| `kCompile` | main | Compila il simulatore (invoca `net_compi`). |
-| `kCompileSim` | main | Compila l'intero simulatore. |
-| `kNetCompi` | main | Compila il simulatore di rete (`net_compi`). |
+| `kCompile` | main | Compila le **task di regolazione**: entra in ogni `r_*` sotto legocad e lancia `kconfig -c compreg`, poi legge `net_compi.out` per l'esito. Non invoca net_compi (che lavora in `$KSIM` e produce `variabili.rtf`) e non tocca ne' connessioni ne' raccolta. |
+| `kCompileSim` | main | Compila le pagine MMI di `$KWIN`: esegue `clean`, cancella i vecchi `*err*`, lancia `kconfig -c compall` e riporta quante pagine ha compilato e quali hanno errori (un `.rtf_err` di piu' di 5 righe: cinque sono la sola intestazione). |
+| `kNetCompi` | main | Compila le task in `$KSIM` con net_compi e verifica che `variabili.rtf` sia stato generato. E' il passo che rigenera il database delle variabili: subito dopo vanno ricompilati i faceplate (kCompStaz), che vi risolvono contro gli indici. |
 | `knetcompi` | bg | Avvia kNetCompi in background. |
 | `knet_compi` | bg | Avvia kNetCompi in background. |
-| `kConnex` | main | Costruisce il database delle connessioni (interconnessioni tra task). |
+| `kConnex` | main | Costruisce l'`S01`: salva il precedente in `S01.kold`, esegue connex2 — che legge `al_sim.conf` e abbina ingressi e uscite delle task per **tag uguale** — e ne normalizza il formato. Il dettaglio degli abbinamenti resta in `connex2.out`. |
 | `kconnex` | bg | Avvia kConnex in background. |
 | `kConnexSlave1` | slave | Sotto-passo di kConnex. |
-| `LimpiaConnexCiclo` | util | Ripulisce i cicli nel DB connessioni (filtra `connex2.out`). |
-| `kMakeConnDB` | main | Costruisce il DB delle connessioni. |
+| `LimpiaConnexCiclo` | util | Ripulisce `$KSIM/log/connex2.out` dalle righe di rumore note (C/, MANUAL, RHA, EJ, RHE, MBP5…) per lasciare solo le connessioni che meritano attenzione. |
+| `kMakeConnDB` | main | Costruisce in `$KSIM` il database delle connessioni, tramite kMakeConnDBSlave1. |
 | `kmakeconndb` | bg | Avvia kMakeConnDB in background. |
 | `kMakeConnDBSlave1` | slave | Sotto-passo di kMakeConnDB. |
-| `k_crea_simulatore` | main | Crea la struttura di un nuovo simulatore. |
-| `kcreastaz` | main | Crea la «stazione» (station) del simulatore. |
-| `kCheckSimulator` | main | Verifica coerenza e completezza del simulatore. |
+| `k_crea_simulatore` | main | Crea le 18 sottodirectory di un simulatore nuovo (`databases`, `export`, `globpages*`, `log`, `o_win`, `plant_display`, `scada/*`, `statistic`, `status`, `tmp`). La chiama creasim: l'elenco delle directory sta cosi' in un posto solo. |
+| `kcreastaz` | main | Genera pagine MMI da template: per ogni `mal*.list` e `N_win*.list` della directory corrente lancia mkstaz. Versione spiccia di kOw, senza controlli e senza `cd`: va lanciata da dentro `$KWIN`. |
+| `kCheckSimulator` | main | Verifiche di coerenza sul simulatore, lavorando in `$KWIN` e interrogando le tag KKS. |
 | `kCheckSimulatorSlave1` | slave | Sotto-passo di kCheckSimulator. |
-| `kCheckRegoTask` | main | Verifica le task di regolazione. |
+| `kCheckRegoTask` | main | Cerca nelle pagine `????.pag` delle task di regolazione i moduli impiegati (s560, s580, s111, s176…) e ne elenca le tag: serve a sapere quali blocchi sono usati e dove. |
 | `kDiffS01` | main | Coerenza dei valori di stazionario delle variabili di interconnessione tra le task (via `S01`). |
 | `kDiffS01Slave1` | slave | Costruisce `kDiffS01.DB` dai `f24.dat` delle task (LEGO & REGO). |
 | `kDiffS01Slave2` | slave | Costruisce il DB per le task SID. |
 | `kDiffS01Slave4` | slave | `PROGRAM DIFFS01`: legge S01+DB, produce `diffs01.out` (il motore). |
 | `kDiffS01Slave5` | slave | Sotto-passo di kDiffS01. |
 | `kDiffS01Slave6` | slave | Costruisce il DB per le task GIPS. |
-| `koldlg5` | util | Compila `proc/lg5` legacy (`cad_maketask`). |
+| `koldlg5` | util | Compila `proc/lg5` col makefile legacy: `make -f $LEGO_BIN/cad_maketask proc/lg5 CAD_LIB_MODULI=`cad_f012lis``. |
 | `kCompStaz` | main | Compila i faceplate (`r01.dat` -> `r02.dat`) per `xstaz`, con un exit status utilizzabile: `compstaz` da solo esce con 24 anche quando riesce. |
 | `kUpSim [-nommi\|-n]` | main | **Orchestratore**: riallinea tutta la configurazione del simulatore — `kConnex` → `kNetCompi` → `kCompStaz` → (`kStazPages` → `kWinContext` → `kCompileSim`) → `kCollect`. Si ferma al primo passo fallito dicendo quale; `-nommi` salta le pagine MMI dei faceplate, `-n` è un dry run. |
 
@@ -82,18 +82,18 @@ kDiffS01               # ora cd $KSIM trova l'S01
 
 | Comando | Tipo | Scopo |
 |---|---|---|
-| `kStart` | main | Avvia il simulatore. |
+| `kStart` | main | Avvia la simulazione (net_startup) e tiene la contabilita' di stato e log, attendendo che il banco scriva `banco.log`. Non ricompila niente. |
 | `kstart` | bg | Avvia kStart in background. |
-| `kRun` | main | Avvia una sessione del simulatore (sorgia `~/.profile`). |
-| `kMmi` | main | Avvia la MMI (`mmi`/`client_mmi`). |
+| `kRun` | main | **Orchestratore dell'avvio**: kClean, kScd, kStart, kMmi, controllando lo stato fra un passo e l'altro; si rifiuta di partire se kRun risulta `Blocked`. |
+| `kMmi` | main | Sceglie e avvia un'istanza MMI: legge `$KSIM/kMmi.cfg`, elenca le istanze definite per questo host e utente, imposta `MMI_ULEVEL` secondo il ruolo (I/O/S/X), esegue `kuser 77<idScada>`, entra in `${KPAGES}_<id>` e lancia `mmi &`. |
 | `kmmi` | bg | Avvia kMmi in background. |
-| `kXlego` | main | Avvia `xlego` (ambiente grafico legocad) su `$KSIM`. |
+| `kXlego` | main | `cd $KSIM` e lancia `xlego` in background. |
 | `kxlego` | bg | Avvia kXlego in background. |
-| `kControlM` | main | Elaborazione/lancio via ControlM (scheduling). |
-| `kc` | util | Scorciatoia: lancia `config` sulla task legocad indicata (con `f01.dat`). |
-| `kconfig` | util | Lancia il tool `config` con gli argomenti dati. |
-| `kgr` | util | Lancia `graphics` su `$KSIM/f22circ` (trend/plot). |
-| `kmandb` | util | Lancia `mandb` (database manovre) su `$KSIM`. |
+| `kControlM` | main | Toglie i CR (`^M`) dai file della directory corrente, saltando i `*.mdb`: serve dopo un trasferimento da Windows. Conserva l'originale come `<file>.controlM`. |
+| `kc` | util | Apre l'editor `config` su una task: `kc <task>` entra in `legocad/<task>` se contiene un `f01.dat`. |
+| `kconfig` | util | Lancia `config` con gli argomenti dati; `kconfig -h` ricorda i comandi batch: `-c compreg` (pagine di regolazione), `-c creatask` (genera la task), `-c compall` (tutte le pagine). |
+| `kgr` | util | `cd $KSIM` e apre `graphics` sul file circolare `f22circ`, geometria 1000x460 in alto a sinistra. |
+| `kmandb` | util | `cd $KSIM` e lancia `mandb` in background. |
 | `kdxstart` | util | Apre un terminale `dtterm` personalizzato. |
 | `kdxterm` | util | Apre un terminale `dxterm` personalizzato. |
 
@@ -101,7 +101,7 @@ kDiffS01               # ora cd $KSIM trova l'S01
 
 | Comando | Tipo | Scopo |
 |---|---|---|
-| `kScd` | main | Build/verifica del sottosistema SCADA. |
+| `kScd` | main | Avvia il sottosistema SCADA dopo aver eseguito kClean, verificandone l'esito; non riparte se risulta gia' in `Start`. |
 | `kscd` | bg | Avvia kScd in background. |
 | `kScadaInit` | main | Inizializza il database SCADA (previo `kclean`). |
 | `kscadainit` | bg | Avvia kScadaInit in background. |
@@ -132,7 +132,7 @@ kDiffS01               # ora cd $KSIM trova l'S01
 | `kMakeRecorderSlave5` | slave | Elaborazione `Recorder.edf.new`. |
 | `kMakeRecorderSlave6` | slave | Sotto-passo di kMakeRecorder. |
 | `kMakePdList` | main | Costruisce la lista dei plant display. |
-| `kcreabasic` | main | Costruisce la «superlist» plant-display dai `win*.list` (`creasuperlist2`). |
+| `kcreabasic` | main | Costruisce in `$KBASIC` la superlista delle finestre (`creasuperlist2` sui `$KWIN/win*.list`) e copia gli sfondi `M_S*.bkg` in `$KWIN`. |
 | `k_crea_cassaforte` | main | Crea la «cassaforte» grafica (`$KCASSAFORTE`: curve, plant_display). |
 | `kCheckCaiVarPD` | main | Verifica le variabili CAI nel plant display. |
 | `kMakeCaiVar` | main | Costruisce il database CaiVar (variabili CAI). |
@@ -166,14 +166,14 @@ kDiffS01               # ora cd $KSIM trova l'S01
 
 | Comando | Tipo | Scopo |
 |---|---|---|
-| `kInstall` | main | Installazione del simulatore. |
-| `kExport` | main | Esporta il simulatore in `$KEXPORT`. |
+| `kInstall` | main | Adatta alla macchina locale un simulatore **consegnato**: kMakeUser, kUpDateUserName, kUpDateHostName, kMmiConfig, kNetCompi. Chiede conferma interattiva e azzera `$KSTATUS`, `$KLOG` e le statistiche. Si usa una volta, all'installazione, non a ogni modifica. |
+| `kExport` | main | **Importa** nel simulatore quanto il database d'impianto ha depositato in `$KEXPORT` (= `$KSIM/export`): tabelle di avvio SCADA (`ALARM.txt`, `TAG.txt`, `TAGS.txt`), i file dell'interfaccia malfunzioni (`component.mf`, `malf_set.mf`, `tipo_comp_malf.mf`) in `$KWIN`, database e liste curve in `$KGRAF`. Passa i file da kControlM per togliere i CR. |
 | `kexport` | bg | Avvia kExport in background. |
-| `kExport_new` | main | Variante nuova dell'export. |
+| `kExport_new` | main | Variante piu' recente di kExport, stessa direzione (da `$KEXPORT` dentro il simulatore), con in piu' `sosti.dat` e il salvataggio dei precedenti come `.kold`. |
 | `kArchive` | main | Archivia un simulatore in `$KARCHIVE`. |
 | `kArchiveDisponibility` | slave | Verifica spazio/disponibilità per l'archiviazione. |
 | `kBackupSim` | main | Backup di un simulatore «ready to start» (sked, modelli, …). |
-| `kMakeRemoteSim` | main | Prepara un simulatore remoto. |
+| `kMakeRemoteSim` | main | Prepara la copia di un simulatore per un'altra macchina: rimuove cio' che e' locale (`f22circ.dat`, `kMmi.cfg`, `al_sim.conf`, `scada/`, `log/`, `status/`, `$KINFO`) e richiama kMmiConfig, l'unica procedura che invoca. |
 | `kSimMove` | util | Sposta/rinomina un simulatore. |
 | `kUpDateHostName` | main | Aggiorna l'hostname nel simulatore (`S01`). |
 | `kUpDateLibrary` | main | Aggiorna le librerie legocad (`libut…`). |
@@ -221,7 +221,7 @@ kDiffS01               # ora cd $KSIM trova l'S01
 | `kclean` | bg | Avvia kClean in background. |
 | `kCleanLoc` | main | Pulizia «locale» (temporanei nella dir corrente). |
 | `kcleanloc` | bg | Avvia kCleanLoc in background. |
-| `kPulirSim` | main | Pulisce l'intero simulatore. |
+| `kPulirSim` | main | Pulizia del simulatore: cancella da `$KSIM` i file di lavoro (`*.bak *.out *.log *.old *.kold *.ori`, `tmp/`, `status/`), poi kPulirRegoAll e RemoveCore. I nomi kMakeGlobpages, kUpDateNavigation e net_compi che vi compaiono sono i *loro file di uscita* da rimuovere, non invocazioni. |
 | `kPulirProc` | main | Pulisce le task di processo. |
 | `kPulirProcAll` | main | Pulisce tutte le task di processo. |
 | `kPulirProcSid` | main | Pulisce le task di processo SID (`rm -rf proc`). |
