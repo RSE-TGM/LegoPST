@@ -1,15 +1,35 @@
 source $env(LG_TIX)/checkopen.tcl
 
+# GUAG 2026-09 - Nome del file con la lista dei moduli, che dipende dalla
+# piattaforma. Stesso criterio di foraus.tix, che lo faceva gia'.
+#
+# Il riscontro sta in lg1fil, che esiste nelle due varianti e definisce:
+#   Linux    lego_big/sorglego/sub/lg1fil.f     '../libut/lista_moduli.dat'
+#   Windows  src/libs_dir/legolib/lg1fil.for    '..\..\libut\l_moduli.dat'
+#
+# Su Linux lista_moduli.dat e' anche l'unico che la catena di build legge
+# (cad_maketask.sh, cad_lism2lis.sh) e l'unico che cad_environment.sh crea.
+# Finche' libraria lavorava su l_moduli.dat anche qui, in una libut appena
+# creata dava errore in apertura, e dove i due file c'erano entrambi le
+# modifiche fatte da qui non arrivavano alla build: le liste divergevano in
+# silenzio, e infatti divergono in otto installazioni su nove.
+if { $::tcl_platform(os) != "Linux" } {
+	set ::listamodfile "l_moduli.dat"
+} else {
+	set ::listamodfile "lista_moduli.dat"
+}
+
 proc refrlist {} {
 
 # CARICA LA LISTA MODULI NELL'INTERFACCIA GRAFICA
 # DI LIBRARIAN
+#
 
 global env 
 
 .b.listmod delete 0 end
 
-set lismod [checkopen $env(LG_LIBUT)/l_moduli.dat r]
+set lismod [checkopen $env(LG_LIBUT)/$::listamodfile r]
 
 while {[set buf [gets $lismod]] != {}} {
  .b.listmod insert end $buf
@@ -285,10 +305,14 @@ if [file exists $env(LG_LIBUT)/$modfor] {
 
 # Aggiorna la lista moduli
 
- set lismod [checkopen $env(LG_LIBUT)/l_moduli.dat r]
+ set lismod [checkopen $env(LG_LIBUT)/$::listamodfile r]
  set temp [checkopen lmod.tmp w]
 
+ # Copia le righe fino al modulo da cancellare, che viene saltato. Il controllo
+ # su eof serve perche' se il modulo non e' in lista gets restituisce stringa
+ # vuota a ogni giro e il ciclo non finirebbe mai.
  while {[string range [set buff [gets $lismod]] 0 3] != $modulo} {
+  if {[eof $lismod]} break
   puts $temp $buff
  } 
 
@@ -299,9 +323,9 @@ if [file exists $env(LG_LIBUT)/$modfor] {
  close $lismod
  close $temp
 
- file delete $env(LG_LIBUT)/l_moduli.dat -force
+ file delete $env(LG_LIBUT)/$::listamodfile -force
 
- file copy lmod.tmp $env(LG_LIBUT)/l_moduli.dat
+ file copy lmod.tmp $env(LG_LIBUT)/$::listamodfile
 
  file delete lmod.tmp -force
 

@@ -25,6 +25,28 @@ tixwish8.x $LG_TIX/legopc.tix
 | `LG_PDFVIEWER` | primo installato | Viewer PDF/PNG |
 | `LG_XTERM` | primo installato | Emulatore di terminale |
 
+### Quale installazione è attiva — il titolo della finestra
+
+`LG_ENTRY` è la radice utente, e spesso è un **link simbolico** che punta
+all'installazione in uso:
+
+```
+~/legocad -> legopst_nuclear/legocad
+```
+
+Il titolo della finestra di `legopc` mostra quella radice, e **se è un link
+scrive il path a cui punta** invece del nome del link, che sarebbe sempre
+`legocad` qualunque installazione fosse attiva:
+
+| radice utente | titolo |
+|---|---|
+| directory reale | `LegoPC-legocad - <modello>` |
+| link | `LegoPC-> legopst_nuclear/legocad - <modello>` |
+
+Lo decide `etichettaAmbiente` in [src/tix/legopc.tix](src/tix/legopc.tix), usata
+sia all'avvio sia quando `applyUserFromTom` cambia radice aprendo un `.tom` di
+un'altra installazione. Con un link **assoluto** compare il path assoluto.
+
 ## Help in linea (menu `?` → Help)
 
 La voce chiama `open_hlp index` ([src/tix/openhelp.tcl](src/tix/openhelp.tcl)), che
@@ -91,6 +113,54 @@ LG_LIBRARIES/
     sble_0.pi4
     ...
 ```
+
+## La lista dei moduli della `libut` — `lista_moduli.dat`
+
+Sotto `LG_LIBUT` c'è l'elenco dei moduli dichiarati nella libreria utente, una
+riga per modulo: **quattro caratteri di nome**, poi eventuali marcatori e la
+descrizione.
+
+```
+ATTU  Actuator
+BRTT !bruciatore TG
+CLAV* Non thermodynamic equilibrium cavity containing gas and water
+```
+
+**Il nome del file dipende dalla piattaforma**, e su Linux è
+`lista_moduli.dat`. Il riscontro sta in `lg1fil`, che esiste nelle due varianti
+e definisce il percorso della lista:
+
+| | `LMODUL` |
+|---|---|
+| Linux | `lego_big/sorglego/sub/lg1fil.f` → `'../libut/lista_moduli.dat'` |
+| Windows | `src/libs_dir/legolib/lg1fil.for` → `'..\..\libut\l_moduli.dat'` |
+
+Su Linux `lista_moduli.dat` è anche l'**unico** che la catena di build legge
+(`cad_maketask.sh` come dipendenza di `modulilib.a`, `cad_lism2lis.sh` per
+ricavare gli oggetti da compilare) e l'unico che `cad_environment.sh` crea
+quando prepara una radice utente. Lo stesso vale per la libreria di
+regolazione, dove c'è solo `lista_schemi.dat` e nessun `l_schemi.dat`.
+
+Chi legge la lista fa quindi il test sulla piattaforma —
+[src/tix/foraus.tix](src/tix/foraus.tix) lo fa da sempre e
+[src/tix/libraria.tix](src/tix/libraria.tix) dal settembre 2026:
+
+```tcl
+if { $::tcl_platform(os) != "Linux" } {
+	set ::listamodfile "l_moduli.dat"
+} else {
+	set ::listamodfile "lista_moduli.dat"
+}
+```
+
+> **Attenzione alle liste divergenti.** Finché `libraria` lavorava su
+> `l_moduli.dat` anche su Linux, aprirlo in una `libut` appena creata dava
+> errore (il file non c'è: `cad_environment.sh` crea l'altro), e dove i due
+> file c'erano entrambi le modifiche fatte da `libraria` non arrivavano alla
+> build, che continuava a leggere `lista_moduli.dat`. Le due liste divergevano
+> in silenzio: succede in otto installazioni su nove di questa macchina, fino a
+> 17 righe di differenza. Se in una `libut` esistono entrambi i file, **quello
+> buono è `lista_moduli.dat`** e l'altro è un residuo da ignorare.
 
 ## File `.i5` — interfaccia compilata del modulo
 

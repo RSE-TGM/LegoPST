@@ -19,6 +19,26 @@ package require Tix
 
 source $env(LG_TIX)/checkopen.tcl
 
+# GUAG 2026-09 - Etichetta dell'ambiente per il titolo della finestra.
+#
+# La radice utente e' spesso un link simbolico che punta all'installazione
+# attiva (es. ~/legocad -> legopst_nuclear/legocad): in quel caso il titolo
+# diceva sempre "LegoPC-legocad", qualunque installazione fosse in uso. Se e'
+# un link si scrive il path a cui punta, che e' l'informazione utile:
+#
+#   radice reale   ->  LegoPC-legocad
+#   link           ->  LegoPC-> legopst_nuclear/legocad
+#
+proc etichettaAmbiente {entry} {
+	# file type non segue il link, al contrario di file isdirectory
+	if {![catch {file type $entry} tipo] && $tipo == "link"} {
+		if {![catch {file readlink $entry} punta]} {
+			return "LegoPC-> $punta"
+		}
+	}
+	return "LegoPC-[file tail $entry]"
+}
+
 proc aprimodello { c c2 f4 modo } {
     global showon curFileName DIRMODEL
 
@@ -80,7 +100,7 @@ proc applyUserFromTom {tomfile} {
     cd $_olddir
     # Aggiorna titolo finestra
     global envir
-    set envir "LegoPC-[file tail $newentry]"
+    set envir [etichettaAmbiente $newentry]
     catch { wm title . "$envir - $curFileName" }
     return 0
 }
@@ -4636,14 +4656,12 @@ proc createtask { f c c2} {
     #set numeVblo(IN) 0
 #switchuser
     set entr1 $env(LG_ENTRY)
-    set entr [file tail $entr1]
-#tk_messageBox -message "USER:  entr1:$entr1 entr:$entr" -type ok
-    set envir "LegoPC-$entr"
+    set envir [etichettaAmbiente $entr1]
     
     
     set curFileName "-"
     set curSimulPathName ""
-    wm title . "$envir- $curFileName"
+    wm title . "$envir - $curFileName"	;# lo spazio prima del "-" come nell'altra composizione del titolo
     wm protocol . WM_DELETE_WINDOW "WarnYou exit"
 
     #wm iconbitmap .  "D:/Utili/icons/temp/animali/118.ico"
