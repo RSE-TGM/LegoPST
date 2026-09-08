@@ -49,6 +49,64 @@ Del path libreria `topRead` usa **solo il basename**, ricostruendo
 Gli elementi `@com_0` del `.tom` sono esattamente l'equivalente dei `*REMARK*`
 di legocad — la strada per non perdere le annotazioni c'è.
 
+## Il criterio di riuscita
+
+La task convertita **è la task originale più il `.tom`**. Non si costruisce un
+modello nuovo da zero: si aggiunge il disegno a una task che già funziona, si
+apre in `lgpc` e da lì si ricostruisce il resto. `f14.dat`, `foraus.f`, gli
+`S0x` e `proc/` restano quelli, con dentro le condizioni iniziali e i parametri
+di sempre.
+
+Perché funzioni serve una cosa sola, ed è la misura di tutta la revisione:
+
+> **ricostruire il modello a partire dal `.tom` deve riprodurre lo stesso
+> `f01.dat`.**
+
+Se il `.tom` è fedele, non c'è niente da travasare. Se non lo è, la
+ricostruzione produce un modello con variabili e connessioni diverse, e il
+`f14.dat` originale non gli si adatta più.
+
+`confronta_f01.py` misura questa fedeltà. Su GTS, all'8 settembre 2026:
+
+```
+BLOCCHI       originale=49  rigenerato=44   (assenti GCX1 GFX1 GMS1 GMS2 GMS3)
+VARIABILI     blocchi con lo stesso insieme: 2/44
+CONNESSIONI   nell'originale 174, di cui 166 fra blocchi entrambi presenti
+              ricostruite: 75  ->  91 perse pur essendo ricostruibili (45%)
+ESITO: conversione NON fedele
+```
+
+Due letture importanti di questi numeri:
+
+- **I moduli mancanti non sono il problema.** Delle 174 connessioni, solo 8
+  passano per uno dei cinque blocchi esclusi. Le altre 166 sono fra blocchi
+  entrambi presenti. Delle 165 connessioni in ingresso, però, solo **83 sono
+  esprimibili** in un `.tom`: le altre stanno su porte i cui ingressi vengono
+  da blocchi diversi (53) o su variabili che il modulo di oggi non ha più (29).
+  Dopo la Fase 4 se ne ricostruiscono **81 su 83**.
+- **Le variabili diverse sono lo stesso fenomeno visto da un'altra parte.** Nel
+  formato `f01` un ingresso connesso porta il nome della variabile di
+  provenienza (l'ingresso di `GMB1` si chiama `TMIXGFX1`, da `GFX1`), mentre un
+  ingresso libero prende il nome del proprio blocco (`TAIRGMB1`). Quando la
+  connessione non si ricostruisce, la variabile cambia nome: ecco perché solo 2
+  blocchi su 44 hanno lo stesso insieme.
+
+### Finché il `.tom` non è fedele
+
+Il `.tom` è autosufficiente per il disegno: `topRead` legge solo quello. Quindi
+**mettere il `.tom` accanto alla task originale funziona già oggi** se non si
+ricostruisce: si vede lo schema sopra un modello che gira. Il rischio è
+premere Build, che rigenera `f01.dat` dal `.tom` e sostituisce l'originale con
+la versione al 45%. Su Linux la ricostruzione parte solo se la si lancia (il
+controllo sul timestamp del `.tom` in `golg3_v2.tcl` è nel ramo Windows).
+
+Come ripiego, se si è già ricostruito, `travasa_f14.sh` recupera i valori dal
+`f14.dat` d'epoca usando `edi14` — lo strumento storico di LegoPST, lo stesso
+che `legopc` usa in `autoedi14`. Su GTS recupera 411 valori su 548 (sistema
+104/118, ingressi 36/130, dati di blocco 271/300) e trasferisce anche la riga
+dei dati di normalizzazione, che `edi14` lascia in bianco. Ma è un ripiego: con
+un `.tom` fedele non serve.
+
 ## Stato
 
 ### Prima della revisione (misurato l'8 settembre 2026)
@@ -71,21 +129,26 @@ produrre un `.tom` apribile:
 Tutte convertono, e i `.tom` prodotti **si aprono in `lgpc`** (verificato
 lanciando `wish $LG_TIX/legopc.tix <file>.tom` su ognuno: nessun errore Tcl):
 
-| task | blocchi | nel `.tom` | posizioni | porte connesse | esclusi |
-|---|---|---|---|---|---|
-| `provldch` | 1 | 1 | 1 | 0 | — |
-| `STS` | 14 | 14 | 11 | 6 | — |
-| `GTS` | 49 | 44 | 49 | 46 | `FCTT`, `MITN` |
-| `HPS` | 103 | 102 | 22 | 70 | `CLAV` |
-| `IPS` | 111 | 110 | 22 | 68 | `CLAV` |
-| `LPS` | 134 | 128 | 12 | 100 | `AXCH CLAV VACT WARD` |
-| `VCT` | 86 | 0 | 18 | 0 | `VACT` (tutti i blocchi) |
+| task | blocchi | nel `.tom` | posizioni Fase 1 | posizioni Fase 2 | porte | esclusi |
+|---|---|---|---|---|---|---|
+| `provldch` | 1 | 1 | 1 | 1 | 0 | — |
+| `STS` | 14 | 14 | 11 | **14** | 6 | — |
+| `GTS` | 49 | 44 | 49 | 44 | 46 | `FCTT`, `MITN` |
+| `HPS` | 103 | 102 | 22 | **102** | 70 | `CLAV` |
+| `IPS` | 111 | 110 | 22 | **110** | 68 | `CLAV` |
+| `LPS` | 134 | 128 | 12 | **128** | 100 | `AXCH CLAV VACT WARD` |
+| `VCT` | 86 | 0 | 18 | 0 | 0 | `VACT` (tutti i blocchi) |
 
-Le posizioni restano quelle di prima: **è la Fase 2 a sbloccarle**, e si vede
-bene su LPS (12 su 134). Le porte connesse sono *scese* rispetto al primo
-tentativo (GTS da 80 a 46) perché le connessioni che non si riescono a
-risolvere fino in fondo ora diventano porte libere invece di righe malformate
-che impedivano al file di aprirsi.
+Dopo la Fase 2 **ogni blocco convertito ha la sua posizione originale**: la
+colonna delle posizioni coincide con quella dei blocchi scritti nel `.tom`.
+Verificato anche a campione confrontando le coordinate del `.tom` con quelle di
+`macroblocks.dat`, che corrispondono esattamente. Le tavolozze risultanti vanno
+da 1200×400 (`provldch`) a 2311×1453 (`LPS`).
+
+Le porte connesse sono *scese* rispetto al primo tentativo (GTS da 80 a 46)
+perché le connessioni che non si riescono a risolvere fino in fondo ora
+diventano porte libere invece di righe malformate che impedivano al file di
+aprirsi. Restano da recuperare in Fase 4.
 
 ### Estensione delle coordinate
 
@@ -116,13 +179,41 @@ condizione:
 in parte recuperabili (c'è la grafica e, per `fctt`, l'interfaccia vecchia), ma
 resta lavoro di modellazione, non di conversione.
 
+### La procedura operativa
+
+Sta in [HOWTO_migrazione.md](HOWTO_migrazione.md): la catena di operazioni per
+migrare una task, dai prerequisiti d'ambiente al completamento a mano, con le
+trappole in ordine di quanto fanno perdere tempo.
+
 ### Attrezzi del banco
 
 - `prova.sh` — converte le task e riporta blocchi, posizioni, porte, mancanti,
   esito. È la misura di ogni fase.
+- `confronta_f01.py` — **la misura che conta**: confronta il `f01.dat`
+  originale con quello rigenerato dal `.tom` e dice quante connessioni e quante
+  variabili si sono perse, distinguendo le colpe dei blocchi assenti da quelle
+  della logica delle porte. Esce con 1 se la conversione non è fedele.
+- `travasa_f14.sh` — ripiego: porta i valori dal `f14.dat` d'epoca a quello
+  rigenerato, via `edi14`.
 - `verifica_tom.sh` — dice se un `.tom` è leggibile da `topRead` **senza
   aprire la GUI**: controlla la struttura e che per ogni blocco esistano
   `$LG_LIBRARIES/<libreria>/<classe>.tcl` e `<classe>n.gif`.
+
+Per la prova in GUI, attenzione a dove sta il file: `legopc.tix` accetta il
+`.tom` come argomento, ma `topRead` lo risolve come
+`$LG_MODELS/<modello>/<modello>.tom`. Un `.tom` fuori da `$LG_MODELS` fa uscire
+*"TopRead: 1 - File ... not found"*, che sembra un difetto del convertito e non
+lo è. Quindi:
+
+```sh
+source .profile_legoroot; export LG_TIX=$LG_BIN
+mkdir -p $LG_MODELS/GTS_conv && cp f01totom.tom $LG_MODELS/GTS_conv/GTS_conv.tom
+wish $LG_TIX/legopc.tix $LG_MODELS/GTS_conv/GTS_conv.tom
+```
+
+E si tenga presente che ogni lancio apre una finestra sul display dell'utente:
+su questa macchina non c'è `Xvfb`, quindi la prova in GUI non è silenziosa e va
+fatta quando non da' fastidio.
 
 
 ## I difetti, in ordine di gravità
@@ -146,7 +237,7 @@ il ciclo gira per sempre. Su GTS succede leggendo `catt_0.i5`.
 blocchi su 49 (`FCTT`, `MITN`) impediscono di produrre qualunque cosa, mentre
 gli altri 47 sarebbero convertibili.
 
-**3. [aperto] La prima colonna di `macroblocks.dat` è letta come numero di pagina.**
+**3. [RISOLTO in Fase 2] La prima colonna di `macroblocks.dat` è letta come numero di pagina.**
 [f01totom.c:801](f01totom.c#L801) e seguenti: il ciclo dei blocchi termina al
 primo record con prima colonna diversa da `0`, e poi salta al prossimo `****`,
 cioè alla fine del file. **Tutti i blocchi che seguono il primo `*REMARK*` o
@@ -169,7 +260,7 @@ coordinate reali arrivano oltre 1600 e 2100 e vengono tagliate.
 [f01totom.c:626](f01totom.c#L626): `if(posy>=dimy-step) posy=dimy-step;`
 satura l'ordinata, così dal 67° blocco in poi tutto finisce sulla stessa riga.
 
-**7. [aperto] `macroblocks.dat` è cercato nella directory corrente.**
+**7. [RISOLTO in Fase 2] `macroblocks.dat` era cercato nella directory corrente.**
 [f01totom.c:786](f01totom.c#L786) fa `fopen("macroblocks.dat", ...)` senza
 path, mentre il `f01.dat` può essere indicato con un percorso qualsiasi:
 convertire da un'altra directory perde silenziosamente tutte le posizioni.
@@ -249,7 +340,7 @@ Il minimo per cui lo strumento produca sempre qualcosa:
 Verifica: GTS arriva in fondo e produce un `.tom` con 47 blocchi buoni e 2
 segnaposto; nessuna task va in loop.
 
-### Fase 2 — Leggere `macroblocks.dat` per quello che è (difetti 3, 7)
+### Fase 2 — Leggere `macroblocks.dat` per quello che è ✔ FATTA (difetti 3, 7)
 
 È la fase che risolve il problema che rende oggi il risultato inservibile.
 
@@ -263,7 +354,7 @@ segnaposto; nessuna task va in loop.
 
 Verifica: LPS passa da 12 a 134 posizioni recuperate, IPS da 22 a 111.
 
-### Fase 3 — Tavolozza e ripiego (difetti 5, 6)
+### Fase 3 — Tavolozza e ripiego ✔ FATTA (difetti 5, 6)
 
 - dimensioni della tavolozza calcolate dall'estensione reale delle coordinate,
   con un margine;
@@ -273,20 +364,66 @@ Verifica: LPS passa da 12 a 134 posizioni recuperate, IPS da 22 a 111.
   zona di raccolta a lato, così in `lgpc` si vedono e si trascinano al loro
   posto.
 
-Verifica visiva in `lgpc`: aprire il `.tom` di GTS e confrontarlo con il
-disegno legocad originale. È anche l'occasione per stabilire se l'ordinata va
-capovolta — legocad e il canvas Tk potrebbero avere origini opposte, e una
-sola occhiata lo dice.
+Verificato in `lgpc` su GTS l'8 settembre 2026: il disegno regge, le icone sono
+al loro posto. **L'ordinata non va capovolta**: legocad e il canvas Tk hanno la
+stessa origine, quindi le coordinate di `macroblocks.dat` si usano tali e quali.
+Era il dubbio aperto di questa fase, ed è chiuso.
 
-### Fase 4 — Porte e connessioni (difetti 8, 11)
+### Fase 4 — Porte e connessioni ✔ FATTA (difetti 8, 11)
 
-- indice del tipo di porta corretto;
-- politica dichiarata per le variabili non abbinate: porta lasciata `free` e
-  registrata nel rapporto, **mai** una connessione inventata;
-- capire, su STS che è coperta al 100%, se la deriva `WVAL`/`RPM1`/`HCOL`/`WMIX`
-  sia sistematica (rinomino di convenzione, rimediabile con una tabella di
-  corrispondenza) o vera divergenza di modello (e allora è il rapporto a dover
-  dire all'utente quali porte ricollegare a mano).
+Il risultato, su GTS: **81 delle 83 connessioni esprimibili**, contro le 59 di
+prima. Ma il numero che conta di più è un altro, ed è la ragione per cui la
+migrazione non può essere una copia:
+
+| delle 165 connessioni in ingresso dei blocchi comuni | |
+|---|---|
+| esprimibili in un `.tom` | **83** → ricostruite **81** |
+| su porte con ingressi da blocchi diversi | 53 → **non esprimibili** |
+| su variabili che il modulo di oggi non ha più | 29 → **non esprimibili** |
+
+**legocad collega variabile su variabile, il `.tom` collega porta con porta.**
+Il primo è più espressivo, il secondo più rigido ma più fisico. Una porta del
+`.tom` si lega a un solo altro blocco e il legame vale per tutte le sue
+variabili; il `f01` d'epoca può invece prendere la pressione da un blocco e la
+temperatura da un altro sulla stessa porta — e infatti lo fa 25 volte su GTS.
+Quelle connessioni **non sono ricostruibili**, non per un limite del
+convertitore ma perché il formato di destinazione non le sa dire.
+
+Le 29 "orfane" sono deriva dei moduli: l'`ATTU` d'epoca aveva quattro canali
+(`TV_1..TV_4`, `TS_1..TS_4`), quello di libreria oggi ne ha uno solo
+(`AS_1`, `AV_1`). Non è un rinomino, è un altro modulo.
+
+Cosa è cambiato nel codice:
+
+- la controparte di una porta si decide **dal lato ingressi** quando le
+  variabili in ingresso concordano sulla sorgente; il lato uscite si guarda
+  solo se la porta non ha ingressi. Prima si pretendeva che sorgente degli
+  ingressi e destinazione delle uscite coincidessero, e si scartava tutto
+  quando non era così — succede di continuo, perché un'uscita può alimentare
+  un blocco diverso da quello che alimenta gli ingressi della stessa porta;
+- si controllano **tutte** le variabili in ingresso, non solo la prima. Prima
+  bastava la prima a decidere, quindi venivano collegate anche porte con
+  sorgenti discordanti: connessioni inventate;
+- la porta remota si trova **per variabile**: il `f01` dice quale variabile del
+  blocco sorgente alimenta il nostro ingresso, e quella variabile sta in una
+  precisa porta del `.i5` di quel blocco. Prima si pretendeva che la porta
+  remota puntasse già indietro a noi, e con decisioni asimmetriche non
+  succede: da lì le righe `busy por` senza identificatore.
+
+Il riepilogo di fine conversione dice quante porte sono state collegate da
+ciascun lato e quante sono state lasciate libere perché non esprimibili.
+
+### Conseguenza: la migrazione dei dati è un passo obbligato
+
+Siccome i due `f01.dat` restano diversi per costruzione, **ricostruire il
+modello dal `.tom` non riproduce il modello d'epoca**, e il `f14.dat` originale
+non gli si adatta. Il travaso dei valori non è un ripiego: è un passo della
+procedura. Lo fa `travasa_f14.sh` appoggiandosi a `edi14`, che è lo strumento
+storico di LegoPST per questo (`src/main_lego/edi14.for`, lo stesso che
+`legopc` usa in `autoedi14`). Su GTS recupera 411 valori su 548.
+
+Quello che resta scoperto va messo a mano, e sono sempre le stesse cose: le
+porte non esprimibili e le variabili dei moduli cambiati.
 
 ### Fase 5 — Usabilità come strumento a sé (difetto 9)
 

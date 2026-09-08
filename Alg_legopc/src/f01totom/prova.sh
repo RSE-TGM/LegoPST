@@ -78,7 +78,9 @@ for t in $TASKS; do
         *)   esito="err$rc" ;;
     esac
 
-    posizioni=$(grep -cE ' --> x=' "$work/run.log" 2>/dev/null || true)
+    posizioni=$(sed -n 's/.*con posizione da macroblocks: \([0-9]*\) su.*/\1/p' \
+                    "$work/run.log" 2>/dev/null | tail -1)
+    posizioni=${posizioni:-0}
     mancanti=$(grep 'non presente in libreria' "$work/run.log" 2>/dev/null \
                | sed 's/.*Modulo: \([A-Z0-9]*\) .*/\1/' | sort -u | tr '\n' ' ')
     if [[ -f "$work/f01totom.tom" ]]; then

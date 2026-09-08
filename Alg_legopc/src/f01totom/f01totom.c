@@ -37,7 +37,7 @@ void scrivi_tom(HEADF01 *);
 void conv_minuscolo( char *, char *);
 void cercai5(HEADF01 *,int, char *);
 int  nomi_defi5(int,HEADF01 *);
-int  leggi_macroblocks(HEADF01 *);
+int  leggi_macroblocks(HEADF01 *, char *);
 
 int	pos_automatiche=0;
 
@@ -76,6 +76,26 @@ int trova_libreria(char *istanza, char *out)
 }
 
 /* indice del blocco di nome <nome>, -1 se non esiste */
+/* Identificatore della porta del blocco <ib> che contiene la variabile
+   formale <var>. E' cosi' che si trova la porta remota di una connessione:
+   il f01 dice quale variabile del blocco sorgente alimenta il nostro
+   ingresso, e quella variabile sta in una precisa porta del .i5 di quel
+   blocco. Prima invece si pretendeva che la porta remota puntasse gia'
+   indietro a noi, cosa che con decisioni asimmetriche non succede. */
+int porta_con_variabile(HEADF01 *f01r, int ib, char *var, char *out)
+{
+	int p, k;
+
+	if( (ib < 0) || escluso[ib] || (var[0] == '\0') ) return(0);
+	for (p=0; p<f01r->porte[ib]->numporte; p++)
+		for (k=0; k<f01r->porte[ib]->porta[p]->num; k++)
+			if( strncmp(f01r->porte[ib]->porta[p]->nome[k], var, 4) == 0) {
+				strcpy(out, f01r->porte[ib]->idporta[p]);
+				return(1);
+			}
+	return(0);
+}
+
 int indice_blocco(HEADF01 *f01r, char *nome)
 {
 	int k;
@@ -118,6 +138,7 @@ int main( int argc, char *argv[ ] )
 	
 	char *nomelibr[MAXBLO];
 	int numlibr, modtrovato,non_presenti, lista_non_presenti[MAXBLO];
+	int porte_da_ing=0, porte_da_usc=0, porte_discordi=0, porte_fanout=0, porte_reciproche=0;
 	int remblo;
 	int ret, ferma, lunbuff;
 
@@ -255,7 +276,14 @@ for (curblo=0;curblo<f01r->totblo;curblo++) {
 		printf("%s-%s-%s\n",f01r->nomemod[i], f01r->nomeblo[i],f01r->descrblo[i]);
 // fine stampe di prova
 	pos_automatiche=0;
-    if (leggi_macroblocks(f01r) == 0) pos_automatiche=1;
+	/* macroblocks.dat sta accanto al f01.dat: dirname() modifica il suo
+	   argomento, quindi lavora su una copia */
+	{
+		char copia[MAXL], *dir;
+		strncpy(copia,filf01,MAXL-1); copia[MAXL-1]='\0';
+		dir = dirname(copia);
+		if (leggi_macroblocks(f01r,dir) == 0) pos_automatiche=1;
+	}
 /* */
 /* Ricerca delle librerie dei moduli di Legopc installate */
 /* */
@@ -387,157 +415,149 @@ printf( "\n-------------------------------\nFASE 4 - Ricerca connessioni tra i b
 			if( escluso[curblo] ) continue;   /* porte[] non allocate */
 
 			for (i=0; i< f01r->porte[curblo]->numporte; i++){// per ogni porta
-				strcpy(bloconn0,"____");
-				strcpy(bloconn1,"");
+			/* Da quale blocco arriva, e verso quale blocco va, questa porta.
+			 *
+			 * Una porta del .tom si collega a UN SOLO altro blocco, e il
+			 * collegamento vale per tutte le variabili della porta. Il f01
+			 * di legocad invece collega le variabili una per una, e puo'
+			 * quindi descrivere cose che un .tom non sa esprimere: una porta
+			 * i cui ingressi vengono da blocchi diversi, o un'uscita che
+			 * alimenta piu' blocchi.
+			 *
+			 * Regola adottata: la controparte si decide dal LATO INGRESSI
+			 * quando le variabili in ingresso concordano sulla sorgente, e
+			 * solo se la porta non ha ingressi si guarda il lato uscite.
+			 *
+			 * La versione precedente pretendeva che sorgente degli ingressi e
+			 * destinazione delle uscite coincidessero, e scartava la porta
+			 * quando non era cosi'. Ma succede regolarmente: la porta t4 di
+			 * VAIN GAB1 prende pressione e temperatura da GMT1 mentre la sua
+			 * portata WVAL va a GMC1. Su GTS si perdevano cosi' 24 connessioni
+			 * perfettamente ricostruibili. E il controllo si fermava alla
+			 * prima variabile in ingresso, quindi collegava anche porte con
+			 * sorgenti discordanti, scegliendo di fatto la prima: una
+			 * connessione inventata.
+			 */
+			{
+			char sorg_ing[5], sorg_usc[5];
+			int  n_ing=0, n_usc=0, ing_discordi=0, usc_multiple=0;
+			char var_rem_ing[5], var_rem_usc[5];
 
-				okconn=-1;
-				noing=1;
-				for ( ik=0; ik< f01r->porte[curblo]->porta[i]->num; ik++) { // per ogni var della porta
+			strcpy(f01r->porte[curblo]->porta[i]->bloconn,"____");
+			f01r->porte[curblo]->porta[i]->ibloconn=-1;
+			sorg_ing[0]='\0';
+			sorg_usc[0]='\0';
+			var_rem_ing[0]='\0';
+			var_rem_usc[0]='\0';
 
-					if( (f01r->porte[curblo]->porta[i]->tipo[ik] == ING ) ||
-					    (f01r->porte[curblo]->porta[i]->tipo[ik] == CO))	{ // e' un ingresso
-						noing=0;
-						okconn=0;
-						for ( ii=0; ii< f01r->blo[curblo]->numvar; ii++){ // per ogni variabile del blocco corrente
-							if( strcmp(f01r->blo[curblo]->varblo[ii], f01r->porte[curblo]->porta[i]->nome[ik]) == 0) {
-								if( f01r->blo[curblo]->tipo[ii] == CO) {
-									okconn=1;
-									strcpy(bloconn1,f01r->blo[curblo]->bloconn[ii]);
-									break;
-								} else {
-									okconn=0;
-									goto esci;
-								}
-							}
+			for ( ik=0; ik< f01r->porte[curblo]->porta[i]->num; ik++) {
+				for ( ii=0; ii< f01r->blo[curblo]->numvar; ii++)
+					if( strcmp(f01r->blo[curblo]->varblo[ii],
+					           f01r->porte[curblo]->porta[i]->nome[ik]) == 0) break;
+				if( ii >= f01r->blo[curblo]->numvar) continue;	/* variabile non nel blocco */
 
-						}
-						if (okconn == -1) printf("f01totom - ERR2 - variabile della porta non trovata nel blocco %s: porta lasciata libera\n",f01r->nomeblo[curblo]);
-						if (strcmp(bloconn0,"____") == 0)   strcpy(bloconn0,bloconn1);
-
-						if (strcmp(bloconn1,bloconn0) == 0) {
-							okconn=1;
-							break;
-//							continue;
-						}
-						else {
-							okconn=0;
-							goto esci;
-						}
-
+				if( f01r->blo[curblo]->tipo[ii] == CO) {	/* ingresso connesso */
+					n_ing++;
+					if( sorg_ing[0] == '\0') {
+						strcpy(sorg_ing,    f01r->blo[curblo]->bloconn[ii]);
+						strcpy(var_rem_ing, f01r->blo[curblo]->varconn[ii]);	/* nome formale nel blocco sorgente */
 					}
-
+					else if( strncmp(sorg_ing, f01r->blo[curblo]->bloconn[ii],4) != 0)
+						ing_discordi=1;
+					continue;
 				}
-                okconnusc=-1;
-				nousc=1;
-				if (noing != 1) strcpy(bloconn0,bloconn1);
-//				if( okconn== 1 )
-				for ( ik=0; ik< f01r->porte[curblo]->porta[i]->num; ik++) { // per ogni var della porta
 
-					if((f01r->porte[curblo]->porta[i]->tipo[ik] == US) ||
-							(f01r->porte[curblo]->porta[i]->tipo[ik] == UA)) {  // � un uscita
-						nousc=0;
-						okconnusc=0;
-						for (remblo=0;remblo<f01r->totblo;remblo++) {
-							if( escluso[remblo] ) continue;   /* porte[] non allocate */
-							if( remblo == curblo) continue;
-							for (iii=0;iii<f01r->blo[remblo]->numvar;iii++) { // per ogni variabile del blocco remoto
-								if( (strcmp(f01r->blo[remblo]->varconn[iii], f01r->porte[curblo]->porta[i]->nome[ik]) == 0) &&
-									(strcmp(f01r->blo[remblo]->bloconn[iii], f01r->nomeblo[curblo]) == 0) ) {
-									strcpy(bloconn1,f01r->nomeblo[remblo]);
-									if (strcmp(bloconn0,"____") == 0)   strcpy(bloconn0,bloconn1);
-									break;
-
+				if( (f01r->blo[curblo]->tipo[ii] == US) ||
+				    (f01r->blo[curblo]->tipo[ii] == UA)) {	/* uscita */
+					n_usc++;
+					/* chi riceve questa variabile da questo blocco */
+					for (remblo=0; remblo<f01r->totblo; remblo++) {
+						if( escluso[remblo] || (remblo == curblo) ) continue;
+						for (iii=0; iii<f01r->blo[remblo]->numvar; iii++) {
+							if( (strcmp(f01r->blo[remblo]->varconn[iii],
+							            f01r->porte[curblo]->porta[i]->nome[ik]) == 0) &&
+							    (strncmp(f01r->blo[remblo]->bloconn[iii],
+							             f01r->nomeblo[curblo],4) == 0) ) {
+								if( sorg_usc[0] == '\0') {
+									strcpy(sorg_usc,    f01r->nomeblo[remblo]);
+									strcpy(var_rem_usc, f01r->blo[remblo]->varblo[iii]);
 								}
-							}
-
-							if (strcmp(bloconn1,bloconn0) == 0) {
-								okconnusc=1;
-								break;
-							}
-
-						}
-						if (okconnusc==1 ) continue;
-						if ( noing != 1) goto esci;
-					}
-				}
-		esci:   strcpy(f01r->porte[curblo]->porta[i]->bloconn,"____"); // porta free
-				f01r->porte[curblo]->porta[i]->ibloconn=-1;
-				if(((nousc == 1) && ( okconn == 1)) ||
-				   ((noing == 1) && ( okconnusc == 1)) ||
-				   ((okconn == 1) && ( okconnusc==1)) )	{
-						strcpy(f01r->porte[curblo]->porta[i]->bloconn,bloconn1);
-						for (remblo=0;remblo<f01r->totblo;remblo++) {
-							if( escluso[remblo] ) continue;   /* porte[] non allocate */
-							if (strncmp( f01r->nomeblo[remblo], bloconn1, 4) == 0) {
-								f01r->porte[curblo]->porta[i]->ibloconn=remblo;
+								else if( strncmp(sorg_usc, f01r->nomeblo[remblo],4) != 0)
+									usc_multiple=1;
 								break;
 							}
 						}
-				}
-
-		}
-
-	}
-
-// cerco i nomi delle porte del blocco connesso con un'altro ...
-		for (curblo=0;curblo<f01r->totblo;curblo++) {  // per ogni blocco ...
-			if( escluso[curblo] ) continue;   /* porte[] non allocate */
-			for (i=0; i< f01r->porte[curblo]->numporte; i++){// per ogni porta
-				remblo=f01r->porte[curblo]->porta[i]->ibloconn; // blocco connesso alla porta i del blocoo curblo
-				if (remblo<0) continue;
-				if( escluso[remblo] ) continue;   /* porte[] non allocate */
-				for (kk=0;kk<f01r->porte[remblo]->numporte; kk++) { // per ogni porta del blocco remoto
-					if( f01r->porte[remblo]->porta[kk]->okport == 1) continue;
-					if( strcmp(f01r->porte[remblo]->porta[kk]->bloconn,f01r->nomeblo[curblo]) == 0) { // trovato
-
-						trovato=-1;
-						ik=0;
-						if((f01r->porte[curblo]->porta[i]->tipo[ik] == US) ||
-							(f01r->porte[curblo]->porta[i]->tipo[ik] == UA)) {  // � un uscita
-							for (iii=0;iii<f01r->blo[remblo]->numvar;iii++) { // per ogni variabile del blocco remoto
-								if( strcmp(f01r->blo[remblo]->varconn[iii],f01r->porte[curblo]->porta[i]->nome[ik]) == 0) {
-									break; // trovato: la variabile � iii
-								}
-							}
-
-							for ( ii=0;ii<f01r->porte[remblo]->porta[kk]->num; ii++) { // per ogni var della porta remota
-								if( strcmp(f01r->porte[remblo]->porta[kk]->nome[ii],f01r->blo[remblo]->varblo[iii]) == 0) {
-									trovato=kk;
-									break; // trovato: la porta � kk
-								}
-							}
-
-						}
-						ik=0;
-						if((f01r->porte[curblo]->porta[i]->tipo[ik] == ING) ||
-							(f01r->porte[curblo]->porta[i]->tipo[ik] == CO)) {  // � un uscita
-
-							for (iii=0;iii<f01r->blo[curblo]->numvar; iii++) { // per ogni variabile del blocco corrente
-								if( strcmp(f01r->blo[curblo]->varconn[iii],f01r->porte[remblo]->porta[kk]->nome[ik]) == 0) {
-									break; // trovato: la variabile � iii
-								}
-							}
-
-							for ( ii=0;ii<f01r->porte[remblo]->porta[kk]->num; ii++) { // per ogni var della porta remota
-								if( strcmp(f01r->porte[remblo]->porta[kk]->nome[ii],f01r->blo[curblo]->varblo[iii]) == 0) {
-									trovato=kk;
-									break; // trovato: la porta � kk
-								}
-							}
-
-						}
-
-						trovato=kk;
-						if(trovato != -1) strcpy(f01r->porte[curblo]->porta[i]->idbloconn,f01r->porte[remblo]->idporta[trovato]);
-						f01r->porte[remblo]->porta[trovato]->okport=1;
-						break;
-
-
 					}
 				}
 			}
+
+			if( n_ing > 0 ) {
+				if( ing_discordi ) {
+					porte_discordi++;
+					printf("f01totom - porta por%s del blocco %s: ingressi da blocchi diversi,"
+					       " non esprimibile in un .tom - lasciata libera\n",
+					       f01r->porte[curblo]->idporta[i], f01r->nomeblo[curblo]);
+				} else {
+					strcpy(f01r->porte[curblo]->porta[i]->bloconn, sorg_ing);
+					porte_da_ing++;
+				}
+			} else if( sorg_usc[0] != '\0' ) {
+				strcpy(f01r->porte[curblo]->porta[i]->bloconn, sorg_usc);
+				porte_da_usc++;
+				if( usc_multiple ) porte_fanout++;
+			}
+
+			/* Blocco controparte e sua porta. La porta remota e' quella che
+			   contiene la variabile formale con cui il f01 descrive il legame. */
+			f01r->porte[curblo]->porta[i]->idbloconn[0]='\0';
+			if( strcmp(f01r->porte[curblo]->porta[i]->bloconn,"____") != 0) {
+				for (remblo=0; remblo<f01r->totblo; remblo++) {
+					if( escluso[remblo] ) continue;
+					if( strncmp(f01r->nomeblo[remblo],
+					            f01r->porte[curblo]->porta[i]->bloconn,4) == 0) {
+						f01r->porte[curblo]->porta[i]->ibloconn=remblo;
+						break;
+					}
+				}
+				porta_con_variabile(f01r, f01r->porte[curblo]->porta[i]->ibloconn,
+				                    (n_ing > 0) ? var_rem_ing : var_rem_usc,
+				                    f01r->porte[curblo]->porta[i]->idbloconn);
+			}
+			}
+			}
+
 		}
 
+
+// La porta del blocco remoto viene risolta durante la scansione, con
+// porta_con_variabile(). Il ciclo che stava qui la cercava invece
+// pretendendo che la porta remota puntasse gia' indietro a questo blocco:
+// una condizione di mutualita' che con le decisioni prese dal lato ingressi
+// spesso non si verifica, e che lasciava idbloconn vuoto - da cui le righe
+// "busy por" malformate e le connessioni perse.
+//
+// Quella via inversa resta utile come RIPASSO, per i casi in cui il nome
+// della variabile e' cambiato fra la versione d'epoca del modulo e quella
+// di libreria: NODO chiamava la sua uscita ASOM/QSOM, oggi si chiama USOM,
+// e per nome non la si trova. Qui il giro e' completo, quindi le decisioni
+// di tutti i blocchi sono note e si puo' guardare chi punta a noi.
+	for (curblo=0;curblo<f01r->totblo;curblo++) {
+		if( escluso[curblo] ) continue;
+		for (i=0; i< f01r->porte[curblo]->numporte; i++) {
+			if( strcmp(f01r->porte[curblo]->porta[i]->bloconn,"____") == 0) continue;
+			if( f01r->porte[curblo]->porta[i]->idbloconn[0] != '\0') continue;
+			remblo = f01r->porte[curblo]->porta[i]->ibloconn;
+			if( (remblo < 0) || escluso[remblo] ) continue;
+			for (kk=0; kk<f01r->porte[remblo]->numporte; kk++)
+				if( strncmp(f01r->porte[remblo]->porta[kk]->bloconn,
+				            f01r->nomeblo[curblo],4) == 0) {
+					strcpy(f01r->porte[curblo]->porta[i]->idbloconn,
+					       f01r->porte[remblo]->idporta[kk]);
+					porte_reciproche++;
+					break;
+				}
+		}
+	}
 
 /* */
 /* scrittura del file tom */
@@ -560,6 +580,17 @@ printf( "\n-------------------------------\nFASE 5 - Scrittura del file tom\n---
 		printf("blocchi nel f01.dat        : %d\n", f01r->totblo);
 		printf("convertiti nel .tom        : %d\n", convertiti);
 		printf("esclusi (modulo o .i5)     : %d\n", num_esclusi);
+		printf("porte collegate dal lato ingressi : %d\n", porte_da_ing);
+		printf("porte collegate dal lato uscite   : %d\n", porte_da_usc);
+		if( porte_reciproche > 0)
+			printf("porte la cui controparte e' stata trovata per via inversa: %d\n",
+			       porte_reciproche);
+		if( porte_discordi > 0)
+			printf("porte con ingressi da blocchi diversi (non esprimibili in un .tom): %d\n",
+			       porte_discordi);
+		if( porte_fanout > 0)
+			printf("porte la cui uscita alimenta piu' blocchi (ne e' stato scelto uno): %d\n",
+			       porte_fanout);
 		printf("con posizione da macroblocks: %d su %d\n", con_pos, convertiti);
 		if( pos_automatiche == 1)
 			printf("ATTENZIONE: macroblocks.dat non trovato, posizioni automatiche\n");
@@ -796,7 +827,7 @@ void scrivi_tom(HEADF01 *f01r)
 
 	printf("\n%d blocchi scritti su %d, tavolozza %dx%d",scritti,f01r->totblo,dimx,dimy);
 	if( senza_pos > 0 ) printf(", %d senza posizione messi nella zona di raccolta in basso",senza_pos);
-	if( mezze_conn > 0 ) printf("%d connessioni note ma senza porta remota individuata: porte lasciate libere, da ricollegare in lgpc\n",mezze_conn);
+	if( mezze_conn > 0 ) printf("\n%d connessioni note ma senza porta remota individuata: porte lasciate libere, da ricollegare in lgpc\n",mezze_conn);
 	printf("\n");
 }
 
@@ -931,68 +962,110 @@ int nomi_defi5(int mode,HEADF01 *f01r){
 		return(1);
 }
 
-int leggi_macroblocks( HEADF01 *f01r ){
-/* */
-/* Lettura o Scrittura del file macroblockz.dat per determinare la posizione delle icone */
-/* */
-
+int leggi_macroblocks( HEADF01 *f01r, char *dir_f01 ){
+/*
+ * Legge macroblocks.dat e ne ricava la posizione delle icone.
+ *
+ * FORMATO. Dopo cinque righe di intestazione (**** / nome modello / **** /
+ * descrizione / ****), ogni riga e' un record a colonne fisse la cui PRIMA
+ * COLONNA E' IL TIPO, non il numero di pagina:
+ *
+ *   0  istanza di blocco : "0 <MOD><BLO> <MOD> <variante> <x> <y> 0"
+ *   1  *REMARK*          : annotazione di testo
+ *   2  *SYMBOL*          : simbolo grafico decorativo
+ *   3  *GLINES*          : polilinea decorativa
+ *
+ * I record NON sono raggruppati per tipo: blocchi e decorazioni sono
+ * intercalati, e c'e' una sola pagina.
+ *
+ * La versione precedente leggeva la prima colonna come pagina: si fermava al
+ * primo record non-blocco e saltava al **** successivo, cioe' a fine file.
+ * Tutti i blocchi che seguivano il primo *REMARK* o *SYMBOL* restavano senza
+ * posizione, e in lgpc finivano sovrapposti: su LPS 122 blocchi su 134, su IPS
+ * 89 su 111. Era l'origine del problema storico dello strumento.
+ *
+ * Le colonne: tipo in [0], nome (modulo+blocco) in [2..9] largo 8 caratteri
+ * spazi compresi, il resto da [11]. Il nome si prende per posizione e non con
+ * %s proprio perche' puo' contenere spazi (blocchi dal nome piu' corto di
+ * quattro caratteri).
+ *
+ * Ritorna 1 se il file c'era, 0 altrimenti (e allora si usano le posizioni
+ * automatiche).
+ */
 	FILE *fpmacro;
-	char buff[MAXL], indic[2],nometot[9], dum3[5],dum4[3], postx[5],posty[5], buff9[9];
-	int i, curblo, lun, pagcur, trovato;
+	char percorso[MAXL*2], buff[MAXL];
+	char nometot[9], chiave[9], modulo[8];
+	int i, curblo, variante, px, py;
+	int trovati=0, non_trovati=0, remark=0, symbol=0, glines=0, altri=0, letti=0;
 
-//		for (curblo=0;curblo< f01r->totblo; curblo++) strcpy(f01r->blo[curblo].posx=;
-	f01r->totpag=1;	
-	if((fpmacro=fopen("macroblocks.dat","r")) == NULL) return(0); // il file non c'�
-// leggo il file macroblocks e carico f0ir con posx posy e pag
-		
-		for (i=0;i<5;i++) fgets(buff,MAXL,fpmacro);
+	f01r->totpag=1;		/* macroblocks.dat ha una pagina sola */
 
-		pagcur=0;
-	while( !feof( fpmacro ) ) {
-		fgets(buff,MAXL,fpmacro);
-		sscanf(buff,"%1s %8s %4s %2s %4s %4s",indic,nometot,dum3,dum4, postx, posty);
-		lun=strlen(nometot);
-		if(lun < 8) {
-				strcpy(buff9,"        ");
-				strncpy(buff9,nometot,lun);
-				strcpy(nometot,buff9);
-		}
-		if( indic[0] == '0' ) pagcur++;
-trovato=0;
-		while ( indic[0] == '0' ) {
-			lun=strlen(nometot);
-			if(lun < 8) {
-				strcpy(buff9,"        ");
-				strncpy(buff9,nometot,lun);
-				strcpy(nometot,buff9);
-			}		
+	/* Il file sta accanto al f01.dat, non nella directory corrente: prima si
+	   faceva fopen("macroblocks.dat") e convertire da un'altra directory
+	   perdeva silenziosamente tutte le posizioni. */
+	if( (dir_f01 != NULL) && (dir_f01[0] != '\0') )
+		sprintf(percorso,"%s/macroblocks.dat",dir_f01);
+	else
+		strcpy(percorso,"macroblocks.dat");
 
-			for (curblo=0;curblo< f01r->totblo; curblo++) {
-				strcpy(buff9,f01r->nomemod[curblo]);
-				strcat(buff9,f01r->nomeblo[curblo]);
-				if( strcmp(buff9,nometot) == 0) {
-					f01r->blo[curblo]->posx=atoi(postx);
-					f01r->blo[curblo]->posy=atoi(posty);
-					f01r->blo[curblo]->pag=pagcur;
-		    trovato=1;
-printf("%i %i %s --> x=%i y=%i postx=%s posty=%s\n",pagcur,curblo, f01r->nomeblo[curblo], f01r->blo[curblo]->posx,f01r->blo[curblo]->posy, postx, posty );
-
-					break;
-				}
-			}
-if( trovato == 0 ) printf("Non trovato %i %s %s\n",curblo, buff9, 	f01r->nomeblo[curblo]);
-
-			fgets(buff,MAXL,fpmacro);
-			sscanf(buff,"%1s %8s %4s %2s %4s %4s",indic,nometot,dum3,dum4, postx, posty);
-		}
-		while ( (strncmp(buff,"****",4) != 0) && !feof(fpmacro) ) fgets(buff,MAXL,fpmacro);
-        fgets(buff,MAXL,fpmacro);
-		if(feof( fpmacro ) ) break; 
-		fgets(buff,MAXL,fpmacro);
+	if((fpmacro=fopen(percorso,"r")) == NULL) {
+		printf("macroblocks.dat non trovato in %s: si usano posizioni automatiche\n",
+		       (dir_f01 && dir_f01[0]) ? dir_f01 : ".");
+		return(0);
 	}
-      
-		f01r->totpag=f01r->totpag+pagcur;
+	printf("posizioni delle icone da %s\n",percorso);
 
-		fclose(fpmacro);
-		return(1);
+	for (i=0;i<5;i++)
+		if( fgets(buff,MAXL,fpmacro) == NULL) { fclose(fpmacro); return(0); }
+
+	while( fgets(buff,MAXL,fpmacro) != NULL ) {
+
+		if( strncmp(buff,"****",4) == 0) continue;	/* separatore di coda */
+		if( strlen(buff) < 12 ) continue;		/* riga troppo corta */
+
+		switch( buff[0] ) {
+			case '1': remark++;  continue;
+			case '2': symbol++;  continue;
+			case '3': glines++;  continue;
+			case '0': break;
+			default : altri++;   continue;
+		}
+
+		/* nome per posizione: 8 caratteri, spazi compresi */
+		strncpy(nometot,buff+2,8);
+		nometot[8]='\0';
+
+		if( sscanf(buff+11,"%7s %d %d %d",modulo,&variante,&px,&py) != 4) {
+			printf("macroblocks.dat: riga non interpretabile: %s",buff);
+			continue;
+		}
+		letti++;
+
+		for (curblo=0;curblo< f01r->totblo; curblo++) {
+			strcpy(chiave,f01r->nomemod[curblo]);
+			strcat(chiave,f01r->nomeblo[curblo]);
+			if( strcmp(chiave,nometot) == 0) {
+				f01r->blo[curblo]->posx=px;
+				f01r->blo[curblo]->posy=py;
+				trovati++;
+				break;
+			}
+		}
+		if( curblo >= f01r->totblo ) {
+			non_trovati++;
+			printf("macroblocks.dat: %s non corrisponde a nessun blocco del f01.dat\n",nometot);
+		}
+	}
+	fclose(fpmacro);
+
+	printf("macroblocks.dat: %d record di blocco, %d posizioni assegnate su %d blocchi",
+	       letti, trovati, f01r->totblo);
+	if( non_trovati > 0) printf(", %d senza blocco corrispondente",non_trovati);
+	printf("\n");
+	if( remark+symbol+glines+altri > 0)
+		printf("macroblocks.dat: elementi decorativi ignorati - %d *REMARK*, %d *SYMBOL*, %d *GLINES*%s\n",
+		       remark,symbol,glines, altri ? ", piu' record di tipo sconosciuto" : "");
+
+	return(1);
 }
+
