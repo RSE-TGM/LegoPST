@@ -50,8 +50,8 @@ fi
 # saltate le cinque righe di intestazione.
 conta_blocchi() { awk 'NR>5 && $1=="0" && NF==7' "$1" | wc -l; }
 
-printf '%-10s %7s %10s %7s %6s %6s %8s  %s\n' \
-       TASK BLOCCHI POSIZIONI PORTE LIBERE ESITO TEMPO MANCANTI
+printf '%-10s %7s %10s %7s %6s %6s %6s %7s  %s\n' \
+       TASK BLOCCHI POSIZIONI PORTE LIBERE NOTE ESITO TEMPO MANCANTI
 printf '%.0s-' {1..96}; echo
 
 for t in $TASKS; do
@@ -74,6 +74,7 @@ for t in $TASKS; do
 
     case $rc in
         0)   esito="ok" ;;
+        1)   esito="ok*" ;;      # convertito, ma con blocchi esclusi
         124) esito="LOOP" ;;
         *)   esito="err$rc" ;;
     esac
@@ -86,12 +87,13 @@ for t in $TASKS; do
     if [[ -f "$work/f01totom.tom" ]]; then
         porte=$(grep -c '^busy' "$work/f01totom.tom")
         libere=$(grep -c '^free' "$work/f01totom.tom")
+        note=$(( $(grep -c '^@com_0' "$work/f01totom.tom") / 2 ))
     else
-        porte="-"; libere="-"; [[ $esito == ok ]] && esito="NO.tom"
+        porte="-"; libere="-"; note="-"; [[ $esito == ok ]] && esito="NO.tom"
     fi
 
-    printf '%-10s %7s %10s %7s %6s %6s %7ss  %s\n' \
-           "$t" "$attesi" "$posizioni" "$porte" "$libere" "$esito" "$durata" "${mancanti:-—}"
+    printf '%-10s %7s %10s %7s %6s %6s %6s %6ss  %s\n' \
+           "$t" "$attesi" "$posizioni" "$porte" "$libere" "${note:--}" "$esito" "$durata" "${mancanti:-—}"
 
     [[ $VERBOSE -eq 1 ]] && { echo "--- log: $work/run.log ---"; tail -20 "$work/run.log"; }
 done

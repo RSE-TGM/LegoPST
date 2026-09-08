@@ -31,6 +31,7 @@
 #include <string.h>
 #include <libgen.h>
 #include <ctype.h>
+#include <unistd.h>
 
 int leggi_i5(char *,HEADF01 *, int);
 void scrivi_tom(HEADF01 *);
@@ -62,7 +63,7 @@ char	g_librpath[MAXL]="";
 int trova_libreria(char *istanza, char *out)
 {
 	int i, ret;
-	char cerca[MAXL*2];
+	char cerca[MAXPATH];
 	glob_t g;
 
 	for (i=0; i<g_numlibr; i++) {
@@ -108,9 +109,24 @@ int indice_blocco(HEADF01 *f01r, char *nome)
 // WIN32_FIND_DATA lpFindFileData[1];
 
 char filei5scelto[MAXL];
-char filf01totom[MAXL];
+char filf01totom[MAXPATH];
 
 int alldef=0 , nodefile=0;
+
+/* Dove stanno i file .i5. Due modalita', le stesse di pag2f01:
+     flat     - tutti in $LG_FILESI5 (installazioni storiche)
+     libreria - accanto al .pi4 in $LG_LIBRARIES/<libreria>/, e $LG_FILESI5
+                non esiste piu' (vedi ../tix/migrate_i5.tcl)
+   Prima si cercava solo in $LG_FILESI5: nelle installazioni migrate lo
+   strumento non trovava nessun modulo ed escludeva tutti i blocchi. */
+int  modo_flat=1;
+char percorso_i5[MAXPATH];	/* percorso completo del .i5 scelto */
+char dir_i5[MAXPATH]="";		/* $LG_FILESI5, o quanto imposto con -i5 */
+char dir_libr[MAXPATH]="";		/* $LG_LIBRARIES, o quanto imposto con -lib */
+int  con_remark=1;		/* i *REMARK* diventano elementi @com_0 */
+
+REMARK remark[MAXREMARK];
+int    num_remark=0;
 
 
 void essit(char *mesg)
@@ -131,10 +147,10 @@ int main( int argc, char *argv[ ] )
 
 	HEADF01  *f01r;
     char bloconn0[5],bloconn1[5];
-	char buff[MAXL],filf01[MAXL];
+	char buff[MAXL],filf01[MAXPATH];
     char *I5PATH, *LIBRPATH;
 	int retfind;
-	char lpFileName[100];
+	char lpFileName[MAXPATH];
 	
 	char *nomelibr[MAXBLO];
 	int numlibr, modtrovato,non_presenti, lista_non_presenti[MAXBLO];
@@ -147,27 +163,71 @@ int main( int argc, char *argv[ ] )
 
 	strcpy(filf01,"f01.dat");
 	strcpy(filf01totom,"f01totom.tom");
-/*
-	if ((argc == 2) && (strcmp(argv[1],"-h")!= 0) ) {
-	essit("Uso:	f01totom [-a] <nome file input (f01.dat)>\nOppure	f01totom [-a] <nome file input (f01.dat)> <nome file input (f01totom.tom)>\nOppure	f01totom [-a]\n");
-	}
-*/
-	if (argc == 2) {
-		if(strcmp(argv[1],"-a")== 0) {alldef=1;}
-		else if (strcmp(argv[1],"-h")== 0) essit("Uso:	f01totom [-a] <nome file input (f01.dat)>\nOppure	f01totom [-a] <nome file input (f01.dat)> <nome file input (f01totom.tom)>\nOppure	f01totom [-a]\n");
-		else strcpy(filf01,argv[1]);
-	}
-	if (argc == 3) {
-		if(strcmp(argv[1],"-a")== 0) {alldef=1; strcpy(filf01,argv[2]);}
-		else {strcpy(filf01,argv[1]);strcpy(filf01totom,argv[2]);}
+
+	/* Riga di comando. Il comportamento predefinito e' NON interattivo: le
+	   istanze dei moduli si scelgono da se' (si preferiscono quelle provviste
+	   di elemento grafico) e le eventuali scelte registrate in f01totom.inp
+	   vengono rispettate. Con -i le chiede una per una. Il vecchio -a resta
+	   accettato e non fa niente, cosi' i comandi e le procedure che lo usano
+	   continuano a funzionare. */
+	alldef=1;
+	for (i=1; i<argc; i++) {
+		if( strcmp(argv[i],"-h") == 0 ) {
+			printf("f01totom - da una topologia legocad al file .tom di legopc.tix\n\n"
+			       "Uso: f01totom [opzioni] [file f01]\n\n"
+			       "  file f01           predefinito f01.dat nella directory corrente.\n"
+			       "                     macroblocks.dat viene cercato accanto a questo file.\n"
+			       "  -o <file.tom>      file di uscita (predefinito f01totom.tom)\n"
+			       "  -i5 <dir>          dove stanno i .i5 (predefinito $LG_FILESI5)\n"
+			       "  -lib <dir>         librerie dei moduli (predefinito $LG_LIBRARIES)\n"
+			       "  -i                 chiedi quale istanza usare per ogni modulo\n"
+			       "  -noremark          non convertire i *REMARK* in elementi @com_0\n"
+			       "  -a                 accettato per compatibilita', non fa niente\n"
+			       "  -h                 questo aiuto\n\n"
+			       "Uscita: 0 tutto convertito, 1 convertito con esclusioni, 2 errore d'uso.\n"
+			       "Procedura completa: HOWTO_migrazione.md\n");
+			return(2);
+		}
+		else if( strcmp(argv[i],"-a") == 0 )        { /* compatibilita' */ }
+		else if( strcmp(argv[i],"-i") == 0 )        { alldef=0; }
+		else if( strcmp(argv[i],"-noremark") == 0 ) { con_remark=0; }
+		else if( strcmp(argv[i],"-o") == 0 ) {
+			if( ++i >= argc) essit("f01totom - -o vuole il nome del file .tom\n");
+			strncpy(filf01totom,argv[i],MAXPATH-1);
+		}
+		else if( strcmp(argv[i],"-i5") == 0 ) {
+			if( ++i >= argc) essit("f01totom - -i5 vuole una directory\n");
+			strncpy(dir_i5,argv[i],MAXPATH-1);
+		}
+		else if( strcmp(argv[i],"-lib") == 0 ) {
+			if( ++i >= argc) essit("f01totom - -lib vuole una directory\n");
+			strncpy(dir_libr,argv[i],MAXPATH-1);
+		}
+		else if( argv[i][0] == '-' ) {
+			printf("f01totom - opzione sconosciuta: %s (f01totom -h per l'aiuto)\n",argv[i]);
+			return(2);
+		}
+		else strncpy(filf01,argv[i],MAXPATH-1);
 	}
 
-	if (argc == 4) {
-		if(strcmp(argv[1],"-a")== 0) {alldef=1; strcpy(filf01,argv[2]);strcpy(filf01totom,argv[3]); }
-		else {essit("Uso:	f01totom [-a] <nome file input (f01.dat)>\nOppure	f01totom [-a] <nome file input (f01.dat)> <nome file input (f01totom.tom)>\nOppure	f01totom [-a]\n");}
+	/* Dove cercare i .i5 e le librerie. La modalita' e' flat se la directory
+	   dei .i5 esiste, altrimenti si cerca nelle librerie: e' la stessa regola
+	   di pag2f01. */
+	if( dir_i5[0] == '\0' ) {
+		char *e = getenv("LG_FILESI5");
+		if( e != NULL) strncpy(dir_i5,e,MAXPATH-1);
 	}
+	if( dir_libr[0] == '\0' ) {
+		char *e = getenv("LG_LIBRARIES");
+		if( e != NULL) strncpy(dir_libr,e,MAXPATH-1);
+	}
+	if( dir_libr[0] == '\0' )
+		essit("f01totom - LG_LIBRARIES non definita (source .profile_legoroot) e nessun -lib\n");
 
-	if (argc > 4) essit("Uso:	f01totom [-a] <nome file input (f01.dat)>\nOppure	f01totom [-a] <nome file input (f01.dat)> <nome file input (f01totom.tom)>\nOppure	f01totom [-a]\n");
+	modo_flat = (dir_i5[0] != '\0') && (access(dir_i5,F_OK) == 0);
+	printf("librerie dei moduli : %s\n",dir_libr);
+	if( modo_flat ) printf("file .i5            : %s (modalita' flat)\n",dir_i5);
+	else            printf("file .i5            : accanto ai .pi4 nelle librerie (modalita' libreria)\n");
 
 
 	if((fpf01=fopen(filf01,"r"))==NULL) {
@@ -279,8 +339,8 @@ for (curblo=0;curblo<f01r->totblo;curblo++) {
 	/* macroblocks.dat sta accanto al f01.dat: dirname() modifica il suo
 	   argomento, quindi lavora su una copia */
 	{
-		char copia[MAXL], *dir;
-		strncpy(copia,filf01,MAXL-1); copia[MAXL-1]='\0';
+		char copia[MAXPATH], *dir;
+		strncpy(copia,filf01,MAXPATH-1); copia[MAXPATH-1]='\0';
 		dir = dirname(copia);
 		if (leggi_macroblocks(f01r,dir) == 0) pos_automatiche=1;
 	}
@@ -288,9 +348,9 @@ for (curblo=0;curblo<f01r->totblo;curblo++) {
 /* Ricerca delle librerie dei moduli di Legopc installate */
 /* */
 printf( "\n-------------------------------\nFASE 2 - Ricerca delle istanze esistenti\n-------------------------------\n");
-	LIBRPATH = (char *)getenv("LG_LIBRARIES");
+	LIBRPATH = dir_libr;
 
-	I5PATH = (char *)getenv("LG_FILESI5");
+	I5PATH = dir_i5;	/* usato solo per i messaggi: i percorsi li fa cercai5 */
 
 	strcpy(lpFileName,"");
 	strcat(lpFileName,LIBRPATH);
@@ -373,18 +433,16 @@ printf( "\n-------------------------------\nFASE 3 - Ricerca nei file i5 e scelt
 // ricerca dei file i5
 		for (curblo=0;curblo<f01r->totblo;curblo ++) {
 			if( escluso[curblo] ) continue;   /* modulo assente: niente .i5 da cercare */
-			strcpy(lpFileName,I5PATH);
-			strcat(lpFileName,"/");
-			conv_minuscolo(f01r->nomemod[curblo], buff);
+			if( escluso[curblo] ) continue;   /* modulo assente: niente .i5 da cercare */
 
-			cercai5(f01r,curblo,lpFileName);
+			cercai5(f01r,curblo,NULL);
 			if( filei5scelto[0] == '\0' ) {  /* nessun .i5 per questo modulo */
 				printf("f01totom - Modulo: %s senza file .i5 - blocco %s escluso dal .tom\n",
 				       f01r->nomemod[curblo],f01r->nomeblo[curblo]);
 				escluso[curblo]=1; num_esclusi++;
 				continue;
 			}
-			strcat(lpFileName,filei5scelto);
+			strcpy(lpFileName,percorso_i5);
 			strcpy(f01r->nomei5[curblo],filei5scelto);
 			ret=leggi_i5(lpFileName,f01r, curblo);
 // provvisorio ... ignoro gli errori in lettura degli i5
@@ -604,7 +662,7 @@ printf( "\n-------------------------------\nFASE 5 - Scrittura del file tom\n---
 
 //free della memoria allocata
 	free(f01r);
-	return(0);
+	return( num_esclusi > 0 ? 1 : 0 );	/* 1 = convertito, ma con esclusioni */
 }
 
 
@@ -739,6 +797,12 @@ void scrivi_tom(HEADF01 *f01r)
 		if( f01r->blo[curblo]->posx > maxx) maxx=f01r->blo[curblo]->posx;
 		if( f01r->blo[curblo]->posy > maxy) maxy=f01r->blo[curblo]->posy;
 	}
+	/* anche le annotazioni stanno sul disegno e allargano la tavolozza */
+	for (i=0; i<num_remark; i++) {
+		if( remark[i].x > maxx) maxx=remark[i].x;
+		if( remark[i].y > maxy) maxy=remark[i].y;
+	}
+
 	if( pos_automatiche == 0 ) {
 		if( maxx+120 > dimx) dimx=maxx+120;
 		dimy = maxy+120;
@@ -753,6 +817,30 @@ void scrivi_tom(HEADF01 *f01r)
 
 	if((fptom=fopen(filf01totom,"w"))==NULL) {
 		essit( "f01totom - Errore nella creazione del file tom\n");
+	}
+
+	/* Nome di ogni annotazione. Si usa la convenzione di legopc, che genera
+	   i nomi come numero riempito di underscore ([string range ${progNumb}____
+	   0 3] in legopc.tix): cosi' un elemento aggiunto dopo in lgpc non ci
+	   finisce sopra, perche' legopc controlla le collisioni. Si salta comunque
+	   ogni nome che coincida con quello di un blocco. */
+	{
+	int n=1, r;
+
+	for (r=0; r<num_remark; r++) {
+		char prova[8];
+		int  libero;
+
+		do {
+			sprintf(prova,"%d____",n);
+			prova[4]='\0';
+			n++;
+			libero = (indice_blocco(f01r,prova) < 0);
+			for (i=0; libero && (i<r); i++)
+				if( strcmp(remark[i].nome,prova) == 0) libero=0;
+		} while( !libero && (n < 10000) );
+		strcpy(remark[r].nome,prova);
+	}
 	}
 
 	fputs("# this file created with LEGOPHI rel. 0.2\n", fptom);
@@ -789,6 +877,19 @@ void scrivi_tom(HEADF01 *f01r)
 		fputs("\n", fptom);
 		scritti++;
 	}
+
+	/* Le annotazioni: nel .tom sono elementi @com_0 della libreria remark,
+	   che e' l'equivalente del *REMARK* di legocad. Cinque righe come per i
+	   blocchi: classe, orientamento, nome, posizione, libreria. */
+	for (i=0; i<num_remark; i++) {
+		fputs("@com_0\n", fptom);
+		fputs("n\n", fptom);
+		fputs(remark[i].nome, fptom);
+		fputs("\n", fptom);
+		sprintf(buff,"%d.0 %d.0\n",remark[i].x,remark[i].y);
+		fputs(buff, fptom);
+		fputs("remark\n", fptom);
+	}
 	fputs("****\n", fptom);
 
 // scrittura seconda parte del file
@@ -822,10 +923,23 @@ void scrivi_tom(HEADF01 *f01r)
 	fputs("++++\n", fptom);
 	}
 
+
+	/* Font e testo di ogni annotazione. topRead legge classe, nome, riga del
+	   font, riga del testo, e chiude su ++++. */
+	for (i=0; i<num_remark; i++) {
+		fputs("@com_0\n", fptom);
+		fputs(remark[i].nome, fptom);
+		fputs("\n", fptom);
+		fputs("helvetica 12\n", fptom);
+		fputs(remark[i].testo, fptom);
+		fputs("\n", fptom);
+		fputs("++++\n", fptom);
+	}
 	fputs("****\n", fptom);
 	fclose(fptom);
 
 	printf("\n%d blocchi scritti su %d, tavolozza %dx%d",scritti,f01r->totblo,dimx,dimy);
+	if( num_remark > 0 ) printf(", %d annotazioni",num_remark);
 	if( senza_pos > 0 ) printf(", %d senza posizione messi nella zona di raccolta in basso",senza_pos);
 	if( mezze_conn > 0 ) printf("\n%d connessioni note ma senza porta remota individuata: porte lasciate libere, da ricollegare in lgpc\n",mezze_conn);
 	printf("\n");
@@ -848,36 +962,44 @@ void conv_minuscolo( char *msg, char *buff)
 
 void cercai5(HEADF01 *f01r,int curblo, char *path)
 {
+/*
+ * Cerca i file .i5 del modulo del blocco e ne scegli uno.
+ *
+ * Funziona in entrambe le modalita': in flat il glob e' "$LG_FILESI5/mod*.i5",
+ * in modalita' libreria e' "$LG_LIBRARIES/<*>/mod*.i5". In uscita lascia il
+ * nome del file in filei5scelto e il percorso completo in percorso_i5, perche'
+ * in modalita' libreria il chiamante non saprebbe ricomporlo.
+ *
+ * Fra le istanze disponibili si preferisce una provvista di elemento grafico:
+ * ldch ha ldch_0..ldch_3 come .i5 ma solo ldch_2 e ldch_3 hanno il .tcl, e
+ * prendere la prima in ordine alfabetico dava un .tom che non si apre.
+ */
+	int retfind, i;
+	char nomefile[MAXPATH], buff[MAXL];
+	char nomi[MAXFILEI5][12], percorsi[MAXFILEI5][MAXPATH];
+	int conta=0, scelta;
 
-/* */
-/* Ricerca del file i5 correlato al blocco ed eventuale scelta tra le varie alternative */
-/* */
+	glob_t lpFindFileData;
 
-	int retfind;
-	char nomefile[100], buff[MAXL];
-	char nomi[MAXFILEI5][12];
-	int conta=0, scelta, i;   /* conta=0: glob puo' fallire senza toccarla */
+	(void)path;	/* il percorso lo decide la modalita', non il chiamante */
 
-          glob_t lpFindFileData;
-
-
-	strcpy(nomefile,path);
 	conv_minuscolo(f01r->nomemod[curblo],buff);
-	strcat(nomefile,buff);
-	strcat(nomefile,"*.i5");
+	if( modo_flat )
+		sprintf(nomefile,"%s/%s*.i5",dir_i5,buff);
+	else
+		sprintf(nomefile,"%s/*/%s*.i5",dir_libr,buff);
 	printf("\ncercaI5 - %s\n",nomefile);
-	i=0;
 
-          lpFindFileData.gl_offs = 0;
+	lpFindFileData.gl_offs = 0;
+	retfind=glob(nomefile, GLOB_DOOFFS, NULL, &lpFindFileData);
 
-
-
-
-	if( (retfind=glob(nomefile, GLOB_DOOFFS, NULL, &lpFindFileData)) == 0) {// pointer to name of file to search for
-           conta=lpFindFileData.gl_pathc;
-	   for (i=0;i<conta;i++) {
-	        strcpy(nomi[i],( char *)basename(lpFindFileData.gl_pathv[i]));
-		printf("Trovato----> %s\n",( char *)lpFindFileData.gl_pathv[i]);
+	if( retfind == 0 ) {
+		conta=(int)lpFindFileData.gl_pathc;
+		if( conta > MAXFILEI5) conta=MAXFILEI5;
+		for (i=0;i<conta;i++) {
+			strcpy(nomi[i],(char *)basename(lpFindFileData.gl_pathv[i]));
+			strcpy(percorsi[i],lpFindFileData.gl_pathv[i]);
+			printf("Trovato----> %s\n",lpFindFileData.gl_pathv[i]);
 		}
 	}
 
@@ -885,52 +1007,46 @@ void cercai5(HEADF01 *f01r,int curblo, char *path)
 		/* nessun .i5 per questo modulo: lo segnala il chiamante, che esclude
 		   il blocco. Prima qui si moriva, perdendo tutta la conversione. */
 		filei5scelto[0]='\0';
+		percorso_i5[0]='\0';
 		return;
 	}
 
-/*	while (FindNextFile( retfind,lpFindFileData) != 0)  {
-		i++;
-		strcpy(nomi[i],lpFindFileData->cFileName);
-		printf("Trovata altra configurazione----> %s\n",lpFindFileData->cFileName);
+	/* scelta dell'istanza */
+	scelta=-1;
+	if( nodefile == 0 ) {
+		/* c'e' un f01totom.inp: rispetta la scelta registrata */
+		for (i=0;i<conta;i++)
+			if( strcmp(nomi[i], f01r->nomei5[curblo]) == 0) { scelta=i; break; }
 	}
-	conta=++i;
-*/
+	if( scelta < 0 ) {
+		char senza_i5[MAXPATH], dovesta[MAXPATH];
+		int lun;
 
-// dialogo di scelta
-	scelta=0;
-//	alldef=0;
-	strcpy(filei5scelto,f01r->nomei5[curblo]);
-	/* Fra le istanze disponibili si preferisce una che abbia anche l'elemento
-	   grafico: ldch ha ldch_0..ldch_3 come .i5, ma solo ldch_2 e ldch_3 hanno
-	   il .tcl, e prendere la prima in ordine alfabetico produceva un .tom che
-	   non si apre. */
-	if(nodefile==1) {
-		char senza_i5[MAXL], dovesta[MAXL];
-		int j, migliore=-1;
-
-		for (j=0; j<conta; j++) {
-			strcpy(senza_i5,nomi[j]);
-			senza_i5[strlen(senza_i5)-3]='\0';
-			if( trova_libreria(senza_i5,dovesta) == 1) { migliore=j; break; }
+		for (i=0; i<conta; i++) {
+			strcpy(senza_i5,nomi[i]);
+			lun=(int)strlen(senza_i5);
+			if( lun > 3) senza_i5[lun-3]='\0';
+			if( trova_libreria(senza_i5,dovesta) == 1) { scelta=i; break; }
 		}
-		if( migliore < 0) migliore=0;	/* nessuna ha l'elemento: decide la FASE 3 */
-		strcpy(filei5scelto,nomi[migliore]);
 	}
-	if(alldef==1 ) return;
-    if (conta != 1) {
-		printf("Il modulo %s ( blocco %s) ha %d possibili configurazioni\n",f01r->nomei5[curblo],f01r->nomeblo[curblo], conta);
+	if( (scelta < 0) && (alldef == 0) && (conta != 1) ) {
+		/* modo interattivo: si chiede */
+		printf("Il modulo %s ( blocco %s) ha %d possibili configurazioni\n",
+		       f01r->nomemod[curblo],f01r->nomeblo[curblo], conta);
 		for (i=0;i<conta;i++) printf("%d - %s\n",i,nomi[i]);
-		printf ("seleziona[%s]?=",f01r->nomei5[curblo]);
-
-//		if( gets(buff) == NULL) scelta=-1;
-		if( fgets(buff, MAXL,stdin) == NULL) scelta=-1;
-		scelta=atoi(buff);
-		if( buff[0]=='a') alldef=1, scelta=-1;
+		printf("seleziona[0]?=");
+		if( fgets(buff, MAXL, stdin) != NULL) {
+			scelta=atoi(buff);
+			if( buff[0]=='a') { alldef=1; scelta=-1; }
+		}
+		if( (scelta < 0) || (scelta >= conta) ) scelta=0;
 	}
-    if(scelta>=0) strcpy(filei5scelto,nomi[scelta]);
+	if( scelta < 0) scelta=0;	/* nessuna ha l'elemento: decide la FASE 3 */
 
-
+	strcpy(filei5scelto,nomi[scelta]);
+	strcpy(percorso_i5,percorsi[scelta]);
 }
+
 int nomi_defi5(int mode,HEADF01 *f01r){
 /* */
 /* Lettura o Scrittura del file f01totom.inp che contiene la scelta degli i5 usata nel precedente run*/
@@ -993,10 +1109,10 @@ int leggi_macroblocks( HEADF01 *f01r, char *dir_f01 ){
  * automatiche).
  */
 	FILE *fpmacro;
-	char percorso[MAXL*2], buff[MAXL];
+	char percorso[MAXPATH], buff[MAXL];
 	char nometot[9], chiave[9], modulo[8];
 	int i, curblo, variante, px, py;
-	int trovati=0, non_trovati=0, remark=0, symbol=0, glines=0, altri=0, letti=0;
+	int trovati=0, non_trovati=0, remark_letti=0, symbol=0, glines=0, altri=0, letti=0;
 
 	f01r->totpag=1;		/* macroblocks.dat ha una pagina sola */
 
@@ -1024,7 +1140,32 @@ int leggi_macroblocks( HEADF01 *f01r, char *dir_f01 ){
 		if( strlen(buff) < 12 ) continue;		/* riga troppo corta */
 
 		switch( buff[0] ) {
-			case '1': remark++;  continue;
+			case '1':	/* *REMARK*: un'annotazione di testo */
+				remark_letti++;
+				if( con_remark && (num_remark < MAXREMARK) ) {
+					char testo[MAXTESTO], campo[8];
+					int  lun;
+
+					/* colonne fisse: x in [10..14], y in [15..19], testo da [21] */
+					strncpy(campo,buff+10,5); campo[5]='\0';
+					remark[num_remark].x = atoi(campo);
+					strncpy(campo,buff+15,5); campo[5]='\0';
+					remark[num_remark].y = atoi(campo);
+
+					strncpy(testo,buff+21,MAXTESTO-1);
+					testo[MAXTESTO-1]='\0';
+					/* via il fine riga e gli spazi di riempimento in coda */
+					for (lun=(int)strlen(testo)-1;
+					     (lun >= 0) && ((testo[lun]=='\n') || (testo[lun]=='\r') ||
+					                    (testo[lun]==' ') || (testo[lun]=='\t')); lun--)
+						testo[lun]='\0';
+					if( testo[0] != '\0' ) {
+						strcpy(remark[num_remark].testo,testo);
+						remark[num_remark].nome[0]='\0';	/* lo assegna scrivi_tom */
+						num_remark++;
+					}
+				}
+				continue;
 			case '2': symbol++;  continue;
 			case '3': glines++;  continue;
 			case '0': break;
@@ -1062,9 +1203,9 @@ int leggi_macroblocks( HEADF01 *f01r, char *dir_f01 ){
 	       letti, trovati, f01r->totblo);
 	if( non_trovati > 0) printf(", %d senza blocco corrispondente",non_trovati);
 	printf("\n");
-	if( remark+symbol+glines+altri > 0)
-		printf("macroblocks.dat: elementi decorativi ignorati - %d *REMARK*, %d *SYMBOL*, %d *GLINES*%s\n",
-		       remark,symbol,glines, altri ? ", piu' record di tipo sconosciuto" : "");
+	if( remark_letti+symbol+glines+altri > 0)
+		printf("macroblocks.dat: %d *REMARK*, %d *SYMBOL* e %d *GLINES* nel disegno d'epoca%s\n",
+		       remark_letti,symbol,glines, altri ? ", piu' record di tipo sconosciuto" : "");
 
 	return(1);
 }

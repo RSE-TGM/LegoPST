@@ -74,22 +74,30 @@ l'originale resta intatto.
 ```sh
 mkdir -p /tmp/migra && cd /tmp/migra
 cp $LG_MODELS/GTS/f01.dat $LG_MODELS/GTS/macroblocks.dat .
-$LG_TOOLS/f01totom -a
+$LG_TOOLS/f01totom
 ```
 
-`-a` evita le domande sulla scelta delle istanze dei moduli: prende quelle
-provviste di elemento grafico. Senza `-a` le chiede una per una e salva le
-risposte in `f01totom.inp`, che nei run successivi viene riletto — si può
-modificare a mano per imporre altre istanze.
+Non fa domande: le istanze dei moduli le sceglie da sé, preferendo quelle
+provviste di elemento grafico, e rispetta le scelte già registrate in
+`f01totom.inp`. Con **`-i`** le chiede una per una e salva le risposte in
+`f01totom.inp`, che si può anche modificare a mano per imporre altre istanze.
 
 Il `macroblocks.dat` viene cercato **accanto al `f01.dat`**, quindi va bene
-anche indicare il file per percorso:
+anche indicare il file per percorso, da qualunque directory:
 
 ```sh
-$LG_TOOLS/f01totom -a $LG_MODELS/GTS/f01.dat
+$LG_TOOLS/f01totom -o GTS_conv.tom $LG_MODELS/GTS/f01.dat
 ```
 
-Escono `f01totom.tom` e `f01totom.inp`.
+Le opzioni utili: `-o <file.tom>` per il nome dell'uscita, `-i` per scegliere le
+istanze a mano, `-noremark` per non convertire le annotazioni, `-h` per
+l'aiuto. `-a` è accettato per compatibilità e non fa niente (una volta serviva a
+*non* essere interattivi, che ora è il comportamento normale).
+
+Escono `f01totom.tom` (o quello indicato con `-o`) e `f01totom.inp`.
+
+Codici di uscita: **0** tutto convertito, **1** convertito ma con blocchi
+esclusi, **2** errore d'uso.
 
 **Leggi il riepilogo finale.** Dice quanti blocchi sono stati convertiti, quanti
 esclusi e perché, quante posizioni recuperate, quante porte collegate e quante
@@ -98,6 +106,11 @@ lasciate libere perché non esprimibili. È lì che si vede cosa aspettarsi.
 Un blocco viene **escluso** quando il suo modulo non è in libreria o non ha un
 `.i5`: quei blocchi non finiscono nel `.tom` e vanno aggiunti a mano in `lgpc`.
 Su GTS sono 5 su 49 (`FCTT`, quattro `MITN`).
+
+Le **annotazioni di testo** del disegno d'epoca (i record `*REMARK*`) vengono
+convertite in elementi `@com_0` della libreria `remark`: su LPS sono 95, su IPS
+59. I `*SYMBOL*` e i `*GLINES*` — simboli e polilinee decorative — restano
+fuori: il riepilogo dice quanti erano, così si sa cosa manca.
 
 ---
 
@@ -177,6 +190,8 @@ Cosa guardare:
   raccolta in basso**, in fila: trascinali al loro posto;
 - i blocchi esclusi (moduli assenti) **non ci sono**: vanno aggiunti dalla
   libreria e collegati;
+- le annotazioni di testo ci sono, come elementi di tipo remark: si spostano e
+  si modificano come qualunque altro elemento;
 - le connessioni mancanti vanno disegnate. Il riepilogo del Passo 1 dice quali
   porte sono state lasciate libere e perché.
 

@@ -271,7 +271,7 @@ trovata fra quelle del blocco, `ii` vale `numvar` e il tipo viene letto oltre
 le variabili valide. Ne derivano porte marcate `busy`/`free` a caso — parte
 degli "errori" nel disegno convertito.
 
-**9. [aperto] Funziona solo in modalità flat.** [f01totom.c:284](f01totom.c#L284) cerca
+**9. [in parte, Fase 5] Funziona solo in modalità flat.** [f01totom.c:284](f01totom.c#L284) cerca
 i `.i5` solo in `$LG_FILESI5`. Nelle installazioni migrate a modalità libreria
 (vedi [../tix/migrate_i5.tcl](../tix/migrate_i5.tcl)), dove i `.i5` stanno
 accanto ai `.pi4`, non trova niente. `pag2f01` gestisce entrambe le modalità,
@@ -283,7 +283,7 @@ Diverse `sscanf("%s")` senza limite di larghezza su buffer da 2, 3 e 5 byte.
 `conta` in `cercai5` può essere usata non inizializzata se `glob` fallisce con
 un codice diverso da `GLOB_NOMATCH`.
 
-**11. [aperto] Deriva di versione fra i moduli.** I 40 errori `ERR3` su STS non sono un
+**11. [chiarito, non risolvibile] Deriva di versione fra i moduli.** I 40 errori `ERR3` su STS non sono un
 bug del programma: i `.i5` di oggi dichiarano variabili di porta (`WVAL`,
 `RPM1`, `HCOL`, `WMIX`) che i blocchi del `f01.dat` d'epoca non hanno. Va
 deciso *cosa fare*, non *come ripararlo*.
@@ -425,21 +425,75 @@ storico di LegoPST per questo (`src/main_lego/edi14.for`, lo stesso che
 Quello che resta scoperto va messo a mano, e sono sempre le stesse cose: le
 porte non esprimibili e le variabili dei moduli cambiati.
 
-### Fase 5 — Usabilità come strumento a sé (difetto 9)
+### Fase 5 — Usabilità come strumento a sé ✔ FATTA in parte (difetto 9)
 
-- riga di comando esplicita: file di ingresso, `-o` per l'uscita, opzioni per
-  libreria e `.i5`, non interattivo per default;
-- ricerca dei `.i5` in entrambe le modalità, flat e libreria, come fa
-  `pag2f01`;
-- rapporto finale conclusivo: quanti blocchi, quante posizioni, quante porte
-  connesse, cosa manca, cosa va rifinito a mano;
-- codici di uscita sensati.
+Riga di comando esplicita, e **non interattivo per definizione**:
 
-### Fase 6 — Facoltativa: i `*REMARK*`
+```
+f01totom [opzioni] [file f01]
 
-Tradurre le annotazioni di testo in elementi `@com_0`. È la differenza fra uno
-schema anonimo e un disegno leggibile: LPS ne ha 95, IPS 59. I `*SYMBOL*` e i
-`*GLINES*` invece conviene dichiararli fuori perimetro e dirlo nel rapporto.
+  file f01           predefinito f01.dat; macroblocks.dat si cerca accanto
+  -o <file.tom>      file di uscita (predefinito f01totom.tom)
+  -i5 <dir>          dove stanno i .i5 (predefinito $LG_FILESI5)
+  -lib <dir>         librerie dei moduli (predefinito $LG_LIBRARIES)
+  -i                 chiedi quale istanza usare per ogni modulo
+  -noremark          non convertire i *REMARK* in elementi @com_0
+  -a                 accettato per compatibilità, non fa niente
+  -h                 aiuto
+```
+
+Prima l'interpretazione degli argomenti era posizionale e dipendeva da `argc`,
+e `-a` serviva a *non* essere interattivi. Ora il silenzio è la regola e `-i`
+l'eccezione; `-a` resta accettato perché le procedure che lo usano continuino a
+funzionare.
+
+Codici di uscita: **0** tutto convertito, **1** convertito ma con blocchi
+esclusi, **2** errore d'uso.
+
+Corretto anche un difetto che valeva in ogni modalità: i buffer dei percorsi
+erano `MAXL`, cioè **100 caratteri**, e i path più lunghi venivano troncati in
+silenzio. Ora c'è `MAXPATH` (512).
+
+**Quello che resta fuori**: la ricerca dei `.i5` in modalità libreria. Il codice
+c'è (`cercai5` cerca in `$LG_LIBRARIES/*/mod*.i5` quando `$LG_FILESI5` non
+esiste, come fa `pag2f01`) ma **non è stato verificato**: la prova è stata
+interrotta e su questa installazione i `.i5` stanno tutti in `files_i5`. Da
+trattare come non collaudato finché qualcuno non lo prova su un'installazione
+migrata.
+
+### Fase 6 — I `*REMARK*` ✔ FATTA
+
+Le annotazioni di testo del disegno legocad diventano elementi **`@com_0`**
+della libreria `remark`, che nel `.tom` sono il loro equivalente esatto.
+
+| task | annotazioni recuperate |
+|---|---|
+| `LPS` | **95** |
+| `IPS` | **59** |
+| `HPS` | 6 |
+| `VCT` | 6 |
+| `GTS`, `STS` | nessuna nel disegno d'epoca |
+
+Su LPS e IPS è la differenza fra uno schema anonimo e un disegno leggibile.
+
+Come sono fatti: il record `1 *REMARK* <x> <y> <testo>` di `macroblocks.dat` ha
+`x` nelle colonne 10-14, `y` in 15-19 e il testo dalla 21. Diventa un elemento
+di cinque righe nella prima sezione del `.tom` (classe `@com_0`, orientamento
+`n`, nome, posizione, libreria `remark`) e di cinque nella seconda (classe,
+nome, riga del font `helvetica 12`, testo, `++++`), che è la forma che
+`topRead` si aspetta.
+
+I nomi seguono **la convenzione di `legopc`** — il numero riempito di
+underscore, `1___`, `2___`, `10__`, come fa `[string range ${progNumb}____ 0 3]`
+in `legopc.tix` — così un elemento aggiunto dopo a mano non ci finisce sopra,
+perché `legopc` controlla le collisioni all'inserimento. Si salta comunque ogni
+nome che coincida con quello di un blocco.
+
+La tavolozza tiene conto anche della posizione delle annotazioni.
+
+I `*SYMBOL*` (243 su LPS) e i `*GLINES*` restano fuori: sono simboli e
+polilinee decorative senza un equivalente diretto nel `.tom`. Il conteggio
+compare nel riepilogo, così si sa cosa manca.
 
 ## Fuori perimetro
 

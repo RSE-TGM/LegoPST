@@ -28,12 +28,17 @@ typedef struct {
 } MEMORIASHARED;
 
 #define MAXL 100  // massima lunghezza della linea letta dai file
+#define MAXPATH 512  // massima lunghezza di un percorso di file
+                     // (era MAXL: 100 caratteri non bastano, i percorsi
+                     //  venivano troncati in silenzio)
 #define MAXBLO 500  // massimo blocchi (era 100: LPS ne ha 134, IPS 111, e senza controllo si andava in segmentation fault)
 #define MAXVAR 100   // massimo variabili per blocco
 #define MAXPORTE 10  // massimo numero di porte
 #define MAXIDPORTA 3  // massimo lunghezza nome della porta
 #define MAXVARPORTA 20  // massimo numero di variabli per ogni porta
 #define MAXFILEI5 10 // massino numero dei file i5 per ogno modulo lego
+#define MAXREMARK 500   // massimo numero di annotazioni *REMARK*
+#define MAXTESTO 64     // massima lunghezza del testo di un'annotazione
 #define US 1
 #define USC 5
 #define UA 2
@@ -90,3 +95,13 @@ typedef struct {
 		int		totpag;
 } HEADF01;
 
+
+/* Annotazione di testo del disegno legocad: il record "1 *REMARK* x y testo"
+   di macroblocks.dat. Nel .tom diventa un elemento @com_0 della libreria
+   remark, che e' il suo equivalente. */
+typedef struct {
+		int  x;
+		int  y;
+		char testo[MAXTESTO];
+		char nome[5];		/* nome dell'elemento nel .tom */
+} REMARK;
