@@ -41,6 +41,49 @@ int  leggi_macroblocks(HEADF01 *);
 
 int	pos_automatiche=0;
 
+/* Blocchi che non si possono convertire: modulo assente dalle librerie
+   oppure file .i5 mancante. Non fanno piu' abortire il programma: sono
+   esclusi dal .tom e riepilogati alla fine. */
+int	escluso[MAXBLO];
+int	num_esclusi=0;
+
+/* Elenco delle librerie grafiche installate, riempito nella FASE 2. Serve
+   anche a cercai5, che deve preferire le istanze provviste di elemento
+   grafico. */
+char	*g_nomelibr[MAXBLO];
+int	g_numlibr=0;
+char	g_librpath[MAXL]="";
+
+/* Libreria che contiene l'elemento grafico <istanza>.tcl, cioe' il file che
+   topRead (fileio.tcl) sorgia per disegnare l'icona. Cercare un qualunque
+   file che cominci per il nome del modulo non basta: in Airgas c'e' un
+   mixn_0n.gif orfano, ma l'elemento vero sta in LibH20, e un .tom che
+   punta ad Airgas non si apre. */
+int trova_libreria(char *istanza, char *out)
+{
+	int i, ret;
+	char cerca[MAXL*2];
+	glob_t g;
+
+	for (i=0; i<g_numlibr; i++) {
+		sprintf(cerca,"%s/%s/%s.tcl",g_librpath,g_nomelibr[i],istanza);
+		g.gl_offs=0;
+		ret=glob(cerca, GLOB_DOOFFS, NULL, &g);
+		globfree(&g);
+		if( ret == 0) { strcpy(out,g_nomelibr[i]); return(1); }
+	}
+	return(0);
+}
+
+/* indice del blocco di nome <nome>, -1 se non esiste */
+int indice_blocco(HEADF01 *f01r, char *nome)
+{
+	int k;
+	for (k=0; k<f01r->totblo; k++)
+		if( strcmp(f01r->nomeblo[k],nome) == 0) return(k);
+	return(-1);
+}
+
 
 // WIN32_FIND_DATA lpFindFileData[1];
 
@@ -79,7 +122,7 @@ int main( int argc, char *argv[ ] )
 	int ret, ferma, lunbuff;
 
 
-	f01r=(HEADF01 *)malloc(sizeof(HEADF01));
+	f01r=(HEADF01 *)calloc(1,sizeof(HEADF01));  /* calloc: porte[] e blo[] devono partire a NULL */
 
 	strcpy(filf01,"f01.dat");
 	strcpy(filf01totom,"f01totom.tom");
@@ -121,6 +164,11 @@ printf( "\n-------------------------------\nFASE 1 - Lettura del file f01.dat\n-
 	fgets(buff,MAXL,fpf01);
     while (strncmp(buff, "****",4) != 0) {
 
+		if( curblo >= MAXBLO) {
+			printf("f01totom - ERR-LIMITE: il modello ha piu' di %d blocchi: i successivi sono ignorati\n",MAXBLO);
+			while( (strncmp(buff,"****",4) != 0) && (fgets(buff,MAXL,fpf01) != NULL) ) ;
+			break;
+		}
 		f01r->totblo=curblo+1;
 		strncpy(f01r->nomemod[curblo],buff,4);
 		f01r->nomemod[curblo][4]='\0';
@@ -128,7 +176,7 @@ printf( "\n-------------------------------\nFASE 1 - Lettura del file f01.dat\n-
 		f01r->nomeblo[curblo][4]='\0';
 		strcpy(f01r->descrblo[curblo],buff+33);
 
-        fgets(buff,MAXL,fpf01);
+        if( fgets(buff,MAXL,fpf01) == NULL) essit("f01totom - f01.dat troncato nell'elenco dei blocchi\n");
 		curblo=curblo+1;
 	}
 	fgets(f01r->nomemodello,9,fpf01);
@@ -138,8 +186,15 @@ printf( "\n-------------------------------\nFASE 1 - Lettura del file f01.dat\n-
 
 
 for (curblo=0;curblo<f01r->totblo;curblo++) {
-    if (( f01r->blo[curblo]=(BLOF01 *)malloc(sizeof(BLOF01))) == NULL)
+    if (( f01r->blo[curblo]=(BLOF01 *)calloc(1,sizeof(BLOF01))) == NULL)
 		essit("f01totom - malloc failed in f01r->blo allocation\n");
+
+	/* posizione non ancora nota: -1 e' la sentinella. Senza questo i blocchi
+	   che macroblocks.dat non riesce a posizionare finivano a y=-800, cioe'
+	   fuori tavolozza e invisibili in lgpc. */
+	f01r->blo[curblo]->posx=-1;
+	f01r->blo[curblo]->posy=-1;
+	f01r->blo[curblo]->pag=1;
 
 
 	fgets(buff,MAXL,fpf01);
@@ -184,6 +239,7 @@ for (curblo=0;curblo<f01r->totblo;curblo++) {
 			f01r->blo[curblo]->tipo[i]=ING;
 		}
 	fgets(buff,MAXL,fpf01);
+	if( i >= MAXVAR-1) { printf("f01totom - ERR-LIMITE: blocco %s con piu' di %d variabili: le successive sono ignorate\n",f01r->nomeblo[curblo],MAXVAR); break; }
 	i++;
 	}
 	f01r->blo[curblo]->numvar=i;
@@ -219,7 +275,7 @@ printf( "\n-------------------------------\nFASE 2 - Ricerca delle istanze esist
 //	retfind= FindFirstFile(  lpFileName,lpFindFileData); // pointer to name of file to search for
 	numlibr=( int)lpFindFileData.gl_pathc;
 	for (i=0; i<numlibr; i++){
-		nomelibr[i]= (char *)malloc(strlen(lpFindFileData.gl_pathv[i]));
+		nomelibr[i]= (char *)malloc(strlen(lpFindFileData.gl_pathv[i])+1)  /* +1: il terminatore */;
 		strcpy(nomelibr[i],basename( lpFindFileData.gl_pathv[i]));
 		printf("-----%s\n",nomelibr[i]);
         }
@@ -233,6 +289,11 @@ printf( "\n-------------------------------\nFASE 2 - Ricerca delle istanze esist
 		}
 */
 
+	/* pubblica l'elenco per trova_libreria() */
+	strcpy(g_librpath,LIBRPATH);
+	g_numlibr=numlibr;
+	for (i=0;i<numlibr;i++) g_nomelibr[i]=nomelibr[i];
+
 // cerco la libreria di appartenenza del modulo
 	non_presenti=0;
 	for (curblo=0;curblo<f01r->totblo;curblo ++){
@@ -244,7 +305,7 @@ printf( "\n-------------------------------\nFASE 2 - Ricerca delle istanze esist
 			strcat(lpFileName,"/");
 			conv_minuscolo(f01r->nomemod[curblo],buff);
 			strcat(lpFileName, buff);
-			strcat(lpFileName,"*.*");
+			strcat(lpFileName,"*.tcl");	/* l'elemento grafico, non un file qualsiasi */
           retfind=glob(lpFileName, GLOB_DOOFFS, NULL, &lpFindFileData);
 
 			if( retfind == 0 ) {// modulo trovato
@@ -257,6 +318,8 @@ printf( "\n-------------------------------\nFASE 2 - Ricerca delle istanze esist
 		}
 		if( modtrovato == 0) {
 			lista_non_presenti[non_presenti]=curblo;
+			escluso[curblo]=1;
+			num_esclusi++;
 			non_presenti++;
 			printf("NON Trovato!---> %s %s\n",lpFileName,f01r->nomemod[curblo]);
 
@@ -268,7 +331,7 @@ printf( "\n-------------------------------\nFASE 2 - Ricerca delle istanze esist
 				ii=lista_non_presenti[i];
 				printf("f01totom - Modulo: %s non presente in libreria - blocco %s\n",f01r->nomemod[ii],f01r->nomeblo[ii]);
 			}
-			essit("Fine del programma\n");
+			printf("f01totom - i %d blocchi qui sopra sono esclusi dal .tom; gli altri vengono convertiti\n\n",non_presenti);
 	}
 
 /* */
@@ -281,43 +344,36 @@ printf( "\n-------------------------------\nFASE 3 - Ricerca nei file i5 e scelt
 		ferma=0;
 // ricerca dei file i5
 		for (curblo=0;curblo<f01r->totblo;curblo ++) {
+			if( escluso[curblo] ) continue;   /* modulo assente: niente .i5 da cercare */
 			strcpy(lpFileName,I5PATH);
 			strcat(lpFileName,"/");
 			conv_minuscolo(f01r->nomemod[curblo], buff);
 
 			cercai5(f01r,curblo,lpFileName);
+			if( filei5scelto[0] == '\0' ) {  /* nessun .i5 per questo modulo */
+				printf("f01totom - Modulo: %s senza file .i5 - blocco %s escluso dal .tom\n",
+				       f01r->nomemod[curblo],f01r->nomeblo[curblo]);
+				escluso[curblo]=1; num_esclusi++;
+				continue;
+			}
 			strcat(lpFileName,filei5scelto);
 			strcpy(f01r->nomei5[curblo],filei5scelto);
 			ret=leggi_i5(lpFileName,f01r, curblo);
 // provvisorio ... ignoro gli errori in lettura degli i5
 //			if(ret==1) ferma=1;
 
-// Ricerca della libreria che contiene l'istanza del modulo scelto (le istanze possono essere messe in libreie diverse un es. e il modulo nodo
-		        for (i=0;i<numlibr;i++) {
-		           strcpy(lpFileName,LIBRPATH);
-			   strcat(lpFileName,"/");
-			   strcat(lpFileName,nomelibr[i]);
-			   strcat(lpFileName,"/");
-			   conv_minuscolo(filei5scelto,buff);
-			   lunbuff=(int)strlen(buff);
-			   buff[lunbuff-3]='\0';
-			   strcat(buff,"*");
-
-			   strcat(lpFileName, buff);
-//			   strcat(lpFileName,"*.*");
-//	printf("Ilfilei5 da cercare � %s \n",lpFileName);
-
-			   retfind=glob(lpFileName, GLOB_DOOFFS, NULL, &lpFindFileData);
-
-			   if( retfind == 0 ) {// modulo trovato
-	printf("Ilfilei5 scelto %s � nella libreria %s\n",f01r->nomei5[curblo],nomelibr[i]);
-				strcpy(f01r->nomelibr[curblo],nomelibr[i]);
-				modtrovato=1;
-				break;
-			   }
-
+// Libreria che contiene l'elemento grafico dell'istanza scelta. Le istanze
+// dello stesso modulo possono stare in librerie diverse (es. nodo).
+			conv_minuscolo(filei5scelto,buff);
+			lunbuff=(int)strlen(buff);
+			buff[lunbuff-3]='\0';	/* toglie ".i5" */
+			if( trova_libreria(buff, f01r->nomelibr[curblo]) == 1) {
+				printf("Il file i5 scelto %s ha l'elemento in libreria %s\n",
+				       f01r->nomei5[curblo],f01r->nomelibr[curblo]);
+			} else {
+				printf("f01totom - ERR5 - nessuna libreria ha l'elemento %s.tcl: blocco %s escluso dal .tom\n",buff,f01r->nomeblo[curblo]);
+				escluso[curblo]=1; num_esclusi++;
 			}
-
 		}
 // salvo i nomi di default degli i5
 		nomi_defi5(SCRIVI, f01r);
@@ -328,6 +384,7 @@ printf( "\n-------------------------------\nFASE 3 - Ricerca nei file i5 e scelt
 printf( "\n-------------------------------\nFASE 4 - Ricerca connessioni tra i blocchi\n-------------------------------\n");
 
 		for (curblo=0;curblo<f01r->totblo;curblo++) {  // per ogni blocco ...
+			if( escluso[curblo] ) continue;   /* porte[] non allocate */
 
 			for (i=0; i< f01r->porte[curblo]->numporte; i++){// per ogni porta
 				strcpy(bloconn0,"____");
@@ -354,7 +411,7 @@ printf( "\n-------------------------------\nFASE 4 - Ricerca connessioni tra i b
 							}
 
 						}
-						if (okconn == -1) essit ("f01totom - ERR2-f01ttom - variabile della porta non trovata");
+						if (okconn == -1) printf("f01totom - ERR2 - variabile della porta non trovata nel blocco %s: porta lasciata libera\n",f01r->nomeblo[curblo]);
 						if (strcmp(bloconn0,"____") == 0)   strcpy(bloconn0,bloconn1);
 
 						if (strcmp(bloconn1,bloconn0) == 0) {
@@ -381,6 +438,7 @@ printf( "\n-------------------------------\nFASE 4 - Ricerca connessioni tra i b
 						nousc=0;
 						okconnusc=0;
 						for (remblo=0;remblo<f01r->totblo;remblo++) {
+							if( escluso[remblo] ) continue;   /* porte[] non allocate */
 							if( remblo == curblo) continue;
 							for (iii=0;iii<f01r->blo[remblo]->numvar;iii++) { // per ogni variabile del blocco remoto
 								if( (strcmp(f01r->blo[remblo]->varconn[iii], f01r->porte[curblo]->porta[i]->nome[ik]) == 0) &&
@@ -409,6 +467,7 @@ printf( "\n-------------------------------\nFASE 4 - Ricerca connessioni tra i b
 				   ((okconn == 1) && ( okconnusc==1)) )	{
 						strcpy(f01r->porte[curblo]->porta[i]->bloconn,bloconn1);
 						for (remblo=0;remblo<f01r->totblo;remblo++) {
+							if( escluso[remblo] ) continue;   /* porte[] non allocate */
 							if (strncmp( f01r->nomeblo[remblo], bloconn1, 4) == 0) {
 								f01r->porte[curblo]->porta[i]->ibloconn=remblo;
 								break;
@@ -422,9 +481,11 @@ printf( "\n-------------------------------\nFASE 4 - Ricerca connessioni tra i b
 
 // cerco i nomi delle porte del blocco connesso con un'altro ...
 		for (curblo=0;curblo<f01r->totblo;curblo++) {  // per ogni blocco ...
+			if( escluso[curblo] ) continue;   /* porte[] non allocate */
 			for (i=0; i< f01r->porte[curblo]->numporte; i++){// per ogni porta
 				remblo=f01r->porte[curblo]->porta[i]->ibloconn; // blocco connesso alla porta i del blocoo curblo
 				if (remblo<0) continue;
+				if( escluso[remblo] ) continue;   /* porte[] non allocate */
 				for (kk=0;kk<f01r->porte[remblo]->numporte; kk++) { // per ogni porta del blocco remoto
 					if( f01r->porte[remblo]->porta[kk]->okport == 1) continue;
 					if( strcmp(f01r->porte[remblo]->porta[kk]->bloconn,f01r->nomeblo[curblo]) == 0) { // trovato
@@ -486,6 +547,28 @@ printf( "\n-------------------------------\nFASE 5 - Scrittura del file tom\n---
 	scrivi_tom(f01r);
 
 // fine
+	/* Rapporto finale: serve a sapere cosa e' stato convertito e cosa no,
+	   senza dover rileggere tutto il log. */
+	{
+		int b, con_pos=0, convertiti=0;
+		for (b=0; b<f01r->totblo; b++) {
+			if( escluso[b] ) continue;
+			convertiti++;
+			if( f01r->blo[b]->posx >= 0) con_pos++;
+		}
+		printf("\n-------------------------------\nRIEPILOGO\n-------------------------------\n");
+		printf("blocchi nel f01.dat        : %d\n", f01r->totblo);
+		printf("convertiti nel .tom        : %d\n", convertiti);
+		printf("esclusi (modulo o .i5)     : %d\n", num_esclusi);
+		printf("con posizione da macroblocks: %d su %d\n", con_pos, convertiti);
+		if( pos_automatiche == 1)
+			printf("ATTENZIONE: macroblocks.dat non trovato, posizioni automatiche\n");
+		if( num_esclusi > 0)
+			printf("I blocchi esclusi vanno aggiunti a mano in lgpc.\n");
+		if( con_pos < convertiti)
+			printf("I blocchi senza posizione sono nella zona di raccolta in basso.\n");
+	}
+
 	printf( "\n\n-->f01totom terminato, Il file tom � %s\n", filf01totom);
 
 //free della memoria allocata
@@ -519,7 +602,7 @@ int leggi_i5(char *lpFileName,HEADF01 *f01r, int curblo)
 //        dimporte=sizeof(PORTA)*MAXPORTE+sizeof(PORTE);
         dimporte=sizeof(PORTE);
 
-	f01r->porte[curblo]=( PORTE *)(malloc( dimporte));
+	f01r->porte[curblo]=( PORTE *)(calloc( 1, dimporte));  /* calloc: porta[] deve partire a NULL */
 
 	fgets(buff,MAXL,fpi5);  // numero porte
 		sscanf(buff,"%d",&numporte);
@@ -529,35 +612,56 @@ int leggi_i5(char *lpFileName,HEADF01 *f01r, int curblo)
 	fgets(buff,MAXL,fpi5);  // numero configurazioni
 		sscanf(buff,"%d",&numconf);
 	fgets(buff,MAXL,fpi5);  // blank
+	if( numporte > MAXPORTE) {
+		printf("f01totom - ERR-LIMITE: %s dichiara %d porte, il massimo e' %d\n",
+		       lpFileName,numporte,MAXPORTE);
+		numporte=MAXPORTE;
+	}
+
     for (i=0;i<numporte;i++) {
-		fgets(buff,MAXL,fpi5);   // id della porta
-		while (buff[0] != 't') fgets(buff,MAXL,fpi5);
+		/* Cerca il prossimo record di porta (t<n>). Il file puo' finire prima:
+		   certi .i5 dichiarano piu' porte di quante ne contengono davvero
+		   (ldch_0.i5 dichiara 8 e ne ha 7). Senza il controllo su fgets qui si
+		   entrava in un ciclo infinito, ed era il motivo per cui il programma
+		   si piantava su GTS e su provldch. */
+		trovato=0;
+		while( fgets(buff,MAXL,fpi5) != NULL )
+			if( buff[0] == 't') { trovato=1; break; }
+		if( trovato == 0) {
+			printf("f01totom - ERR4 - %s dichiara %d porte ma ne contiene %d: si usano quelle trovate\n",lpFileName,numporte,i);
+			break;
+		}
 		sscanf(buff,"%s",f01r->porte[curblo]->idporta[i]);
-		fgets(buff,MAXL,fpi5); // nomi delle variabili della porta
-//printf( "idporta[%d]=%s buff=%s\n", i,f01r->porte[curblo]->idporta[i], buff );
+
+		if( fgets(buff,MAXL,fpi5) == NULL) break;  /* nomi delle variabili della porta */
 
 		ik=0;
-//		f01r->porte[curblo]->porta[i]=( PORTA *)(malloc(sizeof(PORTA)));
-		f01r->porte[curblo]->porta[i]=( PORTA *)(malloc(sizeof(PORTA)+1));
-		token = strtok( buff, seps ); /* Establish string and get the first token: */
+		f01r->porte[curblo]->porta[i]=( PORTA *)(calloc(1,sizeof(PORTA)+1));
+		token = strtok( buff, seps );
 		while( token != NULL )
 		{
 			if( (strcmp(token, "____") ==0) || (strcmp(token, "XXXX")==0)) {
-				token = strtok( NULL, seps );/* Get next token: */
+				token = strtok( NULL, seps );
 			} else {
-//printf( "token %d- %s\n", ik, token);
-				strcpy(	f01r->porte[curblo]->porta[i]->nome[ik],token);
-				ik++;
-				token = strtok( NULL, seps );/* Get next token: */
+				if( ik < MAXVARPORTA) {
+					strncpy( f01r->porte[curblo]->porta[i]->nome[ik],token,4);
+					f01r->porte[curblo]->porta[i]->nome[ik][4]='\0';
+					ik++;
+				}
+				token = strtok( NULL, seps );
 			}
-
 		}
 		f01r->porte[curblo]->porta[i]->num=ik;
-//printf( "numero %d\n", ik, f01r->porte[curblo]->porta[i]->num);
-		fgets(buff,MAXL,fpi5); // tipo delle variabili della porta
+
+		if( fgets(buff,MAXL,fpi5) == NULL) { i++; break; }  /* tipi delle variabili */
 
 
 	}
+	/* le porte valide sono quelle davvero lette, non quelle dichiarate:
+	   il ciclo qui sopra puo' essersi fermato prima per fine file */
+	f01r->porte[curblo]->numporte=i;
+	numporte=i;
+
 ferma=0;
     for (i=0;i<numporte;i++) {
 		for (ik=0;ik<f01r->porte[curblo]->porta[i]->num;ik++) {
@@ -577,7 +681,9 @@ ferma=0;
 //				essit( buff );
 
 			}
-			f01r->porte[curblo]->porta[i]->tipo[ik]=f01r->blo[curblo]->tipo[ii];
+			/* solo se trovata: con trovato==0, ii vale numvar e si leggeva oltre le variabili valide, marcando le porte busy/free a caso */
+			if( trovato == 1) f01r->porte[curblo]->porta[i]->tipo[ik]=f01r->blo[curblo]->tipo[ii];
+			else              f01r->porte[curblo]->porta[i]->tipo[ik]=0;
 		}
 	}
 //if(ferma ==1 ) return(1);
@@ -589,29 +695,42 @@ void scrivi_tom(HEADF01 *f01r)
 {
 	FILE *fptom;
 	char buff[100];
-	int curblo, i;
-	int posx=0,posy=100,step=100,dimx=1200, dimy=800;
+	int curblo, i, ib;
+	int posx=0, posy=100, step=100, dimx=1200, dimy=800;
+	int maxx=0, maxy=0, senza_pos=0, k_senza=0, stage_y, scritti=0, mezze_conn=0;
+
+	/* Estensione reale del disegno. La tavolozza era fissa a 1200x800, ma le
+	   coordinate di macroblocks.dat arrivano oltre (HPS 1640x1565, LPS 2191):
+	   con la misura fissa i blocchi oltre il bordo finivano fuori campo. */
+	for (curblo=0; curblo<f01r->totblo; curblo++) {
+		if( escluso[curblo] ) continue;
+		if( f01r->blo[curblo]->posx < 0 ) { senza_pos++; continue; }
+		if( f01r->blo[curblo]->posx > maxx) maxx=f01r->blo[curblo]->posx;
+		if( f01r->blo[curblo]->posy > maxy) maxy=f01r->blo[curblo]->posy;
+	}
+	if( pos_automatiche == 0 ) {
+		if( maxx+120 > dimx) dimx=maxx+120;
+		dimy = maxy+120;
+		if( dimy < 400) dimy=400;
+	}
+
+	/* Zona di raccolta: i blocchi di cui macroblocks.dat non da' la posizione
+	   vanno messi in fondo, in fila, DENTRO la tavolozza. Prima finivano a
+	   y=-800 e in lgpc non si vedevano nemmeno. */
+	stage_y = dimy + 40;
+	if( senza_pos > 0 ) dimy = stage_y + 55*(1 + senza_pos/20) + 40;
 
 	if((fptom=fopen(filf01totom,"w"))==NULL) {
-		essit( "f01totom - Errore nella creazione dle file tom\n");
+		essit( "f01totom - Errore nella creazione del file tom\n");
 	}
 
 	fputs("# this file created with LEGOPHI rel. 0.2\n", fptom);
-	if( pos_automatiche==1) {
-			sprintf(buff,"%d %d\n",dimx,dimy); // dimensioni tavolozza
-			fputs(buff, fptom);
-		} else {
-			sprintf(buff,"%d %d\n",dimx,dimy + dimy*(f01r->totpag-1)); // dimensioni tavolozza
-			fputs(buff, fptom);
-
-		}
-
-// lettura del file macroblocks se c'�
-	pos_automatiche=0;
-	if (leggi_macroblocks(f01r) == 0) pos_automatiche=1;
+	sprintf(buff,"%d %d\n",dimx,dimy);	// dimensioni tavolozza
+	fputs(buff, fptom);
 
 // scrittura prima parte del file
 	for (curblo=0;curblo<f01r->totblo;curblo++) {  // per ogni blocco ...
+		if( escluso[curblo] ) continue;
 		strcpy(buff,f01r->nomei5[curblo]);
 		buff[6]='\0';
 		fputs(buff, fptom);
@@ -622,23 +741,28 @@ void scrivi_tom(HEADF01 *f01r)
 // calcolo posizione delle icone
 		if( pos_automatiche==1) { // le icone vengono posizionate una in fila all'altra
 			posx=posx+step;
-			if(posx>=dimx)		posx=step, posy=posy+step;
-			if(posy>=dimy-step) posy=dimy-step;
-		} else {	// le icone vengono posizionate in base alla posizione nell'eventuale file macroblocks
+			if(posx>=dimx) { posx=step; posy=posy+step; }
+		} else if( f01r->blo[curblo]->posx < 0 ) {	// posizione ignota: zona di raccolta
+			posx = 40 + (k_senza%20)*55;
+			posy = stage_y + (k_senza/20)*55;
+			k_senza++;
+		} else {	// posizione presa da macroblocks.dat
 			posx=f01r->blo[curblo]->posx;
-			posy=f01r->blo[curblo]->posy + dimy*(f01r->blo[curblo]->pag-1);
+			posy=f01r->blo[curblo]->posy;
 		}
 
 		sprintf(buff,"%d%s %d%s\n",posx, ".0", posy, ".0");
 		fputs(buff, fptom);
-		
+
 		fputs(f01r->nomelibr[curblo], fptom);
-		fputs("\n", fptom);	
+		fputs("\n", fptom);
+		scritti++;
 	}
 	fputs("****\n", fptom);
 
 // scrittura seconda parte del file
 	for (curblo=0;curblo<f01r->totblo;curblo++) {  // per ogni blocco ...
+		if( escluso[curblo] ) continue;
 		strcpy(buff,f01r->nomei5[curblo]);
 		buff[6]='\0';
 		fputs(buff, fptom);
@@ -648,9 +772,20 @@ void scrivi_tom(HEADF01 *f01r)
 		for (i=0;i<f01r->porte[curblo]->numporte; i++ ) { // per ogni porta ...
 			sprintf(buff,"por%s\n",f01r->porte[curblo]->idporta[i]); // nome della porta
 			fputs(buff, fptom);
-			if(strcmp(f01r->porte[curblo]->porta[i]->bloconn,"____") != 0) // porta occupata 
+			ib = indice_blocco(f01r, f01r->porte[curblo]->porta[i]->bloconn);
+			if( (strcmp(f01r->porte[curblo]->porta[i]->bloconn,"____") != 0) &&
+			    (ib >= 0) && (escluso[ib] == 0) &&
+			    (f01r->porte[curblo]->porta[i]->idbloconn[0] != '\0') )	// porta occupata
 				sprintf(buff,"busy por%s %s\n",f01r->porte[curblo]->porta[i]->idbloconn,f01r->porte[curblo]->porta[i]->bloconn);
-			else sprintf(buff,"free\n");
+			else {
+				/* Senza l'id della porta remota la riga uscirebbe come "busy por XXXX":
+				   topRead chiama ffconnect, che non trova nessuna porta con tag "por"
+				   e muore con "can't read ff2current". Meglio una porta libera da
+				   ricollegare a mano che un file che non si apre. */
+				if( (strcmp(f01r->porte[curblo]->porta[i]->bloconn,"____") != 0) &&
+				    (f01r->porte[curblo]->porta[i]->idbloconn[0] == '\0') ) mezze_conn++;
+				sprintf(buff,"free\n");
+			}
 			fputs(buff, fptom);
 		}
 	fputs("++++\n", fptom);
@@ -658,7 +793,14 @@ void scrivi_tom(HEADF01 *f01r)
 
 	fputs("****\n", fptom);
 	fclose(fptom);
+
+	printf("\n%d blocchi scritti su %d, tavolozza %dx%d",scritti,f01r->totblo,dimx,dimy);
+	if( senza_pos > 0 ) printf(", %d senza posizione messi nella zona di raccolta in basso",senza_pos);
+	if( mezze_conn > 0 ) printf("%d connessioni note ma senza porta remota individuata: porte lasciate libere, da ricollegare in lgpc\n",mezze_conn);
+	printf("\n");
 }
+
+
 void conv_minuscolo( char *msg, char *buff)
 {
     char *p;
@@ -683,7 +825,7 @@ void cercai5(HEADF01 *f01r,int curblo, char *path)
 	int retfind;
 	char nomefile[100], buff[MAXL];
 	char nomi[MAXFILEI5][12];
-	int conta, scelta, i;
+	int conta=0, scelta, i;   /* conta=0: glob puo' fallire senza toccarla */
 
           glob_t lpFindFileData;
 
@@ -708,9 +850,11 @@ void cercai5(HEADF01 *f01r,int curblo, char *path)
 		}
 	}
 
-	if( retfind==GLOB_NOMATCH ) {
-		sprintf(buff,"f01totom - file  %s NON Trovato!\n",nomefile);
-		essit(buff);
+	if( retfind != 0 ) {
+		/* nessun .i5 per questo modulo: lo segnala il chiamante, che esclude
+		   il blocco. Prima qui si moriva, perdendo tutta la conversione. */
+		filei5scelto[0]='\0';
+		return;
 	}
 
 /*	while (FindNextFile( retfind,lpFindFileData) != 0)  {
@@ -725,7 +869,22 @@ void cercai5(HEADF01 *f01r,int curblo, char *path)
 	scelta=0;
 //	alldef=0;
 	strcpy(filei5scelto,f01r->nomei5[curblo]);
-	if(nodefile==1) strcpy(filei5scelto,nomi[0]);
+	/* Fra le istanze disponibili si preferisce una che abbia anche l'elemento
+	   grafico: ldch ha ldch_0..ldch_3 come .i5, ma solo ldch_2 e ldch_3 hanno
+	   il .tcl, e prendere la prima in ordine alfabetico produceva un .tom che
+	   non si apre. */
+	if(nodefile==1) {
+		char senza_i5[MAXL], dovesta[MAXL];
+		int j, migliore=-1;
+
+		for (j=0; j<conta; j++) {
+			strcpy(senza_i5,nomi[j]);
+			senza_i5[strlen(senza_i5)-3]='\0';
+			if( trova_libreria(senza_i5,dovesta) == 1) { migliore=j; break; }
+		}
+		if( migliore < 0) migliore=0;	/* nessuna ha l'elemento: decide la FASE 3 */
+		strcpy(filei5scelto,nomi[migliore]);
+	}
 	if(alldef==1 ) return;
     if (conta != 1) {
 		printf("Il modulo %s ( blocco %s) ha %d possibili configurazioni\n",f01r->nomei5[curblo],f01r->nomeblo[curblo], conta);
@@ -791,7 +950,7 @@ int leggi_macroblocks( HEADF01 *f01r ){
 		pagcur=0;
 	while( !feof( fpmacro ) ) {
 		fgets(buff,MAXL,fpmacro);
-		sscanf(buff,"%s %s %s %s %s %s",indic,nometot,dum3,dum4, postx, posty);
+		sscanf(buff,"%1s %8s %4s %2s %4s %4s",indic,nometot,dum3,dum4, postx, posty);
 		lun=strlen(nometot);
 		if(lun < 8) {
 				strcpy(buff9,"        ");
@@ -824,7 +983,7 @@ printf("%i %i %s --> x=%i y=%i postx=%s posty=%s\n",pagcur,curblo, f01r->nomeblo
 if( trovato == 0 ) printf("Non trovato %i %s %s\n",curblo, buff9, 	f01r->nomeblo[curblo]);
 
 			fgets(buff,MAXL,fpmacro);
-			sscanf(buff,"%s %s %s %s %s %s",indic,nometot,dum3,dum4, postx, posty);
+			sscanf(buff,"%1s %8s %4s %2s %4s %4s",indic,nometot,dum3,dum4, postx, posty);
 		}
 		while ( (strncmp(buff,"****",4) != 0) && !feof(fpmacro) ) fgets(buff,MAXL,fpmacro);
         fgets(buff,MAXL,fpmacro);

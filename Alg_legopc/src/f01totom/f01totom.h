@@ -28,7 +28,7 @@ typedef struct {
 } MEMORIASHARED;
 
 #define MAXL 100  // massima lunghezza della linea letta dai file
-#define MAXBLO 100  // massimo blocchi
+#define MAXBLO 500  // massimo blocchi (era 100: LPS ne ha 134, IPS 111, e senza controllo si andava in segmentation fault)
 #define MAXVAR 100   // massimo variabili per blocco
 #define MAXPORTE 10  // massimo numero di porte
 #define MAXIDPORTA 3  // massimo lunghezza nome della porta
