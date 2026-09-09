@@ -371,6 +371,8 @@ proc refresh_list {} {
     set nota [aggiorna_stato_startup]
     if {$nota ne ""} { lappend msg $nota }
     aggiorna_etichette_loc
+    # un simulatore creato dopo l'avvio compare nel sottomenu al primo Refresh
+    catch {aggiorna_menu_tools}
     .status configure -text [join $msg "   |   "]
     if {$doppia} { aggiorna_intestazioni }
 }
@@ -804,12 +806,12 @@ proc aggiorna_stato_startup {} {
 #  passa il comando cambia col terminale (gnome-terminal vuole "--", gli altri
 #  "-e"), e la finestra la si tiene aperta con una pausa finale invece di
 #  -hold, che e' solo di xterm: l'output dei controlli va letto.
-proc comando_in_terminale {comando} {
+proc comando_in_terminale {comando {shell sh}} {
     set xt [expr {[info exists ::env(LG_XTERM)] && $::env(LG_XTERM) ne "" \
                   ? $::env(LG_XTERM) : "xterm"}]
     set opz [expr {[string match "gnome-terminal*" [file tail $xt]] ? "--" : "-e"}]
     set sh "$comando; echo; echo '--- finito: premi Invio per chiudere ---'; read _"
-    return [list $xt $opz sh -c $sh]
+    return [list $xt $opz $shell -c $sh]
 }
 
 #  Lancia net_startup nella directory corrente, dentro un terminale.
@@ -856,6 +858,186 @@ proc lancia_net_startup {} {
 }
 
 
+# --- Tools: configurazione del simulatore (kUpSim) -----------------------
+#
+# kUpSim riallinea tutta la configurazione del simulatore CORRENTE, quello
+# puntato da $KSIM: kConnex, kNetCompi, kCompStaz, kStazPages, kWinContext,
+# kCompileSim, kCollect. L'ordine non e' arbitrario (i faceplate si risolvono
+# contro gli indici di variabili.rtf, quindi vanno dopo le task).
+#
+# Nota: "lgupsim" e' un alias di kUpSim in Alg_env.sh, e gli alias non esistono
+# nelle shell non interattive: qui si chiama kUpSim.
+
+#  I simulatori disponibili: le sottodirectory di $KSKED, come la funzione
+#  ksims del profilo.
+proc lista_simulatori {} {
+    global env
+    if {![info exists env(KSKED)] || $env(KSKED) eq ""} { return {} }
+    set out {}
+    foreach d [lsort [glob -nocomplain -type d [file join $env(KSKED) *]]] {
+        lappend out [file tail $d]
+    }
+    return $out
+}
+
+#  Nome del simulatore corrente, o "" se non ce n'e' uno valido.
+proc simulatore_corrente {} {
+    global env
+    if {![info exists env(KSIM)] || ![file isdirectory $env(KSIM)]} { return "" }
+    if {[info exists env(KSIMNAME)] && $env(KSIMNAME) ne ""} { return $env(KSIMNAME) }
+    return [file tail $env(KSIM)]
+}
+
+#  Cambia il simulatore corrente.
+#
+#  Una GUI non puo' cambiare l'ambiente della shell che l'ha lanciata, ma il
+#  profilo LegoPST ha gia' il posto giusto dove registrare la scelta:
+#  ksetsim_default legge ~/.legosim a ogni avvio di shell (poi cassano0, poi il
+#  primo di ksims). Scrivendo il nome la', la scelta vale per lghmi, per i
+#  comandi che lancia e per le shell future.
+#
+#  KSIM da sola non basterebbe: ksetsim ne deriva una ventina di variabili
+#  (KWIN, KPAGES, KSTATUS, KCASSAFORTE, KGRAF...) e sorgia $KSIM/ksim.conf.
+#  Quella logica NON si riscrive qui: i comandi si lanciano in una shell che
+#  sorgia il profilo e chiama ksetsim, cosi' a derivare e' il codice che esiste
+#  gia'. Le due variabili aggiornate qui sotto servono solo a quello che si
+#  mostra nei menu e nei dialoghi.
+proc scegli_simulatore {nome} {
+    global env
+    set dir [file join $env(KSKED) $nome]
+    if {![file isdirectory $dir]} {
+        tk_messageBox -icon error -title "Simulatore" -parent . -message \
+            "Directory del simulatore non trovata:\n$dir"
+        return
+    }
+    set scritto 1
+    if {[catch {
+        set fd [open [file join $env(HOME) .legosim] w]
+        puts $fd $nome
+        close $fd
+    }]} { set scritto 0 }
+
+    set env(KSIM)     $dir
+    set env(KSIMNAME) $nome
+    set ::KSIMSCELTO  $nome
+    aggiorna_menu_tools
+    if {$scritto} {
+        .status configure -text \
+            "Simulatore corrente: $nome   |   scritto in ~/.legosim: vale anche per le shell future"
+    } else {
+        .status configure -text \
+            "Simulatore corrente: $nome   |   ~/.legosim non scrivibile: vale solo per questa sessione"
+    }
+}
+
+#  Ricostruisce il menu Tools per intero, come per il menu File: le etichette
+#  portano il nome del simulatore corrente, che cambia.
+proc aggiorna_menu_tools {} {
+    global env
+    if {![winfo exists .mb.tools]} return
+
+    set nome  [simulatore_corrente]
+    set stato [expr {$nome ne "" ? "normal" : "disabled"}]
+    set quale [expr {$nome ne "" ? $nome : "nessun simulatore"}]
+
+    .mb.tools delete 0 end
+    .mb.tools add command -state $stato -command [list lancia_kupsim {}] \
+        -label "kUpSim - riallinea la configurazione di $quale"
+    .mb.tools add command -state $stato -command [list lancia_kupsim -nommi] \
+        -label "kUpSim -nommi - senza le pagine MMI dei faceplate"
+    .mb.tools add command -state $stato -command [list lancia_kupsim -n] \
+        -label "kUpSim -n - anteprima: mostra i passi senza eseguirli"
+    .mb.tools add separator
+
+    if {![winfo exists .mb.tools.sim]} { menu .mb.tools.sim -tearoff 0 }
+    .mb.tools.sim delete 0 end
+    set sims [lista_simulatori]
+    if {[llength $sims] == 0} {
+        .mb.tools.sim add command -state disabled \
+            -label "(nessun simulatore in \$KSKED)"
+    } else {
+        foreach sim $sims {
+            .mb.tools.sim add radiobutton -label $sim -value $sim \
+                -variable ::KSIMSCELTO -command [list scegli_simulatore $sim]
+        }
+    }
+    .mb.tools add cascade -label "Simulatore corrente" -menu .mb.tools.sim
+}
+
+#  Lancia kUpSim sul simulatore corrente, in un terminale.
+#
+#  La shell del terminale sorgia il profilo e chiama ksetsim: e' la sola strada
+#  per avere KSIM E tutte le sue derivate coerenti, ed e' anche il motivo per
+#  cui serve bash (il profilo e' pensato per quella) e non la sh usata per
+#  net_startup.
+#
+#  Chiede conferma dicendo cosa succede e su quale simulatore, tranne per
+#  l'anteprima -n, che non esegue niente. Se una simulazione e' in corso lo
+#  segnala: kUpSim riscrive variabili.rtf, r02.dat e le pagine, che quella
+#  simulazione sta usando.
+proc lancia_kupsim {opzioni} {
+    global env
+    set nome [simulatore_corrente]
+    if {$nome eq ""} {
+        tk_messageBox -icon error -title "kUpSim" -parent . -message \
+            "Nessun simulatore corrente: KSIM non e' definita o non e' una directory.\nSceglilo da Tools -> Simulatore corrente, o con 'ksetsim <nome>'."
+        return
+    }
+    set anteprima [expr {[lsearch -exact $opzioni "-n"] >= 0}]
+
+    if {!$anteprima} {
+        set msg "Aggiornare la configurazione del simulatore\n\n"
+        append msg "    $nome\n    $env(KSIM)\n\n"
+        append msg "kUpSim rifa' in sequenza:\n"
+        append msg "    kConnex       topologia fra le task      -> S01\n"
+        append msg "    kNetCompi     compilazione delle task    -> variabili.rtf\n"
+        append msg "    kCompStaz     faceplate per xstaz        -> r02.dat\n"
+        if {[lsearch -exact $opzioni "-nommi"] < 0} {
+            append msg "    kStazPages    faceplate come pagine MMI\n"
+            append msg "    kWinContext   Context.ctx di \$KWIN\n"
+            append msg "    kCompileSim   compila le pagine          -> .rtf\n"
+        } else {
+            append msg "    (i tre passi delle pagine MMI vengono saltati)\n"
+        }
+        append msg "    kCollect      raccolta in globpages + kMmiConfig\n"
+        set vivi [sim_attiva]
+        if {[llength $vivi] > 0} {
+            append msg "\nATTENZIONE: c'e' una simulazione in esecuzione ([join $vivi ", "]).\n"
+            append msg "Sta usando variabili.rtf, r02.dat e le pagine, e le troverebbe\n"
+            append msg "cambiate sotto: conviene fermarla prima."
+        }
+        append msg "\n\nProcedere?"
+        if {[tk_messageBox -icon warning -type yesno -default no -parent . \
+                 -title "kUpSim" -message $msg] ne "yes"} {
+            .status configure -text "kUpSim annullato."
+            return
+        }
+    }
+
+    set radice [expr {[info exists env(LEGOROOT)] ? $env(LEGOROOT) : ""}]
+    if {$radice eq "" || ![file exists [file join $radice .profile_legoroot]]} {
+        tk_messageBox -icon error -title "kUpSim" -parent . -message \
+            "LEGOROOT non definita o profilo non trovato: non posso preparare l'ambiente di kUpSim."
+        return
+    }
+    set prof [file join $radice .profile_legoroot]
+    set kup [string trim "kUpSim $opzioni"]
+    set riga ". [list $prof] [list $radice] >/dev/null 2>&1; ksetsim [list $nome] >/dev/null; $kup"
+    set cmd [comando_in_terminale $riga bash]
+    if {[catch {exec setsid {*}$cmd &} err]} {
+        if {[catch {exec {*}$cmd &} err2]} {
+            tk_messageBox -icon error -title "kUpSim" -parent . -message \
+                "Impossibile lanciare kUpSim:\n$err2"
+            return
+        }
+    }
+    if {$anteprima} {
+        .status configure -text "kUpSim -n: anteprima dei passi su $nome, nel terminale."
+    } else {
+        .status configure -text "kUpSim avviato su $nome - i passi e gli errori sono nel terminale."
+    }
+}
+
 # --- Interfaccia ---------------------------------------------------------
 if {$doppia} {
     wm title . "LegoPST - HMI e faceplate"
@@ -884,8 +1066,17 @@ menu .mb.file -tearoff 0
 # ogni volta che i path recenti cambiano. Con -insim nascono tutte disabilitate,
 # recenti compresi: cambiare directory scollegherebbe il selettore dalla
 # simulazione che l'ha lanciato.
+menu .mb.tools -tearoff 0
+.mb add cascade -label "Tools" -menu .mb.tools
+
+# Il simulatore corrente e' quello che il profilo ha scelto all'avvio
+# (ksetsim_default: ~/.legosim, poi cassano0, poi il primo di ksims). La
+# variabile tiene il radiobutton del sottomenu allineato.
+set ::KSIMSCELTO [simulatore_corrente]
+
 carica_recenti
 aggiorna_menu_file
+aggiorna_menu_tools
 
 # La directory di lancio entra fra i recenti solo se e' una directory di
 # simulazione (c'e' un S01 o variabili.rtf): lanciando lghmi da casa, in

@@ -51,8 +51,10 @@ Nella finestra:
   con le due liste di pari larghezza: le due finestre si usano insieme, una sopra
   l'altra, e allineate stanno meglio. Il divisorio resta trascinabile e la
   finestra ridimensionabile (minimo 560x300).
-- **File → Open loc path…** → cambia la **directory di lavoro** del selettore:
-  vedi sotto.
+- **File → Open loc path…** → cambia la **directory di lavoro** del selettore,
+  e sotto la voce ci sono le ultime directory usate: vedi sotto.
+- **Tools** → aggiorna la configurazione del **simulatore corrente** con
+  `kUpSim`, e permette di cambiare simulatore: vedi sotto.
 - **Refresh** → rilegge l'elenco delle task.
 - **net_startup** → lancia la **simulazione** nella directory corrente. È
   abilitato solo dove si può: vedi sotto.
@@ -299,6 +301,56 @@ Il terminale parte in una sessione propria (`setsid`), quindi sopravvive al
 
 Con `-insim` il pulsante è sempre spento, qualunque cosa ci sia nella
 directory: vedi sopra.
+
+## Menù `Tools` — aggiornare la configurazione del simulatore
+
+Tre voci, che lanciano **`kUpSim`** sul **simulatore corrente** (`$KSIM`) in un
+terminale:
+
+| voce | cosa fa |
+|---|---|
+| `kUpSim - riallinea la configurazione di <nome>` | la catena completa |
+| `kUpSim -nommi - senza le pagine MMI dei faceplate` | salta `kStazPages`, `kWinContext`, `kCompileSim` |
+| `kUpSim -n - anteprima: mostra i passi senza eseguirli` | prova a vuoto |
+
+Il nome del simulatore sta **nell'etichetta della prima voce**, così si sa su
+cosa si sta per agire senza aprire nulla. Se `$KSIM` non è definita o non è una
+directory, le tre voci sono disabilitate.
+
+> `lgupsim` è un **alias** di `kUpSim` in `Alg_env.sh` (e `lgupsimx` di
+> `kUpSim -nommi`). Gli alias non esistono nelle shell non interattive: qui si
+> chiama `kUpSim`.
+
+**La conferma dice cosa succede e su quale simulatore**: nome, path e i sette
+passi in sequenza (`kConnex` → `kNetCompi` → `kCompStaz` → `kStazPages` →
+`kWinContext` → `kCompileSim` → `kCollect`). Con `-nommi` l'elenco mostra che i
+tre passi MMI vengono saltati. Se `dispatcher`, `net_sked` o `banco` sono in
+esecuzione, la conferma avverte che la simulazione **sta usando**
+`variabili.rtf`, `r02.dat` e le pagine, e che le troverebbe cambiate sotto.
+L'anteprima `-n` non chiede conferma: non esegue niente.
+
+### `Tools → Simulatore corrente` e la variabile `KSIM`
+
+Il sottomenù elenca i simulatori di `$KSKED` (le stesse directory della
+funzione `ksims`) con quello corrente marcato. Scegliendone uno:
+
+1. lghmi scrive il nome in **`~/.legosim`**, che è il file già letto da
+   `ksetsim_default` all'avvio di ogni shell (poi `cassano0`, poi il primo di
+   `ksims`). La scelta vale quindi anche per **le shell future** e per gli altri
+   comandi della toolchain;
+2. i comandi lanciati da `Tools` girano in una shell che **sorgia il profilo e
+   chiama `ksetsim <nome>`**.
+
+Il punto 2 non è pignoleria: `ksetsim` non imposta solo `KSIM`, ne **deriva una
+ventina di variabili** (`KWIN`, `KPAGES`, `KSTATUS`, `KCASSAFORTE`, `KGRAF`…) e
+sorgia `$KSIM/ksim.conf`. Cambiare solo `KSIM` lascerebbe le derivate puntate al
+simulatore precedente, e `kUpSim` lavorerebbe su un miscuglio senza dirlo. Quella
+logica non è riscritta in Tcl: a derivare è il codice del profilo, che esiste
+già.
+
+> **Quello che una GUI non può fare**: cambiare l'ambiente della *shell che l'ha
+> lanciata*. La `$KSIM` del tuo terminale resta quella di prima; per allinearla
+> basta un `ksetsim <nome>`, oppure una shell nuova, che rilegge `~/.legosim`.
 
 ## Il pulsante `mmi`
 
