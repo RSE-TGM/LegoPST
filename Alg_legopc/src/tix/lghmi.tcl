@@ -41,6 +41,16 @@
 
 package require Tk
 
+# openhelp.tcl porta open_hlp (il manuale dei moduli, come nel ? di legopc) e
+# browser_disponibile, che sceglie il browser partendo da $LG_BROWSER. Se non
+# c'e' si perde solo il menu "?": il selettore funziona comunque.
+catch {source [file join $env(LG_TIX) openhelp.tcl]}
+
+# md2html.tcl converte i .md in HTML in Tcl puro, senza dipendere da pacchetti
+# esterni: e' cosi' che la documentazione si vede formattata su OGNI
+# installazione di LegoPST, non solo dove qualcuno ha installato pandoc.
+catch {source [file join $env(LG_TIX) md2html.tcl]}
+
 set TASKROOT [expr {[info exists env(LG_TASKROOT)] && $env(LG_TASKROOT) ne "" \
                     ? $env(LG_TASKROOT) : [file join $env(HOME) legocad]}]
 
@@ -1038,6 +1048,247 @@ proc lancia_kupsim {opzioni} {
     }
 }
 
+# --- Menu "?" : documentazione e versione --------------------------------
+#
+# La documentazione di LegoPST e' molta - una trentina di .md, due HTML e il
+# manuale storico dei moduli in 218 pagine .htm - e il menu non deve diventarne
+# il catalogo. Qui ci sono l'INDICE RAGIONATO, che e' l'hub di tutto il resto,
+# il riferimento dei comandi kbin, il manuale dei moduli, e i tre documenti che
+# rispondono alle domande di chi sta usando PROPRIO questa finestra: lghmi, la
+# configurazione del simulatore che il menu Tools riallinea, e i faceplate che
+# la lista di destra apre.
+#
+# I .md si aprono nel browser, dove si vedono come testo: e' quello che succede
+# comunque ai 36 rimandi ai .md dentro l'indice ragionato, quindi il
+# meccanismo resta uno solo.
+
+#  {etichetta  path relativo a $LEGOROOT ?rilievo?}, con "--" per un separatore
+#  e "MODULI" per il manuale storico dei moduli, che non e' un file del
+#  repository ma una collezione sotto $LG_HTML e si apre con open_hlp. Il terzo
+#  campo, se c'e', mette la voce in grassetto. Cosi' l'ordine e il risalto delle
+#  voci stanno tutti qui.
+#
+#  Il README e' il primo, e in grassetto: e' il documento che dice CHE COS'E'
+#  LegoPST - quello che si legge su GitHub - e viene prima di sapere dove sta
+#  tutto il resto.
+proc documenti_aiuto {} {
+    return {
+        {"LegoPST - panoramica del progetto (README)"  README.md  rilievo}
+        --
+        {"Indice ragionato della documentazione"   INDICE_DOCUMENTAZIONE.html}
+        {"Comandi kbin (i 192 kprocedure)"         kbin/kbin-riferimento-comandi-LegoPST.html}
+        MODULI
+        --
+        {"Questa finestra: lghmi"                  Alg_legopc/LGHMI.md}
+        {"Configurare un simulatore: al_sim.conf"  docs/AL_SIM_CONF.md}
+        {"Faceplate di comando (xstaz)"            Alg_rt/grafica/xstaz/HOWTO_faceplate.md}
+    }
+}
+
+#  Converte un .md in HTML dentro una directory temporanea e ne ritorna il
+#  path, oppure "" se non c'e' un convertitore.
+#
+#  Serve perche' i browser NON sanno rendere il Markdown: il sistema classifica
+#  i .md come text/plain, quindi Firefox mostra il sorgente. Con un
+#  convertitore, tabelle, blocchi di codice e citazioni si vedono per quello che
+#  sono.
+#
+#  Il convertitore e' quello di LegoPST (md2html.tcl, Tcl puro): niente da
+#  installare, e la resa e' la stessa su ogni installazione. Se quel file
+#  mancasse si prova un convertitore esterno, e solo se non c'e' nemmeno quello
+#  si apre il .md grezzo.
+#
+#  Il <base href> punta alla directory del documento ORIGINALE: senza quello i
+#  rimandi relativi agli altri documenti - che i nostri .md usano molto - si
+#  romperebbero, risolvendosi dentro la directory temporanea.
+proc md_in_html {doc} {
+    global env
+
+    set tmp [expr {[info exists env(TMPDIR)] && $env(TMPDIR) ne "" ? $env(TMPDIR) : "/tmp"}]
+    if {![file isdirectory $tmp] && [catch {file mkdir $tmp}]} { set tmp "/tmp" }
+    set out [file join $tmp "lghmi_doc_[file rootname [file tail $doc]].html"]
+
+    #  1. Il convertitore di LegoPST (md2html.tcl): in Tcl puro, quindi
+    #     disponibile su ogni installazione senza installare niente. E' il
+    #     primario, non il ripiego, per due ragioni: la resa e' identica
+    #     dappertutto, e sui nostri documenti e' piu' fedele di markdown_py, che
+    #     sbaglia i recinti di codice rientrati dentro una voce di elenco (li
+    #     trasforma in un <code> malformato).
+    if {[llength [info procs ::md2html::documento]] > 0} {
+        if {![catch {md2html::documento $doc} pagina] && $pagina ne ""} {
+            if {![catch {open $out w} fd]} {
+                puts $fd $pagina
+                close $fd
+                return $out
+            }
+        }
+    }
+
+    #  2. Ripiego, se md2html.tcl non c'e' (deploy parziale, una bin vecchia):
+    #     un convertitore esterno, se c'e'.
+    set conv ""
+    foreach c {markdown_py pandoc cmark-gfm cmark} {
+        if {[auto_execok $c] ne ""} { set conv $c; break }
+    }
+    if {$conv eq ""} { return "" }
+    set corpo ""
+    switch -- $conv {
+        markdown_py { set rc [catch {exec markdown_py -x tables -x fenced_code -x toc $doc} corpo] }
+        pandoc      { set rc [catch {exec pandoc -f gfm -t html $doc} corpo] }
+        default     { set rc [catch {exec $conv $doc} corpo] }
+    }
+    if {$rc || $corpo eq ""} { return "" }
+    if {[catch {open $out w} fd]} { return "" }
+    puts $fd "<!DOCTYPE html>\n<html><head><meta charset=\"utf-8\">"
+    puts $fd "<title>[file tail $doc]</title>"
+    puts $fd "<base href=\"file://[file dirname $doc]/\">"
+    if {[llength [info procs ::md2html::stile]] > 0} {
+        puts $fd "<style>[md2html::stile]</style>"
+    }
+    puts $fd "</head><body>"
+    puts $fd $corpo
+    puts $fd "</body></html>"
+    close $fd
+    return $out
+}
+
+#  Apre un documento del repository nel browser. Il browser lo sceglie
+#  browser_disponibile di openhelp.tcl, la stessa di legopc, che scorre una
+#  lista di candidati partendo da $LG_BROWSER.
+proc apri_documento {relativo} {
+    global env
+    if {![info exists env(LEGOROOT)] || $env(LEGOROOT) eq ""} {
+        tk_messageBox -icon error -title "Documentazione" -parent . -message \
+            "LEGOROOT non definita: non trovo la documentazione."
+        return
+    }
+    set doc [file join $env(LEGOROOT) $relativo]
+    if {![file exists $doc]} {
+        tk_messageBox -icon error -title "Documentazione" -parent . -message \
+            "Documento non trovato:\n$doc"
+        return
+    }
+    set preferito [expr {[info exists env(LG_BROWSER)] ? $env(LG_BROWSER) : ""}]
+    set browser ""
+    catch {set browser [browser_disponibile $preferito]}
+    if {$browser eq ""} {
+        tk_messageBox -icon error -title "Documentazione" -parent . -message \
+            "Nessun browser disponibile.\nControlla LG_BROWSER (adesso: '$preferito')."
+        return
+    }
+    # I .md passano per il convertitore, se c'e' uno.
+    set nota ""
+    if {[string tolower [file extension $doc]] eq ".md"} {
+        set html [md_in_html $doc]
+        if {$html ne ""} {
+            set doc $html
+        } else {
+            set nota "  (md2html.tcl non trovato: testo non formattato)"
+        }
+    }
+    if {[catch {exec $browser $doc &} err]} {
+        tk_messageBox -icon error -title "Documentazione" -parent . -message \
+            "Non riesco ad avviare il browser:\n$browser $doc\n\n$err"
+        return
+    }
+    .status configure -text "Aperto nel browser: $relativo$nota"
+}
+
+# --- Menu "?" : versione dell'ambiente -----------------------------------
+
+#  Versione di LegoPST, dalla stessa fonte che usa legopc: $LEGOROOT/version.h,
+#  generato dal Makefile (bersaglio "version.h") a partire da git.
+#
+#  A differenza di legopc, qui il file NON viene generato se manca: lghmi puo'
+#  girare dove il repository non e' scrivibile - per esempio dentro un bundle
+#  FMU - e un selettore non deve mettersi a invocare make. Se manca si dice come
+#  ottenerlo.
+proc versione_legopst {} {
+    global env
+    set fuori [dict create versione "" build "" data "" nota ""]
+    if {![info exists env(LEGOROOT)] || $env(LEGOROOT) eq ""} {
+        dict set fuori nota "LEGOROOT non definita: profilo LegoPST non sorgiato."
+        return $fuori
+    }
+    set vf [file join $env(LEGOROOT) version.h]
+    if {![file exists $vf]} {
+        dict set fuori nota "version.h assente. Si genera con:\n    make -C $env(LEGOROOT) -f Makefile.mk version.h"
+        return $fuori
+    }
+    if {[catch {open $vf r} fd]} {
+        dict set fuori nota "version.h non leggibile: $vf"
+        return $fuori
+    }
+    while {[gets $fd riga] >= 0} {
+        if {[regexp {^#define\s+GIT_VERSION_STRING\s+"([^"]+)"} $riga -> v]} {
+            dict set fuori versione $v
+        } elseif {[regexp {^#define\s+BUILD_NUMBER\s+(\d+)} $riga -> v]} {
+            dict set fuori build $v
+        } elseif {[regexp {^#define\s+BUILD_DATE_STRING\s+"([^"]+)"} $riga -> v]} {
+            dict set fuori data $v
+        }
+    }
+    close $fd
+    return $fuori
+}
+
+proc about_legopst {} {
+    global env
+
+    if {[winfo exists .about]} { raise .about; focus .about; return }
+
+    set v [versione_legopst]
+    set testo "LegoPST\n"
+    append testo "LegoPowerSystemTechnology\n\n"
+    if {[dict get $v versione] ne ""} {
+        append testo "Versione:\t[dict get $v versione]\n"
+        append testo "Build:\t\t[dict get $v build]\n"
+        append testo "Data:\t\t[dict get $v data]\n"
+    } else {
+        append testo "Versione:\tnon disponibile\n"
+    }
+    # Dove si sta lavorando: in questo ambiente e' la domanda che viene subito
+    # dopo "che versione e'".
+    append testo "\nLEGOROOT:\t[expr {[info exists env(LEGOROOT)] ? $env(LEGOROOT) : "-"}]\n"
+    append testo "Simulatore:\t[expr {[simulatore_corrente] ne "" ? [simulatore_corrente] : "-"}]\n"
+    append testo "Radice utente:\t[expr {[info exists env(LG_ENTRY)] ? $env(LG_ENTRY) : "-"}]\n"
+    append testo "Directory:\t[pwd]"
+    if {[dict get $v nota] ne ""} { append testo "\n\n[dict get $v nota]" }
+
+    toplevel .about
+    wm title .about "About LegoPST"
+    wm resizable .about 0 0
+
+    frame .about.f
+    # Lo stesso logo di legopc, se c'e'.
+    set logo [file join $env(LG_TIX) img lego.gif]
+    if {[file exists $logo] && ![catch {image create photo imgabout -file $logo}]} {
+        label .about.f.logo -image imgabout -bd 1 -relief sunken
+        pack  .about.f.logo -side left -padx 3m -pady 2m
+    }
+    label .about.f.txt -justify left -padx 3m -pady 3m -text $testo
+    pack  .about.f.txt -side left
+    pack  .about.f -side top
+
+    frame .about.b
+    # Le note di rilascio stanno in $LG_INSTALL/relnotes.txt, come per legopc:
+    # il pulsante compare solo se il file c'e' davvero.
+    set rn ""
+    if {[info exists env(LG_INSTALL)]} { set rn [file join $env(LG_INSTALL) relnotes.txt] }
+    if {$rn ne "" && [file exists $rn]} {
+        set ed [expr {[info exists env(LG_TEXTEDITOR)] && $env(LG_TEXTEDITOR) ne "" \
+                      ? $env(LG_TEXTEDITOR) : "xdg-open"}]
+        button .about.b.rn -text "Release Notes" -width 14 \
+               -command [list catch [list exec $ed $rn &]]
+        pack   .about.b.rn -side left -padx 3 -pady 6
+    }
+    button .about.b.ok -text "OK" -width 10 -command {destroy .about}
+    pack   .about.b.ok -side left -padx 3 -pady 6
+    pack   .about.b -side bottom
+    bind .about <Escape> {destroy .about}
+    focus .about.b.ok
+}
+
 # --- Interfaccia ---------------------------------------------------------
 if {$doppia} {
     wm title . "LegoPST - HMI e faceplate"
@@ -1068,6 +1319,48 @@ menu .mb.file -tearoff 0
 # simulazione che l'ha lanciato.
 menu .mb.tools -tearoff 0
 .mb add cascade -label "Tools" -menu .mb.tools
+
+# Menu "?" con lo stesso nome che usa legopc, per coerenza fra le due finestre.
+# Font per le voci in rilievo: quello dei menu, in grassetto. Derivato invece
+# che scritto a mano, cosi' segue il tema e la dimensione del sistema.
+catch {
+    font create fontMenuRilievo {*}[font actual TkMenuFont]
+    font configure fontMenuRilievo -weight bold
+}
+
+menu .mb.aiuto -tearoff 0
+.mb add cascade -label "?" -menu .mb.aiuto
+.mb.aiuto add command -label "About LegoPST" -command about_legopst
+.mb.aiuto add separator
+
+# Le voci che puntano a un file assente nascono disabilitate invece di sparire:
+# si vede che il documento e' previsto e che manca.
+foreach _voce [documenti_aiuto] {
+    if {$_voce eq "--"} { .mb.aiuto add separator; continue }
+    if {$_voce eq "MODULI"} {
+        # il manuale storico dei moduli: lo apre open_hlp di openhelp.tcl, la
+        # stessa proc della voce Help di legopc
+        if {[info exists env(LG_HTML)] \
+            && [file exists [file join $env(LG_HTML) index.htm]] \
+            && [llength [info procs open_hlp]] > 0} {
+            .mb.aiuto add command -label "Help dei moduli (manuale storico)" \
+                                  -command {open_hlp index}
+        }
+        continue
+    }
+    lassign $_voce _etichetta _rel _rilievo
+    set _ok [expr {[info exists env(LEGOROOT)] \
+                   && [file exists [file join $env(LEGOROOT) $_rel]]}]
+    if {$_rilievo ne ""} {
+        .mb.aiuto add command -label $_etichetta -command [list apri_documento $_rel] \
+                              -state [expr {$_ok ? "normal" : "disabled"}] \
+                              -font fontMenuRilievo
+    } else {
+        .mb.aiuto add command -label $_etichetta -command [list apri_documento $_rel] \
+                              -state [expr {$_ok ? "normal" : "disabled"}]
+    }
+}
+unset -nocomplain _voce _etichetta _rel _rilievo _ok
 
 # Il simulatore corrente e' quello che il profilo ha scelto all'avvio
 # (ksetsim_default: ~/.legosim, poi cassano0, poi il primo di ksims). La

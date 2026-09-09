@@ -55,6 +55,7 @@ Nella finestra:
   e sotto la voce ci sono le ultime directory usate: vedi sotto.
 - **Tools** → aggiorna la configurazione del **simulatore corrente** con
   `kUpSim`, e permette di cambiare simulatore: vedi sotto.
+- **?** → versione di LegoPST e documentazione dell'ambiente: vedi sotto.
 - **Refresh** → rilegge l'elenco delle task.
 - **net_startup** → lancia la **simulazione** nella directory corrente. È
   abilitato solo dove si può: vedi sotto.
@@ -351,6 +352,131 @@ già.
 > **Quello che una GUI non può fare**: cambiare l'ambiente della *shell che l'ha
 > lanciata*. La `$KSIM` del tuo terminale resta quella di prima; per allinearla
 > basta un `ksetsim <nome>`, oppure una shell nuova, che rilegge `~/.legosim`.
+
+## Menù `?` — versione e documentazione
+
+Stesso nome che usa `legopc`, per coerenza fra le due finestre.
+
+### `About LegoPST`
+
+Legge **`$LEGOROOT/version.h`**, la stessa fonte del dialogo *LegoPc Release
+Info* di `legopc`: `GIT_VERSION_STRING`, `BUILD_NUMBER`, `BUILD_DATE_STRING`.
+Il file lo genera il Makefile (`make -f Makefile.mk version.h`) a partire da
+git.
+
+Sotto la versione ci sono le quattro righe che dicono **dove si sta
+lavorando** — `LEGOROOT`, simulatore corrente, radice utente, directory — che in
+questo ambiente è la domanda subito successiva a "che versione è". Il pulsante
+*Release Notes* apre `$LG_INSTALL/relnotes.txt` nell'editor, e compare solo se
+quel file c'è.
+
+> A differenza di `legopc`, **se `version.h` manca non viene generato**: lghmi
+> può girare dove il repository non è scrivibile — per esempio dentro un bundle
+> FMU — e un selettore non deve mettersi a invocare `make`. Il dialogo dice come
+> ottenerlo.
+
+### Documentazione
+
+```
+?
+  About LegoPST
+  ──────────────────────────────────────────
+  LegoPST - panoramica del progetto (README)  README.md          ← in grassetto
+  ──────────────────────────────────────────
+  Indice ragionato della documentazione       INDICE_DOCUMENTAZIONE.html
+  Comandi kbin (i 192 kprocedure)             kbin/kbin-riferimento-comandi-LegoPST.html
+  Help dei moduli (manuale storico)           $LG_HTML/index.htm, via open_hlp
+  ──────────────────────────────────────────
+  Questa finestra: lghmi                      Alg_legopc/LGHMI.md
+  Configurare un simulatore: al_sim.conf      docs/AL_SIM_CONF.md
+  Faceplate di comando (xstaz)                Alg_rt/grafica/xstaz/HOWTO_faceplate.md
+```
+
+Il **README** è la prima voce, in un gruppo suo e **in grassetto**: è il
+documento che dice *che cos'è* LegoPST — quello che si legge su GitHub — e viene
+prima di sapere dove sta tutto il resto. Il risalto lo dà un font derivato da
+`TkMenuFont` con `-weight bold`, così segue tema e dimensione del sistema
+invece di essere scritto a mano.
+
+Il criterio per le altre: la documentazione di LegoPST è molta — una trentina di `.md`, due
+HTML e il manuale storico dei moduli in 218 pagine `.htm` — e **il menù non ne è
+il catalogo**. C'è l'**indice ragionato**, che è l'hub di tutto il resto con le
+sue 12 sezioni, e accanto i documenti che rispondono alle domande di chi sta
+usando *questa* finestra: lghmi stesso, la configurazione del simulatore che il
+menù `Tools` riallinea, e i faceplate che la lista di destra apre. Il resto
+resta a un click dentro l'indice.
+
+Dettagli d'implementazione:
+
+- l'ordine delle voci è **dichiarativo**, nella proc `documenti_aiuto`: `--` è un
+  separatore e `MODULI` è il manuale storico, che non è un file del repository
+  ma una collezione sotto `$LG_HTML`;
+- i `.md` si aprono **nel browser**, come i 36 rimandi ai `.md` dentro l'indice
+  ragionato, così il meccanismo resta uno solo. Il browser lo sceglie
+  `browser_disponibile` di [src/tix/openhelp.tcl](src/tix/openhelp.tcl), la
+  stessa di `legopc`, partendo da `$LG_BROWSER`. Sui `.md` passa prima un
+  convertitore, **se c'è**: vedi sotto;
+- il manuale dei moduli si apre con `open_hlp`, la stessa proc della voce *Help*
+  di `legopc`. `openhelp.tcl` viene sorgiato dentro un `catch`: se manca si perde
+  solo il menù `?`, non il selettore;
+- una voce che punta a un file assente **nasce disabilitata** invece di sparire:
+  si vede che il documento è previsto e che manca.
+
+### Perché i `.md` si vedono formattati
+
+Un browser **non sa rendere il Markdown**: il sistema classifica i `.md` come
+`text/plain`, quindi Firefox ne mostra il *sorgente*. Prima di aprirli, `lghmi`
+li converte in HTML in una directory temporanea (`$TMPDIR`), con un foglio di
+stile incorporato — tabelle con i bordi, blocchi di codice su fondo grigio,
+citazioni con la barra a sinistra, titoli con l'ancora per i rimandi interni.
+
+**La conversione la fa LegoPST, non un pacchetto di sistema:**
+[src/tix/md2html.tcl](src/tix/md2html.tcl) è un convertitore Markdown→HTML in
+**Tcl puro**. Tcl c'è per definizione — tutta l'interfaccia di LegoPST è
+Tcl/Tk — quindi la documentazione si vede formattata su **ogni installazione**,
+senza installare niente e con la stessa resa dappertutto.
+
+Il perimetro è il sottoinsieme che la documentazione di LegoPST usa davvero,
+misurato su 34 documenti e 10 073 righe: titoli, recinti di codice, tabelle,
+citazioni, elenchi puntati e numerati, righe orizzontali, link, immagini,
+codice inline, grassetto, corsivo. Non è un parser Markdown generico e non prova
+a esserlo: nella nostra documentazione non ci sono note a piè di pagina, tabelle
+annidate né HTML inline oltre sei righe.
+
+Sui nostri documenti **rende meglio di `markdown_py`**, che sbaglia i recinti di
+codice rientrati dentro una voce di elenco — li trasforma in un `<code>`
+malformato che si mangia il resto del blocco. Verificato confrontando i due
+output su `LGHMI.md`, `HOWTO_faceplate.md` e `AL_SIM_CONF.md`: elementi
+identici, tranne quel caso, dove il conteggio dei `<pre>` differisce perché il
+nostro è corretto.
+
+Il degrado, se qualcosa mancasse:
+
+| situazione | cosa si vede |
+|---|---|
+| normale | HTML formattato da `md2html.tcl` |
+| `md2html.tcl` assente (deploy parziale, `bin` vecchia) | HTML da `markdown_py`, `pandoc` o `cmark`, se installati |
+| nessuno dei due | il `.md` grezzo, con la riga di stato che lo dice |
+
+**Dell'HTML si riconoscono solo `<details>` e `<summary>`**, che nel README
+fanno la sezione richiudibile dell'installazione Docker. Tutto il resto degli
+angolari resta escapato, ed è la scelta giusta, non una semplificazione: nella
+nostra documentazione `<nome>`, `<task>`, `<modello>`, `<dir>`, `<path>` e
+simili sono **segnaposto in prosa, a centinaia**. Passandoli come HTML il
+browser li tratterebbe da tag sconosciuti e li **cancellerebbe dalla pagina**,
+cambiando il senso di quello che c'è scritto.
+
+Un limite noto: un recinto di codice **rientrato dentro una voce di elenco**
+chiude l'elenco e lo riapre dopo, invece di annidarsi nella voce. L'HTML resta
+valido e si legge bene, solo la spaziatura cambia; annidarlo per davvero
+vorrebbe dire tenere aperto il `<li>`, e per quattro occorrenze in 34 documenti
+non vale la complicazione.
+
+Un dettaglio che è facile sbagliare: l'HTML generato porta un
+`<base href="file://<directory del documento>/">`. Senza quello i **rimandi
+relativi** agli altri documenti — 236 in tutta la documentazione — si
+risolverebbero dentro la directory temporanea e non porterebbero da nessuna
+parte.
 
 ## Il pulsante `mmi`
 
