@@ -28,6 +28,7 @@ lghmi -loc         # esplicito, identico al default
 lghmi -loc DIR     # usa DIR come dir della simulazione
 lghmi -noloc       # NON pre-imposta alcun sim path
 lghmi -staz        # solo i faceplate (pagine di r02.dat -> xstaz)
+lghmi -insim       # lanciato da dentro una simulazione (lo passa il banco)
 lghmi -h           # aiuto
 ```
 
@@ -50,7 +51,11 @@ Nella finestra:
   con le due liste di pari larghezza: le due finestre si usano insieme, una sopra
   l'altra, e allineate stanno meglio. Il divisorio resta trascinabile e la
   finestra ridimensionabile (minimo 560x300).
+- **File → Open loc path…** → cambia la **directory di lavoro** del selettore:
+  vedi sotto.
 - **Refresh** → rilegge l'elenco delle task.
+- **net_startup** → lancia la **simulazione** nella directory corrente. È
+  abilitato solo dove si può: vedi sotto.
 - **mmi** → lancia l'**applicazione MMI** (`Alg_mmi`), indipendente dalle due
   liste: vedi sotto.
 - **Quit** (o **Esc**) → chiude **solo** il selettore. Le HMI già aperte
@@ -197,6 +202,103 @@ In co-simulazione l'elenco arriva da un `S01` generato da `lg_cosim2s01.py` a
 partire dal `lg_cosim.json`; è `lg_cosim` stesso ad aprire il selettore quando
 `settings.hmi` è attivo. Vedi
 [Alg_rt/lg_fmu/lg_cosim/lg_cosim_manual.md](../Alg_rt/lg_fmu/lg_cosim/lg_cosim_manual.md).
+
+## Lanciato dal banco — l'opzione `-insim`
+
+`lghmi` non si lancia solo a mano: lo apre anche il **banco** (`new_monit`) da
+una voce del suo menù — [`attiva_lghmi`](../Alg_rt/net_simula/new_monit/cont_rec.c)
+fa `system("$LEGORT_BIN/lghmi -insim &")` — e il banco gira nella directory del
+simulatore, perché lo avvia `net_startup`.
+
+In quel caso il selettore **appartiene a quella simulazione**, e due comandi
+vengono **disabilitati**:
+
+| comando | perché |
+|---|---|
+| *File → Open loc path* | lo porterebbe su un'altra directory, scollegandolo dalla simulazione che l'ha aperto |
+| pulsante *net_startup* | comincia con `killsim`: ammazzerebbe proprio la simulazione da cui è stato lanciato, e il banco con lei |
+
+La voce di menù nasce disabilitata e il pulsante resta spento; la riga di stato
+dice *"lanciato dal banco: directory fissa, simulazione già in corso"* e il
+titolo della finestra porta `(dal banco)`, così si capisce da dove viene.
+
+Lanciando `lghmi` a mano l'opzione non serve: i due comandi restano
+disponibili, e `net_startup` chiede comunque conferma.
+
+## `File → Open loc path…` — cambiare simulazione senza riavviare
+
+Apre un selettore di directory e **porta lì il selettore**: da quella directory
+dipendono la modalità (l'`S01` si cerca nella directory corrente), la lista dei
+faceplate (`r02.dat` della directory), la directory di lavoro dell'`mmi` e il
+**Set Sim path** che le HMI ereditano. Le liste si aggiornano subito.
+
+È l'equivalente di **rilanciare `lghmi` da quella directory**, e serve quando si
+passa da una simulazione a un'altra: prima bisognava chiudere il selettore,
+`cd`, e riaprirlo.
+
+### I path recenti
+
+Sotto *Open loc path…* il menù File porta le **ultime 3 directory usate**, così
+per tornare su una simulazione già visitata non serve riaprire il dialogo di
+selezione: si clicca la voce.
+
+- La lista sta in **`~/.lghmi_recent`**, una riga per path. Non in
+  `$LG_ENTRY/legopc_prefs.tcl` come le preferenze di `legopc`, perché
+  attraversa le installazioni: la radice utente cambia proprio quando si cambia
+  directory.
+- Le voci mostrano il path con **`~`** al posto della home, e la più recente
+  sta in cima. Riaprire una directory già in lista la **promuove** senza
+  duplicarla.
+- Le directory che non esistono più (una simulazione cancellata, un disco
+  smontato) **scompaiono dal menù** al primo avvio successivo: restano nel file
+  ma non vengono mostrate.
+- **La directory di lancio entra in lista da sé**, ma solo se è una directory di
+  simulazione (c'è un `S01` o `variabili.rtf`): lanciando `lghmi` da casa, in
+  dir-scan, non ha senso ricordarsela. Così il menù è utile dalla prima volta,
+  senza dover passare almeno una volta dal dialogo.
+- Il numero di path ricordati è la costante `MAXRECENTI` in `lghmi.tcl`.
+
+Con `-insim` la voce *Open loc path* **e tutti i path recenti** sono
+disabilitati: vedi sopra.
+
+> **Non è la stessa cosa di `-loc DIR`.** L'opzione della riga di comando
+> imposta soltanto `LG_SIM_PATH` e lascia la directory di lavoro dov'era, quindi
+> l'`S01` e i faceplate continuano a essere cercati nella directory di lancio.
+> La voce di menu fa entrambe le cose.
+
+Le due intestazioni in alto — il simulatore `S01` (verde) e il *Set Sim path*
+(blu) — compaiono e spariscono da sé secondo quello che c'è nella nuova
+directory. Per questo esistono sempre come widget, anche vuote: creandole solo
+all'avvio, aprendo una directory con `S01` da una sessione partita in dir-scan
+non ci sarebbe niente da riempire.
+
+## Il pulsante `net_startup` — lanciare la simulazione
+
+Lancia `net_startup` nella **directory corrente**, dentro un terminale
+(`$LG_XTERM`), così si vedono scorrere i suoi controlli e si legge il motivo di
+un eventuale fallimento: `net_startup` verifica `variabili.rtf`, la connessione
+all'X server (`xhost`) e la licenza (`check_license algrt`), e su ognuno può
+fermarsi. La finestra resta aperta a fine esecuzione, in attesa di un Invio.
+
+**Il pulsante è abilitato solo se nella directory corrente esiste
+`variabili.rtf`**, che è il file che `net_startup` controlla per primo e senza
+il quale non fa nulla. Sta anche nelle directory delle task singole
+(`legocad/GTS`), che sono lanciabili come i simulatori composti — per questo la
+condizione non è la presenza di `S01`. Lo stato si aggiorna a ogni *Refresh* e
+a ogni cambio di directory.
+
+> **Chiede sempre conferma, e c'è un buon motivo.** La prima cosa che
+> `net_startup` fa è **`killsim`**, che su Linux cancella *tutte* le SHM, le
+> code e i semafori dell'utente, senza filtrare per chiave: se una simulazione è
+> in corso la ferma, e con essa le HMI che le stanno sopra. Se il selettore
+> trova `dispatcher`, `net_sked` o `banco` già in esecuzione lo dice
+> esplicitamente nel testo della conferma.
+
+Il terminale parte in una sessione propria (`setsid`), quindi sopravvive al
+*Quit* del selettore, come le HMI.
+
+Con `-insim` il pulsante è sempre spento, qualunque cosa ci sia nella
+directory: vedi sopra.
 
 ## Il pulsante `mmi`
 

@@ -24,6 +24,15 @@
 # $LG_SIM_PATH/globpages, $KPAGES, ./globpages e la cwd, perche' mmi legge il
 # Context.ctx della dir da cui parte.
 #
+# Accanto c'e' il pulsante "net_startup", che lancia la simulazione della
+# directory corrente in un terminale. E' abilitato solo dove esiste
+# variabili.rtf, il file che net_startup controlla per primo, e chiede sempre
+# conferma perche' comincia con killsim (che cancella tutte le SHM dell'utente).
+#
+# La barra dei menu ha File -> Open loc path, che cambia a runtime la directory
+# di lavoro del selettore: equivale a rilanciare lghmi da quella directory, e
+# aggiorna modalita', liste, Set Sim path e stato del pulsante di lancio.
+#
 # In entrambe, selezionando una task la HMI viene lanciata in un processo
 # INDIPENDENTE (detached):
 #     cd <task> ; wish $LG_TIX/draw2gr.tcl 1 f22circ
@@ -41,6 +50,25 @@ set TASKROOT [expr {[info exists env(LG_TASKROOT)] && $env(LG_TASKROOT) ne "" \
 #    nessuna delle due: entrambe, in due liste affiancate
 set stazmode [expr {[lsearch -exact $argv "-staz"] >= 0}]
 set procmode [expr {[lsearch -exact $argv "-proc"] >= 0}]
+
+# -insim: il selettore e' stato lanciato DA DENTRO una simulazione in corso -
+# lo fa il banco (new_monit, attiva_lghmi in cont_rec.c) dal suo menu, e il
+# banco gira nella dir del simulatore. In quel caso il selettore appartiene a
+# quella simulazione e due comandi non hanno senso, o sono dannosi:
+#   * Open loc path  porterebbe il selettore su un'ALTRA directory, scollegandolo
+#                    dalla simulazione che l'ha aperto;
+#   * net_startup    farebbe killsim, cioe' ammazzerebbe proprio la simulazione
+#                    da cui e' stato lanciato (e il banco con lei).
+# Entrambi vengono quindi disabilitati.
+set insim [expr {[lsearch -exact $argv "-insim"] >= 0}]
+
+# Directory usate di recente, per riaprirle dal menu File senza passare dal
+# dialogo di selezione. Stanno in un file nella home e non in
+# $LG_ENTRY/legopc_prefs.tcl perche' la lista attraversa le installazioni: la
+# radice utente cambia proprio quando si cambia directory.
+set RECENTIFILE [file join $env(HOME) .lghmi_recent]
+set MAXRECENTI  3
+set RECENTI     {}
 set mostra_proc [expr {$procmode || !$stazmode}]
 set mostra_staz [expr {$stazmode || !$procmode}]
 set doppia      [expr {$mostra_proc && $mostra_staz}]
@@ -276,9 +304,7 @@ proc riempi_proc {} {
             $LB_PROC insert end $label
             lappend ITEMS_PROC [list $label $dir $name]
         }
-        if {[info exists ::s01hdr]} {
-            .s01hdr configure -text "Simulatore: $::s01_name  $::s01_desc"
-        }
+        catch {.hdr.s01 configure -text "Simulatore: $::s01_name  $::s01_desc"}
         if {[llength $ITEMS_PROC] == 0} {
             return "Nessuna task di processo (P) nel file S01"
         }
@@ -286,6 +312,10 @@ proc riempi_proc {} {
         $LB_PROC selection set 0
         return "[llength $ITEMS_PROC] task di processo (S01: $::s01_name)"
     }
+
+    # fuori dalla modalita' S01 l'intestazione del simulatore non ha senso:
+    # va svuotata, altrimenti resta quella della directory precedente
+    catch {.hdr.s01 configure -text ""}
 
     if {![file isdirectory $TASKROOT]} {
         return "Directory task non trovata: $TASKROOT"
@@ -338,6 +368,9 @@ proc refresh_list {} {
     if {$mostra_staz} { lappend msg [riempi_staz] }
     set nota [aggiorna_stato_mmi]
     if {$nota ne ""} { lappend msg $nota }
+    set nota [aggiorna_stato_startup]
+    if {$nota ne ""} { lappend msg $nota }
+    aggiorna_etichette_loc
     .status configure -text [join $msg "   |   "]
     if {$doppia} { aggiorna_intestazioni }
 }
@@ -585,6 +618,244 @@ proc popup_open_page {lb azione y X Y} {
     grab set .popup_open
 }
 
+# --- Directory corrente: "File -> Open loc path" -------------------------
+#
+# Cambiare directory a runtime equivale a rilanciare lghmi da quella dir: da
+# essa dipendono la modalita' (l'S01 si cerca nella cwd), la lista dei
+# faceplate (dirs_con_r02 guarda [pwd]), la dir di lavoro dell'MMI e il Set Sim
+# path che le HMI ereditano.
+#
+# Nota: NON coincide con l'opzione "-loc DIR" dell'helper, che imposta soltanto
+# LG_SIM_PATH e lascia la cwd dov'era. Qui si fa entrambe le cose, cioe' quello
+# che si otterrebbe lanciando lghmi da quella directory.
+
+#  Mostra o nasconde le due intestazioni che dipendono dalla directory: il
+#  simulatore S01 e il Set Sim path. Il testo dell'S01 lo scrive riempi_proc,
+#  che ha i valori del parsing; qui si decide solo cosa si vede.
+proc aggiorna_etichette_loc {} {
+    global SIMPATH
+    if {[.hdr.s01 cget -text] ne ""} {
+        pack .hdr.s01 -side top -fill x
+    } else {
+        pack forget .hdr.s01
+    }
+    if {$SIMPATH ne ""} {
+        .hdr.loc configure -text "Set Sim path: $SIMPATH"
+        pack .hdr.loc -side top -fill x
+    } else {
+        .hdr.loc configure -text ""
+        pack forget .hdr.loc
+    }
+}
+
+#  Porta il selettore nella directory <dir>: cwd, Set Sim path (anche
+#  nell'ambiente, perche' le HMI lanciate lo ereditano), rilevamento dell'S01 e
+#  aggiornamento delle liste. Ritorna un messaggio d'errore, o "" se e' andata.
+proc imposta_loc {dir} {
+    global S01FILE s01mode SIMPATH s01_name s01_desc
+    if {![file isdirectory $dir]} { return "Directory non trovata: $dir" }
+    if {[catch {cd $dir} err]}    { return "Impossibile entrare in $dir: $err" }
+
+    set SIMPATH [pwd]
+    set ::env(LG_SIM_PATH) $SIMPATH
+    set S01FILE [file join $SIMPATH S01]
+    set s01mode [expr {[file exists $S01FILE] && ![file isdirectory $S01FILE]}]
+    if {!$s01mode} { set s01_name ""; set s01_desc "" }
+    refresh_list
+    return ""
+}
+
+#  Legge le directory recenti, scartando quelle che non esistono piu' (una sim
+#  cancellata, un disco smontato): restano nel file ma non nel menu.
+proc carica_recenti {} {
+    global RECENTI RECENTIFILE MAXRECENTI
+    set RECENTI {}
+    if {[catch {open $RECENTIFILE r} fd]} return
+    while {[gets $fd riga] >= 0} {
+        set riga [string trim $riga]
+        if {$riga eq "" || ![file isdirectory $riga]} continue
+        if {[lsearch -exact $RECENTI $riga] < 0} { lappend RECENTI $riga }
+        if {[llength $RECENTI] >= $MAXRECENTI} break
+    }
+    close $fd
+}
+
+proc salva_recenti {} {
+    global RECENTI RECENTIFILE
+    # Se la home non e' scrivibile si perde solo la memoria dei recenti: non e'
+    # un motivo per fermare il selettore.
+    catch {
+        set fd [open $RECENTIFILE w]
+        foreach d $RECENTI { puts $fd $d }
+        close $fd
+    }
+}
+
+#  Mette <dir> in testa ai recenti (senza doppioni), tronca e salva.
+proc ricorda_recente {dir} {
+    global RECENTI MAXRECENTI
+    set dir [file normalize $dir]
+    set pos [lsearch -exact $RECENTI $dir]
+    if {$pos >= 0} { set RECENTI [lreplace $RECENTI $pos $pos] }
+    set RECENTI [linsert $RECENTI 0 $dir]
+    if {[llength $RECENTI] > $MAXRECENTI} {
+        set RECENTI [lrange $RECENTI 0 [expr {$MAXRECENTI-1}]]
+    }
+    salva_recenti
+    aggiorna_menu_file
+}
+
+#  Ricostruisce il menu File PER INTERO a ogni cambiamento dei recenti.
+#  Non si toccano le singole voci: gli indici cambierebbero a ogni path in piu'
+#  o in meno, ed e' proprio il tipo di indirizzamento da evitare in un menu Tk.
+proc aggiorna_menu_file {} {
+    global RECENTI insim env
+    if {![winfo exists .mb.file]} return
+    set stato [expr {$insim ? "disabled" : "normal"}]
+
+    .mb.file delete 0 end
+    .mb.file add command -label "Open loc path..." -command apri_loc_path -state $stato
+    if {[llength $RECENTI] > 0} {
+        .mb.file add separator
+        foreach d $RECENTI {
+            # ~ al posto della home: i path delle simulazioni sono lunghi e la
+            # parte utile e' la coda
+            set etichetta $d
+            if {[string first $env(HOME)/ $d] == 0} {
+                set etichetta "~[string range $d [string length $env(HOME)] end]"
+            }
+            .mb.file add command -label $etichetta -state $stato \
+                                 -command [list vai_a_loc $d]
+        }
+    }
+    .mb.file add separator
+    .mb.file add command -label "Refresh" -command refresh_list
+    .mb.file add separator
+    .mb.file add command -label "Quit" -command exit
+}
+
+#  Va nella directory <dir> e la promuove in testa ai recenti. E' la strada sia
+#  del dialogo di selezione sia delle voci di menu dei path recenti.
+proc vai_a_loc {dir} {
+    global insim
+    if {$insim} {
+        .status configure -text \
+            "Directory fissa: il selettore e' stato lanciato dal banco della simulazione in corso."
+        return
+    }
+    set err [imposta_loc $dir]
+    if {$err ne ""} {
+        tk_messageBox -icon error -title "Open loc path" -parent . -message $err
+        return
+    }
+    ricorda_recente [pwd]
+    # refresh_list ha gia' scritto i conteggi: la directory si aggiunge davanti,
+    # non li sostituisce
+    .status configure -text "Directory: [pwd]   |   [.status cget -text]"
+}
+
+#  Voce di menu: scegli la directory e vacci.
+proc apri_loc_path {} {
+    global insim
+    if {$insim} {
+        # la voce di menu e' disabilitata, ma la proc resta raggiungibile
+        .status configure -text \
+            "Directory fissa: il selettore e' stato lanciato dal banco della simulazione in corso."
+        return
+    }
+    set dir [tk_chooseDirectory -parent . -mustexist 1 -initialdir [pwd] \
+                 -title "Directory della simulazione (loc path)"]
+    if {$dir eq ""} return
+    vai_a_loc $dir
+}
+
+# --- Lancio della simulazione (net_startup) ------------------------------
+
+#  Processi di simulazione vivi adesso. Ritorna la lista dei nomi trovati.
+proc sim_attiva {} {
+    set vivi {}
+    foreach p {dispatcher net_sked banco} {
+        if {![catch {exec pgrep -x $p}]} { lappend vivi $p }
+    }
+    return $vivi
+}
+
+#  Il pulsante di lancio si abilita solo dove net_startup puo' funzionare.
+#  Il file che lo script controlla e' variabili.rtf: senza quello si fermano
+#  tutti i suoi passi successivi. Sta anche nelle dir delle task singole, che
+#  sono lanciabili come i simulatori composti.
+proc aggiorna_stato_startup {} {
+    global insim
+    if {$insim} {
+        # lanciato dal banco: la simulazione gira gia', e net_startup la
+        # fermerebbe con killsim
+        .btn.start configure -state disabled
+        return "lanciato dal banco: directory fissa, simulazione gia' in corso"
+    }
+    if {[file exists [file join [pwd] variabili.rtf]]} {
+        .btn.start configure -state normal
+        return "simulazione lanciabile da qui"
+    }
+    .btn.start configure -state disabled
+    return ""
+}
+
+#  Comando per eseguire uno script in un terminale X. L'opzione con cui si
+#  passa il comando cambia col terminale (gnome-terminal vuole "--", gli altri
+#  "-e"), e la finestra la si tiene aperta con una pausa finale invece di
+#  -hold, che e' solo di xterm: l'output dei controlli va letto.
+proc comando_in_terminale {comando} {
+    set xt [expr {[info exists ::env(LG_XTERM)] && $::env(LG_XTERM) ne "" \
+                  ? $::env(LG_XTERM) : "xterm"}]
+    set opz [expr {[string match "gnome-terminal*" [file tail $xt]] ? "--" : "-e"}]
+    set sh "$comando; echo; echo '--- finito: premi Invio per chiudere ---'; read _"
+    return [list $xt $opz sh -c $sh]
+}
+
+#  Lancia net_startup nella directory corrente, dentro un terminale.
+#
+#  Chiede sempre conferma, perche' la PRIMA cosa che net_startup fa e'
+#  `killsim`, che su Linux cancella TUTTE le SHM, le code e i semafori
+#  dell'utente senza filtrare per chiave: se c'e' una simulazione in corso la
+#  ferma, e con essa le HMI che le stanno sopra. Se dei processi di simulazione
+#  sono vivi lo si dice esplicitamente nel testo della conferma.
+proc lancia_net_startup {} {
+    set dir [pwd]
+    if {![file exists [file join $dir variabili.rtf]]} {
+        tk_messageBox -icon error -title "Start simulation" -parent . -message \
+            "In questa directory non c'e' variabili.rtf: net_startup non puo' partire.\n\n$dir"
+        return
+    }
+
+    set vivi [sim_attiva]
+    set avviso "Lanciare la simulazione in\n$dir\n\n"
+    append avviso "net_startup esegue killsim, che cancella tutte le SHM, le code\n"
+    append avviso "e i semafori di questo utente (nessun filtro per chiave)."
+    if {[llength $vivi] > 0} {
+        append avviso "\n\nATTENZIONE: c'e' gia' una simulazione in esecuzione\n"
+        append avviso "([join $vivi ", "]): verra' fermata, e con essa le HMI aperte."
+    }
+    append avviso "\n\nProcedere?"
+    if {[tk_messageBox -icon warning -type yesno -default no -parent . \
+             -title "Start simulation" -message $avviso] ne "yes"} {
+        .status configure -text "Lancio della simulazione annullato."
+        return
+    }
+
+    # Processo indipendente, come per le HMI: il terminale sopravvive al Quit
+    # del selettore. La dir si passa a net_startup, che fa il cd da se'.
+    set cmd [comando_in_terminale "net_startup [list $dir]"]
+    if {[catch {exec setsid {*}$cmd &} err]} {
+        if {[catch {exec {*}$cmd &} err2]} {
+            tk_messageBox -icon error -title "Start simulation" -parent . -message \
+                "Impossibile lanciare net_startup:\n$err2"
+            return
+        }
+    }
+    .status configure -text "net_startup avviato in $dir - i controlli e gli errori sono nel terminale."
+}
+
+
 # --- Interfaccia ---------------------------------------------------------
 if {$doppia} {
     wm title . "LegoPST - HMI e faceplate"
@@ -601,6 +872,32 @@ if {$doppia} {
     wm minsize . 340 280
 }
 
+# Barra dei menu. Finora non c'era: nasce per "Open loc path", che cambia la
+# directory di lavoro del selettore e non e' un'azione sulle liste come i
+# pulsanti in basso. Refresh e Quit ci stanno per comodita', ma restano anche
+# in basso, dove si usano.
+menu .mb -tearoff 0
+. configure -menu .mb
+menu .mb.file -tearoff 0
+.mb add cascade -label "File" -menu .mb.file
+# Le voci del menu File le costruisce aggiorna_menu_file, che lo rifa' da capo
+# ogni volta che i path recenti cambiano. Con -insim nascono tutte disabilitate,
+# recenti compresi: cambiare directory scollegherebbe il selettore dalla
+# simulazione che l'ha lanciato.
+carica_recenti
+aggiorna_menu_file
+
+# La directory di lancio entra fra i recenti solo se e' una directory di
+# simulazione (c'e' un S01 o variabili.rtf): lanciando lghmi da casa, in
+# dir-scan, non ha senso ricordarsela. Cosi' il menu serve dalla prima volta,
+# senza dover passare almeno una volta dal dialogo di selezione.
+if {[file exists [file join [pwd] S01]] || \
+    [file exists [file join [pwd] variabili.rtf]]} {
+    ricorda_recente [pwd]
+}
+
+if {$insim} { wm title . "[wm title .]  (dal banco)" }
+
 label .head -anchor w -padx 6 -pady 4 -text [expr {
         $doppia   ? "A sinistra le pagine di processo (draw2gr), a destra i faceplate di comando (xstaz)" :
         $stazmode ? "Le pagine di faceplate di comando (xstaz)" :
@@ -610,25 +907,29 @@ label .hint -anchor w -padx 6 -foreground "#505050" -text \
 pack .head -side top -fill x
 pack .hint -side top -fill x
 
-if {$s01mode} {
-    # Intestazione simulatore (testo impostato da riempi_proc dopo il parsing).
-    label .s01hdr -text "" -anchor w -padx 6 -foreground "#006400"
-    pack .s01hdr -side top -fill x
-    set ::s01hdr 1
-}
-
-# Riga informativa sul Set Sim path pre-impostato (dir del simulatore attivo).
-if {$SIMPATH ne ""} {
-    label .loc -text "Set Sim path pre-impostato (-loc): $SIMPATH" \
-               -anchor w -padx 6 -foreground blue
-    pack .loc -side top -fill x
-}
+# Intestazioni che dipendono dalla directory corrente: il simulatore S01 e il
+# Set Sim path. Vengono create SEMPRE, anche quando non servono, perche'
+# File -> Open loc path puo' cambiare directory a runtime e con essa la
+# modalita': creandole solo all'avvio, aprendo una dir con S01 da una sessione
+# partita in dir-scan non ci sarebbe nessun widget da riempire. Stanno in un
+# frame perche' l'ordine fra le due resti stabile quando si mostrano e si
+# nascondono (pack/pack forget dentro il frame, non sulla toplevel).
+frame .hdr
+pack  .hdr -side top -fill x
+label .hdr.s01 -text "" -anchor w -padx 6 -foreground "#006400"
+label .hdr.loc -text "" -anchor w -padx 6 -foreground blue
 
 # Barra in basso: Refresh, mmi e Quit. Le pagine si aprono dalla lista (doppio
 # click o tasto destro), non da un pulsante.
 frame .btn
 button .btn.refresh -text "Refresh" -command refresh_list
 button .btn.quit    -text "Quit"    -command exit
+# Lancia la simulazione nella directory corrente. Nome del comando come
+# etichetta, come per il pulsante "mmi": si riconosce cosa fa. Parte disabilitato
+# ed e' aggiorna_stato_startup a deciderne lo stato, in base alla presenza di
+# variabili.rtf nella dir corrente.
+button .btn.start -text "net_startup" -width 11 -state disabled \
+                  -command lancia_net_startup
 # Lancio di un'altra applicazione, non un'azione sulla lista: sta al centro
 # della barra, largo il doppio e con il verde della finestra dell'MMI, cosi' si
 # riconosce a colpo d'occhio. Centratura con `place` (non pack -expand): il
@@ -638,6 +939,7 @@ button .btn.mmi -text "mmi" -width 11 -command launch_mmi \
                 -background "#50a050" -activebackground "#60c060" \
                 -foreground black -activeforeground black
 pack  .btn.refresh -side left  -padx 4 -pady 6
+pack  .btn.start   -side left  -padx 4 -pady 6
 pack  .btn.quit    -side right -padx 4 -pady 6
 place .btn.mmi -relx 0.5 -rely 0.5 -anchor center
 pack .btn -side bottom -fill x

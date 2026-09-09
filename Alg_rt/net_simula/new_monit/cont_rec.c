@@ -2142,9 +2142,9 @@ char *messaggio;
 	set_cursor (w,CLOCK);
 	path_com = getenv("LEGORT_BIN");
 	if ((path_com == NULL) || (path_com[0] == '\0'))
-		sprintf (comando,"%s &",HMI_PROGRAM);
+		sprintf (comando,"%s %s &",HMI_PROGRAM,HMI_PROGRAM_OPT);
 	else
-		sprintf (comando,"%s/%s &",path_com,HMI_PROGRAM);
+		sprintf (comando,"%s/%s %s &",path_com,HMI_PROGRAM,HMI_PROGRAM_OPT);
 printf ("ATTIVAZIONE: [%s]\n",comando);
 	system(comando);
 	messaggio = malloc (strlen(PROGRAM_ACT)+strlen(HMI_PROGRAM)+20);

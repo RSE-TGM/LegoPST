@@ -2,6 +2,26 @@
 
 Il monitor principale della sessione ([Alg_rt/net_simula/new_monit/](.)) espone i menù *Programs*, *Options*, ecc. Le opzioni di sessione sono in una struttura `OPTIONS_FLAGS` ([option.h](option.h)) persistita nel file binario **`.bi_options`** (`OPTION_FILE`) nella dir di lavoro del simulatore (`FILES_PATH`), letto all'avvio da `read_options()` (`SD_optload`).
 
+## Il selettore HMI (`lghmi`) dal menù del monitor
+
+Oltre agli *User Programs* configurabili, il monitor ha una voce che apre il
+**selettore delle HMI**: [`attiva_lghmi`](cont_rec.c) (chiamata da due punti di
+[`masterMenu.c`](masterMenu.c)) fa
+
+```c
+system("$LEGORT_BIN/lghmi -insim &");     /* HMI_PROGRAM + HMI_PROGRAM_OPT */
+```
+
+Nessun dialogo di display: parte sul `DISPLAY` corrente, e ogni pressione apre
+una nuova istanza.
+
+**`-insim`** dice al selettore che è stato lanciato da dentro una simulazione in
+corso, e gli fa disabilitare i due comandi che sarebbero dannosi in quel
+contesto: *File → Open loc path* (lo scollegherebbe da questa simulazione) e il
+pulsante *net_startup* (che con `killsim` ammazzerebbe proprio questa
+simulazione, e il banco con lei). Dettagli in
+[Alg_legopc/LGHMI.md](../../../Alg_legopc/LGHMI.md).
+
 ## User Programs — comandi utente lanciabili dal monitor
 
 Meccanismo per lanciare comandi shell arbitrari dal monitor, in due parti:

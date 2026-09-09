@@ -17,6 +17,11 @@
 #define FILE_DATA_DEFAULT  "f22circ"
 #define VIEW_PROGRAM       "graphics"
 #define HMI_PROGRAM        "lghmi"
+/* Il selettore viene lanciato da DENTRO la simulazione in corso, e il banco
+   gira nella dir del simulatore: -insim gli fa disabilitare Open loc path (che
+   lo scollegherebbe da questa simulazione) e il pulsante net_startup (che con
+   killsim ammazzerebbe proprio questa). */
+#define HMI_PROGRAM_OPT    "-insim"
 
 #define NO_MOD				-1 /* per selezione totale */
 #define NO_BLOCK        -1 /* per selezione totale */
