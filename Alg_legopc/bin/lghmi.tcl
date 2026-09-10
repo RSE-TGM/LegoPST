@@ -25,9 +25,13 @@
 # Context.ctx della dir da cui parte.
 #
 # Accanto c'e' il pulsante "net_startup", che lancia la simulazione della
-# directory corrente in un terminale. E' abilitato solo dove esiste
-# variabili.rtf, il file che net_startup controlla per primo, e chiede sempre
-# conferma perche' comincia con killsim (che cancella tutte le SHM dell'utente).
+# directory corrente. E' abilitato solo dove esiste variabili.rtf, il file che
+# net_startup controlla per primo, e chiede sempre conferma perche' comincia con
+# killsim (che cancella tutte le SHM dell'utente). La simulazione parte in una
+# SESSIONE PROPRIA e il suo output va in una finestra di log del selettore, non
+# in un terminale: chiudere quella finestra non ferma piu' la simulazione (in un
+# terminale la ammazzava - vedi lancia_net_startup), e da li' la si puo' anche
+# fermare per davvero.
 #
 # La barra dei menu ha File -> Open loc path, che cambia a runtime la directory
 # di lavoro del selettore: equivale a rilanciare lghmi da quella directory, e
@@ -37,7 +41,8 @@
 # INDIPENDENTE (detached):
 #     cd <task> ; wish $LG_TIX/draw2gr.tcl 1 f22circ
 # Il selettore resta aperto per altre scelte. "Quit" chiude SOLO il selettore:
-# le HMI gia' aperte restano vive (le chiude l'utente).
+# le HMI gia' aperte restano vive (le chiude l'utente), e cosi' la simulazione -
+# con Quit se ne va anche la finestra di log, ma il log resta in /tmp.
 
 package require Tk
 
@@ -824,14 +829,32 @@ proc comando_in_terminale {comando {shell sh}} {
     return [list $xt $opz $shell -c $sh]
 }
 
-#  Lancia net_startup nella directory corrente, dentro un terminale.
+#  Dove finisce l'output di net_startup: un file, non un terminale. La finestra
+#  di log lo segue da li' (mostra_log_sim) e resta leggibile anche dopo che la
+#  finestra e' stata chiusa. In /tmp, come gli altri lanci di questo file, per
+#  non sporcare la directory della simulazione.
+set SIMLOG [file join /tmp "lghmi_net_startup.log"]
+
+#  Lancia net_startup nella directory corrente e ne mostra l'output.
 #
-#  Chiede sempre conferma, perche' la PRIMA cosa che net_startup fa e'
-#  `killsim`, che su Linux cancella TUTTE le SHM, le code e i semafori
-#  dell'utente senza filtrare per chiave: se c'e' una simulazione in corso la
-#  ferma, e con essa le HMI che le stanno sopra. Se dei processi di simulazione
-#  sono vivi lo si dice esplicitamente nel testo della conferma.
+#  La simulazione parte in una SESSIONE PROPRIA (setsid), NON dentro la finestra
+#  che la mostra, e non e' un dettaglio: net_startup lancia dispatcher, net_sked
+#  e banco con `&` da una ksh non interattiva, e senza job control restano tutti
+#  nel process group di chi li ha lanciati. Dentro un terminale quel process
+#  group prende un SIGHUP ogni volta che il terminale se ne va - chiudendo la
+#  finestra con la X, ma anche premendo Invio al prompt finale, perche' uscendo
+#  il session leader il kernel manda SIGHUP al foreground process group - e
+#  nessuno dei tre binari ignora SIGHUP: morivano tutti e tre, e con loro le HMI
+#  aperte. Con setsid la finestra e' soltanto un visore del log: chiuderla non
+#  tocca la simulazione, e la conferma della X lo dice.
+#
+#  Chiede comunque conferma PRIMA di partire, perche' la prima cosa che
+#  net_startup fa e' `killsim`, che su Linux cancella TUTTE le SHM, le code e i
+#  semafori dell'utente senza filtrare per chiave: se c'e' una simulazione in
+#  corso la ferma, e con essa le HMI che le stanno sopra. Se dei processi di
+#  simulazione sono vivi lo si dice esplicitamente nel testo della conferma.
 proc lancia_net_startup {} {
+    global SIMLOG
     set dir [pwd]
     if {![file exists [file join $dir variabili.rtf]]} {
         tk_messageBox -icon error -title "Start simulation" -parent . -message \
@@ -854,17 +877,241 @@ proc lancia_net_startup {} {
         return
     }
 
-    # Processo indipendente, come per le HMI: il terminale sopravvive al Quit
+    # Il log e' quello della simulazione corrente: riparte da zero a ogni lancio.
+    # Aprirlo qui non e' solo per troncarlo: e' anche la prova che si puo'
+    # scrivere. Il nome in /tmp e' fisso, quindi il file puo' essere di un altro
+    # utente della stessa macchina; senza questo controllo la redirezione di
+    # net_startup fallirebbe e la finestra di log resterebbe vuota, senza dire
+    # perche'.
+    if {[catch {open $SIMLOG w} fd]} {
+        tk_messageBox -icon error -title "Start simulation" -parent . -message \
+            "Non riesco a scrivere il log della simulazione:\n$SIMLOG\n\n$fd"
+        return
+    }
+    close $fd
+
+    # Processo indipendente, come per le HMI: la simulazione sopravvive al Quit
     # del selettore. La dir si passa a net_startup, che fa il cd da se'.
-    set cmd [comando_in_terminale "net_startup [list $dir]"]
-    if {[catch {exec setsid {*}$cmd &} err]} {
-        if {[catch {exec {*}$cmd &} err2]} {
+    set sh "exec net_startup [list $dir] > [list $SIMLOG] 2>&1"
+    if {[catch {exec setsid sh -c $sh &} err]} {
+        # Senza setsid la simulazione resta nella sessione del selettore:
+        # sopravvive comunque alla finestra di log, ma non alla fine della
+        # sessione da cui lghmi e' partito.
+        if {[catch {exec sh -c $sh &} err2]} {
             tk_messageBox -icon error -title "Start simulation" -parent . -message \
                 "Impossibile lanciare net_startup:\n$err2"
             return
         }
     }
-    .status configure -text "net_startup avviato in $dir - i controlli e gli errori sono nel terminale."
+    .status configure -text "net_startup avviato in $dir  (log: $SIMLOG)"
+    mostra_log_sim $dir
+}
+
+
+# --- Finestra di log della simulazione -----------------------------------
+#
+# Prende il posto del terminale, e la differenza che conta non e' estetica: la
+# finestra e' di lghmi, quindi la X passa da WM_DELETE_WINDOW e prima di
+# chiudere si puo' dire all'utente cosa succede - e cosa non succede - alla
+# simulazione. Un xterm non lo consente: non ha nessun hook sulla richiesta di
+# chiusura del window manager.
+#
+# Il testo si aggiorna leggendo la CODA del file di log: si tiene la posizione
+# gia' mostrata e a ogni giro si legge soltanto quello che e' arrivato dopo.
+
+set SIMLOG_POS 0   ;# byte del log gia' mostrati
+set SIMLOG_GEN 0   ;# generazione della finestra: i cicli `after` di una
+                   ;# finestra chiusa non devono lavorare per la successiva
+
+#  Aggiunge testo al visore. Autoscroll SOLO se si sta guardando il fondo: chi
+#  e' risalito a rileggere un errore non se lo vede scappare via.
+proc log_sim_scrivi {testo {tag ""}} {
+    set t .simlog.f.t
+    if {![winfo exists $t] || $testo eq ""} return
+    set infondo [expr {[lindex [$t yview] 1] >= 0.999}]
+    $t configure -state normal
+    if {$tag eq ""} { $t insert end $testo } else { $t insert end $testo $tag }
+    $t configure -state disabled
+    if {$infondo} { $t see end }
+}
+
+#  Un giro di lettura del log. Si richiama da solo finche' la finestra esiste
+#  ed e' quella per cui il ciclo era partito.
+proc segui_log_sim {gen} {
+    global SIMLOG SIMLOG_POS SIMLOG_GEN
+    if {![winfo exists .simlog] || $gen != $SIMLOG_GEN} return
+    if {[file exists $SIMLOG]} {
+        set dim [file size $SIMLOG]
+        if {$dim < $SIMLOG_POS} { set SIMLOG_POS 0 }   ;# log rifatto da capo
+        if {$dim > $SIMLOG_POS} {
+            if {![catch {open $SIMLOG r} fd]} {
+                seek $fd $SIMLOG_POS
+                set nuovo [read $fd]
+                set SIMLOG_POS [tell $fd]
+                close $fd
+                log_sim_scrivi $nuovo
+            }
+        }
+    }
+    after 500 [list segui_log_sim $gen]
+}
+
+#  Stato dei processi di simulazione. Ciclo separato e piu' lento di quello del
+#  log: sim_attiva costa tre `pgrep`, e lo stato cambia raramente.
+proc stato_sim_loop {gen} {
+    global SIMLOG_GEN
+    if {![winfo exists .simlog] || $gen != $SIMLOG_GEN} return
+    aggiorna_stato_sim
+    after 3000 [list stato_sim_loop $gen]
+}
+
+proc aggiorna_stato_sim {} {
+    if {![winfo exists .simlog]} return
+    set vivi [sim_attiva]
+    if {[llength $vivi] > 0} {
+        .simlog.b.stato configure -foreground "#006400" \
+            -text "Simulazione in corso: [join $vivi ", "]"
+        .simlog.b.stop configure -state normal
+    } else {
+        .simlog.b.stato configure -foreground "#707070" \
+            -text "Nessun processo di simulazione attivo"
+        .simlog.b.stop configure -state disabled
+    }
+}
+
+#  Chiusura del visore: e' qui che finisce la X della finestra.
+#
+#  Con la simulazione in sessione propria chiudere non la ferma piu', ma la
+#  domanda resta - la finestra e' l'unica cosa che dice che una simulazione sta
+#  girando, e chi la chiude deve sapere che cosa lascia acceso e come spegnerlo.
+proc chiudi_log_sim {} {
+    global SIMLOG
+    set vivi [sim_attiva]
+    if {[llength $vivi] > 0} {
+        set msg "Chiudere questa finestra NON ferma la simulazione.\n\n"
+        append msg "Restano in esecuzione: [join $vivi ", "].\n"
+        append msg "Girano in una sessione propria, e con loro restano vive le HMI\n"
+        append msg "e i faceplate gia' aperti.\n\n"
+        append msg "Per fermarla davvero: il pulsante \"Ferma la simulazione\" di\n"
+        append msg "questa finestra, il comando killsim, o Quit dal banco.\n\n"
+        append msg "Il log resta comunque leggibile in\n$SIMLOG\n\n"
+        append msg "Chiudo la finestra di log?"
+        if {[tk_messageBox -icon question -type yesno -default yes -parent .simlog \
+                 -title "Log della simulazione" -message $msg] ne "yes"} return
+    }
+    destroy .simlog
+}
+
+#  Ferma davvero la simulazione. Lo fa killsim, cioe' lo stesso comando con cui
+#  net_startup comincia: e' il modo previsto di ripulire l'ambiente (vedi
+#  CLAUDE.md / docs), non un kill a mano dei processi.
+proc ferma_simulazione {} {
+    set vivi [sim_attiva]
+    if {[llength $vivi] == 0} {
+        aggiorna_stato_sim
+        return
+    }
+    if {[auto_execok killsim] eq ""} {
+        tk_messageBox -icon error -title "Ferma la simulazione" -parent .simlog \
+            -message "Eseguibile 'killsim' non trovato nel PATH.\nAvvia lghmi da un ambiente LegoPST (profilo sorgiato)."
+        return
+    }
+    set msg "Fermare la simulazione in corso?\n\n"
+    append msg "Verranno terminati i processi ([join $vivi ", "]), e con loro\n"
+    append msg "le HMI e i faceplate che ci stanno sopra.\n\n"
+    append msg "Lo fa killsim, che su Linux cancella TUTTE le SHM, le code e i\n"
+    append msg "semafori di questo utente, senza filtrare per chiave.\n\n"
+    append msg "Procedere?"
+    if {[tk_messageBox -icon warning -type yesno -default no -parent .simlog \
+             -title "Ferma la simulazione" -message $msg] ne "yes"} return
+
+    log_sim_scrivi "\n--- killsim ---\n" lghmi
+    .simlog configure -cursor watch
+    update idletasks
+    set rc [catch {exec killsim} out]
+    catch {.simlog configure -cursor ""}
+    log_sim_scrivi "[string trim $out]\n" [expr {$rc ? "errore" : ""}]
+    set vivi [sim_attiva]
+    if {[llength $vivi] > 0} {
+        log_sim_scrivi "Ancora attivi: [join $vivi ", "]\n" errore
+    } else {
+        log_sim_scrivi "Simulazione fermata.\n" lghmi
+    }
+    aggiorna_stato_sim
+    catch {.status configure -text "Simulazione fermata con killsim."}
+}
+
+#  Apre (o riusa) il visore del log e fa ripartire i due cicli di
+#  aggiornamento. Il visore e' UNO: un secondo net_startup riparte da capo
+#  nella stessa finestra, come il log.
+proc mostra_log_sim {dir} {
+    global SIMLOG SIMLOG_POS SIMLOG_GEN
+    set w .simlog
+    if {![winfo exists $w]} {
+        toplevel $w
+        #  Un filo piu' alta della dimensione naturale del contenuto (~437 px):
+        #  all'apertura si vede tutto senza che nulla parta compresso.
+        wm geometry $w 720x460
+        wm minsize  $w 480 240
+        #  La X della finestra: il motivo per cui il log sta qui e non in un
+        #  terminale.
+        wm protocol $w WM_DELETE_WINDOW chiudi_log_sim
+
+        #  Le barre in basso si impacchettano PRIMA del visore, anche se stanno
+        #  sotto: pack assegna lo spazio nell'ordine di impacchettamento, e chi
+        #  arriva dopo si prende quel che resta. Mettendo per primo il testo, che
+        #  ha -expand 1, pulsanti e scritte finivano fuori dalla finestra.
+        #  Stessa scelta della finestra principale, dove .btn e .status sono
+        #  impacchettati prima delle liste.
+        frame  $w.b
+        label  $w.b.stato -anchor w -text ""
+        button $w.b.chiudi -text "Chiudi" -width 10 -command chiudi_log_sim
+        button $w.b.stop -text "Ferma la simulazione" -state disabled \
+               -command ferma_simulazione
+        pack $w.b.chiudi -side right -padx 4 -pady 6
+        pack $w.b.stop   -side right -padx 4 -pady 6
+        pack $w.b.stato  -side left  -padx 6
+        pack $w.b -side bottom -fill x
+
+        label $w.log -anchor w -padx 6 -foreground "#505050" -text "Log: $SIMLOG"
+        pack  $w.log -side bottom -fill x
+
+        #  -width/-height del testo tengono la dimensione NATURALE della finestra
+        #  sotto quella imposta da wm geometry: cosi' quello che si vede
+        #  all'apertura e' tutto, non solo il visore.
+        frame $w.f
+        text  $w.f.t -wrap none -font TkFixedFont -state disabled -bd 1 \
+              -width 80 -height 18 -relief sunken -background white \
+              -yscrollcommand "$w.f.sy set" -xscrollcommand "$w.f.sx set"
+        scrollbar $w.f.sy -orient vertical   -command "$w.f.t yview"
+        scrollbar $w.f.sx -orient horizontal -command "$w.f.t xview"
+        grid $w.f.t  $w.f.sy -sticky nsew
+        grid $w.f.sx -sticky ew
+        grid rowconfigure    $w.f 0 -weight 1
+        grid columnconfigure $w.f 0 -weight 1
+        pack $w.f -side top -fill both -expand 1 -padx 4 -pady 4
+        #  Le righe scritte da lghmi si distinguono da quelle di net_startup.
+        $w.f.t tag configure lghmi  -foreground "#000080"
+        $w.f.t tag configure errore -foreground "#a00000"
+
+        bind $w <Escape> chiudi_log_sim
+    }
+    wm title $w "net_startup - $dir"
+
+    #  Nuovo lancio: log da capo e cicli `after` di una nuova generazione (i
+    #  vecchi si spengono da soli al primo giro).
+    incr SIMLOG_GEN
+    set SIMLOG_POS 0
+    $w.f.t configure -state normal
+    $w.f.t delete 1.0 end
+    $w.f.t configure -state disabled
+    log_sim_scrivi "Simulazione avviata in $dir\n" lghmi
+    log_sim_scrivi "Gira in una sessione propria: chiudere questa finestra NON la ferma.\n\n" lghmi
+
+    wm deiconify $w
+    raise $w
+    segui_log_sim $SIMLOG_GEN
+    stato_sim_loop $SIMLOG_GEN
 }
 
 

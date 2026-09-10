@@ -57,12 +57,14 @@ Nella finestra:
   `kUpSim`, e permette di cambiare simulatore: vedi sotto.
 - **?** → versione di LegoPST e documentazione dell'ambiente: vedi sotto.
 - **Refresh** → rilegge l'elenco delle task.
-- **net_startup** → lancia la **simulazione** nella directory corrente. È
-  abilitato solo dove si può: vedi sotto.
+- **net_startup** → lancia la **simulazione** nella directory corrente e ne
+  mostra l'output in una finestra di log. È abilitato solo dove si può: vedi
+  sotto.
 - **mmi** → lancia l'**applicazione MMI** (`Alg_mmi`), indipendente dalle due
   liste: vedi sotto.
 - **Quit** (o **Esc**) → chiude **solo** il selettore. Le HMI già aperte
-  **restano vive** (le chiudi tu dalla loro finestra).
+  **restano vive** (le chiudi tu dalla loro finestra), e così la simulazione: con
+  *Quit* se ne va anche la finestra di log, ma il log resta in `/tmp`.
 
 ## Faceplate di comando (lista di destra, o `-staz`)
 
@@ -277,11 +279,13 @@ non ci sarebbe niente da riempire.
 
 ## Il pulsante `net_startup` — lanciare la simulazione
 
-Lancia `net_startup` nella **directory corrente**, dentro un terminale
-(`$LG_XTERM`), così si vedono scorrere i suoi controlli e si legge il motivo di
-un eventuale fallimento: `net_startup` verifica `variabili.rtf`, la connessione
-all'X server (`xhost`) e la licenza (`check_license algrt`), e su ognuno può
-fermarsi. La finestra resta aperta a fine esecuzione, in attesa di un Invio.
+Lancia `net_startup` nella **directory corrente** e ne mostra l'output in una
+**finestra di log** del selettore, così si vedono scorrere i suoi controlli e si
+legge il motivo di un eventuale fallimento: `net_startup` verifica
+`variabili.rtf`, la connessione all'X server (`xhost`) e la licenza
+(`check_license algrt`), e su ognuno può fermarsi. Il log è anche un file,
+`/tmp/lghmi_net_startup.log`, che resta leggibile dopo che la finestra è stata
+chiusa.
 
 **Il pulsante è abilitato solo se nella directory corrente esiste
 `variabili.rtf`**, che è il file che `net_startup` controlla per primo e senza
@@ -297,8 +301,41 @@ a ogni cambio di directory.
 > trova `dispatcher`, `net_sked` o `banco` già in esecuzione lo dice
 > esplicitamente nel testo della conferma.
 
-Il terminale parte in una sessione propria (`setsid`), quindi sopravvive al
-*Quit* del selettore, come le HMI.
+### Perché il log non è un terminale
+
+La simulazione parte in una **sessione propria** (`setsid`), staccata dalla
+finestra che la mostra. Non è un dettaglio di stile: `net_startup` lancia
+`dispatcher`, `net_sked` e `banco` con `&` da una `ksh` non interattiva, quindi
+**senza job control restano tutti nel process group di chi li ha lanciati**.
+Dentro un terminale quel process group prende un `SIGHUP` ogni volta che il
+terminale se ne va, e nessuno dei tre binari lo ignora: morivano tutti e tre, e
+con loro le HMI aperte. Succedeva in **due** modi, non uno:
+
+| gesto | cosa succedeva |
+|---|---|
+| **X** della finestra del terminale | `xterm` manda `SIGHUP` al process group del figlio |
+| **Invio** al prompt *«premi Invio per chiudere»* | esce il session leader, e il kernel manda `SIGHUP` al foreground process group |
+
+Il secondo è il peggiore: era il messaggio stesso a invitare a farlo. Un
+terminale non poteva nemmeno chiedere conferma — `xterm` **non ha alcun hook**
+sulla richiesta di chiusura del window manager (`WM_DELETE_WINDOW`). La finestra
+di log invece è del selettore, quindi la X passa da Tk e si può avvisare prima di
+chiudere.
+
+### La finestra di log
+
+- **X**, **Chiudi** o **Esc** → se la simulazione è in corso, chiedono conferma
+  ricordando che **chiudere la finestra NON la ferma**, elencando i processi che
+  restano vivi e dicendo come fermarli. Se non c'è nulla in esecuzione, si chiude
+  senza domande.
+- **Ferma la simulazione** → esegue `killsim`, cioè lo stesso comando con cui
+  `net_startup` comincia. Chiede conferma ricordando che ammazza anche le HMI e i
+  faceplate aperti, e che cancella *tutte* le SHM, le code e i semafori
+  dell'utente. È acceso solo quando c'è qualcosa da fermare.
+- In basso a sinistra lo **stato**: quali fra `dispatcher`, `net_sked` e `banco`
+  sono vivi, riletto ogni 3 secondi.
+- Il visore è **uno solo**: un secondo `net_startup` riparte da capo nella stessa
+  finestra, come il log.
 
 Con `-insim` il pulsante è sempre spento, qualunque cosa ci sia nella
 directory: vedi sopra.
