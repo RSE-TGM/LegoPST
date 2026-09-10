@@ -91,10 +91,18 @@ lo dice in riga di stato invece di lasciar credere a una scrittura fallita.
 
 ## Trappole
 
-- **`viewval` cerca `net_sked` con `ps -ao ucomm`**, che elenca solo i processi
-  legati a un terminale: una simulazione avviata senza tty (`nohup`/`setsid` da
-  uno script, come fa la FMU) risulta invisibile e viewval risponde
-  *"Simulazione non attiva! manca net_sked"* anche se il simulatore sta girando.
+- **`viewval` cerca `net_sked` in `ps -eo ucomm`.** Fino al 2026-09-10 usava
+  `ps -ao ucomm`, e `-a` elenca **solo i processi legati a un terminale**: una
+  simulazione avviata senza tty — `setsid`/`nohup` da uno script, come fanno il
+  selettore `lghmi` e la FMU headless — risultava invisibile, e viewval
+  rispondeva *"Simulazione non attiva! manca net_sked"* con il simulatore vivo,
+  spegnendo *Show Value*. Corretto in `get_work_directory()`
+  ([viewshr.c](viewshr.c)), nella copia gemella del `dataserver` e nell'attesa
+  di fine processi di `net_sked` (`processi_terminati()` in `sked_fine.c`, che
+  con `-a` dava per terminati processi ancora vivi).
+  > **Regola**: per sapere se un processo della simulazione è vivo si usa
+  > `ps -e` / `ps -A` o `pgrep`. Mai `ps -a`: la simulazione un terminale può
+  > benissimo non averlo.
 - La modalità interattiva **richiede un terminale vero**: con stdin rediretto
   esce subito (guardia su EOF).
 - Il file di log di `-l` è aperto in *append* e riceve un'intestazione di

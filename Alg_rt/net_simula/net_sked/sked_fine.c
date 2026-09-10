@@ -479,8 +479,17 @@ int trovati=0;
 #if defined AIX 
     system("ps -ef | grep -v PID>lista.proc");
 #endif
-#if defined OSF1 || defined SCO_UNIX || defined LINUX
+#if defined OSF1 || defined SCO_UNIX
     system("ps -a | grep -v PID>lista.proc");
+#endif
+#if defined LINUX
+/*  -e e non -a: `ps -a` elenca solo i processi legati a un terminale di
+    controllo, e la simulazione lanciata dal selettore lghmi (o headless
+    dalla FMU) gira in una sessione propria, senza terminale. Con -a
+    processi_terminati() li dava per terminati mentre erano ancora vivi, e
+    l'attesa qui sopra finiva subito. Il formato delle colonne e' lo stesso,
+    quindi il parsing del pid non cambia.  */
+    system("ps -e | grep -v PID>lista.proc");
 #endif
 #if defined ULTRIX
     system("ps -ax>lista.proc");

@@ -322,6 +322,14 @@ sulla richiesta di chiusura del window manager (`WM_DELETE_WINDOW`). La finestra
 di log invece è del selettore, quindi la X passa da Tk e si può avvisare prima di
 chiudere.
 
+> **Conseguenza da ricordare**: la simulazione lanciata da qui **non ha un
+> terminale di controllo**, quindi non compare in `ps -a`, che elenca solo i
+> processi legati a un tty. Chi deve sapere se un processo della simulazione è
+> vivo usa `ps -e`/`ps -A` o `pgrep`. Su questo scoglio si era arenato *Show
+> Value*: `viewval` cercava `net_sked` con `ps -ao ucomm` e dichiarava la
+> simulazione spenta (corretto il 2026-09-10, vedi
+> [viewval/README.md](../Alg_rt/net_simula/viewval/README.md)).
+
 ### La finestra di log
 
 - **X**, **Chiudi** o **Esc** → se la simulazione è in corso, chiedono conferma

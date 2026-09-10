@@ -288,7 +288,13 @@ static char dirbuff[DIMDIRBUFF];
 FILE *fpop;
 int retval;
 
-fpop=popen("ps -ao ucomm","r");
+/*  -e e non -a: `ps -a` elenca SOLO i processi legati a un terminale di
+    controllo. La simulazione lanciata dal selettore lghmi - come quella
+    headless della FMU, che usa setsid/nohup - gira in una sessione propria
+    e un terminale non ce l'ha: con -a net_sked non compariva e viewval
+    usciva qui sotto con "Simulazione non attiva", spegnendo Show Value
+    mentre la simulazione era viva.  */
+fpop=popen("ps -eo ucomm","r");
 
 while ( fgets(dirbuff,DIMDIRBUFF,fpop) != NULL ) 
       {
