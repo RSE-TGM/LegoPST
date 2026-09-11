@@ -54,6 +54,77 @@ echo "Sorgente:    $SORGENTE"
 echo "Destinazione: $DEST"
 echo ""
 
+# ---------------------------------------------------------------------------
+# COSA FA PARTE DELLA DEMO
+# ---------------------------------------------------------------------------
+# Elenco esplicito delle directory ammesse, livello per livello. Serve perche'
+# la sorgente di default (~/legopst_userstd) e' una directory di LAVORO: ci si
+# accumulano simulatori, copie di salvataggio e prove che nella demo non devono
+# entrare. Senza questo controllo il pacchetto passa in silenzio da 17 MB a
+# oltre 100 - ed e' gia' successo, con il push rifiutato da GitHub, che non
+# accetta file sopra i 100 MB.
+#
+# Quando la demo cambia davvero, si aggiorna QUESTO elenco: e' la definizione
+# di cosa la demo contiene, non un filtro di comodo.
+AMMESSE_RADICE="legocad sked"
+AMMESSE_LEGOCAD="libgraph libut libut_reg MDC_GV prova prova1 r_MDC0"
+AMMESSE_SKED="prova"
+
+INTRUSI=""
+MANCANTI=""
+
+# $1 = path relativo dentro la sorgente ("" = radice), $2 = nomi ammessi
+controlla() {
+    local rel="$1" ammesse="$2" dir nome
+    dir="$SORGENTE${rel:+/$rel}"
+    if [ ! -d "$dir" ]; then
+        MANCANTI="$MANCANTI  ${rel:-.}
+"
+        return 0
+    fi
+    # find, non il glob: cosi' entrano anche i nomi che cominciano con un punto
+    while IFS= read -r nome; do
+        case " $ammesse " in
+            *" $nome "*) ;;
+            *) INTRUSI="$INTRUSI  ${rel:+$rel/}$nome
+" ;;
+        esac
+    done < <(find "$dir" -mindepth 1 -maxdepth 1 -printf '%f\n' | sort)
+    for nome in $ammesse; do
+        [ -e "$dir/$nome" ] || MANCANTI="$MANCANTI  ${rel:+$rel/}$nome
+"
+    done
+}
+
+controlla ""        "$AMMESSE_RADICE"
+controlla "legocad" "$AMMESSE_LEGOCAD"
+controlla "sked"    "$AMMESSE_SKED"
+
+if [ -n "$INTRUSI" ]; then
+    {
+        echo "ERRORE: la sorgente contiene roba che non fa parte della demo:"
+        printf '%s' "$INTRUSI"
+        echo ""
+        echo "$SORGENTE e' una directory di lavoro. Confezionarla tutta porta il"
+        echo "pacchetto ben oltre i 100 MB per file che GitHub rifiuta."
+        echo ""
+        echo "Come procedere:"
+        echo "  - confeziona da una sorgente pulita:"
+        echo "        $0 /percorso/di/una/legopst_userstd/pulita"
+        echo "  - oppure, se la demo e' cambiata sul serio, aggiorna gli elenchi"
+        echo "    AMMESSE_* in testa a questo script."
+    } >&2
+    exit 1
+fi
+
+# Non fatale: una demo incompleta e' un guaio diverso, e chi confeziona una
+# demo ridotta apposta deve poterlo fare.
+if [ -n "$MANCANTI" ]; then
+    echo "ATTENZIONE: elencate fra le ammesse ma assenti nella sorgente:"
+    printf '%s' "$MANCANTI"
+    echo ""
+fi
+
 # --owner/--group=0 --numeric-owner: NON registrare nel tarball l'UID di chi
 # confeziona. Quell'UID e' una proprieta' della macchina di confezionamento e
 # altrove non significa niente. Estraendo da root sotto un runtime rootless
