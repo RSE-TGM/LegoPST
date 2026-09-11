@@ -255,49 +255,118 @@ else
     DISPLAY_VALUE="$DISPLAY"
 fi
 
-echo '=== Configurazione utente dinamica (UID: HOST_USER_ID_VAR, GID: HOST_GROUP_ID_VAR, Utente: HOST_USERNAME_VAR) ==='
+# =============================================================================
+# Chi e' l'utente dell'host, visto da dentro il container
+# =============================================================================
+# Con Docker "classico" il root del container e' il root dell'host: un file
+# scritto nel bind mount esce sull'host con lo stesso UID numerico che ha qui
+# dentro, e per intestare la demo all'utente basta un chown al suo UID.
+#
+# In modalita' ROOTLESS no. Vale per Docker rootless (rootlesskit) e per Podman
+# rootless, che spesso si presenta proprio come "docker" tramite lo shim
+# podman-docker: il comando e' lo stesso, il runtime sotto no. Demone/container
+# finiscono in uno user namespace dove l'UID dell'host diventa 0 e i subuid di
+# /etc/subuid (tipicamente da 100000 in su) diventano 1..65536:
+#
+#     scritto qui dentro come...    ...esce sull'host come
+#     root (UID 0)                  l'utente dell'host       <- quello che serve
+#     UID 1000                      99999 + 1000 = 100999    <- nessun utente
+#
+# Cioe' il "chown all'UID dell'host" fa esattamente il danno che dovrebbe
+# evitare: la demo finisce a 100999, che sull'host non e' nessuno, e con i modi
+# 0700 che si porta dietro il tarball l'utente non riesce nemmeno a entrarci.
+#
+# Il rilevamento non indovina niente: guarda di chi risulta /host_home - che
+# sull'host e' la home dell'utente - visto da qui dentro. Quel numero E'
+# l'utente dell'host in coordinate container, qualunque sia la mappatura.
+HOST_HOME_UID=$(stat -c %u /host_home 2>/dev/null || true)
+HOST_HOME_GID=$(stat -c %g /host_home 2>/dev/null || true)
 
-# Crea il gruppo se non esiste con il GID dell'host
-if ! getent group "HOST_GROUP_ID_VAR" >/dev/null 2>&1; then
-    echo "Creando gruppo 'HOST_USERNAME_VAR' (GID: HOST_GROUP_ID_VAR)"
-    groupadd -g "HOST_GROUP_ID_VAR" "HOST_USERNAME_VAR"
+CONT_UID="HOST_USER_ID_VAR"
+CONT_GID="HOST_GROUP_ID_VAR"
+LOGIN_USER="HOST_USERNAME_VAR"
+ROOTLESS=false
+
+if [ "$HOST_HOME_UID" = "HOST_USER_ID_VAR" ]; then
+    : # Runtime classico (o Podman --userns=keep-id): l'UID dell'host vale
+      # anche qui dentro. Niente da fare.
+elif [ "$HOST_HOME_UID" = "0" ]; then
+    ROOTLESS=true
+    CONT_UID=0
+    CONT_GID="${HOST_HOME_GID:-0}"
+    LOGIN_USER=root
+    USER_HOME_IN_CONTAINER="/root"
+    echo "=== Modalita' rootless rilevata (Podman o Docker) ==="
+    echo "/host_home risulta di root: qui dentro l'utente dell'host E' root."
+    echo "Si lavora percio' come root del container. Altrimenti tutto quello che"
+    echo "si scrive nella home uscirebbe sull'host intestato a un UID mappato"
+    echo "(100999 e simili), che HOST_USERNAME_VAR non puo' nemmeno leggere."
+    echo ""
+elif [ -z "$HOST_HOME_UID" ]; then
+    echo "ATTENZIONE: /host_home non e' leggibile (stat fallito)."
+    echo "Proseguo come se fosse un runtime classico, UID HOST_USER_ID_VAR."
+    echo ""
 else
-    EXISTING_GROUP_NAME=$(getent group "HOST_GROUP_ID_VAR" | cut -d: -f1)
-    if [ "$EXISTING_GROUP_NAME" != "HOST_USERNAME_VAR" ]; then
-        echo "Attenzione: GID HOST_GROUP_ID_VAR è già usato dal gruppo '$EXISTING_GROUP_NAME'"
-        if getent group "HOST_USERNAME_VAR" >/dev/null 2>&1; then 
-            groupmod -g "HOST_GROUP_ID_VAR" "HOST_USERNAME_VAR"
-        else 
-            groupadd -g "HOST_GROUP_ID_VAR" "HOST_USERNAME_VAR"
+    echo "ATTENZIONE: /host_home risulta dell'UID $HOST_HOME_UID, che non e'"
+    echo "ne' HOST_USER_ID_VAR (runtime classico) ne' 0 (rootless). Il bind mount"
+    echo "e' rimappato in un modo che non so tradurre: userns-remap, oppure un"
+    echo "filesystem che non tiene le proprieta' Unix. Uso $HOST_HOME_UID come"
+    echo "proprietario; se i chown falliscono, i file restano come sono."
+    echo ""
+    CONT_UID="$HOST_HOME_UID"
+    CONT_GID="${HOST_HOME_GID:-HOST_GROUP_ID_VAR}"
+fi
+
+if [ "$ROOTLESS" = true ]; then
+    # Niente utente da creare: si usa root, che qui dentro E' l'utente
+    # dell'host. E niente sudoers: root non ne ha bisogno.
+    echo "=== Utente nel container: root (sull'host risulta HOST_USERNAME_VAR) ==="
+    mkdir -p "$USER_HOME_IN_CONTAINER"
+else
+    echo '=== Configurazione utente dinamica (UID: HOST_USER_ID_VAR, GID: HOST_GROUP_ID_VAR, Utente: HOST_USERNAME_VAR) ==='
+
+    # Crea il gruppo se non esiste con il GID dell'host
+    if ! getent group "HOST_GROUP_ID_VAR" >/dev/null 2>&1; then
+        echo "Creando gruppo 'HOST_USERNAME_VAR' (GID: HOST_GROUP_ID_VAR)"
+        groupadd -g "HOST_GROUP_ID_VAR" "HOST_USERNAME_VAR"
+    else
+        EXISTING_GROUP_NAME=$(getent group "HOST_GROUP_ID_VAR" | cut -d: -f1)
+        if [ "$EXISTING_GROUP_NAME" != "HOST_USERNAME_VAR" ]; then
+            echo "Attenzione: GID HOST_GROUP_ID_VAR è già usato dal gruppo '$EXISTING_GROUP_NAME'"
+            if getent group "HOST_USERNAME_VAR" >/dev/null 2>&1; then 
+                groupmod -g "HOST_GROUP_ID_VAR" "HOST_USERNAME_VAR"
+            else 
+                groupadd -g "HOST_GROUP_ID_VAR" "HOST_USERNAME_VAR"
+            fi
         fi
     fi
-fi
 
-# Crea l'utente se non esiste con l'UID dell'host
-if ! getent passwd "HOST_USER_ID_VAR" >/dev/null 2>&1; then
-    echo "Creando utente 'HOST_USERNAME_VAR' (UID: HOST_USER_ID_VAR, GID: HOST_GROUP_ID_VAR)"
-    useradd -u "HOST_USER_ID_VAR" -g "HOST_GROUP_ID_VAR" -m -d "$USER_HOME_IN_CONTAINER" -s /bin/bash "HOST_USERNAME_VAR"
-else
-    EXISTING_USER_WITH_UID=$(getent passwd "HOST_USER_ID_VAR" | cut -d: -f1)
-    if [ "$EXISTING_USER_WITH_UID" != "HOST_USERNAME_VAR" ]; then
-        echo "ERRORE: UID HOST_USER_ID_VAR è già usato dall'utente '$EXISTING_USER_WITH_UID'"
-        exit 1
+    # Crea l'utente se non esiste con l'UID dell'host
+    if ! getent passwd "HOST_USER_ID_VAR" >/dev/null 2>&1; then
+        echo "Creando utente 'HOST_USERNAME_VAR' (UID: HOST_USER_ID_VAR, GID: HOST_GROUP_ID_VAR)"
+        useradd -u "HOST_USER_ID_VAR" -g "HOST_GROUP_ID_VAR" -m -d "$USER_HOME_IN_CONTAINER" -s /bin/bash "HOST_USERNAME_VAR"
     else
-        echo "Utente 'HOST_USERNAME_VAR' (UID HOST_USER_ID_VAR) trovato. Aggiorno configurazione."
-        usermod -g "HOST_GROUP_ID_VAR" -d "$USER_HOME_IN_CONTAINER" -s /bin/bash "HOST_USERNAME_VAR"
+        EXISTING_USER_WITH_UID=$(getent passwd "HOST_USER_ID_VAR" | cut -d: -f1)
+        if [ "$EXISTING_USER_WITH_UID" != "HOST_USERNAME_VAR" ]; then
+            echo "ERRORE: UID HOST_USER_ID_VAR è già usato dall'utente '$EXISTING_USER_WITH_UID'"
+            exit 1
+        else
+            echo "Utente 'HOST_USERNAME_VAR' (UID HOST_USER_ID_VAR) trovato. Aggiorno configurazione."
+            usermod -g "HOST_GROUP_ID_VAR" -d "$USER_HOME_IN_CONTAINER" -s /bin/bash "HOST_USERNAME_VAR"
+        fi
     fi
-fi
 
-# Configurazione sudo
-SUDOERS_FILE_PATH="/etc/sudoers.d/HOST_USERNAME_VAR"
-echo "HOST_USERNAME_VAR ALL=(ALL) NOPASSWD:ALL" > "${SUDOERS_FILE_PATH}"
-chmod 0440 "${SUDOERS_FILE_PATH}"
+    # Configurazione sudo
+    SUDOERS_FILE_PATH="/etc/sudoers.d/HOST_USERNAME_VAR"
+    echo "HOST_USERNAME_VAR ALL=(ALL) NOPASSWD:ALL" > "${SUDOERS_FILE_PATH}"
+    chmod 0440 "${SUDOERS_FILE_PATH}"
+fi
 
 # Copia xauth per l'utente (solo in modalità socat)
 if [[ "USE_SOCAT_VAR" == "true" ]]; then
     mkdir -p "$USER_HOME_IN_CONTAINER"
     cp /tmp/.Xauthority "$USER_HOME_IN_CONTAINER/.Xauthority" 2>/dev/null || touch "$USER_HOME_IN_CONTAINER/.Xauthority"
-    chown "HOST_USER_ID_VAR:HOST_GROUP_ID_VAR" "$USER_HOME_IN_CONTAINER/.Xauthority"
+    chown "$CONT_UID:$CONT_GID" "$USER_HOME_IN_CONTAINER/.Xauthority"
     chmod 600 "$USER_HOME_IN_CONTAINER/.Xauthority"
 fi
 
@@ -312,8 +381,40 @@ if [[ "RUN_DEMO_FLAG" == "true" ]]; then
         echo "=========================================="
         echo "  Installazione Demo LegoPST"
         echo "=========================================="
-        tar xvfz /home/legoroot_fedora41/demo/legopst_userstd.tgz -C "/host_home/"
-        chown -R "HOST_USER_ID_VAR:HOST_GROUP_ID_VAR" "/host_home/legopst_userstd"
+        # --no-same-owner: NON ripristinare l'UID registrato nel tarball (che e'
+        # 1000, l'UID di chi ha confezionato la demo). Estraendo da root, senza
+        # questa opzione tar intesta ogni file a 1000 - che sotto rootless e'
+        # gia' l'UID sbagliato (esce sull'host come 100999) - e solo dopo ci
+        # applica il modo. Con --no-same-owner i file restano di chi estrae e a
+        # decidere il proprietario e' il solo chown qui sotto, che sa qual e'
+        # quello giusto. Probabile che sia anche la fine dei "Cannot change
+        # mode": il chmod cadeva su file appena passati a un altro UID.
+        #
+        # L'estrazione resta comunque dentro un "if": su filesystem che non
+        # implementano i permessi Unix (cartella condivisa di VM, NTFS/exFAT,
+        # share di rete) tar puo' lamentarsi lo stesso. I file vengono estratti:
+        # quello che non riesce e' solo il ripristino del modo. Senza l'"if" il
+        # `set -e` in testa allo script farebbe morire tutto QUI, e non
+        # girerebbero il chown e i link a legocad/sked che stanno subito sotto:
+        # la demo resterebbe senza proprietario giusto e senza link, cioe'
+        # inutilizzabile, senza che nulla lo dica.
+        if ! tar --no-same-owner -xvzf /home/legoroot_fedora41/demo/legopst_userstd.tgz -C "/host_home/"; then
+            echo ""
+            echo "ATTENZIONE: tar ha segnalato errori durante l'estrazione."
+            echo "Se sono del tipo \"Cannot change mode\" sono innocui: i file ci"
+            echo "sono, ma il filesystem dell'host non accetta i permessi."
+            echo "Proseguo con l'installazione."
+            echo ""
+        fi
+        # Stessa ragione dell'"if" sopra: anche il chown puo' fallire su quei
+        # filesystem, e nudo sotto `set -e` ammazzerebbe l'installazione un
+        # attimo prima dei link.
+        if ! chown -R "$CONT_UID:$CONT_GID" "/host_home/legopst_userstd"; then
+            echo ""
+            echo "ATTENZIONE: chown -R fallito su /host_home/legopst_userstd."
+            echo "I file restano come li ha scritti tar. Proseguo."
+            echo ""
+        fi
         
         echo ""
         echo "Contenuto directory demo:"
@@ -322,11 +423,16 @@ if [[ "RUN_DEMO_FLAG" == "true" ]]; then
         echo "- sked:"
         ls -la /host_home/legopst_userstd/sked | head -10
         
-        # Crea link simbolici
-        ln -sf /host_home/legopst_userstd/legocad /host_home/legocad 2>/dev/null || true
-        ln -sf /host_home/legopst_userstd/sked /host_home/sked 2>/dev/null || true
-        chown "HOST_USER_ID_VAR:HOST_GROUP_ID_VAR" /host_home/legocad 2>/dev/null || true
-        chown "HOST_USER_ID_VAR:HOST_GROUP_ID_VAR" /host_home/sked 2>/dev/null || true
+        # Link simbolici, RELATIVI. Con il target assoluto (/host_home/...)
+        # funzionerebbero solo qui dentro: /host_home e' il nome che la home ha
+        # nel container, sull'host non esiste e i due link resterebbero
+        # penzolanti. Relativi si risolvono giusti in tutti e due i mondi:
+        # ~/legopst_userstd/legocad sull'host, /host_home/legopst_userstd/legocad
+        # qui. Ed e' anche la convenzione delle installazioni native.
+        ln -sfn legopst_userstd/legocad /host_home/legocad 2>/dev/null || true
+        ln -sfn legopst_userstd/sked /host_home/sked 2>/dev/null || true
+        chown -h "$CONT_UID:$CONT_GID" /host_home/legocad 2>/dev/null || true
+        chown -h "$CONT_UID:$CONT_GID" /host_home/sked 2>/dev/null || true
         
         echo "=========================================="
         echo "  Demo installata in: HOST_USER_HOME_VAR/legopst_userstd"
@@ -334,6 +440,19 @@ if [[ "RUN_DEMO_FLAG" == "true" ]]; then
         echo ""
     else
         echo "Demo già installata in /host_home/legopst_userstd"
+        # Se e' stata installata da una lgdock precedente sotto rootless, e'
+        # intestata all'UID sbagliato e sull'host non si apre nemmeno.
+        DEMO_UID=$(stat -c %u /host_home/legopst_userstd/legocad 2>/dev/null || true)
+        if [ -n "$DEMO_UID" ] && [ "$DEMO_UID" != "$CONT_UID" ]; then
+            echo ""
+            echo "ATTENZIONE: la demo presente risulta dell'UID $DEMO_UID, non $CONT_UID."
+            echo "L'ha installata una versione di lgdock che non riconosceva questa"
+            echo "mappatura: sull'host non e' utilizzabile. Per rifarla, da una"
+            echo "shell dell'host:"
+            echo "    rm -rf ~/legopst_userstd ~/legocad ~/sked"
+            echo "    lgrun -d"
+            echo ""
+        fi
     fi
 fi
 
@@ -341,7 +460,7 @@ fi
 ln -sf /host_home/legocad "$USER_HOME_IN_CONTAINER/legocad" 2>/dev/null || true
 ln -sf /host_home/sked "$USER_HOME_IN_CONTAINER/sked" 2>/dev/null || true
 ln -sf /host_home/defaults "$USER_HOME_IN_CONTAINER/defaults" 2>/dev/null || true
-chown -h "HOST_USER_ID_VAR:HOST_GROUP_ID_VAR" "$USER_HOME_IN_CONTAINER/host_data"
+chown -h "$CONT_UID:$CONT_GID" "$USER_HOME_IN_CONTAINER/host_data"
 
 # Configurazione .bash_profile
 BASH_PROFILE_PATH="$USER_HOME_IN_CONTAINER/.bash_profile"
@@ -372,19 +491,21 @@ PROFILE_LEGOROOT_PATH="/home/legoroot_fedora41/.profile_legoroot"
     echo "fi"
 } > "$BASH_PROFILE_PATH"
 
-chown "HOST_USER_ID_VAR:HOST_GROUP_ID_VAR" "$BASH_PROFILE_PATH"
+chown "$CONT_UID:$CONT_GID" "$BASH_PROFILE_PATH"
 
 echo '======================================================================='
 echo '  Container Pronto'
 echo '======================================================================='
-echo "Utente: HOST_USERNAME_VAR"
-echo "UID: HOST_USER_ID_VAR, GID: HOST_GROUP_ID_VAR"
+echo "Utente: $LOGIN_USER (UID $CONT_UID, GID $CONT_GID)"
+if [ "$ROOTLESS" = true ]; then
+    echo "Runtime: rootless - sull'host i file risultano di HOST_USERNAME_VAR"
+fi
 echo "DISPLAY: $DISPLAY_VALUE"
 [[ "USE_SOCAT_VAR" == "true" ]] && echo "X11 Mode: socat bridge" || echo "X11 Mode: standard"
 echo '======================================================================='
 echo ''
 
-exec su - "HOST_USERNAME_VAR"
+exec su - "$LOGIN_USER"
 SCRIPT_EOF
 
 # =============================================================================

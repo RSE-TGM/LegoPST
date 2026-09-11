@@ -123,6 +123,122 @@ echo $DISPLAY
 lgrun --socat
 ```
 
+### `lgrun -d`: demo di un utente inesistente (100999), o "Cannot change mode"
+
+```
+tar: ./legopst_userstd/legocad/r_MDC0/proc: Cannot change mode to rwxr-xr-x: Operation not permitted
+$ ls -ln ~/legopst_userstd
+drwx------ 9 100999 100999 4096 Oct  1  2025 legocad
+drwx------ 3 100999 100999 4096 Oct  1  2025 sked
+```
+
+I due sintomi hanno **una causa sola: il runtime è in modalità rootless**, e il
+numero `100999` ne è la firma. Vale per Docker rootless *e per Podman*, che è il
+caso più insidioso: con il pacchetto `podman-docker` il comando si chiama
+`docker`, si comporta come `docker`, ma sotto è Podman rootless. Verifica:
+
+```bash
+docker --version                  # "podman version ..." se è lo shim
+docker info 2>/dev/null | grep -iE "rootless|podman"
+grep "^$USER:" /etc/subuid        # es. "antonio:100000:65536"
+```
+
+Ma la prova che chiude la questione, senza interpretare niente, è chiedere al
+container di chi gli risulta la home montata:
+
+```bash
+docker run --rm -v "$HOME:/host_home" aguagliardi/legopst_multi:2.0 \
+       stat -c '%u %g' /host_home
+```
+
+`0 0` = rootless. `1000 1000` = runtime classico.
+
+`100999` è `99999 + 1000`: il runtime mette demone e container in uno user
+namespace dove **l'UID dell'host diventa 0** e i subuid di `/etc/subuid`
+(tipicamente da 100000) diventano `1..65536`. Sul bind mount della home:
+
+| scritto nel container come | esce sull'host come |
+|---|---|
+| root (UID 0) | l'utente dell'host (1000) — **quello che serve** |
+| UID 1000 | `99999 + 1000` = 100999 — nessun utente |
+
+Con un runtime "classico" (Docker rootful, o Podman con `--userns=keep-id`) vale
+il contrario, e l'UID dell'host è anche l'UID da usare nel container. `lgdock` era
+scritto **solo** per quel caso: creava un utente con l'UID dell'host e faceva
+`chown -R` a quell'UID. Su rootless quel `chown` è
+esattamente il guasto — intesta la demo a 100999, che sull'host non è nessuno — e
+con i modi `0700` rimasti l'utente non riesce nemmeno a entrare nelle directory.
+Non è una regressione: era un ramo che non era mai stato scritto, e finché le
+macchine sono state rootful non si è visto. Il primo sintomo ad arrivare è che
+`tar` muore (`set -e`) **prima** del `chown` e dei link, quindi il `chown` non
+fa nemmeno in tempo a sbagliare: il `100999` lo lascia `tar`, ripristinando
+l'UID registrato nel tarball.
+
+**Cosa fa adesso `lgdock`.** Non prova a riconoscere il runtime — cosa che con lo
+shim `podman-docker` fallirebbe: guarda **di chi risulta `/host_home`** (la home
+dell'host) visto da dentro il container. Quel numero *è* l'utente dell'host in
+coordinate container, qualunque sia la mappatura, e vale identico per Docker,
+Podman e per `--userns=keep-id`:
+
+- risulta l'UID dell'host → runtime classico, tutto come prima;
+- risulta **0** → rootless: si lavora come root del container (niente utente
+  creato, niente sudoers) e si fa `chown` a `0:0`, così sull'host i file
+  risultano dell'utente. Lo dice con un banner
+  `=== Modalita' rootless rilevata (Podman o Docker) ===`;
+- risulta altro (`65534`, userns-remap, filesystem senza proprietà Unix) → non è
+  traducibile: avvisa e prosegue con quel valore.
+
+Inoltre l'estrazione usa ora `tar --no-same-owner` — il proprietario lo decide il
+solo `chown`, non quello che è registrato nel tarball — e **sia il `tar` sia il
+`chown` sono intercettati**: entrambi possono fallire su filesystem che non
+implementano i permessi Unix (cartella condivisa di VM — vboxsf, virtiofs, 9p —
+NTFS/exFAT, share di rete), e lo script comincia con `set -e`. Nudi, ammazzavano
+l'installazione **prima** dei link `~/legocad` e `~/sked`, lasciando una demo
+inutilizzabile senza che nulla lo dicesse.
+
+**Se hai già una demo installata da una versione precedente** non viene toccata:
+`lgrun -d` si ferma a "Demo già installata". Adesso però controlla di chi è e
+avvisa. Per rifarla (il `rm` funziona anche se i file sono di 100999: conta il
+permesso sulla home, non sui file):
+
+```bash
+rm -rf ~/legopst_userstd ~/legocad ~/sked
+lgrun -d
+```
+
+## Confezionamento della demo
+
+Il tarball `demo/legopst_userstd.tgz` si costruisce con
+[`demo/make_demo_tgz.sh`](../demo/make_demo_tgz.sh), non a mano: lo script esiste
+proprio perché l'esclusione qui sotto non si perda al prossimo repack.
+
+**Dalla demo si esclude `*/proc`**, cioè la directory di *build* di ogni task:
+
+- contiene l'**eseguibile della task** (`lg2`) e gli oggetti compilati
+  (`foraus.o`), binari costruiti sulla macchina di confezionamento contro le
+  *sue* librerie: su un'altra macchina non valgono niente. Chi usa la demo rifà
+  la task con i propri eseguibili e librerie, e `proc/` viene ricreata lì;
+- è il grosso del pacchetto: 47 MB non compressi, da 20 MB a 17 MB compressi;
+- sotto `out/` il `proc` non è nemmeno una directory ma un **symlink**, che
+  `net_sked` ricrea da solo a ogni avvio di task — e prima lo cancella apposta,
+  per non lasciarne uno stantìo (`sked_start.c`, `unlink()` poi `symlink()`).
+  Quelli confezionati erano per giunta **assoluti e cablati sulla home di chi
+  aveva fatto il pacchetto**, quindi rotti su qualunque altra macchina.
+
+> **Non "aggiustare" quei symlink creando una directory vera al loro posto.**
+> `net_sked` fa `unlink()` e poi `symlink()`: su una directory l'`unlink`
+> fallisce, il `symlink` fallisce con `EEXIST` e si finisce su `exit(1)` — la
+> task non parte. **Assente** è lo stato giusto.
+
+Resta invece `out/` con `f21.dat`, `lg5.out`, `lg5c.out`: `f21.dat` viene letto a
+runtime (`sked_start.c`, `sked_fine.c`, `lg5sim.for`), quindi si esclude
+`*/proc`, non `*/out`.
+
+> Dopo aver rigenerato il tarball **va ricostruita l'immagine Docker**: il
+> `Dockerfile_LegoPST` copia l'intero repository (`COPY /LegoPST
+> /home/legoroot_fedora41`) e la demo viaggia lì dentro. Senza rebuild, `lgrun -d`
+> continua a estrarre il tarball vecchio.
+
 ## Disinstallazione
 
 Per rimuovere LegoPST:
