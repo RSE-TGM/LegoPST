@@ -56,6 +56,12 @@ catch {source [file join $env(LG_TIX) openhelp.tcl]}
 # installazione di LegoPST, non solo dove qualcuno ha installato pandoc.
 catch {source [file join $env(LG_TIX) md2html.tcl]}
 
+# balloon.tcl porta set_balloon, l'aiuto a comparsa gia' usato da draw2gr: si
+# usa quello invece di rifarne uno qui, cosi' i suggerimenti hanno lo stesso
+# aspetto e lo stesso ritardo in tutta l'interfaccia. Se il file non c'e' si
+# perdono solo i suggerimenti (vedi aiuto_a_comparsa).
+catch {source [file join $env(LG_TIX) balloon.tcl]}
+
 set TASKROOT [expr {[info exists env(LG_TASKROOT)] && $env(LG_TASKROOT) ne "" \
                     ? $env(LG_TASKROOT) : [file join $env(HOME) legocad]}]
 
@@ -256,7 +262,7 @@ proc apri_faceplate {} {
     global ITEMS_STAZ LB_STAZ
     set sel [$LB_STAZ curselection]
     if {[llength $sel] == 0} {
-        .status configure -text "Seleziona una pagina di faceplate dalla lista."
+        .status configure -text "Select a faceplate page from the list."
         return
     }
     lassign [lindex $ITEMS_STAZ [lindex $sel 0]] label dir nome
@@ -269,7 +275,7 @@ proc apri_faceplate {} {
         lassign $attivo pid cwd
         if {$cwd ne "" && [file normalize $cwd] ne [file normalize $dir]} {
             tk_messageBox -icon warning -title "xstaz" -parent . -message \
-                "xstaz e' gia' in esecuzione (pid $pid) nella directory:\n$cwd\n\nLa coda delle richieste e' unica per simulazione: chiudi quel xstaz prima di aprire pagine di:\n$dir"
+                "xstaz is already running (pid $pid) in the directory:\n$cwd\n\nThe request queue is unique per simulation: close that xstaz before opening pages of:\n$dir"
             return
         }
     } else {
@@ -277,7 +283,7 @@ proc apri_faceplate {} {
         set old [pwd]
         if {[catch {cd $dir}]} {
             tk_messageBox -icon error -title "xstaz" -parent . \
-                -message "Directory non accessibile:\n$dir"
+                -message "Directory not accessible:\n$dir"
             return
         }
         #  xstaz parte ICONIFICATO (una finestrella con il solo tasto Quit) e
@@ -299,10 +305,10 @@ proc apri_faceplate {} {
     cd $old
     if {$rc} {
         tk_messageBox -icon error -title "Faceplate" -parent . -message \
-            "Impossibile richiedere la pagina '$nome':\n$out"
+            "Cannot request page '$nome':\n$out"
         return
     }
-    .status configure -text "Pagina '$nome' richiesta a xstaz  ($dir)"
+    .status configure -text "Page '$nome' requested from xstaz  ($dir)"
 }
 
 #  Riempie la lista delle pagine di PROCESSO (task con .tom). Ritorna il testo
@@ -319,13 +325,13 @@ proc riempi_proc {} {
             $LB_PROC insert end $label
             lappend ITEMS_PROC [list $label $dir $name]
         }
-        catch {.hdr.s01 configure -text "Simulatore: $::s01_name  $::s01_desc"}
+        catch {.hdr.s01 configure -text "Simulator: $::s01_name  $::s01_desc"}
         if {[llength $ITEMS_PROC] == 0} {
-            return "Nessuna task di processo (P) nel file S01"
+            return "No process task (P) in the S01 file"
         }
         $LB_PROC selection clear 0 end
         $LB_PROC selection set 0
-        return "[llength $ITEMS_PROC] task di processo (S01: $::s01_name)"
+        return "[llength $ITEMS_PROC] process tasks (S01: $::s01_name)"
     }
 
     # fuori dalla modalita' S01 l'intestazione del simulatore non ha senso:
@@ -333,7 +339,7 @@ proc riempi_proc {} {
     catch {.hdr.s01 configure -text ""}
 
     if {![file isdirectory $TASKROOT]} {
-        return "Directory task non trovata: $TASKROOT"
+        return "Task directory not found: $TASKROOT"
     }
     set tasks [scan_tasks $TASKROOT]
     foreach t $tasks {
@@ -341,11 +347,11 @@ proc riempi_proc {} {
         lappend ITEMS_PROC [list $t [file join $TASKROOT $t] $t]
     }
     if {[llength $tasks] == 0} {
-        return "Nessuna task (*.tom) in $TASKROOT"
+        return "No task (*.tom) in $TASKROOT"
     }
     $LB_PROC selection clear 0 end
     $LB_PROC selection set 0
-    return "[llength $tasks] task in $TASKROOT"
+    return "[llength $tasks] tasks in $TASKROOT"
 }
 
 #  Riempie la lista dei FACEPLATE (pagine dei vari r02.dat).
@@ -356,24 +362,24 @@ proc riempi_staz {} {
 
     set dirs [dirs_con_r02]
     if {[llength $dirs] == 0} {
-        return "Nessun r02.dat trovato (compilare r01.dat con compstaz)"
+        return "No r02.dat found (compile r01.dat with compstaz)"
     }
     set piu_dir [expr {[llength $dirs] > 1}]
     foreach d $dirs {
         foreach pg [pagine_di $d] {
             lassign $pg nome descr nstaz
-            set label [format "%-10s %-42s %3s staz" $nome $descr $nstaz]
+            set label [format "%-10s %-42s %3s stations" $nome $descr $nstaz]
             if {$piu_dir} { append label "   \[[file tail $d]\]" }
             $LB_STAZ insert end $label
             lappend ITEMS_STAZ [list $label $d $nome]
         }
     }
     if {[llength $ITEMS_STAZ] == 0} {
-        return "r02.dat presente ma senza pagine leggibili"
+        return "r02.dat found but with no readable pages"
     }
     $LB_STAZ selection clear 0 end
     $LB_STAZ selection set 0
-    return "[llength $ITEMS_STAZ] pagine di faceplate in [llength $dirs] directory"
+    return "[llength $ITEMS_STAZ] faceplate pages in [llength $dirs] directories"
 }
 
 proc refresh_list {} {
@@ -395,8 +401,8 @@ proc refresh_list {} {
 #  In modalita' doppia il conteggio va anche sulle intestazioni dei due riquadri.
 proc aggiorna_intestazioni {} {
     global ITEMS_PROC ITEMS_STAZ
-    catch {.pw.proc.h configure -text "Pagine di processo ([llength $ITEMS_PROC])"}
-    catch {.pw.staz.h configure -text "Faceplate xstaz ([llength $ITEMS_STAZ])"}
+    catch {.pw.proc.h configure -text "Process pages ([llength $ITEMS_PROC])"}
+    catch {.pw.staz.h configure -text "xstaz faceplates ([llength $ITEMS_STAZ])"}
 }
 
 # --- Lancio della HMI in un processo indipendente ------------------------
@@ -404,13 +410,13 @@ proc launch_hmi {} {
     global LGTIX ITEMS_PROC LB_PROC
     set sel [$LB_PROC curselection]
     if {[llength $sel] == 0} {
-        .status configure -text "Seleziona una task di processo dalla lista."
+        .status configure -text "Select a process task from the list."
         return
     }
     lassign [lindex $ITEMS_PROC [lindex $sel 0]] label dir name
     if {![file isdirectory $dir]} {
         tk_messageBox -icon error -title "Task" -parent . -message \
-            "Directory della task non trovata:\n$dir"
+            "Task directory not found:\n$dir"
         return
     }
     # Task dentro un bundle FMU? (<bundle>/task/<nome> -> <bundle>/run_draw2gr.sh)
@@ -424,7 +430,7 @@ proc launch_hmi {} {
     set d2g [file join $LGTIX draw2gr.tcl]
     if {![file exists $launcher] && ($LGTIX eq "" || ![file exists $d2g])} {
         tk_messageBox -icon error -title "LG_TIX" -parent . -message \
-            "draw2gr.tcl non trovato (LG_TIX='$LGTIX').\nAvvia lghmi da un ambiente LegoPST (profilo sorgiato)."
+            "draw2gr.tcl not found (LG_TIX='$LGTIX').\nStart lghmi from a LegoPST environment (profile sourced)."
         return
     }
     # LG_SIM_PATH (Set Sim path) e' ereditato invariato dall'helper: la dir del
@@ -447,12 +453,12 @@ proc launch_hmi {} {
     if {[catch {exec setsid sh -c $sh &} err]} {
         # fallback senza setsid: resta comunque orfano (sopravvive) alla chiusura
         if {[catch {exec sh -c $sh &} err2]} {
-            tk_messageBox -icon error -title "Lancio HMI" -parent . \
-                -message "Impossibile lanciare la HMI per '$name':\n$err2"
+            tk_messageBox -icon error -title "HMI launch" -parent . \
+                -message "Cannot launch the HMI for '$name':\n$err2"
             return
         }
     }
-    .status configure -text "HMI avviata per '$name'  (log: $log)"
+    .status configure -text "HMI started for '$name'  (log: $log)"
 }
 
 #  Quante istanze di mmi sono vive adesso. Serve per capire se il lancio e'
@@ -533,8 +539,8 @@ proc aggiorna_stato_mmi {} {
         return ""
     }
     .btn.mmi configure -state disabled -background "#9ab89a"
-    if {$n < 0} { return "mmi: nessun Context.ctx in $d" }
-    return "mmi: nessuna pagina compilata (.rtf) in $d"
+    if {$n < 0} { return "mmi: no Context.ctx in $d" }
+    return "mmi: no compiled page (.rtf) in $d"
 }
 
 proc launch_mmi {} {
@@ -542,8 +548,8 @@ proc launch_mmi {} {
     # Senza profilo LegoPST sorgiato l'eseguibile non e' raggiungibile.
     if {[auto_execok mmi] eq ""} {
         tk_messageBox -icon error -title "mmi" -parent . -message \
-            "Eseguibile 'mmi' non trovato nel PATH.\nAvvia lghmi da un ambiente LegoPST (profilo sorgiato)."
-        .status configure -text "mmi non trovato nel PATH."
+            "Executable 'mmi' not found in PATH.\nStart lghmi from a LegoPST environment (profile sourced)."
+        .status configure -text "mmi not found in PATH."
         return
     }
     set log [file join /tmp "lghmi_mmi.log"]
@@ -557,14 +563,14 @@ proc launch_mmi {} {
     # sessione, cosi' sopravvive al Quit del selettore.
     if {[catch {exec setsid sh -c $sh &} err]} {
         if {[catch {exec sh -c $sh &} err2]} {
-            tk_messageBox -icon error -title "Lancio mmi" -parent . \
-                -message "Impossibile lanciare mmi:\n$err2"
-            .status configure -text "mmi NON avviato."
+            tk_messageBox -icon error -title "mmi launch" -parent . \
+                -message "Cannot launch mmi:\n$err2"
+            .status configure -text "mmi NOT started."
             return
         }
     }
-    .status configure -text [expr {$dir eq "" ? "mmi in avvio dalla cwd..." \
-                                              : "mmi in avvio da $dir ($via)..."}]
+    .status configure -text [expr {$dir eq "" ? "mmi starting from the cwd..." \
+                                              : "mmi starting from $dir ($via)..."}]
     after 3000 [list verifica_mmi $prima $dir $log]
 }
 
@@ -572,8 +578,8 @@ proc launch_mmi {} {
 #  morto subito e il motivo sta nelle ultime righe del log.
 proc verifica_mmi {prima dir log} {
     if {[conta_mmi] > $prima} {
-        .status configure -text [expr {$dir eq "" ? "mmi avviato (log: $log)" \
-                                                  : "mmi avviato da $dir (log: $log)"}]
+        .status configure -text [expr {$dir eq "" ? "mmi started (log: $log)" \
+                                                  : "mmi started from $dir (log: $log)"}]
         return
     }
     set coda ""
@@ -585,9 +591,9 @@ proc verifica_mmi {prima dir log} {
             set coda [join $righe "\n"]
         }
     }
-    tk_messageBox -icon error -title "Lancio mmi" -parent . -message \
-        "mmi non e' partito.\n\nDirectory: [expr {$dir eq "" ? "(cwd)" : $dir}]\nLog: $log\n\n$coda"
-    .status configure -text "mmi NON avviato - vedi $log"
+    tk_messageBox -icon error -title "mmi launch" -parent . -message \
+        "mmi did not start.\n\nDirectory: [expr {$dir eq "" ? "(cwd)" : $dir}]\nLog: $log\n\n$coda"
+    .status configure -text "mmi NOT started - see $log"
 }
 
 #  Popup minimo del tasto destro: una finestrella senza decorazioni con il solo
@@ -670,8 +676,8 @@ proc aggiorna_etichette_loc {} {
 #  aggiornamento delle liste. Ritorna un messaggio d'errore, o "" se e' andata.
 proc imposta_loc {dir} {
     global S01FILE s01mode SIMPATH s01_name s01_desc
-    if {![file isdirectory $dir]} { return "Directory non trovata: $dir" }
-    if {[catch {cd $dir} err]}    { return "Impossibile entrare in $dir: $err" }
+    if {![file isdirectory $dir]} { return "Directory not found: $dir" }
+    if {[catch {cd $dir} err]}    { return "Cannot enter $dir: $err" }
 
     set SIMPATH [pwd]
     set ::env(LG_SIM_PATH) $SIMPATH
@@ -746,9 +752,65 @@ proc aggiorna_menu_file {} {
         }
     }
     .mb.file add separator
+    #  Riapre la finestra di log di net_startup, che finora si poteva solo
+    #  chiudere. Lo stato non si decide qui ma in aggiorna_voci_log, appesa al
+    #  -postcommand del menu: vedi li' il perche'.
+    .mb.file add command -label "Simulation log" -command riapri_log_sim
+    #  Gli altri log che lghmi scrive in /tmp: uno per HMI lanciata, piu' mmi e
+    #  xstaz. Stanno in un sottomenu e non qui perche' sono un numero variabile
+    #  e di importanza minore; la simulazione resta la voce di primo livello,
+    #  perche' la sua finestra non e' solo un visore - da li' si FERMA.
+    if {![winfo exists .mb.file.logs]} { menu .mb.file.logs -tearoff 0 }
+    .mb.file add cascade -label "Logs" -menu .mb.file.logs
+    .mb.file add separator
     .mb.file add command -label "Refresh" -command refresh_list
     .mb.file add separator
     .mb.file add command -label "Quit" -command exit
+    aggiorna_voci_log
+}
+
+#  Voci di log del menu File, ricalcolate ogni volta che il menu viene aperto
+#  (-postcommand) e non alla sua costruzione: il menu File si rifa' di rado -
+#  solo quando cambiano i path recenti - mentre i log compaiono e la simulazione
+#  parte e si ferma in qualsiasi momento.
+#
+#  "Simulation log" e' acceso se c'e' un log da rileggere OPPURE una simulazione
+#  viva: nel secondo caso la finestra serve anche senza log, perche' e' l'unico
+#  posto da cui si puo' FERMARE la simulazione.
+#
+#  Con -insim resta spento, come il resto del menu: il selettore appartiene a una
+#  simulazione che non ha lanciato lui, quindi il log in /tmp non e' il suo - e'
+#  di un'altra sessione o e' vecchio - e il pulsante "Stop simulation" della
+#  finestra ammazzerebbe proprio la simulazione da cui lghmi e' stato aperto.
+#  Il sottomenu "Logs" invece resta acceso anche li': leggere il log di una HMI
+#  non tocca niente, e quelle finestre non hanno nessun pulsante che ferma nulla.
+#
+#  Le voci si indirizzano PER ETICHETTA: gli indici cambiano con i recenti.
+proc aggiorna_voci_log {} {
+    global SIMLOG insim
+    if {![winfo exists .mb.file]} return
+    set acceso [expr {!$insim && ([file exists $SIMLOG] || [llength [sim_attiva]] > 0)}]
+    catch {.mb.file entryconfigure "Simulation log" \
+               -state [expr {$acceso ? "normal" : "disabled"}]}
+
+    if {![winfo exists .mb.file.logs]} return
+    .mb.file.logs delete 0 end
+    set adesso [clock seconds]
+    set n 0
+    foreach f [elenco_log] {
+        #  Dimensione ed eta' distinguono a colpo d'occhio il log di adesso da
+        #  quello di ieri, e un log vuoto da uno che ha qualcosa da dire.
+        set nota [format "%s, %s" [dimensione_leggibile [file size $f]] \
+                                  [eta_leggibile [expr {$adesso - [file mtime $f]}]]]
+        .mb.file.logs add command -label "[etichetta_log $f]   ($nota)" \
+                                  -command [list apri_log $f]
+        incr n
+    }
+    if {$n == 0} {
+        .mb.file.logs add command -label "(no logs in /tmp)" -state disabled
+    }
+    catch {.mb.file entryconfigure "Logs" \
+               -state [expr {$n > 0 ? "normal" : "disabled"}]}
 }
 
 #  Va nella directory <dir> e la promuove in testa ai recenti. E' la strada sia
@@ -757,7 +819,7 @@ proc vai_a_loc {dir} {
     global insim
     if {$insim} {
         .status configure -text \
-            "Directory fissa: il selettore e' stato lanciato dal banco della simulazione in corso."
+            "Fixed directory: this launcher was started from the desk of the running simulation."
         return
     }
     set err [imposta_loc $dir]
@@ -777,11 +839,11 @@ proc apri_loc_path {} {
     if {$insim} {
         # la voce di menu e' disabilitata, ma la proc resta raggiungibile
         .status configure -text \
-            "Directory fissa: il selettore e' stato lanciato dal banco della simulazione in corso."
+            "Fixed directory: this launcher was started from the desk of the running simulation."
         return
     }
     set dir [tk_chooseDirectory -parent . -mustexist 1 -initialdir [pwd] \
-                 -title "Directory della simulazione (loc path)"]
+                 -title "Simulation directory (loc path)"]
     if {$dir eq ""} return
     vai_a_loc $dir
 }
@@ -807,11 +869,11 @@ proc aggiorna_stato_startup {} {
         # lanciato dal banco: la simulazione gira gia', e net_startup la
         # fermerebbe con killsim
         .btn.start configure -state disabled
-        return "lanciato dal banco: directory fissa, simulazione gia' in corso"
+        return "started from the desk: fixed directory, simulation already running"
     }
     if {[file exists [file join [pwd] variabili.rtf]]} {
         .btn.start configure -state normal
-        return "simulazione lanciabile da qui"
+        return "simulation can be started from here"
     }
     .btn.start configure -state disabled
     return ""
@@ -825,7 +887,7 @@ proc comando_in_terminale {comando {shell sh}} {
     set xt [expr {[info exists ::env(LG_XTERM)] && $::env(LG_XTERM) ne "" \
                   ? $::env(LG_XTERM) : "xterm"}]
     set opz [expr {[string match "gnome-terminal*" [file tail $xt]] ? "--" : "-e"}]
-    set sh "$comando; echo; echo '--- finito: premi Invio per chiudere ---'; read _"
+    set sh "$comando; echo; echo '--- done: press Enter to close ---'; read _"
     return [list $xt $opz $shell -c $sh]
 }
 
@@ -834,6 +896,13 @@ proc comando_in_terminale {comando {shell sh}} {
 #  finestra e' stata chiusa. In /tmp, come gli altri lanci di questo file, per
 #  non sporcare la directory della simulazione.
 set SIMLOG [file join /tmp "lghmi_net_startup.log"]
+
+#  Directory dell'ultimo net_startup lanciato da qui. Serve solo alla finestra
+#  di log, che la mette nel titolo: riaprendola va ridetta, e il file di log non
+#  la contiene (net_startup comincia direttamente con i suoi controlli). Resta
+#  vuota finche' non si lancia niente - per esempio quando lghmi e' appena
+#  partito e il log in /tmp e' di una sessione precedente.
+set SIMLOG_DIR ""
 
 #  Lancia net_startup nella directory corrente e ne mostra l'output.
 #
@@ -854,26 +923,26 @@ set SIMLOG [file join /tmp "lghmi_net_startup.log"]
 #  corso la ferma, e con essa le HMI che le stanno sopra. Se dei processi di
 #  simulazione sono vivi lo si dice esplicitamente nel testo della conferma.
 proc lancia_net_startup {} {
-    global SIMLOG
+    global SIMLOG SIMLOG_DIR
     set dir [pwd]
     if {![file exists [file join $dir variabili.rtf]]} {
         tk_messageBox -icon error -title "Start simulation" -parent . -message \
-            "In questa directory non c'e' variabili.rtf: net_startup non puo' partire.\n\n$dir"
+            "There is no variabili.rtf in this directory: net_startup cannot start.\n\n$dir"
         return
     }
 
     set vivi [sim_attiva]
-    set avviso "Lanciare la simulazione in\n$dir\n\n"
-    append avviso "net_startup esegue killsim, che cancella tutte le SHM, le code\n"
-    append avviso "e i semafori di questo utente (nessun filtro per chiave)."
+    set avviso "Start the simulation in\n$dir\n\n"
+    append avviso "net_startup runs killsim, which deletes every SHM segment, queue\n"
+    append avviso "and semaphore of this user (no filtering by key)."
     if {[llength $vivi] > 0} {
-        append avviso "\n\nATTENZIONE: c'e' gia' una simulazione in esecuzione\n"
-        append avviso "([join $vivi ", "]): verra' fermata, e con essa le HMI aperte."
+        append avviso "\n\nWARNING: a simulation is already running\n"
+        append avviso "([join $vivi ", "]): it will be stopped, and with it the open HMIs."
     }
-    append avviso "\n\nProcedere?"
+    append avviso "\n\nProceed?"
     if {[tk_messageBox -icon warning -type yesno -default no -parent . \
              -title "Start simulation" -message $avviso] ne "yes"} {
-        .status configure -text "Lancio della simulazione annullato."
+        .status configure -text "Simulation launch cancelled."
         return
     }
 
@@ -885,7 +954,7 @@ proc lancia_net_startup {} {
     # perche'.
     if {[catch {open $SIMLOG w} fd]} {
         tk_messageBox -icon error -title "Start simulation" -parent . -message \
-            "Non riesco a scrivere il log della simulazione:\n$SIMLOG\n\n$fd"
+            "Cannot write the simulation log:\n$SIMLOG\n\n$fd"
         return
     }
     close $fd
@@ -899,11 +968,12 @@ proc lancia_net_startup {} {
         # sessione da cui lghmi e' partito.
         if {[catch {exec sh -c $sh &} err2]} {
             tk_messageBox -icon error -title "Start simulation" -parent . -message \
-                "Impossibile lanciare net_startup:\n$err2"
+                "Cannot launch net_startup:\n$err2"
             return
         }
     }
-    .status configure -text "net_startup avviato in $dir  (log: $SIMLOG)"
+    set SIMLOG_DIR $dir
+    .status configure -text "net_startup started in $dir  (log: $SIMLOG)"
     mostra_log_sim $dir
 }
 
@@ -919,14 +989,29 @@ proc lancia_net_startup {} {
 # Il testo si aggiorna leggendo la CODA del file di log: si tiene la posizione
 # gia' mostrata e a ogni giro si legge soltanto quello che e' arrivato dopo.
 
-set SIMLOG_POS 0   ;# byte del log gia' mostrati
-set SIMLOG_GEN 0   ;# generazione della finestra: i cicli `after` di una
-                   ;# finestra chiusa non devono lavorare per la successiva
+#  Stato del visore, UNO PER FINESTRA: lghmi scrive quattro tipi di log in /tmp
+#  (net_startup, xstaz, mmi e uno per ogni HMI lanciata) e possono essere aperti
+#  insieme. Prima erano due globali sole, perche' la finestra era una sola.
+array set LOGPOS    {}   ;# byte del log gia' mostrati
+array set LOGGEN    {}   ;# generazione: i cicli `after` di una finestra chiusa
+                         ;# non devono lavorare per la successiva
+array set LOGFILE   {}   ;# quale file segue ogni finestra
+array set LOGCONSIM {}   ;# 1 = finestra della simulazione (stato + Stop)
+array set LOGWIN    {}   ;# file -> finestra, per riusarla invece di aprirne due
+set LOGSEQ 0             ;# contatore dei path dei toplevel: il nome di una task
+                         ;# non puo' finirci dentro (Tk non accetta punti e
+                         ;# spazi nei path dei widget)
 
-#  Aggiunge testo al visore. Autoscroll SOLO se si sta guardando il fondo: chi
-#  e' risalito a rileggere un errore non se lo vede scappare via.
-proc log_sim_scrivi {testo {tag ""}} {
-    set t .simlog.f.t
+#  Tetto alla PRIMA lettura di un log. Riaprendo si rilegge da capo, e un log
+#  sfuggito di mano riempirebbe il visore: oltre questa soglia si parte dalla
+#  coda, dicendolo. Largo apposta - i log veri stanno sotto i 100 KB - serve
+#  come protezione, non come politica.
+set LOGMAX [expr {512 * 1024}]
+
+#  Aggiunge testo al visore di $w. Autoscroll SOLO se si sta guardando il fondo:
+#  chi e' risalito a rileggere un errore non se lo vede scappare via.
+proc log_scrivi {w testo {tag ""}} {
+    set t $w.f.t
     if {![winfo exists $t] || $testo eq ""} return
     set infondo [expr {[lindex [$t yview] 1] >= 0.999}]
     $t configure -state normal
@@ -935,32 +1020,36 @@ proc log_sim_scrivi {testo {tag ""}} {
     if {$infondo} { $t see end }
 }
 
-#  Un giro di lettura del log. Si richiama da solo finche' la finestra esiste
-#  ed e' quella per cui il ciclo era partito.
-proc segui_log_sim {gen} {
-    global SIMLOG SIMLOG_POS SIMLOG_GEN
-    if {![winfo exists .simlog] || $gen != $SIMLOG_GEN} return
-    if {[file exists $SIMLOG]} {
-        set dim [file size $SIMLOG]
-        if {$dim < $SIMLOG_POS} { set SIMLOG_POS 0 }   ;# log rifatto da capo
-        if {$dim > $SIMLOG_POS} {
-            if {![catch {open $SIMLOG r} fd]} {
-                seek $fd $SIMLOG_POS
+#  Un giro di lettura del log di $w. Si richiama da solo finche' la finestra
+#  esiste ed e' quella per cui il ciclo era partito.
+proc segui_log {w gen} {
+    global LOGPOS LOGGEN LOGFILE
+    if {![winfo exists $w] || $gen != $LOGGEN($w)} return
+    set file $LOGFILE($w)
+    if {[file exists $file]} {
+        set dim [file size $file]
+        if {$dim < $LOGPOS($w)} { set LOGPOS($w) 0 }   ;# log rifatto da capo
+        if {$dim > $LOGPOS($w)} {
+            if {![catch {open $file r} fd]} {
+                seek $fd $LOGPOS($w)
                 set nuovo [read $fd]
-                set SIMLOG_POS [tell $fd]
+                set LOGPOS($w) [tell $fd]
                 close $fd
-                log_sim_scrivi $nuovo
+                log_scrivi $w $nuovo
             }
         }
     }
-    after 500 [list segui_log_sim $gen]
+    after 500 [list segui_log $w $gen]
 }
 
 #  Stato dei processi di simulazione. Ciclo separato e piu' lento di quello del
-#  log: sim_attiva costa tre `pgrep`, e lo stato cambia raramente.
+#  log: sim_attiva costa tre `pgrep`, e lo stato cambia raramente. Gira SOLO
+#  sulla finestra della simulazione: sugli altri log non ci sono ne' la riga di
+#  stato ne' il pulsante di stop, e tre pgrep ogni 3 secondi per finestra
+#  sarebbero sprecati.
 proc stato_sim_loop {gen} {
-    global SIMLOG_GEN
-    if {![winfo exists .simlog] || $gen != $SIMLOG_GEN} return
+    global LOGGEN
+    if {![winfo exists .simlog] || $gen != $LOGGEN(.simlog)} return
     aggiorna_stato_sim
     after 3000 [list stato_sim_loop $gen]
 }
@@ -970,36 +1059,40 @@ proc aggiorna_stato_sim {} {
     set vivi [sim_attiva]
     if {[llength $vivi] > 0} {
         .simlog.b.stato configure -foreground "#006400" \
-            -text "Simulazione in corso: [join $vivi ", "]"
+            -text "Simulation running: [join $vivi ", "]"
         .simlog.b.stop configure -state normal
     } else {
         .simlog.b.stato configure -foreground "#707070" \
-            -text "Nessun processo di simulazione attivo"
+            -text "No simulation process running"
         .simlog.b.stop configure -state disabled
     }
 }
 
-#  Chiusura del visore: e' qui che finisce la X della finestra.
+#  Chiusura di un visore: e' qui che finisce la X della finestra.
 #
-#  Con la simulazione in sessione propria chiudere non la ferma piu', ma la
-#  domanda resta - la finestra e' l'unica cosa che dice che una simulazione sta
-#  girando, e chi la chiude deve sapere che cosa lascia acceso e come spegnerlo.
-proc chiudi_log_sim {} {
-    global SIMLOG
-    set vivi [sim_attiva]
+#  La conferma la merita SOLO la finestra della simulazione. Con la simulazione
+#  in sessione propria chiudere non la ferma piu', ma la domanda resta - la
+#  finestra e' l'unica cosa che dice che una simulazione sta girando, e chi la
+#  chiude deve sapere che cosa lascia acceso e come spegnerlo. Il log di una HMI
+#  o dell'mmi si chiude e basta: non c'e' niente che resti acceso per colpa sua.
+proc chiudi_log {w} {
+    global SIMLOG LOGCONSIM
+    set consim [expr {[info exists LOGCONSIM($w)] && $LOGCONSIM($w)}]
+    set vivi [expr {$consim ? [sim_attiva] : {}}]
     if {[llength $vivi] > 0} {
-        set msg "Chiudere questa finestra NON ferma la simulazione.\n\n"
-        append msg "Restano in esecuzione: [join $vivi ", "].\n"
-        append msg "Girano in una sessione propria, e con loro restano vive le HMI\n"
-        append msg "e i faceplate gia' aperti.\n\n"
-        append msg "Per fermarla davvero: il pulsante \"Ferma la simulazione\" di\n"
-        append msg "questa finestra, il comando killsim, o Quit dal banco.\n\n"
-        append msg "Il log resta comunque leggibile in\n$SIMLOG\n\n"
-        append msg "Chiudo la finestra di log?"
-        if {[tk_messageBox -icon question -type yesno -default yes -parent .simlog \
-                 -title "Log della simulazione" -message $msg] ne "yes"} return
+        set msg "Closing this window does NOT stop the simulation.\n\n"
+        append msg "Still running: [join $vivi ", "].\n"
+        append msg "They run in a session of their own, and with them stay alive the\n"
+        append msg "HMIs and the faceplates already open.\n\n"
+        append msg "To really stop it: the \"Stop simulation\" button of this\n"
+        append msg "window, the killsim command, or Quit from the desk.\n\n"
+        append msg "The log stays readable anyway in\n$SIMLOG\n\n"
+        append msg "You can reopen this window from File -> Simulation log.\n\n"
+        append msg "Close the log window?"
+        if {[tk_messageBox -icon question -type yesno -default yes -parent $w \
+                 -title "Simulation log" -message $msg] ne "yes"} return
     }
-    destroy .simlog
+    destroy $w
 }
 
 #  Ferma davvero la simulazione. Lo fa killsim, cioe' lo stesso comando con cui
@@ -1012,41 +1105,49 @@ proc ferma_simulazione {} {
         return
     }
     if {[auto_execok killsim] eq ""} {
-        tk_messageBox -icon error -title "Ferma la simulazione" -parent .simlog \
-            -message "Eseguibile 'killsim' non trovato nel PATH.\nAvvia lghmi da un ambiente LegoPST (profilo sorgiato)."
+        tk_messageBox -icon error -title "Stop simulation" -parent .simlog \
+            -message "Executable 'killsim' not found in PATH.\nStart lghmi from a LegoPST environment (profile sourced)."
         return
     }
-    set msg "Fermare la simulazione in corso?\n\n"
-    append msg "Verranno terminati i processi ([join $vivi ", "]), e con loro\n"
-    append msg "le HMI e i faceplate che ci stanno sopra.\n\n"
-    append msg "Lo fa killsim, che su Linux cancella TUTTE le SHM, le code e i\n"
-    append msg "semafori di questo utente, senza filtrare per chiave.\n\n"
-    append msg "Procedere?"
+    set msg "Stop the running simulation?\n\n"
+    append msg "The processes ([join $vivi ", "]) will be terminated, and with them\n"
+    append msg "the HMIs and the faceplates sitting on top of them.\n\n"
+    append msg "killsim does it, and on Linux it deletes EVERY SHM segment, queue\n"
+    append msg "and semaphore of this user, without filtering by key.\n\n"
+    append msg "Proceed?"
     if {[tk_messageBox -icon warning -type yesno -default no -parent .simlog \
-             -title "Ferma la simulazione" -message $msg] ne "yes"} return
+             -title "Stop simulation" -message $msg] ne "yes"} return
 
-    log_sim_scrivi "\n--- killsim ---\n" lghmi
+    log_scrivi .simlog "\n--- killsim ---\n" lghmi
     .simlog configure -cursor watch
     update idletasks
     set rc [catch {exec killsim} out]
     catch {.simlog configure -cursor ""}
-    log_sim_scrivi "[string trim $out]\n" [expr {$rc ? "errore" : ""}]
+    log_scrivi .simlog "[string trim $out]\n" [expr {$rc ? "errore" : ""}]
     set vivi [sim_attiva]
     if {[llength $vivi] > 0} {
-        log_sim_scrivi "Ancora attivi: [join $vivi ", "]\n" errore
+        log_scrivi .simlog "Still running: [join $vivi ", "]\n" errore
     } else {
-        log_sim_scrivi "Simulazione fermata.\n" lghmi
+        log_scrivi .simlog "Simulation stopped.\n" lghmi
     }
     aggiorna_stato_sim
-    catch {.status configure -text "Simulazione fermata con killsim."}
+    catch {.status configure -text "Simulation stopped with killsim."}
 }
 
-#  Apre (o riusa) il visore del log e fa ripartire i due cicli di
-#  aggiornamento. Il visore e' UNO: un secondo net_startup riparte da capo
-#  nella stessa finestra, come il log.
-proc mostra_log_sim {dir} {
-    global SIMLOG SIMLOG_POS SIMLOG_GEN
-    set w .simlog
+#  Costruisce il visore di $w sul file $file, se non c'e' gia'. Separata da
+#  mostra_log_sim perche' la finestra si apre per motivi diversi - un
+#  net_startup appena lanciato, una riapertura dal menu, il log di una HMI - e
+#  solo il primo ha un log da far ripartire da capo.
+#
+#  $consim distingue LA finestra della simulazione da tutte le altre: solo lei
+#  ha la riga di stato dei processi e il pulsante che chiama killsim. Un visore
+#  del log dell'mmi o di una HMI non deve offrire un pulsante che ferma la
+#  simulazione - non e' la sua - e non deve nemmeno chiedere conferma alla
+#  chiusura: non lascia acceso niente.
+proc crea_finestra_log {w titolo file consim} {
+    global LOGFILE LOGCONSIM
+    set LOGFILE($w)   $file
+    set LOGCONSIM($w) $consim
     if {![winfo exists $w]} {
         toplevel $w
         #  Un filo piu' alta della dimensione naturale del contenuto (~437 px):
@@ -1055,7 +1156,7 @@ proc mostra_log_sim {dir} {
         wm minsize  $w 480 240
         #  La X della finestra: il motivo per cui il log sta qui e non in un
         #  terminale.
-        wm protocol $w WM_DELETE_WINDOW chiudi_log_sim
+        wm protocol $w WM_DELETE_WINDOW [list chiudi_log $w]
 
         #  Le barre in basso si impacchettano PRIMA del visore, anche se stanno
         #  sotto: pack assegna lo spazio nell'ordine di impacchettamento, e chi
@@ -1064,16 +1165,18 @@ proc mostra_log_sim {dir} {
         #  Stessa scelta della finestra principale, dove .btn e .status sono
         #  impacchettati prima delle liste.
         frame  $w.b
-        label  $w.b.stato -anchor w -text ""
-        button $w.b.chiudi -text "Chiudi" -width 10 -command chiudi_log_sim
-        button $w.b.stop -text "Ferma la simulazione" -state disabled \
-               -command ferma_simulazione
-        pack $w.b.chiudi -side right -padx 4 -pady 6
-        pack $w.b.stop   -side right -padx 4 -pady 6
-        pack $w.b.stato  -side left  -padx 6
+        button $w.b.chiudi -text "Close" -width 10 -command [list chiudi_log $w]
+        pack   $w.b.chiudi -side right -padx 4 -pady 6
+        if {$consim} {
+            label  $w.b.stato -anchor w -text ""
+            button $w.b.stop -text "Stop simulation" -state disabled \
+                   -command ferma_simulazione
+            pack $w.b.stop  -side right -padx 4 -pady 6
+            pack $w.b.stato -side left  -padx 6
+        }
         pack $w.b -side bottom -fill x
 
-        label $w.log -anchor w -padx 6 -foreground "#505050" -text "Log: $SIMLOG"
+        label $w.log -anchor w -padx 6 -foreground "#505050" -text "Log: $file"
         pack  $w.log -side bottom -fill x
 
         #  -width/-height del testo tengono la dimensione NATURALE della finestra
@@ -1094,24 +1197,180 @@ proc mostra_log_sim {dir} {
         $w.f.t tag configure lghmi  -foreground "#000080"
         $w.f.t tag configure errore -foreground "#a00000"
 
-        bind $w <Escape> chiudi_log_sim
+        bind $w <Escape> [list chiudi_log $w]
     }
-    wm title $w "net_startup - $dir"
+    #  Il titolo e il path del log si riscrivono SEMPRE, anche riusando una
+    #  finestra gia' aperta: un secondo net_startup puo' partire da un'altra
+    #  directory.
+    wm title $w $titolo
+    catch {$w.log configure -text "Log: $file"}
+    return $w
+}
 
-    #  Nuovo lancio: log da capo e cicli `after` di una nuova generazione (i
-    #  vecchi si spengono da soli al primo giro).
-    incr SIMLOG_GEN
-    set SIMLOG_POS 0
+#  Svuota il visore di $w e fa ripartire i suoi cicli `after` in una NUOVA
+#  generazione: quelli precedenti si spengono da soli al primo giro (LOGGEN).
+#  Da qui in poi segui_log rilegge il file da byte 0, quindi il log ricompare
+#  per intero - ed e' il motivo per cui riaprire una finestra non costa nulla
+#  piu' di questo.
+#
+#  L'eccezione e' un log piu' grande di LOGMAX: li' si parte dalla coda, e lo si
+#  dice invece di far credere che quello sia tutto il log. La prima riga puo'
+#  risultare tagliata a meta', ed e' il prezzo di non dover leggere il file due
+#  volte per trovare un a capo.
+proc riparti_visore_log {w} {
+    global LOGPOS LOGGEN LOGFILE LOGMAX
+    incr LOGGEN($w)
+    set LOGPOS($w) 0
     $w.f.t configure -state normal
     $w.f.t delete 1.0 end
     $w.f.t configure -state disabled
-    log_sim_scrivi "Simulazione avviata in $dir\n" lghmi
-    log_sim_scrivi "Gira in una sessione propria: chiudere questa finestra NON la ferma.\n\n" lghmi
+    set file $LOGFILE($w)
+    if {[file exists $file]} {
+        set dim [file size $file]
+        if {$dim > $LOGMAX} {
+            set LOGPOS($w) [expr {$dim - $LOGMAX}]
+            log_scrivi $w "--- showing the last [dimensione_leggibile $LOGMAX] of [dimensione_leggibile $dim] ---\n" lghmi
+        }
+    }
+}
 
+#  Porta il visore davanti e riavvia i suoi cicli di aggiornamento. Quello dello
+#  stato della simulazione parte solo dove ha senso (vedi crea_finestra_log).
+proc avvia_visore_log {w} {
+    global LOGGEN LOGCONSIM
     wm deiconify $w
     raise $w
-    segui_log_sim $SIMLOG_GEN
-    stato_sim_loop $SIMLOG_GEN
+    segui_log $w $LOGGEN($w)
+    if {$LOGCONSIM($w)} { stato_sim_loop $LOGGEN($w) }
+}
+
+#  Apre (o riusa) il visore del log per un net_startup APPENA LANCIATO. Il
+#  visore della simulazione e' UNO: un secondo net_startup riparte da capo nella
+#  stessa finestra, come il log.
+proc mostra_log_sim {dir} {
+    global SIMLOG
+    set w [crea_finestra_log .simlog "net_startup - $dir" $SIMLOG 1]
+    riparti_visore_log $w
+    log_scrivi $w "Simulation started in $dir\n" lghmi
+    log_scrivi $w "It runs in a session of its own: closing this window does NOT stop it.\n\n" lghmi
+    avvia_visore_log $w
+}
+
+#  Riapre il visore su un log GIA' ESISTENTE: e' la voce File -> Simulation log.
+#
+#  Chiudere la finestra non ferma la simulazione - e' il punto di tutto il
+#  meccanismo - ma finora la chiudeva anche per sempre: il log restava solo nel
+#  file in /tmp, e con la finestra se ne andava l'unico modo grafico di FERMARE
+#  la simulazione, cioe' il pulsante "Stop simulation".
+#
+#  Non si riusa mostra_log_sim perche' li' il banner dice "Simulation started",
+#  che su una riapertura sarebbe falso: qui non e' partito niente adesso. Il
+#  titolo porta la dir dell'ultimo lancio se la sappiamo; se lghmi e' stato
+#  riavviato nel frattempo il log in /tmp c'e' ancora ma la dir no, e il titolo
+#  lo dice invece di inventarsela.
+proc riapri_log_sim {} {
+    global SIMLOG SIMLOG_DIR
+    set titolo [expr {$SIMLOG_DIR ne "" ? "net_startup - $SIMLOG_DIR" \
+                                        : "Simulation log - $SIMLOG"}]
+    set w [crea_finestra_log .simlog $titolo $SIMLOG 1]
+    riparti_visore_log $w
+    if {[file exists $SIMLOG]} {
+        log_scrivi $w "Log reopened: $SIMLOG\n" lghmi
+        if {$SIMLOG_DIR ne ""} {
+            log_scrivi $w "Simulation launched in $SIMLOG_DIR\n" lghmi
+        }
+        log_scrivi $w "\n" lghmi
+    } else {
+        #  Nessun file: o non si e' mai lanciato niente da qui, o il log e' stato
+        #  cancellato. La finestra si apre lo stesso - serve il pulsante di stop.
+        log_scrivi $w "No log file: $SIMLOG\n" lghmi
+        log_scrivi $w "Nothing was launched from this window, or the log was removed.\n\n" lghmi
+    }
+    avvia_visore_log $w
+}
+
+# --- Gli altri log di lghmi ----------------------------------------------
+#
+# Oltre a net_startup, lghmi scrive in /tmp il log di ogni HMI che lancia
+# (lghmi_<task>.log), quello dell'mmi e quello di xstaz. Sono l'unico posto dove
+# finisce l'output di quei processi - partono tutti in background, staccati - e
+# finora non c'era modo di leggerli dalla GUI: bisognava sapere che esistevano e
+# andarseli a cercare a mano.
+#
+# L'elenco si fa con una `glob`, non con un registro popolato nei quattro punti
+# di lancio: cosi' si vedono anche i log di una sessione PRECEDENTE di lghmi
+# (lanci una HMI, esci, riapri), non c'e' stato da tenere sincronizzato, e
+# l'ordine lo da' il mtime.
+
+#  Dimensione in forma leggibile. Solo ASCII: con LANG=POSIX Tcl non decodifica
+#  i file come UTF-8.
+proc dimensione_leggibile {byte} {
+    if {$byte < 1024}          { return "$byte B" }
+    if {$byte < 1024*1024}     { return "[expr {$byte / 1024}] KB" }
+    return [format "%.1f MB" [expr {$byte / 1048576.0}]]
+}
+
+#  Da quanto tempo e' stato scritto, in forma leggibile.
+proc eta_leggibile {sec} {
+    if {$sec < 60}    { return "just now" }
+    if {$sec < 3600}  { return "[expr {$sec / 60}] min ago" }
+    if {$sec < 86400} { return "[expr {$sec / 3600}] h ago" }
+    return "[expr {$sec / 86400}] d ago"
+}
+
+#  Etichetta di un log, dedotta dal nome del file: e' una funzione pura del
+#  nome, quindi non serve ricordarsi chi ha lanciato cosa.
+proc etichetta_log {file} {
+    set n [string range [file rootname [file tail $file]] 6 end]   ;# via "lghmi_"
+    switch -exact -- $n {
+        net_startup { return "net_startup (simulation)" }
+        mmi         { return "mmi" }
+        xstaz       { return "xstaz (faceplates)" }
+        default     { return "HMI: $n" }
+    }
+}
+
+#  I log di lghmi in /tmp, dal piu' recente. Esclude quello di net_startup, che
+#  ha una voce sua: la sua finestra non e' un visore come gli altri, ha la riga
+#  di stato e il pulsante che ferma la simulazione.
+#
+#  Il filtro sul proprietario non e' pedanteria: i nomi in /tmp sono FISSI,
+#  quindi su una macchina con piu' utenti un lghmi_mmi.log puo' essere di un
+#  altro - e' la stessa ragione per cui lancia_net_startup apre il suo log in
+#  scrittura prima di partire, invece di darlo per suo.
+proc elenco_log {} {
+    global SIMLOG
+    set out {}
+    foreach f [glob -nocomplain [file join /tmp "lghmi_*.log"]] {
+        if {$f eq $SIMLOG} continue
+        if {[catch {file owned $f} mio] || !$mio} continue
+        if {[catch {file mtime $f} quando]} continue
+        lappend out [list $quando $f]
+    }
+    set res {}
+    foreach e [lsort -integer -decreasing -index 0 $out] {
+        lappend res [lindex $e 1]
+    }
+    return $res
+}
+
+#  Apre (o riporta davanti) il visore di un log qualsiasi. Una finestra per
+#  file: riaprire lo stesso log riusa la sua, invece di accumularne due sullo
+#  stesso contenuto.
+#
+#  Il path del toplevel e' un progressivo e non il nome della task: quello puo'
+#  contenere punti e spazi, che Tk non accetta nei path dei widget.
+proc apri_log {file} {
+    global LOGWIN LOGSEQ
+    if {![info exists LOGWIN($file)] || ![winfo exists $LOGWIN($file)]} {
+        set LOGWIN($file) ".log[incr LOGSEQ]"
+    }
+    set w [crea_finestra_log $LOGWIN($file) [etichetta_log $file] $file 0]
+    riparti_visore_log $w
+    if {![file exists $file]} {
+        log_scrivi $w "No log file: $file\n" lghmi
+    }
+    avvia_visore_log $w
 }
 
 
@@ -1163,8 +1422,8 @@ proc scegli_simulatore {nome} {
     global env
     set dir [file join $env(KSKED) $nome]
     if {![file isdirectory $dir]} {
-        tk_messageBox -icon error -title "Simulatore" -parent . -message \
-            "Directory del simulatore non trovata:\n$dir"
+        tk_messageBox -icon error -title "Simulator" -parent . -message \
+            "Simulator directory not found:\n$dir"
         return
     }
     set scritto 1
@@ -1180,10 +1439,10 @@ proc scegli_simulatore {nome} {
     aggiorna_menu_tools
     if {$scritto} {
         .status configure -text \
-            "Simulatore corrente: $nome   |   scritto in ~/.legosim: vale anche per le shell future"
+            "Current simulator: $nome   |   written to ~/.legosim: applies to future shells too"
     } else {
         .status configure -text \
-            "Simulatore corrente: $nome   |   ~/.legosim non scrivibile: vale solo per questa sessione"
+            "Current simulator: $nome   |   ~/.legosim not writable: applies to this session only"
     }
 }
 
@@ -1195,15 +1454,15 @@ proc aggiorna_menu_tools {} {
 
     set nome  [simulatore_corrente]
     set stato [expr {$nome ne "" ? "normal" : "disabled"}]
-    set quale [expr {$nome ne "" ? $nome : "nessun simulatore"}]
+    set quale [expr {$nome ne "" ? $nome : "no simulator"}]
 
     .mb.tools delete 0 end
     .mb.tools add command -state $stato -command [list lancia_kupsim {}] \
-        -label "kUpSim - riallinea la configurazione di $quale"
+        -label "kUpSim - realign the configuration of $quale"
     .mb.tools add command -state $stato -command [list lancia_kupsim -nommi] \
-        -label "kUpSim -nommi - senza le pagine MMI dei faceplate"
+        -label "kUpSim -nommi - without the MMI faceplate pages"
     .mb.tools add command -state $stato -command [list lancia_kupsim -n] \
-        -label "kUpSim -n - anteprima: mostra i passi senza eseguirli"
+        -label "kUpSim -n - preview: show the steps without running them"
     .mb.tools add separator
 
     if {![winfo exists .mb.tools.sim]} { menu .mb.tools.sim -tearoff 0 }
@@ -1211,14 +1470,14 @@ proc aggiorna_menu_tools {} {
     set sims [lista_simulatori]
     if {[llength $sims] == 0} {
         .mb.tools.sim add command -state disabled \
-            -label "(nessun simulatore in \$KSKED)"
+            -label "(no simulator in \$KSKED)"
     } else {
         foreach sim $sims {
             .mb.tools.sim add radiobutton -label $sim -value $sim \
                 -variable ::KSIMSCELTO -command [list scegli_simulatore $sim]
         }
     }
-    .mb.tools add cascade -label "Simulatore corrente" -menu .mb.tools.sim
+    .mb.tools add cascade -label "Current simulator" -menu .mb.tools.sim
 }
 
 #  Lancia kUpSim sul simulatore corrente, in un terminale.
@@ -1237,36 +1496,36 @@ proc lancia_kupsim {opzioni} {
     set nome [simulatore_corrente]
     if {$nome eq ""} {
         tk_messageBox -icon error -title "kUpSim" -parent . -message \
-            "Nessun simulatore corrente: KSIM non e' definita o non e' una directory.\nSceglilo da Tools -> Simulatore corrente, o con 'ksetsim <nome>'."
+            "No current simulator: KSIM is not defined, or is not a directory.\nPick one from Tools -> Current simulator, or with 'ksetsim <name>'."
         return
     }
     set anteprima [expr {[lsearch -exact $opzioni "-n"] >= 0}]
 
     if {!$anteprima} {
-        set msg "Aggiornare la configurazione del simulatore\n\n"
+        set msg "Update the configuration of simulator\n\n"
         append msg "    $nome\n    $env(KSIM)\n\n"
-        append msg "kUpSim rifa' in sequenza:\n"
-        append msg "    kConnex       topologia fra le task      -> S01\n"
-        append msg "    kNetCompi     compilazione delle task    -> variabili.rtf\n"
-        append msg "    kCompStaz     faceplate per xstaz        -> r02.dat\n"
+        append msg "kUpSim redoes in sequence:\n"
+        append msg "    kConnex       topology between tasks    -> S01\n"
+        append msg "    kNetCompi     task compilation          -> variabili.rtf\n"
+        append msg "    kCompStaz     faceplates for xstaz      -> r02.dat\n"
         if {[lsearch -exact $opzioni "-nommi"] < 0} {
-            append msg "    kStazPages    faceplate come pagine MMI\n"
-            append msg "    kWinContext   Context.ctx di \$KWIN\n"
-            append msg "    kCompileSim   compila le pagine          -> .rtf\n"
+            append msg "    kStazPages    faceplates as MMI pages\n"
+            append msg "    kWinContext   Context.ctx of \$KWIN\n"
+            append msg "    kCompileSim   compile the pages         -> .rtf\n"
         } else {
-            append msg "    (i tre passi delle pagine MMI vengono saltati)\n"
+            append msg "    (the three MMI page steps are skipped)\n"
         }
-        append msg "    kCollect      raccolta in globpages + kMmiConfig\n"
+        append msg "    kCollect      gathering into globpages + kMmiConfig\n"
         set vivi [sim_attiva]
         if {[llength $vivi] > 0} {
-            append msg "\nATTENZIONE: c'e' una simulazione in esecuzione ([join $vivi ", "]).\n"
-            append msg "Sta usando variabili.rtf, r02.dat e le pagine, e le troverebbe\n"
-            append msg "cambiate sotto: conviene fermarla prima."
+            append msg "\nWARNING: a simulation is running ([join $vivi ", "]).\n"
+            append msg "It is using variabili.rtf, r02.dat and the pages, and would find\n"
+            append msg "them changed underneath: better stop it first."
         }
-        append msg "\n\nProcedere?"
+        append msg "\n\nProceed?"
         if {[tk_messageBox -icon warning -type yesno -default no -parent . \
                  -title "kUpSim" -message $msg] ne "yes"} {
-            .status configure -text "kUpSim annullato."
+            .status configure -text "kUpSim cancelled."
             return
         }
     }
@@ -1274,7 +1533,7 @@ proc lancia_kupsim {opzioni} {
     set radice [expr {[info exists env(LEGOROOT)] ? $env(LEGOROOT) : ""}]
     if {$radice eq "" || ![file exists [file join $radice .profile_legoroot]]} {
         tk_messageBox -icon error -title "kUpSim" -parent . -message \
-            "LEGOROOT non definita o profilo non trovato: non posso preparare l'ambiente di kUpSim."
+            "LEGOROOT not defined, or profile not found: cannot prepare the kUpSim environment."
         return
     }
     set prof [file join $radice .profile_legoroot]
@@ -1284,14 +1543,14 @@ proc lancia_kupsim {opzioni} {
     if {[catch {exec setsid {*}$cmd &} err]} {
         if {[catch {exec {*}$cmd &} err2]} {
             tk_messageBox -icon error -title "kUpSim" -parent . -message \
-                "Impossibile lanciare kUpSim:\n$err2"
+                "Cannot launch kUpSim:\n$err2"
             return
         }
     }
     if {$anteprima} {
-        .status configure -text "kUpSim -n: anteprima dei passi su $nome, nel terminale."
+        .status configure -text "kUpSim -n: preview of the steps on $nome, in the terminal."
     } else {
-        .status configure -text "kUpSim avviato su $nome - i passi e gli errori sono nel terminale."
+        .status configure -text "kUpSim started on $nome - steps and errors are in the terminal."
     }
 }
 
@@ -1320,15 +1579,15 @@ proc lancia_kupsim {opzioni} {
 #  tutto il resto.
 proc documenti_aiuto {} {
     return {
-        {"LegoPST - panoramica del progetto (README)"  README.md  rilievo}
+        {"LegoPST - project overview (README)"     README.md  rilievo}
         --
-        {"Indice ragionato della documentazione"   INDICE_DOCUMENTAZIONE.html}
-        {"Comandi kbin (i 192 kprocedure)"         kbin/kbin-riferimento-comandi-LegoPST.html}
+        {"Annotated documentation index"           INDICE_DOCUMENTAZIONE.html}
+        {"kbin commands (the 192 kprocedure)"      kbin/kbin-riferimento-comandi-LegoPST.html}
         MODULI
         --
-        {"Questa finestra: lghmi"                  Alg_legopc/LGHMI.md}
-        {"Configurare un simulatore: al_sim.conf"  docs/AL_SIM_CONF.md}
-        {"Faceplate di comando (xstaz)"            Alg_rt/grafica/xstaz/HOWTO_faceplate.md}
+        {"This window: lghmi"                      Alg_legopc/LGHMI.md}
+        {"Configuring a simulator: al_sim.conf"    docs/AL_SIM_CONF.md}
+        {"Command faceplates (xstaz)"              Alg_rt/grafica/xstaz/HOWTO_faceplate.md}
     }
 }
 
@@ -1405,22 +1664,22 @@ proc md_in_html {doc} {
 proc apri_documento {relativo} {
     global env
     if {![info exists env(LEGOROOT)] || $env(LEGOROOT) eq ""} {
-        tk_messageBox -icon error -title "Documentazione" -parent . -message \
-            "LEGOROOT non definita: non trovo la documentazione."
+        tk_messageBox -icon error -title "Documentation" -parent . -message \
+            "LEGOROOT not defined: cannot find the documentation."
         return
     }
     set doc [file join $env(LEGOROOT) $relativo]
     if {![file exists $doc]} {
-        tk_messageBox -icon error -title "Documentazione" -parent . -message \
-            "Documento non trovato:\n$doc"
+        tk_messageBox -icon error -title "Documentation" -parent . -message \
+            "Document not found:\n$doc"
         return
     }
     set preferito [expr {[info exists env(LG_BROWSER)] ? $env(LG_BROWSER) : ""}]
     set browser ""
     catch {set browser [browser_disponibile $preferito]}
     if {$browser eq ""} {
-        tk_messageBox -icon error -title "Documentazione" -parent . -message \
-            "Nessun browser disponibile.\nControlla LG_BROWSER (adesso: '$preferito')."
+        tk_messageBox -icon error -title "Documentation" -parent . -message \
+            "No browser available.\nCheck LG_BROWSER (currently: '$preferito')."
         return
     }
     # I .md passano per il convertitore, se c'e' uno.
@@ -1430,15 +1689,15 @@ proc apri_documento {relativo} {
         if {$html ne ""} {
             set doc $html
         } else {
-            set nota "  (md2html.tcl non trovato: testo non formattato)"
+            set nota "  (md2html.tcl not found: unformatted text)"
         }
     }
     if {[catch {exec $browser $doc &} err]} {
-        tk_messageBox -icon error -title "Documentazione" -parent . -message \
-            "Non riesco ad avviare il browser:\n$browser $doc\n\n$err"
+        tk_messageBox -icon error -title "Documentation" -parent . -message \
+            "Cannot start the browser:\n$browser $doc\n\n$err"
         return
     }
-    .status configure -text "Aperto nel browser: $relativo$nota"
+    .status configure -text "Opened in the browser: $relativo$nota"
 }
 
 # --- Menu "?" : versione dell'ambiente -----------------------------------
@@ -1454,16 +1713,16 @@ proc versione_legopst {} {
     global env
     set fuori [dict create versione "" build "" data "" nota ""]
     if {![info exists env(LEGOROOT)] || $env(LEGOROOT) eq ""} {
-        dict set fuori nota "LEGOROOT non definita: profilo LegoPST non sorgiato."
+        dict set fuori nota "LEGOROOT not defined: LegoPST profile not sourced."
         return $fuori
     }
     set vf [file join $env(LEGOROOT) version.h]
     if {![file exists $vf]} {
-        dict set fuori nota "version.h assente. Si genera con:\n    make -C $env(LEGOROOT) -f Makefile.mk version.h"
+        dict set fuori nota "version.h missing. Generate it with:\n    make -C $env(LEGOROOT) -f Makefile.mk version.h"
         return $fuori
     }
     if {[catch {open $vf r} fd]} {
-        dict set fuori nota "version.h non leggibile: $vf"
+        dict set fuori nota "version.h not readable: $vf"
         return $fuori
     }
     while {[gets $fd riga] >= 0} {
@@ -1488,17 +1747,17 @@ proc about_legopst {} {
     set testo "LegoPST\n"
     append testo "LegoPowerSystemTechnology\n\n"
     if {[dict get $v versione] ne ""} {
-        append testo "Versione:\t[dict get $v versione]\n"
+        append testo "Version:\t[dict get $v versione]\n"
         append testo "Build:\t\t[dict get $v build]\n"
-        append testo "Data:\t\t[dict get $v data]\n"
+        append testo "Date:\t\t[dict get $v data]\n"
     } else {
-        append testo "Versione:\tnon disponibile\n"
+        append testo "Version:\tnot available\n"
     }
     # Dove si sta lavorando: in questo ambiente e' la domanda che viene subito
     # dopo "che versione e'".
     append testo "\nLEGOROOT:\t[expr {[info exists env(LEGOROOT)] ? $env(LEGOROOT) : "-"}]\n"
-    append testo "Simulatore:\t[expr {[simulatore_corrente] ne "" ? [simulatore_corrente] : "-"}]\n"
-    append testo "Radice utente:\t[expr {[info exists env(LG_ENTRY)] ? $env(LG_ENTRY) : "-"}]\n"
+    append testo "Simulator:\t[expr {[simulatore_corrente] ne "" ? [simulatore_corrente] : "-"}]\n"
+    append testo "User root:\t[expr {[info exists env(LG_ENTRY)] ? $env(LG_ENTRY) : "-"}]\n"
     append testo "Directory:\t[pwd]"
     if {[dict get $v nota] ne ""} { append testo "\n\n[dict get $v nota]" }
 
@@ -1538,7 +1797,7 @@ proc about_legopst {} {
 
 # --- Interfaccia ---------------------------------------------------------
 if {$doppia} {
-    wm title . "LegoPST - HMI e faceplate"
+    wm title . "LegoPST - HMI and faceplates"
     # Stessa larghezza del banco (new_monit, 680 px): le due finestre si usano
     # insieme, una sopra l'altra, e allineate stanno meglio. L'altezza e' quella
     # che serve a 12 righe di lista.
@@ -1558,7 +1817,7 @@ if {$doppia} {
 # in basso, dove si usano.
 menu .mb -tearoff 0
 . configure -menu .mb
-menu .mb.file -tearoff 0
+menu .mb.file -tearoff 0 -postcommand aggiorna_voci_log
 .mb add cascade -label "File" -menu .mb.file
 # Le voci del menu File le costruisce aggiorna_menu_file, che lo rifa' da capo
 # ogni volta che i path recenti cambiano. Con -insim nascono tutte disabilitate,
@@ -1590,7 +1849,7 @@ foreach _voce [documenti_aiuto] {
         if {[info exists env(LG_HTML)] \
             && [file exists [file join $env(LG_HTML) index.htm]] \
             && [llength [info procs open_hlp]] > 0} {
-            .mb.aiuto add command -label "Help dei moduli (manuale storico)" \
+            .mb.aiuto add command -label "Modules help (legacy manual)" \
                                   -command {open_hlp index}
         }
         continue
@@ -1627,16 +1886,13 @@ if {[file exists [file join [pwd] S01]] || \
     ricorda_recente [pwd]
 }
 
-if {$insim} { wm title . "[wm title .]  (dal banco)" }
+if {$insim} { wm title . "[wm title .]  (from the desk)" }
 
-label .head -anchor w -padx 6 -pady 4 -text [expr {
-        $doppia   ? "A sinistra le pagine di processo (draw2gr), a destra i faceplate di comando (xstaz)" :
-        $stazmode ? "Le pagine di faceplate di comando (xstaz)" :
-                    "Le task di processo e la loro HMI (draw2gr)"}]
-label .hint -anchor w -padx 6 -foreground "#505050" -text \
-    "Per aprire: doppio click sulla voce, oppure tasto destro -> Open page"
-pack .head -side top -fill x
-pack .hint -side top -fill x
+# Le due righe di intestazione che stavano qui - quella che spiegava come erano
+# disposte le liste e quella che diceva come si apre una voce - sono sparite: la
+# prima la dicono gia' i titoli dei riquadri, la seconda e' diventata il balloon
+# help sui titoli stessi (BALLOON_APRI, piu' sotto). Cosi' la finestra comincia
+# direttamente con le liste, che sono quello per cui la si apre.
 
 # Intestazioni che dipendono dalla directory corrente: il simulatore S01 e il
 # Set Sim path. Vengono create SEMPRE, anche quando non servono, perche'
@@ -1678,13 +1934,30 @@ pack .btn -side bottom -fill x
 label .status -text "" -anchor w -relief sunken -bd 1 -padx 4
 pack .status -side bottom -fill x
 
+#  Testo del balloon sui titoli delle liste: prende il posto della riga fissa
+#  "Per aprire: ..." che stava sotto l'intestazione. E' il modo di aprire una
+#  voce, ed e' lo stesso per le due liste.
+set BALLOON_APRI "Double-click an entry to open it, or right-click -> Open page"
+
+#  Mette il suggerimento a comparsa su un widget, se balloon.tcl e' stato
+#  caricato. Senza il controllo, un lghmi lanciato dove $LG_TIX/balloon.tcl
+#  manca - un bundle FMU incompleto, una bin vecchia - morirebbe qui invece di
+#  partire senza suggerimenti.
+proc aiuto_a_comparsa {widget testo} {
+    if {[llength [info procs set_balloon]] > 0} {
+        catch {set_balloon $widget $testo}
+    }
+}
+
 #  Costruisce un riquadro "intestazione + lista + pulsante". Ritorna il path
 #  della listbox.
 proc crea_riquadro {parent titolo larghezza} {
+    global BALLOON_APRI
     frame $parent
     if {$titolo ne ""} {
         label $parent.h -text $titolo -anchor w -padx 4 -pady 2 -foreground "#000080"
         pack  $parent.h -side top -fill x
+        aiuto_a_comparsa $parent.h $BALLOON_APRI
     }
     frame $parent.f
     listbox $parent.f.lb -yscrollcommand "$parent.f.sb set" -height 12 \
@@ -1702,8 +1975,8 @@ if {$doppia} {
     # hanno etichette piu' lunghe, ma il divisorio si trascina.
     panedwindow .pw -orient horizontal -sashrelief raised -sashwidth 6
     pack .pw -side top -fill both -expand 1 -padx 6 -pady 2
-    set LB_PROC [crea_riquadro .pw.proc "Pagine di processo" 39]
-    set LB_STAZ [crea_riquadro .pw.staz "Faceplate xstaz"    39]
+    set LB_PROC [crea_riquadro .pw.proc "Process pages"    39]
+    set LB_STAZ [crea_riquadro .pw.staz "xstaz faceplates" 39]
     .pw add .pw.proc -minsize 180
     .pw add .pw.staz -minsize 180
     bind $LB_PROC <Double-1> { launch_hmi }
@@ -1713,13 +1986,13 @@ if {$doppia} {
     bind $LB_PROC <Button-3> [list popup_open_page $LB_PROC launch_hmi     %y %X %Y]
     bind $LB_STAZ <Button-3> [list popup_open_page $LB_STAZ apri_faceplate %y %X %Y]
 } elseif {$stazmode} {
-    set LB_STAZ [crea_riquadro .f "" 68]
+    set LB_STAZ [crea_riquadro .f "xstaz faceplates" 68]
     pack .f -side top -fill both -expand 1 -padx 6 -pady 2
     bind $LB_STAZ <Double-1> { apri_faceplate }
     bind . <Return>          { apri_faceplate }
     bind $LB_STAZ <Button-3> [list popup_open_page $LB_STAZ apri_faceplate %y %X %Y]
 } else {
-    set LB_PROC [crea_riquadro .f "" 34]
+    set LB_PROC [crea_riquadro .f "Process pages" 34]
     pack .f -side top -fill both -expand 1 -padx 6 -pady 2
     bind $LB_PROC <Double-1> { launch_hmi }
     bind . <Return>          { launch_hmi }

@@ -19,6 +19,10 @@ File: helper [`Alg_rt/bin/lghmi`](../Alg_rt/bin/lghmi) (nel PATH via profilo) +
 selettore Tk [`Alg_legopc/src/tix/lghmi.tcl`](src/tix/lghmi.tcl) (deployato in
 `Alg_legopc/bin`).
 
+> **L'interfaccia è in inglese** — etichette, menù, messaggi, conferme e riga di
+> stato. Qui sotto le voci sono citate con il testo che si legge a schermo. I
+> commenti del sorgente e questo documento restano in italiano.
+
 ## Uso
 
 ```bash
@@ -39,12 +43,24 @@ Nella finestra:
   apre un popup minuscolo con il solo pulsante *Open page*. Non ci sono pulsanti
   di apertura nella finestra: l'azione sta dove sta l'oggetto, e nel modo a due
   liste questo toglie ogni ambiguità su cosa si sta aprendo.
+- **Come si apre lo dice un balloon**, non una riga di testo: fermandosi sul
+  titolo di un riquadro (*Process pages*, *xstaz faceplates*) compare
+  *«Double-click an entry to open it, or right-click → Open page»*. Prima erano
+  due righe fisse in cima alla finestra — una descriveva la disposizione delle
+  liste, l'altra il modo di aprire una voce — che occupavano spazio a ogni
+  avvio per dire una cosa che serve una volta sola. Il suggerimento lo dà
+  `set_balloon` di [src/tix/balloon.tcl](src/tix/balloon.tcl), lo stesso di
+  `draw2gr`, sorgiato dentro un `catch`: se manca si perdono i suggerimenti, non
+  il selettore.
 - Il **tasto destro seleziona prima la voce sotto il cursore**, quindi il popup
   agisce su quella che hai puntato e non sulla selezione precedente. Si chiude
   con **Esc** o con un click fuori dal pulsante; finché è aperto tiene un grab
   locale, così un click altrove lo congeda invece di finire sulla lista.
-- L'intestazione di ogni riquadro porta il numero di voci; se una delle due liste
-  non ha nulla da mostrare resta vuota, e la riga di stato lo dice per entrambe.
+- **Ogni riquadro ha il suo titolo** — *Process pages* e *xstaz faceplates* —
+  anche in modalità a lista singola, dove prima non c'era perché ci pensavano le
+  due righe di intestazione. Nel modo a due liste il titolo porta anche il numero
+  di voci; se una delle due liste non ha nulla da mostrare resta vuota, e la riga
+  di stato lo dice per entrambe.
   Il divisorio fra i due riquadri si trascina per dare più spazio all'uno o
   all'altro.
 - La finestra parte **680x328**, la stessa larghezza del **banco** (`new_monit`),
@@ -53,6 +69,10 @@ Nella finestra:
   finestra ridimensionabile (minimo 560x300).
 - **File → Open loc path…** → cambia la **directory di lavoro** del selettore,
   e sotto la voce ci sono le ultime directory usate: vedi sotto.
+- **File → Simulation log** → **riapre** la finestra di log di `net_startup`, che
+  altrimenti la X chiude per sempre: vedi sotto.
+- **File → Logs ▸** → gli **altri log** che `lghmi` scrive in `/tmp`: uno per ogni
+  HMI lanciata, più `mmi` e `xstaz`: vedi sotto.
 - **Tools** → aggiorna la configurazione del **simulatore corrente** con
   `kUpSim`, e permette di cambiare simulatore: vedi sotto.
 - **?** → versione di LegoPST e documentazione dell'ambiente: vedi sotto.
@@ -314,7 +334,7 @@ con loro le HMI aperte. Succedeva in **due** modi, non uno:
 | gesto | cosa succedeva |
 |---|---|
 | **X** della finestra del terminale | `xterm` manda `SIGHUP` al process group del figlio |
-| **Invio** al prompt *«premi Invio per chiudere»* | esce il session leader, e il kernel manda `SIGHUP` al foreground process group |
+| **Invio** al prompt *«press Enter to close»* | esce il session leader, e il kernel manda `SIGHUP` al foreground process group |
 
 Il secondo è il peggiore: era il messaggio stesso a invitare a farlo. Un
 terminale non poteva nemmeno chiedere conferma — `xterm` **non ha alcun hook**
@@ -332,11 +352,39 @@ chiudere.
 
 ### La finestra di log
 
-- **X**, **Chiudi** o **Esc** → se la simulazione è in corso, chiedono conferma
+- **X**, **Close** o **Esc** → se la simulazione è in corso, chiedono conferma
   ricordando che **chiudere la finestra NON la ferma**, elencando i processi che
-  restano vivi e dicendo come fermarli. Se non c'è nulla in esecuzione, si chiude
-  senza domande.
-- **Ferma la simulazione** → esegue `killsim`, cioè lo stesso comando con cui
+  restano vivi, dicendo come fermarli e **come riaprire questa finestra**. Se non
+  c'è nulla in esecuzione, si chiude senza domande.
+- **Si riapre da `File → Simulation log`.** Chiudere la finestra non ferma la
+  simulazione — è il punto di tutto il meccanismo — ma fino a prima la chiudeva
+  *per sempre*: il log restava solo nel file in `/tmp` e, con la finestra, se ne
+  andava l'unico modo grafico di **fermare** la simulazione, cioè il pulsante
+  *Stop simulation*. Alla riapertura il log **ricompare per intero**, perché il
+  visore rilegge il file da capo (`SIMLOG_POS` a 0), e i due cicli di
+  aggiornamento ripartono in una nuova generazione.
+
+  Il banner in testa **non** dice *«Simulation started»*, che su una riapertura
+  sarebbe falso: dice che il log è stato riaperto e, se lo sappiamo, da quale
+  directory la simulazione era partita.
+
+  | Stato | Voce di menù |
+  |---|---|
+  | c'è un log in `/tmp`, o una simulazione viva | **attiva** |
+  | né log né simulazione | spenta |
+  | `-insim` | spenta, come il resto del menù File |
+
+  La voce è accesa anche **senza log** quando una simulazione gira, perché la
+  finestra serve comunque: è da lì che si preme *Stop simulation*. Con `-insim`
+  resta spenta perché il selettore appartiene a una simulazione che non ha
+  lanciato lui: il log in `/tmp` non è il suo, e *Stop simulation* ammazzerebbe
+  proprio la simulazione da cui `lghmi` è stato aperto.
+
+  Lo stato è ricalcolato a ogni apertura del menù (`-postcommand`), non alla sua
+  costruzione: il menù File si ricostruisce di rado — solo quando cambiano i path
+  recenti — mentre il log compare e la simulazione parte e si ferma in qualsiasi
+  momento.
+- **Stop simulation** → esegue `killsim`, cioè lo stesso comando con cui
   `net_startup` comincia. Chiede conferma ricordando che ammazza anche le HMI e i
   faceplate aperti, e che cancella *tutte* le SHM, le code e i semafori
   dell'utente. È acceso solo quando c'è qualcosa da fermare.
@@ -344,9 +392,90 @@ chiudere.
   sono vivi, riletto ogni 3 secondi.
 - Il visore è **uno solo**: un secondo `net_startup` riparte da capo nella stessa
   finestra, come il log.
+- La **directory** dell'ultimo lancio sta in `SIMLOG_DIR`, e serve solo al titolo
+  della finestra: il file di log non la contiene (`net_startup` comincia
+  direttamente con i suoi controlli). Se `lghmi` è stato riavviato nel frattempo,
+  il log in `/tmp` c'è ancora ma la directory no, e il titolo lo dice invece di
+  inventarsela: *`Simulation log - /tmp/lghmi_net_startup.log`*.
 
 Con `-insim` il pulsante è sempre spento, qualunque cosa ci sia nella
 directory: vedi sopra.
+
+## `File → Logs ▸` — gli altri log di lghmi
+
+Tutto quello che `lghmi` lancia parte **in background e staccato** (`setsid`),
+quindi il suo output non ha nessun terminale dove finire: va in un file in
+`/tmp`, che fino a prima era l'unico posto dove leggerlo — sapendo che esisteva e
+andandoselo a cercare a mano.
+
+| File | Chi lo scrive | Cosa c'è dentro |
+|---|---|---|
+| `lghmi_net_startup.log` | `lancia_net_startup` | i controlli di `net_startup` — ha la **voce sua** |
+| `lghmi_<task>.log` | `launch_hmi`, uno per HMI | `loadf01`, caricamento di `.tom`/F01/F14 |
+| `lghmi_mmi.log` | `launch_mmi` | font mancanti, apertura del `Context.ctx` |
+| `lghmi_xstaz.log` | `apri_faceplate` | banner e versione di `xstaz` |
+
+Tutti sono aperti con `>`, quindi ognuno è sempre **l'ultima esecuzione** di
+quella cosa, non uno storico.
+
+`net_startup` **non** compare nel sottomenù: la sua finestra non è solo un
+visore — ha la riga di stato dei processi e il pulsante che li ferma — e resta
+una voce di primo livello, sopra.
+
+**L'elenco si fa con una `glob` su `/tmp/lghmi_*.log`**, non con un registro
+popolato nei quattro punti di lancio. Così si vedono anche i log di una sessione
+**precedente** di `lghmi` (lanci una HMI, esci, riapri), non c'è stato da tenere
+sincronizzato con chi lancia cosa, e l'ordine — dal più recente — lo dà il
+`mtime`. L'etichetta è una **funzione pura del nome del file** (`etichetta_log`),
+quindi non serve ricordarsi chi ha lanciato cosa:
+
+```
+Logs ▸
+  HMI: NPS              (286 B, 30 min ago)
+  xstaz (faceplates)    (10 KB, 34 min ago)
+  HMI: SSS              (286 B, 23 h ago)
+  mmi                   (1 KB, 1 d ago)
+```
+
+Dimensione ed età distinguono a colpo d'occhio il log di adesso da quello di
+ieri, e un log vuoto da uno che ha qualcosa da dire.
+
+> **Il filtro sul proprietario non è pedanteria.** I nomi in `/tmp` sono
+> **fissi**, quindi su una macchina con più utenti un `lghmi_mmi.log` può essere
+> di un altro: `elenco_log` scarta con `file owned` quello che non è nostro. È la
+> stessa ragione per cui `lancia_net_startup` apre il suo log in scrittura prima
+> di partire, invece di darlo per suo.
+
+Con `-insim` il sottomenù **resta acceso**, a differenza del resto del menù File:
+leggere il log di una HMI non tocca niente, e queste finestre non hanno nessun
+pulsante che ferma nulla.
+
+### Il visore, uno per log
+
+Il visore non è più un singleton. Lo stato — posizione già letta, generazione dei
+cicli `after`, file seguito, presenza dei controlli della simulazione — sta in
+array indicizzati **per finestra** (`LOGPOS`, `LOGGEN`, `LOGFILE`, `LOGCONSIM`),
+così più log restano aperti insieme senza pestarsi i piedi.
+
+- **Una finestra per file**: riaprire lo stesso log riporta davanti la sua,
+  invece di accumularne due sullo stesso contenuto (`LOGWIN`).
+- Il path del toplevel è un **progressivo** (`.log1`, `.log2`) e non il nome della
+  task: quello può contenere punti e spazi, che Tk non accetta nei path dei
+  widget. La finestra della simulazione resta `.simlog`.
+- **Due sapori di finestra**, decisi dal flag `consim`: solo quella della
+  simulazione ha la riga di stato dei processi e *Stop simulation*, e solo lei
+  chiede conferma quando la chiudi. Il log di una HMI si chiude e basta — non
+  lascia acceso niente — e non deve offrire un pulsante che fa `killsim` su una
+  simulazione che non è la sua.
+- Per lo stesso motivo il ciclo dello **stato dei processi** (tre `pgrep` ogni 3
+  secondi) gira **solo** su `.simlog`. Quello del log, che è un `file size` ogni
+  mezzo secondo, gira su tutte.
+- **Log molto grandi**: riaprendo si rilegge da capo, quindi oltre `LOGMAX`
+  (512 KB) si parte dalla coda e lo si dice in testa — *`--- showing the last
+  512 KB of 2.3 MB ---`*. La prima riga può risultare tagliata a metà: è il
+  prezzo di non dover leggere il file due volte per trovare un a capo. La soglia
+  è larga apposta (i log veri stanno sotto i 100 KB): serve come protezione, non
+  come politica.
 
 ## Menù `Tools` — aggiornare la configurazione del simulatore
 
@@ -355,9 +484,9 @@ terminale:
 
 | voce | cosa fa |
 |---|---|
-| `kUpSim - riallinea la configurazione di <nome>` | la catena completa |
-| `kUpSim -nommi - senza le pagine MMI dei faceplate` | salta `kStazPages`, `kWinContext`, `kCompileSim` |
-| `kUpSim -n - anteprima: mostra i passi senza eseguirli` | prova a vuoto |
+| `kUpSim - realign the configuration of <nome>` | la catena completa |
+| `kUpSim -nommi - without the MMI faceplate pages` | salta `kStazPages`, `kWinContext`, `kCompileSim` |
+| `kUpSim -n - preview: show the steps without running them` | prova a vuoto |
 
 Il nome del simulatore sta **nell'etichetta della prima voce**, così si sa su
 cosa si sta per agire senza aprire nulla. Se `$KSIM` non è definita o non è una
@@ -375,7 +504,7 @@ esecuzione, la conferma avverte che la simulazione **sta usando**
 `variabili.rtf`, `r02.dat` e le pagine, e che le troverebbe cambiate sotto.
 L'anteprima `-n` non chiede conferma: non esegue niente.
 
-### `Tools → Simulatore corrente` e la variabile `KSIM`
+### `Tools → Current simulator` e la variabile `KSIM`
 
 Il sottomenù elenca i simulatori di `$KSKED` (le stesse directory della
 funzione `ksims`) con quello corrente marcato. Scegliendone uno:
@@ -426,15 +555,15 @@ quel file c'è.
 ?
   About LegoPST
   ──────────────────────────────────────────
-  LegoPST - panoramica del progetto (README)  README.md          ← in grassetto
+  LegoPST - project overview (README)         README.md          ← in grassetto
   ──────────────────────────────────────────
-  Indice ragionato della documentazione       INDICE_DOCUMENTAZIONE.html
-  Comandi kbin (i 192 kprocedure)             kbin/kbin-riferimento-comandi-LegoPST.html
-  Help dei moduli (manuale storico)           $LG_HTML/index.htm, via open_hlp
+  Annotated documentation index               INDICE_DOCUMENTAZIONE.html
+  kbin commands (the 192 kprocedure)          kbin/kbin-riferimento-comandi-LegoPST.html
+  Modules help (legacy manual)                $LG_HTML/index.htm, via open_hlp
   ──────────────────────────────────────────
-  Questa finestra: lghmi                      Alg_legopc/LGHMI.md
-  Configurare un simulatore: al_sim.conf      docs/AL_SIM_CONF.md
-  Faceplate di comando (xstaz)                Alg_rt/grafica/xstaz/HOWTO_faceplate.md
+  This window: lghmi                          Alg_legopc/LGHMI.md
+  Configuring a simulator: al_sim.conf        docs/AL_SIM_CONF.md
+  Command faceplates (xstaz)                  Alg_rt/grafica/xstaz/HOWTO_faceplate.md
 ```
 
 Il **README** è la prima voce, in un gruppo suo e **in grassetto**: è il
@@ -558,10 +687,10 @@ pulsante è **grigio-verde e inattivo**, e la riga di stato dice perché. Il
 controllo replica le regole di `mmi` invece di limitarsi a contare i file:
 
 1. manca `Context.ctx` nella directory → `mmi` uscirebbe subito
-   (*"mmi: nessun Context.ctx in DIR"*);
+   (*"mmi: no Context.ctx in DIR"*);
 2. il Context c'è: da esso si leggono `*pages` (dove stanno le pagine, anche
    altrove) e `*page_list` (quali sono), e si contano i `<NOME>.rtf` presenti. Se
-   nessuno esiste → *"mmi: nessuna pagina compilata (.rtf) in DIR"*.
+   nessuno esiste → *"mmi: no compiled page (.rtf) in DIR"*.
 
 Contare i `*.rtf` della directory non basterebbe: la directory di un simulatore
 ne contiene altri che pagine non sono (`variabili.rtf`, `recorder.rtf`,
