@@ -123,6 +123,14 @@ Dal menu `Tools` si riallinea la configurazione del simulatore (`kUpSim`, cioè
 il CAD sul modello della task selezionata — rifiutando se una simulazione è in
 corso o se la task appartiene a un'altra area di lavoro.
 
+Un terzo riquadro elenca le **task di regolazione** (`r_*`), che prima non
+comparivano affatto perché non hanno un `.tom`: da lì si apre **`config`**,
+l'editor della regolazione, e da `Tools` si lanciano i tre passi
+di costruzione — `kCompile Regolation`, `Task`, `Page` — sulla sola task
+selezionata e in quest'ordine. Si nasconde con `-noreg`.
+L'output delle compilazioni — comprese quelle di `kUpSim` — finisce nel visore
+di log di `lghmi`, riapribile da `File → Logs`.
+
 Variabili d'ambiente: `LG_TASKROOT` (directory delle task, default `$HOME/legocad`),
 `LG_SIM_PATH` (la imposta `-loc`), `LG_TIX`.
 

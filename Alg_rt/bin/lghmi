@@ -30,6 +30,13 @@
 #                 non ha il dialogo delle stazioni di net_monit. Le pagine
 #                 vengono cercate nella cwd, poi nelle task del file S01
 #                 (regolazione compresa) o nelle sottodir di $LG_TASKROOT.
+#   -reg, --reg / -noreg, --noreg
+#                 mostra o nasconde il riquadro delle task di REGOLAZIONE
+#                 (quelle r_*, che si modificano con config invece che con la
+#                 HMI). E' acceso di DEFAULT quando si vedono entrambe le liste;
+#                 -reg serve a riaccenderlo insieme a -proc o -staz, che da soli
+#                 lo spengono. Le regolazioni non hanno un .tom, quindi non
+#                 comparivano affatto nell'elenco delle task.
 #   -loc, --loc [DIR]
 #                 pre-imposta il "Set Sim path" (menu View) delle HMI lanciate
 #                 (via LG_SIM_PATH). Senza DIR usa la directory CORRENTE da cui
@@ -75,6 +82,8 @@ while [ "$#" -gt 0 ]; do
         -proc|--proc)   WISH_ARGS+=("-proc") ;;
         -noloc|--noloc) LOC=0 ;;
         -insim|--insim) WISH_ARGS+=("-insim") ;;
+        -reg|--reg)     WISH_ARGS+=("-reg") ;;
+        -noreg|--noreg) WISH_ARGS+=("-noreg") ;;
         -loc|--loc)
             LOC=1
             # Se il prossimo argomento non e' un'opzione, e' la dir di lancio.

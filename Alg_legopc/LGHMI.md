@@ -26,12 +26,14 @@ selettore Tk [`Alg_legopc/src/tix/lghmi.tcl`](src/tix/lghmi.tcl) (deployato in
 ## Uso
 
 ```bash
-lghmi              # due liste affiancate: processo + faceplate
+lghmi              # processo + faceplate affiancati, regolazioni sotto
 lghmi -proc        # solo le pagine di processo (task -> draw2gr)
+lghmi -staz        # solo i faceplate (pagine di r02.dat -> xstaz)
+lghmi -reg         # riaccende le regolazioni insieme a -proc/-staz
+lghmi -noreg       # nasconde il riquadro delle task di regolazione
 lghmi -loc         # esplicito, identico al default
 lghmi -loc DIR     # usa DIR come dir della simulazione
 lghmi -noloc       # NON pre-imposta alcun sim path
-lghmi -staz        # solo i faceplate (pagine di r02.dat -> xstaz)
 lghmi -insim       # lanciato da dentro una simulazione (lo passa il banco)
 lghmi -h           # aiuto
 ```
@@ -45,7 +47,11 @@ Nella finestra:
   liste questo toglie ogni ambiguità su cosa si sta aprendo.
 - **Come si apre lo dice un balloon**, non una riga di testo: fermandosi sul
   titolo di un riquadro (*Process pages*, *xstaz faceplates*) compare
-  *«Double-click an entry to open it, or right-click → Open page»*. Prima erano
+  *«Double-click an entry to open it, or right-click → Open page»*. Il riquadro
+  *Regulation tasks* ha il **suo** testo — *«Double-click a task to edit its
+  regulation with config»* — e il suo popup dice *Edit regulation*, non *Open
+  page*: lì il doppio clic non apre una pagina, lancia l'editor della
+  regolazione. Prima erano
   due righe fisse in cima alla finestra — una descriveva la disposizione delle
   liste, l'altra il modo di aprire una voce — che occupavano spazio a ogni
   avvio per dire una cosa che serve una volta sola. Il suggerimento lo dà
@@ -495,8 +501,7 @@ così più log restano aperti insieme senza pestarsi i piedi.
 
 ## Menù `Tools` — configurazione del simulatore, e modifica dei modelli
 
-Le prime tre voci lanciano **`kUpSim`** sul **simulatore corrente** (`$KSIM`) in un
-terminale:
+Le prime tre voci lanciano **`kUpSim`** sul **simulatore corrente** (`$KSIM`):
 
 | voce | cosa fa |
 |---|---|
@@ -519,6 +524,17 @@ tre passi MMI vengono saltati. Se `dispatcher`, `net_sked` o `banco` sono in
 esecuzione, la conferma avverte che la simulazione **sta usando**
 `variabili.rtf`, `r02.dat` e le pagine, e che le troverebbe cambiate sotto.
 L'anteprima `-n` non chiede conferma: non esegue niente.
+
+**L'output va nel visore di log, non in un terminale.** Il terminale sembrava la
+scelta ovvia per un comando batch, ma **perde l'output**: chiusa la finestra non
+resta niente, e di una compilazione si vogliono poter rileggere gli errori. Il
+visore tiene il file in `/tmp/lghmi_kupsim_<simulatore>.log`, lo segue dal vivo,
+si riapre da *File → Logs* e non dipende da `$LG_XTERM` — che su una macchina
+senza `xterm` non c'è. Lo stesso vale per `config -c compreg` e `-c creatask`.
+
+> Il nome del file **deve** stare nella forma `lghmi_*.log`: `elenco_log` fa la
+> glob su quel modello, e così la voce compare da sola nel sottomenu *Logs*,
+> senza una riga di codice in più.
 
 ### `Tools → Edit model (legopc)`
 
@@ -589,6 +605,132 @@ cambiato, va riallineato con `Tools → kUpSim`. L'attesa non usa un PID — il
 lancio passa per `setsid`, che può forkare — ma un `pgrep` sul nome del `.tom`,
 come già fa `conta_mmi`; se il processo non compare entro 10 secondi si rinuncia
 in silenzio.
+
+### Il riquadro `Regulation tasks` e il tool `config`
+
+Le task di **regolazione** (`r_*`) finora erano **invisibili** in `lghmi`:
+`scan_tasks` tiene solo le directory che contengono un `*.tom`, e una
+regolazione il `.tom` non ce l'ha — ha i `.sed` del suo editor. Per il selettore
+erano nella stessa categoria di `libgraph` e `libut`.
+
+Ora hanno un riquadro loro, in un layout **2+1**: **processo e regolazione
+affiancate in alto** — sono le due liste su cui si lavora di più e che si
+confrontano fra loro — e i **faceplate `xstaz` sotto**, a tutta larghezza. **La
+finestra non si allarga**: resta 680 px, la larghezza del banco — che è la
+ragione per cui quel numero è quello — e cresce solo in altezza. Tre liste
+affiancate avrebbero sfondato la larghezza o ridotto ogni colonna a una ventina
+di caratteri.
+
+L'altezza della finestra **non è cablata**: si prende quella *richiesta* dal
+contenuto dopo aver costruito i riquadri. Le tre liste chiedono tutte 12 righe,
+e una `panedwindow` alla prima apertura dà a ogni pannello la sua dimensione
+naturale: così le tre partono **alla stessa altezza**. Con un numero fisso il
+pannello di sotto si prendeva quel che avanzava e si apriva schiacciato.
+
+Non c'è un pulsante: la task si apre come nelle altre liste — doppio clic,
+`Invio`, o tasto destro.
+
+Si spegne con **`-noreg`**; **`-reg`** lo riaccende nelle modalità a lista
+singola (`-proc`, `-staz`), dove altrimenti non comparirebbe.
+
+**Come vengono riconosciute**: in modalità `S01` dal **tipo `R`** scritto nel
+file, che è il dato autorevole (`parse_s01` lo sa già leggere, lo fa per i
+faceplate); fuori da `S01` dal **prefisso `r_`**, la stessa convenzione che usa
+`kCompile`, che «entra in ogni `r_*` sotto legocad».
+
+Tre azioni, tutte sulla task **selezionata in quel riquadro**:
+
+| dove | azione | come gira |
+|---|---|---|
+| doppio clic, `Invio`, tasto destro | `config` — l'editor | processo indipendente (`setsid`), log in `/tmp`: è una GUI Motif, non un batch |
+| `Tools` | `1. kCompile Regolation` | nel **visore di log** |
+| `Tools` | `2. kCompile Task` | nel **visore di log** |
+| `Tools` | `3. kCompile Page` | nel **visore di log** |
+
+Le tre voci in `Tools` sono **spente** con `-noreg`: agiscono su una selezione
+che senza quel riquadro non esiste.
+
+> **L'ordine conta, ed è il motivo per cui le etichette sono numerate.**
+> Produrre una task di regolazione vuol dire, in quest'ordine:
+>
+> 1. **`Regolation`** — compila tutti gli schemi (`config -c compreg`);
+> 2. **`Task`** — produce la task come eseguibile (`config -c creatask`);
+> 3. **`Page`** — compila le pagine che `mmi` animerà (`config -c compall`).
+>
+> **Il secondo passo NON fa il terzo**: sono tre tipi distinti. Eseguirli in
+> disordine non dà errore — dà una task incoerente, che è peggio.
+
+> **Perché `kCompile` e non `config -c` nudo.** Sarebbe più corto, ma `kCompile`
+> ([kbin/kCompile](../kbin/kCompile)) prima di compilare **cancella i vecchi
+> `*err*` e `net_compi.out`**, e senza quella pulizia i conteggi dopo la
+> compilazione sono falsi: un `.reg_err` rimasto dalla corsa precedente fa
+> leggere errori che non ci sono più. In più fa `kTest` sull'ambiente, tiene un
+> log suo in `$KLOG` e conta gli errori.
+>
+> Il prezzo è che `kCompile` vuole un **simulatore corrente**: `kTest` esce NOK
+> senza `KSIMNAME`. Per questo le tre voci sono **spente senza simulatore**,
+> come già quelle di `kUpSim`. Il comando gira in una shell che sorgia il
+> profilo e chiama `ksetsim`, con un `||` che **ferma la catena** se la
+> selezione fallisce: senza, si compilerebbe contro il simulatore precedente
+> senza che niente lo dica.
+>
+> `Local` prende la task da `pwd`, quindi il `cd` nella task viene dopo
+> `ksetsim`. Attenzione alla grafia: è **`Regolation`**, non "Regulation" —
+> scritta in inglese corretto lo script cade nell'`else` e stampa solo la riga
+> d'uso.
+>
+> Gli errori restano nella directory della task: `<pagina>.reg_err` per i primi
+> due passi, `<pagina>.rtf_err` per il terzo, e l'esito in `net_compi.out`.
+
+> **`config` non prende argomenti**: lavora sulla directory corrente, quindi si
+> fa `cd` nella task — identico a `legopc`. Il precedente è `kc`. Ma **`kc` non
+> va imitato fino in fondo**: verifica l'esistenza della task cercando
+> `f01.dat`, e `f01.dat` ce l'hanno *tutte* le task, anche quelle di processo.
+
+> **Il controllo sull'area vale anche qui**, con lo stesso confronto per
+> identità: `config` risolve `libut_reg/libreg` e `libut_mmi` a partire da
+> `LEGOCAD_USER`, che il profilo pone a `~`, quindi punta allo stesso
+> `$HOME/legocad` di `LG_ENTRY`. Una regolazione di un'altra area verrebbe
+> compilata contro la libreria sbagliata.
+
+> **A simulazione in corso si avverte e si consente** — diversamente da
+> `legopc`, che invece **blocca**. La differenza è voluta: un modello salvato
+> cambia la topologia sotto la task che gira, mentre sulla regolazione si lavora
+> anche a simulazione viva. `creatask` ha un avviso più esplicito degli altri
+> due, perché non modifica file ma **rigenera la task**: l'eseguibile in `proc/`
+> viene ricostruito sotto la simulazione, che continuerebbe a usare il vecchio
+> fino al riavvio.
+
+### Quando le voci di `Tools` sono spente
+
+Tutte le voci che agiscono sul simulatore — le tre di `kUpSim` e le tre di
+`kCompile` — sono accese solo se c'è un **simulatore corrente**, cioè se `$KSIM`
+esiste ed è una directory. `kCompile` in particolare comincia con `kTest`, che
+senza `KSIMNAME` esce NOK.
+
+Normalmente il simulatore lo fissa il profilo all'avvio (`ksetsim_default`) e
+`lghmi` lo eredita. Ma **l'eredità non è garantita**: il wrapper risorgia il
+profilo solo se `LG_TIX` è vuota, quindi un lancio da un ambiente che ha
+`LG_TIX` ma non `KSIM` arrivava qui senza simulatore, e trovava **tutte le voci
+spente senza che nulla dicesse perché**. Bastava passare da *Tools → Current
+simulator* per vederle accendersi — quella voce imposta `env(KSIM)` dentro il
+processo Tcl — e la cosa sembrava un capriccio dell'interfaccia.
+
+Ora, se `KSIM` manca o punta a una directory che non c'è, `lghmi` **rifà da sé
+la cascata del profilo**: `~/.legosim`, poi `cassano0`, poi il primo di
+`$KSKED`. Solo in memoria: `~/.legosim` non viene riscritto, perché aprire il
+selettore non è una scelta dell'utente e non deve cambiare il default delle
+shell future. Alle variabili derivate (`KWIN`, `KPAGES`, `KLOG`…) non pensa: i
+comandi girano in una shell che chiama `ksetsim` per conto suo, ed è quella a
+derivarle.
+
+Quando il ripiego scatta, la barra di stato lo dice; se non c'è proprio nessun
+simulatore, dice quello e indica dove sceglierne uno.
+
+> **`Open loc path` non c'entra con il simulatore corrente.** Cambia la
+> directory su cui lavora il selettore — quale elenco di task si vede e quale
+> *Set Sim path* ereditano le HMI — non `$KSIM`. Sono due cose distinte, e
+> sceglierne una non tocca l'altra.
 
 ### `Tools → Current simulator` e la variabile `KSIM`
 
@@ -832,7 +974,15 @@ sopravvive al *Quit* del selettore.
   `.profile_legoroot`.
 - **Nessuna task in lista**: in dir-scan, nessuna sottodir di `$LG_TASKROOT` ha
   un `*.tom` (controlla `LG_TASKROOT`, che può essere un symlink); in modalità
-  S01, il file non ha task di tipo `P`.
+  S01, il file non ha task di tipo `P`. Le task di **regolazione** non stanno
+  lì: non hanno un `.tom`, e hanno un riquadro loro.
+- **Le voci di `Tools` sono spente**: agiscono sul simulatore corrente, e non ce
+  n'è uno valido. La barra di stato lo dice. Sceglilo da *Tools → Current
+  simulator*, o con `ksetsim <nome>` prima di lanciare. Non confonderlo con
+  *Open loc path*, che cambia la directory di lavoro e **non** il simulatore.
+- **Le voci `kCompile` sono spente ma `kUpSim` no**: manca il riquadro delle
+  regolazioni (`-noreg`), e quelle voci agiscono su una selezione che lì dentro
+  non esiste.
 - **La HMI si apre ma Plot/Command non trovano i dati**: la simulazione gira in
   un'altra directory → lancia `lghmi` dalla dir della sim, oppure usa *View → Set
   Sim path* nella HMI. Vedi la sezione *Set Sim path* in

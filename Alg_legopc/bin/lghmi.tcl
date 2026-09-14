@@ -66,6 +66,9 @@ set TASKROOT [expr {[info exists env(LG_TASKROOT)] && $env(LG_TASKROOT) ne "" \
                     ? $env(LG_TASKROOT) : [file join $env(HOME) legocad]}]
 
 #  Tre modalita':
+#    -reg    mostra il riquadro delle task di REGOLAZIONE (r_*): acceso di
+#            default in modalita' doppia, serve a riaccenderlo con -proc/-staz
+#    -noreg  nasconde il riquadro delle task di regolazione
 #    -proc   solo le pagine di processo (task -> HMI draw2gr)
 #    -staz   solo i faceplate (pagine di r02.dat -> xstaz)
 #    nessuna delle due: entrambe, in due liste affiancate
@@ -93,6 +96,16 @@ set RECENTI     {}
 set mostra_proc [expr {$procmode || !$stazmode}]
 set mostra_staz [expr {$stazmode || !$procmode}]
 set doppia      [expr {$mostra_proc && $mostra_staz}]
+
+#  Le task di REGOLAZIONE (r_*) hanno un riquadro loro, sotto agli altri due.
+#  Acceso di default: sono parte del simulatore come le altre, e finora erano
+#  invisibili qui dentro perche' scan_tasks tiene solo le directory con un .tom
+#  - e una regolazione il .tom non ce l'ha. Si spegne con -noreg, e -reg lo
+#  riaccende anche nelle modalita' a lista singola (-proc / -staz), dove
+#  altrimenti non comparirebbe.
+set regmode   [expr {[lsearch -exact $argv "-reg"] >= 0}]
+set noregmode [expr {[lsearch -exact $argv "-noreg"] >= 0}]
+set mostra_reg [expr {!$noregmode && ($regmode || $doppia)}]
 set LGTIX    [expr {[info exists env(LG_TIX)] ? $env(LG_TIX) : ""}]
 
 # --- Modalita' S01: file "S01" nella cwd di lancio ----------------------
@@ -190,6 +203,24 @@ proc parse_s01 {path {tipi P}} {
 }
 
 # --- Task = sottodir di $root con almeno un *.tom (modalita' dir-scan) ---
+#  Le task di REGOLAZIONE presenti sotto $root.
+#
+#  Criterio: il prefisso "r_", che e' la convenzione gia' usata dal resto
+#  dell'ambiente - kCompile entra "in ogni r_* sotto legocad" per compilarle.
+#  Non si guarda dentro le directory: una task di regolazione non ha .tom (ha
+#  i .sed dell'editor), quindi scan_tasks la scarta gia', e cercare i .sed
+#  costerebbe una glob per ogni directory a ogni Refresh.
+#
+#  In modalita' S01 questa funzione NON si usa: li' il tipo della task e'
+#  scritto nel file (lettera R), che e' l'informazione autorevole.
+proc scan_reg_tasks {root} {
+    set out {}
+    foreach d [lsort [glob -nocomplain -type d [file join $root r_*]]] {
+        lappend out [file tail $d]
+    }
+    return $out
+}
+
 proc scan_tasks {root} {
     set out {}
     foreach d [lsort [glob -nocomplain -type d [file join $root *]]] {
@@ -382,11 +413,47 @@ proc riempi_staz {} {
     return "[llength $ITEMS_STAZ] faceplate pages in [llength $dirs] directories"
 }
 
+#  Riempie la lista delle task di REGOLAZIONE.
+#
+#  In modalita' S01 le prende dal file per TIPO (lettera R): e' il dato
+#  autorevole, e parse_s01 sa gia' leggerlo perche' lo fa per i faceplate.
+#  Fuori da S01 ricade sul prefisso r_ sotto $TASKROOT.
+proc riempi_reg {} {
+    global TASKROOT s01mode S01FILE ITEMS_REG LB_REG
+    $LB_REG delete 0 end
+    set ITEMS_REG {}
+
+    if {$s01mode} {
+        foreach e [parse_s01 $S01FILE R] {
+            lassign $e name desc dir
+            set label [expr {$desc ne "" ? "$name  $desc" : $name}]
+            $LB_REG insert end $label
+            lappend ITEMS_REG [list $label $dir $name]
+        }
+        if {[llength $ITEMS_REG] == 0} {
+            return "no regulation task (R) in the S01"
+        }
+        $LB_REG selection clear 0 end
+        return "[llength $ITEMS_REG] regulation tasks (S01)"
+    }
+
+    if {![file isdirectory $TASKROOT]} { return "" }
+    set tasks [scan_reg_tasks $TASKROOT]
+    foreach t $tasks {
+        $LB_REG insert end $t
+        lappend ITEMS_REG [list $t [file join $TASKROOT $t] $t]
+    }
+    if {[llength $tasks] == 0} { return "no r_* task in $TASKROOT" }
+    $LB_REG selection clear 0 end
+    return "[llength $tasks] regulation tasks"
+}
+
 proc refresh_list {} {
-    global mostra_proc mostra_staz doppia
+    global mostra_proc mostra_staz mostra_reg doppia
     set msg {}
     if {$mostra_proc} { lappend msg [riempi_proc] }
     if {$mostra_staz} { lappend msg [riempi_staz] }
+    if {$mostra_reg}  { set nr [riempi_reg] ; if {$nr ne ""} { lappend msg $nr } }
     set nota [aggiorna_stato_mmi]
     if {$nota ne ""} { lappend msg $nota }
     set nota [aggiorna_stato_startup]
@@ -394,15 +461,35 @@ proc refresh_list {} {
     aggiorna_etichette_loc
     # un simulatore creato dopo l'avvio compare nel sottomenu al primo Refresh
     catch {aggiorna_menu_tools}
+    #  Perche' le voci di Tools sono come sono: senza questa riga un menu tutto
+    #  spento non dice niente, e sembra un guasto.
+    if {[simulatore_corrente] eq ""} {
+        lappend msg "no current simulator: pick one from Tools -> Current simulator"
+    } elseif {[info exists ::RIPIEGO] && $::RIPIEGO ne ""} {
+        lappend msg "simulator '$::RIPIEGO' (KSIM was not in the environment)"
+        set ::RIPIEGO ""
+    }
     .status configure -text [join $msg "   |   "]
-    if {$doppia} { aggiorna_intestazioni }
+    if {$doppia || $mostra_reg} { aggiorna_intestazioni }
 }
 
 #  In modalita' doppia il conteggio va anche sulle intestazioni dei due riquadri.
+#  L'intestazione di un riquadro, ricavata dalla sua listbox: <riquadro>.f.lb
+#  -> <riquadro>.h. Non si cablano i path (.pw.staz.h e simili) perche' cambiano
+#  con la disposizione: i faceplate sono passati da .pw.staz a .pv.staz quando
+#  le regolazioni hanno preso il posto accanto al processo.
+proc intestazione_di {lb} {
+    return [winfo parent [winfo parent $lb]].h
+}
+
 proc aggiorna_intestazioni {} {
-    global ITEMS_PROC ITEMS_STAZ
-    catch {.pw.proc.h configure -text "Process pages ([llength $ITEMS_PROC])"}
-    catch {.pw.staz.h configure -text "xstaz faceplates ([llength $ITEMS_STAZ])"}
+    global ITEMS_PROC ITEMS_STAZ LB_PROC LB_STAZ
+    catch {[intestazione_di $LB_PROC] configure \
+               -text "Process pages ([llength $ITEMS_PROC])"}
+    catch {[intestazione_di $LB_STAZ] configure \
+               -text "xstaz faceplates ([llength $ITEMS_STAZ])"}
+    catch {[intestazione_di $::LB_REG] configure \
+               -text "Regulation tasks ([llength $::ITEMS_REG])"}
 }
 
 # --- Lancio della HMI in un processo indipendente ------------------------
@@ -619,7 +706,10 @@ proc esegui_popup {azione} {
     uplevel #0 $azione
 }
 
-proc popup_open_page {lb azione y X Y} {
+#  $etichetta e' il testo del pulsante: sulle due liste di pagine e' "Open
+#  page", ma sul riquadro delle regolazioni quell'azione apre config, non una
+#  pagina, e dirlo "Open page" sarebbe falso.
+proc popup_open_page {lb azione y X Y {etichetta "Open page"}} {
     chiudi_popup
     if {[$lb size] == 0} { return }
     set i [$lb nearest $y]
@@ -630,7 +720,7 @@ proc popup_open_page {lb azione y X Y} {
     toplevel .popup_open -bd 1 -relief solid
     wm overrideredirect .popup_open 1
     wm geometry .popup_open +[expr {$X + 2}]+[expr {$Y + 2}]
-    button .popup_open.b -text "Open page" -padx 6 -pady 2 \
+    button .popup_open.b -text $etichetta -padx 6 -pady 2 \
                          -command [list esegui_popup $azione]
     pack .popup_open.b
     bind .popup_open <Escape>      { chiudi_popup }
@@ -879,17 +969,6 @@ proc aggiorna_stato_startup {} {
     return ""
 }
 
-#  Comando per eseguire uno script in un terminale X. L'opzione con cui si
-#  passa il comando cambia col terminale (gnome-terminal vuole "--", gli altri
-#  "-e"), e la finestra la si tiene aperta con una pausa finale invece di
-#  -hold, che e' solo di xterm: l'output dei controlli va letto.
-proc comando_in_terminale {comando {shell sh}} {
-    set xt [expr {[info exists ::env(LG_XTERM)] && $::env(LG_XTERM) ne "" \
-                  ? $::env(LG_XTERM) : "xterm"}]
-    set opz [expr {[string match "gnome-terminal*" [file tail $xt]] ? "--" : "-e"}]
-    set sh "$comando; echo; echo '--- done: press Enter to close ---'; read _"
-    return [list $xt $opz $shell -c $sh]
-}
 
 #  Dove finisce l'output di net_startup: un file, non un terminale. La finestra
 #  di log lo segue da li' (mostra_log_sim) e resta leggibile anche dopo che la
@@ -1341,8 +1420,23 @@ proc etichetta_log {file} {
         net_startup { return "net_startup (simulation)" }
         mmi         { return "mmi" }
         xstaz       { return "xstaz (faceplates)" }
-        default     { return "HMI: $n" }
+        legopc      { return "legopc (CAD)" }
     }
+    #  I log che portano il nome di cio' su cui hanno lavorato. Senza questi
+    #  finirebbero tutti nel ramo "HMI:", che per una compilazione e' falso.
+    foreach {prefisso etichetta} {
+        kcompile_Regolation_ "kCompile Regolation:"
+        kcompile_Task_       "kCompile Task:"
+        kcompile_Page_       "kCompile Page:"
+        config_              "config (regulation):"
+        legopc_          "legopc:"
+        kupsim_          "kUpSim:"
+    } {
+        if {[string match "$prefisso*" $n]} {
+            return "$etichetta [string range $n [string length $prefisso] end]"
+        }
+    }
+    return "HMI: $n"
 }
 
 #  I log di lghmi in /tmp, dal piu' recente. Esclude quello di net_startup, che
@@ -1686,6 +1780,192 @@ proc sorveglia_legopc {task tom visto tentativi} {
         "legopc closed on '$task' - if you changed the model, realign with Tools -> kUpSim."}
 }
 
+# --- Tools/riquadro: le task di regolazione con config --------------------
+#
+# config e' l'editor delle pagine di regolazione (Motif). Come legopc non prende
+# argomenti: lavora sulla DIRECTORY CORRENTE, quindi si fa cd nella task. Il
+# precedente e' kc, che fa esattamente questo.
+#
+# Attenzione a non imitare kc fino in fondo: kc verifica l'esistenza della task
+# cercando f01.dat, ma f01.dat ce l'hanno TUTTE le task, anche quelle di
+# processo. Qui la selezione viene dal riquadro delle regolazioni, che e'
+# popolato per tipo (R nell'S01) o per prefisso r_.
+#
+# config risolve le sue librerie (libut_reg/libreg, libut_mmi) a partire da
+# LEGOCAD_USER, che il profilo pone a ~ : quindi $LEGOCAD_USER/legocad e' lo
+# stesso $HOME/legocad di LG_ENTRY, e vale lo stesso controllo sull'area fatto
+# per legopc - con il confronto per identita', non per nome.
+
+#  La task di regolazione selezionata: {dir nome}, o {} se non ce n'e' una
+#  utilizzabile (e in quel caso ha gia' spiegato perche').
+#
+#  $azione compare nei messaggi: "Edit", "compreg", "creatask".
+proc regolazione_scelta {azione} {
+    global env ITEMS_REG LB_REG
+    set sel {}
+    catch {set sel [$LB_REG curselection]}
+    if {[llength $sel] == 0} {
+        .status configure -text "Select a regulation task from the list."
+        return {}
+    }
+    lassign [lindex $ITEMS_REG [lindex $sel 0]] label dir name
+    set task [file tail $dir]
+    if {![file isdirectory $dir]} {
+        tk_messageBox -icon error -title $azione -parent . -message \
+            "Regulation task directory not found:\n$dir"
+        return {}
+    }
+    set entry [expr {[info exists env(LG_ENTRY)] ? $env(LG_ENTRY) : ""}]
+    if {$entry eq "" || ![file isdirectory $entry]} {
+        tk_messageBox -icon error -title $azione -parent . -message \
+            "LG_ENTRY is not set, or is not a directory.\nStart lghmi from a LegoPST environment (profile sourced)."
+        return {}
+    }
+    if {![stessa_directory [area_della_task $dir] $entry]} {
+        set msg "'$task' does not belong to the current work area.\n\n"
+        append msg "    task area:    [area_della_task $dir]\n"
+        append msg "    LG_ENTRY:     [file normalize $entry]\n\n"
+        append msg "These are different directories, not two spellings of the same one.\n\n"
+        append msg "config resolves libut_reg/libreg and libut_mmi from the current\n"
+        append msg "area: working on this task from here would use the WRONG\n"
+        append msg "regulation library, with nothing saying so.\n\n"
+        append msg "Switch work area first (lgswitch), then reopen lghmi."
+        tk_messageBox -icon error -title $azione -parent . -message $msg
+        .status configure -text "$azione: '$task' belongs to another work area."
+        return {}
+    }
+    return [list $dir $task]
+}
+
+#  Avvisa se una simulazione e' in corso, e lascia decidere. A differenza di
+#  legopc, che invece BLOCCA: un modello salvato cambia la topologia sotto la
+#  task che gira, mentre sulla regolazione si lavora anche a simulazione viva -
+#  ed e' una scelta deliberata, non una dimenticanza.
+#
+#  $extra e' l'avvertimento specifico dell'azione: creatask rigenera la task, e
+#  va detto in modo piu' esplicito di quanto serva per l'editor.
+proc conferma_con_simulazione {titolo task extra} {
+    set vivi [sim_attiva]
+    if {[llength $vivi] == 0} { return 1 }
+    set msg "A simulation is running ([join $vivi ", "]).\n\n"
+    append msg $extra
+    append msg "\n\nProceed on '$task'?"
+    return [expr {[tk_messageBox -icon warning -type yesno -default no -parent . \
+                      -title $titolo -message $msg] eq "yes"}]
+}
+
+#  Apre config sulla task di regolazione selezionata. Processo indipendente e
+#  log in /tmp, come legopc e le HMI: e' una GUI Motif, non un batch, quindi
+#  niente visore di log che la segue.
+proc lancia_config {} {
+    set scelta [regolazione_scelta "Edit regulation"]
+    if {[llength $scelta] == 0} return
+    lassign $scelta dir task
+    if {![conferma_con_simulazione "Edit regulation" $task \
+             "config edits the regulation pages of this task. Saving and\ncompiling while it runs changes files the simulation is using."]} {
+        .status configure -text "config: not opened on '$task'."
+        return
+    }
+    set log [file join /tmp "lghmi_config_${task}.log"]
+    set sh "cd [list $dir] && exec config >[list $log] 2>&1"
+    if {[catch {exec setsid sh -c $sh &} err]} {
+        if {[catch {exec sh -c $sh &} err2]} {
+            tk_messageBox -icon error -title "Edit regulation" -parent . \
+                -message "Cannot launch config:\n$err2"
+            return
+        }
+    }
+    .status configure -text "config started on '$task'  (log: $log)"
+}
+
+#  Le tre compilazioni di una task di regolazione, sulla sola task selezionata.
+#  Sono batch con output da leggere, quindi vanno nel VISORE DI LOG - non in un
+#  terminale, dove l'output morirebbe con la finestra.
+#
+#  L'ORDINE CONTA, ed e' questo:
+#
+#    1. Regolation  compila tutti gli schemi di regolazione   (config -c compreg)
+#    2. Task        produce la task come eseguibile           (config -c creatask)
+#    3. Page        compila le pagine che mmi animera'        (config -c compall)
+#
+#  Il secondo passo NON fa il terzo: sono tre tipi distinti. Le etichette del
+#  menu portano il numero apposta - eseguirli in disordine non da' errore, da'
+#  una task incoerente.
+#
+#  Si passa da kCompile e non da "config -c" nudo, che pure sarebbe piu' corto.
+#  kCompile prima di compilare CANCELLA i vecchi *err* e net_compi.out, e senza
+#  quella pulizia i conteggi dopo la compilazione sono falsi: un .reg_err
+#  rimasto dalla corsa precedente fa leggere errori che non ci sono piu'. In
+#  piu' fa kTest sull'ambiente, tiene un log suo in $KLOG e conta gli errori.
+#
+#  Il prezzo e' che kCompile vuole un SIMULATORE CORRENTE: kTest esce NOK senza
+#  KSIMNAME, e kCompile si ferma. Per questo le tre voci sono spente quando non
+#  c'e' un simulatore, come gia' le tre di kUpSim.
+#
+#  Attenzione alla grafia: il primo tipo si chiama "Regolation", non
+#  "Regulation". Scritto in inglese corretto kCompile cade nell'else e stampa
+#  solo la riga d'uso, senza che nulla spieghi perche'.
+proc lancia_kcompile {tipo} {
+    global env
+    switch -exact -- $tipo {
+        Regolation {
+            set n 1
+            set che "kCompile Regolation compiles the regulation schemes of this task\n(config -c compreg)."
+        }
+        Task {
+            set n 2
+            set che "kCompile Task REGENERATES the task (config -c creatask). The\nexecutable in proc/ will be rebuilt underneath the running\nsimulation, which would keep using the old one until it is restarted."
+        }
+        Page {
+            set n 3
+            set che "kCompile Page recompiles the pages that mmi animates\n(config -c compall, .pag -> .rtf). The running mmi would find them\nchanged underneath."
+        }
+        default { return }
+    }
+    set titolo "kCompile $tipo"
+
+    set sim [simulatore_corrente]
+    if {$sim eq ""} {
+        tk_messageBox -icon error -title $titolo -parent . -message \
+            "No current simulator: kCompile runs kTest first, which fails without\nKSIMNAME.\n\nPick one from Tools -> Current simulator, or with 'ksetsim <name>'."
+        return
+    }
+    set scelta [regolazione_scelta $titolo]
+    if {[llength $scelta] == 0} return
+    lassign $scelta dir task
+    if {![conferma_con_simulazione $titolo $task $che]} {
+        .status configure -text "$titolo: not run on '$task'."
+        return
+    }
+
+    set radice [expr {[info exists env(LEGOROOT)] ? $env(LEGOROOT) : ""}]
+    if {$radice eq "" || ![file exists [file join $radice .profile_legoroot]]} {
+        tk_messageBox -icon error -title $titolo -parent . -message \
+            "LEGOROOT not defined, or profile not found: cannot prepare the kCompile environment."
+        return
+    }
+    set prof [file join $radice .profile_legoroot]
+
+    #  Frammento di shell, non una riga passata per [list]: le graffe di Tcl per
+    #  sh non sono virgolette. Il cd viene DOPO ksetsim, perche' kCompile in
+    #  modalita' Local prende la task da `pwd`.
+    #  ksetsim con "||": se il simulatore non si puo' selezionare torna 1, e
+    #  senza questa guardia la catena proseguirebbe su QUELLO DI PRIMA,
+    #  compilando contro il simulatore sbagliato senza che niente lo dica.
+    set riga ". [list $prof] [list $radice] >/dev/null 2>&1 ; ksetsim [list $sim] >/dev/null || { echo \"ksetsim [list $sim] failed: cannot select that simulator.\" ; exit 1 ; } ; cd [list $dir] && exec kCompile $tipo Local"
+    set log [file join /tmp "lghmi_kcompile_${tipo}_${task}.log"]
+    if {[esegui_con_log $log "$titolo - $task" $riga \
+             [list "$n. kCompile $tipo on regulation task '$task'" \
+                   "    $dir" \
+                   "Simulator: $sim" \
+                   "kCompile removes the stale *err* files first, so the error counts" \
+                   "below are about THIS run. It keeps its own log in \$KLOG too," \
+                   "and single-page errors stay in the task directory as" \
+                   "[expr {$tipo eq "Page" ? "<page>.rtf_err" : "<page>.reg_err"}]."] bash]} {
+        .status configure -text "$titolo started on '$task'  (log: $log)"
+    }
+}
+
 #  Ricostruisce il menu Tools per intero, come per il menu File: le etichette
 #  portano il nome del simulatore corrente, che cambia.
 proc aggiorna_menu_tools {} {
@@ -1724,11 +2004,86 @@ proc aggiorna_menu_tools {} {
     #  I rifiuti li fa lancia_legopc, che puo' spiegarli - una voce spenta no.
     .mb.tools add command -command lancia_legopc \
         -label "Edit model (legopc) - on the selected task, or empty"
+    #  Le due compilazioni della sola task di regolazione selezionata. Vivono
+    #  qui, accanto a kUpSim, perche' sono compilazioni: l'editor invece sta sul
+    #  pulsante del suo riquadro, dove c'e' la lista su cui agisce.
+    #  Spente senza il riquadro delle regolazioni (-noreg): agiscono sulla voce
+    #  selezionata li' dentro, e senza quella lista non c'e' niente da scegliere.
+    #  Spente senza il riquadro (-noreg): agiscono sulla voce selezionata li'
+    #  dentro. E spente anche senza simulatore corrente: kCompile comincia con
+    #  kTest, che senza KSIMNAME esce NOK e ferma tutto.
+    set sreg [expr {($::mostra_reg && $nome ne "") ? "normal" : "disabled"}]
+    .mb.tools add separator
+    .mb.tools add command -state $sreg -command [list lancia_kcompile Regolation] \
+        -label "1. kCompile Regolation - compile the regulation schemes"
+    .mb.tools add command -state $sreg -command [list lancia_kcompile Task] \
+        -label "2. kCompile Task - build the task executable"
+    .mb.tools add command -state $sreg -command [list lancia_kcompile Page] \
+        -label "3. kCompile Page - compile the pages mmi animates"
 }
 
-#  Lancia kUpSim sul simulatore corrente, in un terminale.
+#  Esegue un comando LegoPST seguendone l'output nel VISORE DI LOG, invece che
+#  in un terminale.
 #
-#  La shell del terminale sorgia il profilo e chiama ksetsim: e' la sola strada
+#  Il terminale sembrava la scelta ovvia per un comando batch, ma perde
+#  l'output: chiusa la finestra non resta niente, e di una compilazione si vuole
+#  poter rileggere gli errori. Il visore invece tiene il file in /tmp, lo segue
+#  dal vivo, si riapre da File -> Logs e non dipende da $LG_XTERM - che su una
+#  macchina senza xterm non c'e'.
+#
+#  Il nome del file DEVE stare nella forma lghmi_*.log: elenco_log fa la glob
+#  su quel modello, e cosi' la voce compare da sola nel sottomenu Logs.
+#
+#  $riga e' un FRAMMENTO DI SHELL, non una riga gia' quotata: ci si arriva
+#  componendo le singole parole con [list], come fanno launch_hmi e
+#  lancia_net_startup. NON si passa l'intero comando dentro [list]: quello e'
+#  quoting TCL, che mette le graffe, e per sh le graffe non sono virgolette -
+#  riceverebbe "{cd" come comando e il resto come parametri, fallendo con
+#  "{cd: command not found" e lasciando il log vuoto.
+#
+#  Il frammento viene racchiuso in un gruppo { ...; } cosi' la redirezione vale
+#  per TUTTO, non solo per l'ultimo comando della sequenza.
+#
+#  $shell e' "sh" o "bash": serve bash dove si sorgia il profilo LegoPST.
+#  $intestazione sono le righe da scrivere nel visore prima di partire.
+#  Ritorna 1 se il lancio e' riuscito.
+proc esegui_con_log {file titolo riga intestazione {shell sh}} {
+    global LOGWIN LOGSEQ
+
+    #  Aprire il file qui non serve solo a troncarlo: e' la prova che si puo'
+    #  scrivere. I nomi in /tmp sono fissi, quindi il file puo' essere di un
+    #  altro utente della stessa macchina; senza questo controllo la redirezione
+    #  fallirebbe e il visore resterebbe vuoto senza dire perche'.
+    if {[catch {open $file w} fd]} {
+        tk_messageBox -icon error -title $titolo -parent . -message \
+            "Cannot write the log:\n$file\n\n$fd"
+        return 0
+    }
+    close $fd
+
+    set sh "{ $riga ; } > [list $file] 2>&1"
+    if {[catch {exec setsid $shell -c $sh &} err]} {
+        if {[catch {exec $shell -c $sh &} err2]} {
+            tk_messageBox -icon error -title $titolo -parent . -message \
+                "Cannot launch:\n$err2"
+            return 0
+        }
+    }
+
+    if {![info exists LOGWIN($file)] || ![winfo exists $LOGWIN($file)]} {
+        set LOGWIN($file) ".log[incr LOGSEQ]"
+    }
+    set w [crea_finestra_log $LOGWIN($file) $titolo $file 0]
+    riparti_visore_log $w
+    foreach r $intestazione { log_scrivi $w "$r\n" lghmi }
+    log_scrivi $w "\n" lghmi
+    avvia_visore_log $w
+    return 1
+}
+
+#  Lancia kUpSim sul simulatore corrente, seguendolo nel visore di log.
+#
+#  La shell sorgia il profilo e chiama ksetsim: e' la sola strada
 #  per avere KSIM E tutte le sue derivate coerenti, ed e' anche il motivo per
 #  cui serve bash (il profilo e' pensato per quella) e non la sh usata per
 #  net_startup.
@@ -1784,19 +2139,20 @@ proc lancia_kupsim {opzioni} {
     }
     set prof [file join $radice .profile_legoroot]
     set kup [string trim "kUpSim $opzioni"]
-    set riga ". [list $prof] [list $radice] >/dev/null 2>&1; ksetsim [list $nome] >/dev/null; $kup"
-    set cmd [comando_in_terminale $riga bash]
-    if {[catch {exec setsid {*}$cmd &} err]} {
-        if {[catch {exec {*}$cmd &} err2]} {
-            tk_messageBox -icon error -title "kUpSim" -parent . -message \
-                "Cannot launch kUpSim:\n$err2"
-            return
-        }
+    #  Vedi lancia_kcompile: senza il "||" un ksetsim fallito lascerebbe
+    #  kUpSim a lavorare sul simulatore precedente, in silenzio.
+    set riga ". [list $prof] [list $radice] >/dev/null 2>&1 ; ksetsim [list $nome] >/dev/null || { echo \"ksetsim [list $nome] failed: cannot select that simulator.\" ; exit 1 ; } ; exec $kup"
+    set log [file join /tmp "lghmi_kupsim_${nome}.log"]
+    if {![esegui_con_log $log "kUpSim - $nome" $riga \
+             [list "$kup on simulator '$nome'" "    $env(KSIM)" \
+                   "Output follows below. It stays readable in $log," \
+                   "and this window reopens from File -> Logs."] bash]} {
+        return
     }
     if {$anteprima} {
-        .status configure -text "kUpSim -n: preview of the steps on $nome, in the terminal."
+        .status configure -text "kUpSim -n: preview of the steps on $nome  (log: $log)"
     } else {
-        .status configure -text "kUpSim started on $nome - steps and errors are in the terminal."
+        .status configure -text "kUpSim started on $nome  (log: $log)"
     }
 }
 
@@ -2047,8 +2403,10 @@ if {$doppia} {
     # Stessa larghezza del banco (new_monit, 680 px): le due finestre si usano
     # insieme, una sopra l'altra, e allineate stanno meglio. L'altezza e' quella
     # che serve a 12 righe di lista.
+    #  Con le regolazioni l'altezza si calcola DOPO aver costruito i riquadri
+    #  (vedi in fondo): cablarla qui darebbe alle tre liste altezze diverse.
     wm geometry . 680x328
-    wm minsize . 560 300
+    wm minsize . 560 [expr {$mostra_reg ? 380 : 300}]
 } elseif {$stazmode} {
     wm title . "LegoPST - Faceplate launcher (xstaz)"
     wm minsize . 520 280
@@ -2114,9 +2472,48 @@ foreach _voce [documenti_aiuto] {
 }
 unset -nocomplain _voce _etichetta _rel _rilievo _ok
 
+#  Se KSIM non e' arrivata nell'ambiente, sceglie il simulatore da se'.
+#
+#  Il simulatore corrente lo fissa normalmente il profilo (ksetsim_default:
+#  ~/.legosim, poi cassano0, poi il primo di ksims) e lghmi lo eredita. Ma
+#  l'eredita' non e' garantita: il wrapper risorgia il profilo solo se LG_TIX e'
+#  vuota, quindi un lancio da un ambiente che ha LG_TIX ma non KSIM arrivava qui
+#  senza simulatore - e tutte le voci di Tools restavano SPENTE, senza che nulla
+#  dicesse perche'. Bastava poi passare da Tools -> Current simulator per
+#  vederle accendersi, il che faceva sembrare un capriccio dell'interfaccia.
+#
+#  Qui si rifa' la stessa cascata del profilo, ma SOLO in memoria: non si scrive
+#  ~/.legosim, perche' aprire il selettore non e' una scelta dell'utente e non
+#  deve cambiare il default delle shell future. Alle variabili derivate (KWIN,
+#  KPAGES, KLOG...) non si pensa: i comandi girano in una shell che chiama
+#  ksetsim per conto suo, ed e' quella a derivarle.
+proc simulatore_di_ripiego {} {
+    global env
+    if {[simulatore_corrente] ne ""} { return "" }
+    if {![info exists env(KSKED)] || $env(KSKED) eq ""} { return "" }
+    set candidati {}
+    if {![catch {open [file join $env(HOME) .legosim] r} fd]} {
+        set voluto [string trim [read $fd]]
+        close $fd
+        if {$voluto ne ""} { lappend candidati $voluto }
+    }
+    lappend candidati cassano0
+    foreach s [lista_simulatori] { lappend candidati $s }
+    foreach nome $candidati {
+        set dir [file join $env(KSKED) $nome]
+        if {[file isdirectory $dir]} {
+            set env(KSIM)     $dir
+            set env(KSIMNAME) $nome
+            return $nome
+        }
+    }
+    return ""
+}
+
 # Il simulatore corrente e' quello che il profilo ha scelto all'avvio
 # (ksetsim_default: ~/.legosim, poi cassano0, poi il primo di ksims). La
 # variabile tiene il radiobutton del sottomenu allineato.
+set ::RIPIEGO [simulatore_di_ripiego]
 set ::KSIMSCELTO [simulatore_corrente]
 
 carica_recenti
@@ -2197,13 +2594,14 @@ proc aiuto_a_comparsa {widget testo} {
 
 #  Costruisce un riquadro "intestazione + lista + pulsante". Ritorna il path
 #  della listbox.
-proc crea_riquadro {parent titolo larghezza} {
+proc crea_riquadro {parent titolo larghezza {balloon ""}} {
     global BALLOON_APRI
     frame $parent
     if {$titolo ne ""} {
         label $parent.h -text $titolo -anchor w -padx 4 -pady 2 -foreground "#000080"
         pack  $parent.h -side top -fill x
-        aiuto_a_comparsa $parent.h $BALLOON_APRI
+        aiuto_a_comparsa $parent.h \
+            [expr {$balloon ne "" ? $balloon : $BALLOON_APRI}]
     }
     frame $parent.f
     listbox $parent.f.lb -yscrollcommand "$parent.f.sb set" -height 12 \
@@ -2215,16 +2613,49 @@ proc crea_riquadro {parent titolo larghezza} {
     return $parent.f.lb
 }
 
+#  Contenitore delle liste. Con le regolazioni accese il layout e' 2+1:
+#  PROCESSO e REGOLAZIONE affiancate in alto - sono le due liste su cui si
+#  lavora di piu' e si confrontano fra loro - e i faceplate xstaz sotto, a tutta
+#  larghezza. La finestra NON si allarga: resta 680 px, la larghezza del banco,
+#  che e' il motivo per cui quel numero e' quello, e cresce solo in altezza.
+#  Tre liste affiancate avrebbero sfondato la larghezza o ridotto ogni colonna a
+#  una ventina di caratteri.
+#
+#  $sopra e' un FRATELLO di .pv, non un suo figlio: Tk lo accetta come pannello,
+#  ma .pv - creata dopo - gli finirebbe DAVANTI nell'ordine di sovrapposizione,
+#  lasciando un rettangolo grigio al posto delle liste. Da qui la raise.
+proc impila_sotto {sopra sotto} {
+    .pv add $sopra -minsize 150
+    .pv add $sotto -minsize 150
+    raise $sopra .pv
+}
+
+set BALLOON_REG "Double-click a task to edit its regulation with config"
+
 if {$doppia} {
     # Due liste affiancate a meta' schermo ciascuna (39 caratteri -> ~328 px):
     # e' la ripartizione che sta in 680 px, la larghezza del banco. I faceplate
     # hanno etichette piu' lunghe, ma il divisorio si trascina.
+    #
+    # .pv va creata PRIMA di .pv.staz, che e' un suo figlio.
+    if {$mostra_reg} {
+        panedwindow .pv -orient vertical -sashrelief raised -sashwidth 6
+        pack .pv -side top -fill both -expand 1 -padx 6 -pady 2
+    }
     panedwindow .pw -orient horizontal -sashrelief raised -sashwidth 6
-    pack .pw -side top -fill both -expand 1 -padx 6 -pady 2
-    set LB_PROC [crea_riquadro .pw.proc "Process pages"    39]
-    set LB_STAZ [crea_riquadro .pw.staz "xstaz faceplates" 39]
-    .pw add .pw.proc -minsize 180
-    .pw add .pw.staz -minsize 180
+    if {!$mostra_reg} { pack .pw -side top -fill both -expand 1 -padx 6 -pady 2 }
+    set LB_PROC [crea_riquadro .pw.proc "Process pages" 39]
+    if {$mostra_reg} {
+        set LB_REG  [crea_riquadro .pw.reg  "Regulation tasks (r_*)" 39 $BALLOON_REG]
+        set LB_STAZ [crea_riquadro .pv.staz "xstaz faceplates" 39]
+        .pw add .pw.proc -minsize 180
+        .pw add .pw.reg  -minsize 180
+        impila_sotto .pw .pv.staz
+    } else {
+        set LB_STAZ [crea_riquadro .pw.staz "xstaz faceplates" 39]
+        .pw add .pw.proc -minsize 180
+        .pw add .pw.staz -minsize 180
+    }
     bind $LB_PROC <Double-1> { launch_hmi }
     bind $LB_PROC <Return>   { launch_hmi }
     bind $LB_STAZ <Double-1> { apri_faceplate }
@@ -2232,19 +2663,55 @@ if {$doppia} {
     bind $LB_PROC <Button-3> [list popup_open_page $LB_PROC launch_hmi     %y %X %Y]
     bind $LB_STAZ <Button-3> [list popup_open_page $LB_STAZ apri_faceplate %y %X %Y]
 } elseif {$stazmode} {
+    if {$mostra_reg} {
+        panedwindow .pv -orient vertical -sashrelief raised -sashwidth 6
+        pack .pv -side top -fill both -expand 1 -padx 6 -pady 2
+    }
     set LB_STAZ [crea_riquadro .f "xstaz faceplates" 68]
-    pack .f -side top -fill both -expand 1 -padx 6 -pady 2
+    if {!$mostra_reg} { pack .f -side top -fill both -expand 1 -padx 6 -pady 2 }
     bind $LB_STAZ <Double-1> { apri_faceplate }
     bind . <Return>          { apri_faceplate }
     bind $LB_STAZ <Button-3> [list popup_open_page $LB_STAZ apri_faceplate %y %X %Y]
+    if {$mostra_reg} {
+        set LB_REG [crea_riquadro .pv.reg "Regulation tasks (r_*)" 68 $BALLOON_REG]
+        impila_sotto .f .pv.reg
+    }
 } else {
+    if {$mostra_reg} {
+        panedwindow .pv -orient vertical -sashrelief raised -sashwidth 6
+        pack .pv -side top -fill both -expand 1 -padx 6 -pady 2
+    }
     set LB_PROC [crea_riquadro .f "Process pages" 34]
-    pack .f -side top -fill both -expand 1 -padx 6 -pady 2
+    if {!$mostra_reg} { pack .f -side top -fill both -expand 1 -padx 6 -pady 2 }
     bind $LB_PROC <Double-1> { launch_hmi }
     bind . <Return>          { launch_hmi }
     bind $LB_PROC <Button-3> [list popup_open_page $LB_PROC launch_hmi %y %X %Y]
+    if {$mostra_reg} {
+        set LB_REG [crea_riquadro .pv.reg "Regulation tasks (r_*)" 34 $BALLOON_REG]
+        impila_sotto .f .pv.reg
+    }
+}
+
+#  Doppio clic e tasto destro sulle regolazioni, come sulle altre due liste.
+if {$mostra_reg} {
+    bind $LB_REG <Double-1> { lancia_config }
+    bind $LB_REG <Return>   { lancia_config }
+    bind $LB_REG <Button-3> [list popup_open_page $LB_REG lancia_config %y %X %Y \
+                                 "Edit regulation"]
 }
 
 bind . <Escape> { exit }
+
+#  Altezza della finestra: quella RICHIESTA dal contenuto, non un numero
+#  cablato. Le tre liste chiedono tutte 12 righe (crea_riquadro), e una
+#  panedwindow alla prima apertura da' a ogni pannello la sua dimensione
+#  naturale: chiedendo alla finestra esattamente quel che le serve, le tre liste
+#  partono alla STESSA altezza. Con un'altezza fissa il pannello di sotto si
+#  prendeva quel che avanzava, e si apriva schiacciato.
+#  La larghezza resta 680, che non dipende dal contenuto.
+if {$mostra_reg} {
+    update idletasks
+    wm geometry . 680x[winfo reqheight .]
+}
 
 refresh_list
