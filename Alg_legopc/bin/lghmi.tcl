@@ -780,7 +780,7 @@ proc aggiorna_menu_file {} {
 #
 #  Con -insim resta spento, come il resto del menu: il selettore appartiene a una
 #  simulazione che non ha lanciato lui, quindi il log in /tmp non e' il suo - e'
-#  di un'altra sessione o e' vecchio - e il pulsante "Stop simulation" della
+#  di un'altra sessione o e' vecchio - e il pulsante "Kill simulation" della
 #  finestra ammazzerebbe proprio la simulazione da cui lghmi e' stato aperto.
 #  Il sottomenu "Logs" invece resta acceso anche li': leggere il log di una HMI
 #  non tocca niente, e quelle finestre non hanno nessun pulsante che ferma nulla.
@@ -1084,8 +1084,11 @@ proc chiudi_log {w} {
         append msg "Still running: [join $vivi ", "].\n"
         append msg "They run in a session of their own, and with them stay alive the\n"
         append msg "HMIs and the faceplates already open.\n\n"
-        append msg "To really stop it: the \"Stop simulation\" button of this\n"
-        append msg "window, the killsim command, or Quit from the desk.\n\n"
+        append msg "To stop it the normal way: \"Simulator Shutdown ...\" in the\n"
+        append msg "Master Menu of the desk, the window opened by net_startup. That\n"
+        append msg "shuts the simulation down in an orderly way.\n\n"
+        append msg "In an emergency, when that is not possible: the \"Kill simulation\"\n"
+        append msg "button of this window, or the killsim command.\n\n"
         append msg "The log stays readable anyway in\n$SIMLOG\n\n"
         append msg "You can reopen this window from File -> Simulation log.\n\n"
         append msg "Close the log window?"
@@ -1095,9 +1098,17 @@ proc chiudi_log {w} {
     destroy $w
 }
 
-#  Ferma davvero la simulazione. Lo fa killsim, cioe' lo stesso comando con cui
-#  net_startup comincia: e' il modo previsto di ripulire l'ambiente (vedi
-#  CLAUDE.md / docs), non un kill a mano dei processi.
+#  Ammazza la simulazione di forza: e' l'uscita di EMERGENZA, non lo stop
+#  normale. Lo stop normale si da' dalla finestra aperta da net_startup - il
+#  banco - con la voce "Simulator Shutdown ..." del suo Master Menu, che
+#  chiude la simulazione in modo ordinato (new_monit/messaggi.h, ShutdownLabel).
+#  Questo pulsante serve quando quella strada non c'e' piu': banco morto o
+#  piantato, finestra persa, processi rimasti appesi.
+#
+#  Lo fa killsim, cioe' lo stesso comando con cui net_startup comincia: e' il
+#  modo previsto di ripulire l'ambiente (vedi CLAUDE.md / docs), non un kill a
+#  mano dei processi. Brutale per definizione: su Linux killsim non filtra per
+#  chiave e cancella TUTTE le SHM, le code e i semafori dell'utente.
 proc ferma_simulazione {} {
     set vivi [sim_attiva]
     if {[llength $vivi] == 0} {
@@ -1105,18 +1116,22 @@ proc ferma_simulazione {} {
         return
     }
     if {[auto_execok killsim] eq ""} {
-        tk_messageBox -icon error -title "Stop simulation" -parent .simlog \
+        tk_messageBox -icon error -title "Kill simulation" -parent .simlog \
             -message "Executable 'killsim' not found in PATH.\nStart lghmi from a LegoPST environment (profile sourced)."
         return
     }
-    set msg "Stop the running simulation?\n\n"
+    set msg "Forcibly kill the running simulation?\n\n"
+    append msg "This is the EMERGENCY stop. The normal way is \"Simulator Shutdown\n"
+    append msg "...\" in the Master Menu of the desk, the window opened by\n"
+    append msg "net_startup, which shuts the simulation down in an orderly way.\n"
+    append msg "Use this button only when that is not possible any more.\n\n"
     append msg "The processes ([join $vivi ", "]) will be terminated, and with them\n"
     append msg "the HMIs and the faceplates sitting on top of them.\n\n"
     append msg "killsim does it, and on Linux it deletes EVERY SHM segment, queue\n"
     append msg "and semaphore of this user, without filtering by key.\n\n"
     append msg "Proceed?"
     if {[tk_messageBox -icon warning -type yesno -default no -parent .simlog \
-             -title "Stop simulation" -message $msg] ne "yes"} return
+             -title "Kill simulation" -message $msg] ne "yes"} return
 
     log_scrivi .simlog "\n--- killsim ---\n" lghmi
     .simlog configure -cursor watch
@@ -1169,7 +1184,7 @@ proc crea_finestra_log {w titolo file consim} {
         pack   $w.b.chiudi -side right -padx 4 -pady 6
         if {$consim} {
             label  $w.b.stato -anchor w -text ""
-            button $w.b.stop -text "Stop simulation" -state disabled \
+            button $w.b.stop -text "Kill simulation" -state disabled \
                    -command ferma_simulazione
             pack $w.b.stop  -side right -padx 4 -pady 6
             pack $w.b.stato -side left  -padx 6
@@ -1261,7 +1276,7 @@ proc mostra_log_sim {dir} {
 #  Chiudere la finestra non ferma la simulazione - e' il punto di tutto il
 #  meccanismo - ma finora la chiudeva anche per sempre: il log restava solo nel
 #  file in /tmp, e con la finestra se ne andava l'unico modo grafico di FERMARE
-#  la simulazione, cioe' il pulsante "Stop simulation".
+#  la simulazione in emergenza, cioe' il pulsante "Kill simulation".
 #
 #  Non si riusa mostra_log_sim perche' li' il banner dice "Simulation started",
 #  che su una riapertura sarebbe falso: qui non e' partito niente adesso. Il

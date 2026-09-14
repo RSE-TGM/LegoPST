@@ -354,13 +354,14 @@ chiudere.
 
 - **X**, **Close** o **Esc** → se la simulazione è in corso, chiedono conferma
   ricordando che **chiudere la finestra NON la ferma**, elencando i processi che
-  restano vivi, dicendo come fermarli e **come riaprire questa finestra**. Se non
+  restano vivi, dicendo come fermarli — prima la via normale (`Simulator Shutdown
+  ...` dal banco), poi l'emergenza — e **come riaprire questa finestra**. Se non
   c'è nulla in esecuzione, si chiude senza domande.
 - **Si riapre da `File → Simulation log`.** Chiudere la finestra non ferma la
   simulazione — è il punto di tutto il meccanismo — ma fino a prima la chiudeva
   *per sempre*: il log restava solo nel file in `/tmp` e, con la finestra, se ne
-  andava l'unico modo grafico di **fermare** la simulazione, cioè il pulsante
-  *Stop simulation*. Alla riapertura il log **ricompare per intero**, perché il
+  andava l'unico modo grafico di fermare la simulazione **in emergenza**, cioè
+  il pulsante *Kill simulation*. Alla riapertura il log **ricompare per intero**, perché il
   visore rilegge il file da capo (`SIMLOG_POS` a 0), e i due cicli di
   aggiornamento ripartono in una nuova generazione.
 
@@ -375,19 +376,33 @@ chiudere.
   | `-insim` | spenta, come il resto del menù File |
 
   La voce è accesa anche **senza log** quando una simulazione gira, perché la
-  finestra serve comunque: è da lì che si preme *Stop simulation*. Con `-insim`
+  finestra serve comunque: è da lì che si preme *Kill simulation*. Con `-insim`
   resta spenta perché il selettore appartiene a una simulazione che non ha
-  lanciato lui: il log in `/tmp` non è il suo, e *Stop simulation* ammazzerebbe
+  lanciato lui: il log in `/tmp` non è il suo, e *Kill simulation* ammazzerebbe
   proprio la simulazione da cui `lghmi` è stato aperto.
 
   Lo stato è ricalcolato a ogni apertura del menù (`-postcommand`), non alla sua
   costruzione: il menù File si ricostruisce di rado — solo quando cambiano i path
   recenti — mentre il log compare e la simulazione parte e si ferma in qualsiasi
   momento.
-- **Stop simulation** → esegue `killsim`, cioè lo stesso comando con cui
-  `net_startup` comincia. Chiede conferma ricordando che ammazza anche le HMI e i
-  faceplate aperti, e che cancella *tutte* le SHM, le code e i semafori
-  dell'utente. È acceso solo quando c'è qualcosa da fermare.
+- **Kill simulation** → **è l'uscita di emergenza, non lo stop normale.** Forza
+  la fine della simulazione in modo brutale, ed esiste per quando la via ordinata
+  non è più percorribile: banco morto o piantato, finestra persa, processi
+  rimasti appesi.
+
+  > **Lo stop normale non si dà da qui.** Si dà dalla finestra che `net_startup`
+  > apre — il **banco** — con la voce **`Simulator Shutdown ...`** del suo *Master
+  > Menu*, che chiude la simulazione in modo ordinato. (`new_monit/messaggi.h`,
+  > `ShutdownLabel`; il banco è l'eseguibile prodotto da `new_monit`.)
+
+  Il pulsante esegue `killsim`, cioè lo stesso comando con cui `net_startup`
+  comincia. Chiede conferma ricordando qual è la via normale, e che ammazza anche
+  le HMI e i faceplate aperti e cancella *tutte* le SHM, le code e i semafori
+  dell'utente — su Linux `killsim` non filtra per chiave. È acceso solo quando
+  c'è qualcosa da fermare.
+
+  Il nome dice il mestiere: si chiamava *Stop simulation*, che lo faceva sembrare
+  lo spegnimento previsto e invitava a usarlo al posto di `Simulator Shutdown ...`.
 - In basso a sinistra lo **stato**: quali fra `dispatcher`, `net_sked` e `banco`
   sono vivi, riletto ogni 3 secondi.
 - Il visore è **uno solo**: un secondo `net_startup` riparte da capo nella stessa
@@ -463,7 +478,7 @@ così più log restano aperti insieme senza pestarsi i piedi.
   task: quello può contenere punti e spazi, che Tk non accetta nei path dei
   widget. La finestra della simulazione resta `.simlog`.
 - **Due sapori di finestra**, decisi dal flag `consim`: solo quella della
-  simulazione ha la riga di stato dei processi e *Stop simulation*, e solo lei
+  simulazione ha la riga di stato dei processi e *Kill simulation*, e solo lei
   chiede conferma quando la chiudi. Il log di una HMI si chiude e basta — non
   lascia acceso niente — e non deve offrire un pulsante che fa `killsim` su una
   simulazione che non è la sua.
