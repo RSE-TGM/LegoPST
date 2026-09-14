@@ -86,11 +86,16 @@ Dettagli su immagine, build e installazione: [../docker/README_INSTALLER.md](../
 |---|---|---|
 | `lgpc` | alias | **Lancia il CAD grafico** `legopc.tix`: disegno degli schemi, librerie di moduli, generazione dei `.i5`/`.tom`. Imposta `LG_TIX=$LG_BIN` prima di partire, quindi usa sempre la versione corrente in `Alg_legopc/bin`. È il comando normale. |
 | `lgpcu` | alias | Lo stesso CAD ma con il **wish "ultimo"** (`$LG_WISH`, in `tcltktix-8.3.5b/`) invece di quello di sistema. Serve solo quando il wish di sistema dà problemi con Tix. |
-| `lgpc2` | func | Lancia `wish $LG_TIX/legopc.tix` **senza reimpostare `LG_TIX`**: rispetta un `LG_TIX` già esportato a mano. Utile per provare una build del CAD che sta altrove. |
+| `lgpc2` | func | Lancia `wish $LG_TIX/legopc.tix` **senza reimpostare `LG_TIX`**: rispetta un `LG_TIX` già esportato a mano. L'uso previsto non è documentato da nessuna parte, e differisce da `lgpc` solo per questo. |
 
 > `lgpc0` **non esiste più** (rimosso il 2026-08-02): lanciava la legopc originale
 > da `$LG_BASE/bin_old`, generata da `src/tix_old`, sorgente ormai escluso dal
 > build e quindi non più aggiornato. Usare `lgpc`.
+
+Il CAD si raggiunge anche **da dentro `lghmi`**, con `Tools → Edit model
+(legopc)`, che lo apre direttamente sul modello della task selezionata — vedi la
+sezione 3. Quella strada fa alcuni controlli che la riga di comando non fa
+(area di lavoro, simulazione in corso).
 
 Riferimento completo del CAD — librerie moduli, `.i5`/`.tom`/`.remap`/`.lstyle`,
 remark e background, Command Mode, Set Sim path, unità di misura:
@@ -112,6 +117,11 @@ Opzioni principali:
 | `-loc [DIR]` | pre-imposta il *Set Sim path* delle HMI lanciate (via `LG_SIM_PATH`). Senza `DIR` usa la directory corrente. **È il comportamento di default**: animazione, Plot e Command puntano subito alla simulazione giusta senza doverlo fare a mano in ogni HMI |
 | `-noloc` | non pre-imposta alcun sim path: ogni HMI parte "nuda" |
 | `-insim` | dichiara che il selettore è lanciato **da dentro** una simulazione in corso. Lo passa il banco (`new_monit`). Disabilita *File → Open loc path* e il pulsante *net_startup*, che con `killsim` ammazzerebbe proprio la simulazione che ha aperto il selettore |
+
+Dal menu `Tools` si riallinea la configurazione del simulatore (`kUpSim`, cioè
+`lgupsim`), si cambia simulatore corrente, e con **`Edit model (legopc)`** si apre
+il CAD sul modello della task selezionata — rifiutando se una simulazione è in
+corso o se la task appartiene a un'altra area di lavoro.
 
 Variabili d'ambiente: `LG_TASKROOT` (directory delle task, default `$HOME/legocad`),
 `LG_SIM_PATH` (la imposta `-loc`), `LG_TIX`.

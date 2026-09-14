@@ -1461,6 +1461,231 @@ proc scegli_simulatore {nome} {
     }
 }
 
+# --- Tools: modifica del modello con legopc ------------------------------
+#
+# legopc e' il CAD: apre il .tom della task e ne riscrive schema, .i5 e
+# configurazione. NON si lancia "lgpc": quello e' un ALIAS di Alg_env.sh
+# (export LG_TIX=$LG_BIN; wish $LG_TIX/legopc.tix) e gli alias non esistono
+# nelle shell non interattive - stessa ragione per cui qui si chiama kUpSim e
+# non lgupsim. Si lancia direttamente wish su legopc.tix EREDITANDO LG_TIX,
+# cosi' CAD e HMI vengono dalla stessa installazione: quella che l'utente ha
+# scelto lanciando questo selettore.
+
+#  L'area di lavoro (LG_ENTRY) a cui appartiene una task: la directory che la
+#  contiene. Su Linux NON c'e' il livello "models" - quello esiste solo nella
+#  versione Windows - e infatti il profilo pone LG_MODELS=LG_ENTRY. Quindi il
+#  modello di una task sta in <area>/<task>/<task>.tom.
+proc area_della_task {dir} {
+    return [file normalize [file dirname $dir]]
+}
+
+#  Due path indicano la STESSA directory? Si confrontano device e inode, non le
+#  stringhe.
+#
+#  Confrontare i nomi non funziona, e non e' un dettaglio: $HOME/legocad e'
+#  un SYMLINK (lo gestisce lgswitch) e `file normalize` di Tcl non risolve i
+#  symlink - rende assoluto e toglie "." e "..", nient'altro. LG_ENTRY arriva
+#  dal profilo nella grafia col link ($HOME/legocad), mentre in modalita' S01 il
+#  path della task nasce da [file normalize [file join $s01dir $relpath]]: li'
+#  il ".." costringe a risolvere il link, e viene fuori il path REALE
+#  (.../legopst_<area>/legocad/<task>). Stessa directory, due grafie: il
+#  confronto testuale rifiutava sistematicamente le task del simulatore su cui
+#  si sta lavorando, che e' il caso normale.
+#
+#  device+inode e' l'identita' vera: regge symlink, mount e grafie diverse, e
+#  continua a distinguere le aree DAVVERO diverse.
+proc stessa_directory {a b} {
+    if {[catch {file stat $a sa}]} { return 0 }
+    if {[catch {file stat $b sb}]} { return 0 }
+    return [expr {$sa(dev) == $sb(dev) && $sa(ino) == $sb(ino)}]
+}
+
+#  Il modello di una task: UN SOLO .tom, omonimo della sua directory. Altri
+#  .tom eventualmente presenti nella stessa dir non sono alternative - sono
+#  un'anomalia dei dati - e vengono ignorati.
+proc tom_della_task {dir} {
+    return [file join $dir "[file tail $dir].tom"]
+}
+
+#  Lancia legopc, eventualmente sul modello della task selezionata.
+#
+#  Tre rifiuti, in quest'ordine, e ognuno dice perche':
+#
+#  1. SIMULAZIONE IN CORSO. Salvare da legopc riscrive .tom e .i5 mentre la
+#     task gira: il binario in proc/ e il layout della SHM non corrisponderebbero
+#     piu' a quel che e' disegnato, e le HMI draw2gr gia' aperte leggerebbero
+#     file che cambiano sotto. Il blocco vale solo per la task SELEZIONATA: con
+#     nessuna selezione si apre legopc vuoto, che non sta editando la
+#     simulazione in corso.
+#
+#     Attenzione: questo non IMPEDISCE di modificare, impedisce a lghmi di
+#     porgere la task gia' aperta. Da legopc vuoto ci si arriva lo stesso con
+#     Open Model, e fuori di qui non c'e' modo di sorvegliarlo.
+#
+#  2. TASK DI UN'ALTRA AREA. lghmi elenca anche task che non stanno sotto
+#     $LG_ENTRY: in modalita' S01 i path del file sono arbitrari, e i bundle FMU
+#     hanno le task in <bundle>/task/<nome>. Su Linux il contesto lo fissa solo
+#     il profilo (LG_ENTRY e le derivate LG_LIBGRAPH/LG_LIBUT/LG_LIBRARIES):
+#     applyUserFromTom di legopc.tix si aspetta <LG_ENTRY>/models/<n>/<n>.tom,
+#     che e' il layout Windows, quindi qui non scatta mai e non corregge
+#     niente. Aprire la task di un'altra area significherebbe risolverne i
+#     blocchi contro il libgraph SBAGLIATO, senza che niente lo dica: si
+#     rifiuta, indicando lgswitch.
+#
+#  3. MODELLO ASSENTE. Nessun ripiego su un altro .tom della directory.
+proc lancia_legopc {} {
+    global env LGTIX ITEMS_PROC LB_PROC
+
+    if {$LGTIX eq "" || ![file exists [file join $LGTIX legopc.tix]]} {
+        tk_messageBox -icon error -title "legopc" -parent . -message \
+            "legopc.tix not found (LG_TIX='$LGTIX').\nStart lghmi from a LegoPST environment (profile sourced)."
+        return
+    }
+
+    set sel {}
+    catch {set sel [$LB_PROC curselection]}
+    if {[llength $sel] == 0} {
+        avvia_legopc "" ""
+        return
+    }
+    lassign [lindex $ITEMS_PROC [lindex $sel 0]] label dir name
+    set task [file tail $dir]
+
+    if {![file isdirectory $dir]} {
+        tk_messageBox -icon error -title "legopc" -parent . -message \
+            "Task directory not found:\n$dir"
+        return
+    }
+
+    # 1. simulazione in corso -> non si edita la task, ma si puo' aprire vuoto
+    set vivi [sim_attiva]
+    if {[llength $vivi] > 0} {
+        set msg "Cannot open '$task' in legopc while the simulation is running.\n\n"
+        append msg "Running: [join $vivi ", "].\n\n"
+        append msg "Saving would rewrite the model and its .i5 underneath the task\n"
+        append msg "that is running: the executable in proc/ and the shared memory\n"
+        append msg "would no longer match what is drawn, and the HMIs already open\n"
+        append msg "would read files changing under them.\n\n"
+        append msg "Stop the simulation first (Simulator Shutdown in the Master Menu\n"
+        append msg "of the desk), then edit.\n\n"
+        append msg "Open legopc without a model instead?"
+        if {[tk_messageBox -icon warning -type yesno -default no -parent . \
+                 -title "legopc" -message $msg] eq "yes"} {
+            avvia_legopc "" ""
+        } else {
+            .status configure -text "legopc: not opened - a simulation is running."
+        }
+        return
+    }
+
+    # 2. la task deve appartenere all'area corrente
+    set area [area_della_task $dir]
+    set entry [expr {[info exists env(LG_ENTRY)] ? $env(LG_ENTRY) : ""}]
+    if {$entry eq "" || ![file isdirectory $entry]} {
+        tk_messageBox -icon error -title "legopc" -parent . -message \
+            "LG_ENTRY is not set, or is not a directory:\n\n    [expr {$entry eq "" ? "(not set)" : $entry}]\n\nStart lghmi from a LegoPST environment (profile sourced)."
+        return
+    }
+    if {![stessa_directory $area $entry]} {
+        set msg "'$task' does not belong to the current work area.\n\n"
+        append msg "    task area:    $area\n"
+        append msg "    LG_ENTRY:     [file normalize $entry]\n\n"
+        append msg "These are different directories, not two spellings of the same one.\n\n"
+        append msg "legopc would open the model but resolve its blocks against the\n"
+        append msg "module library of LG_ENTRY, which is a different area: the model\n"
+        append msg "would open and be wrong, with nothing saying so.\n\n"
+        append msg "Switch work area first (lgswitch), then reopen lghmi."
+        tk_messageBox -icon error -title "legopc" -parent . -message $msg
+        .status configure -text "legopc: '$task' belongs to another work area."
+        return
+    }
+    if {![file exists [file join $area libgraph connect.dat]]} {
+        tk_messageBox -icon error -title "legopc" -parent . -message \
+            "The work area has no libgraph/connect.dat:\n\n    $area\n\nlegopc cannot resolve the module library from here."
+        return
+    }
+
+    # 3. il modello, che e' uno solo e omonimo della directory.
+    #    Due assenze diverse, che non vanno confuse: una task di REGOLAZIONE non
+    #    ha alcun .tom - si costruisce dai .sed/.dxf e non si apre in legopc -
+    #    mentre una task di processo senza il .tom omonimo e' un dato anomalo.
+    set tom [tom_della_task $dir]
+    if {![file isfile $tom]} {
+        set altri [glob -nocomplain -directory $dir *.tom]
+        if {[llength $altri] == 0} {
+            tk_messageBox -icon info -title "legopc" -parent . -message \
+                "'$task' has no legopc model.\n\nThere is no .tom in\n    $dir\n\nRegulation tasks are built from their .sed/.dxf files, not from a\nmodel: they are not edited with legopc."
+            .status configure -text "legopc: '$task' has no .tom model."
+        } else {
+            set elenco ""
+            foreach f [lsort $altri] { append elenco "    [file tail $f]\n" }
+            tk_messageBox -icon error -title "legopc" -parent . -message \
+                "The model of '$task' is missing.\n\nExpected:\n    [file tail $tom]\n\nFound instead:\n$elenco\nThe model of a task is the .tom named after its directory; the\nothers are not alternatives. Fix the naming in\n    $dir"
+            .status configure -text "legopc: '$task' has no .tom named after the directory."
+        }
+        return
+    }
+
+    avvia_legopc $dir [file tail $tom]
+}
+
+#  Lancio vero e proprio. Processo INDIPENDENTE come per la HMI: `setsid` lo
+#  mette in una nuova sessione, cosi' chiudere il selettore non porta via il CAD
+#  con il lavoro non salvato dentro. L'output va in un log in /tmp per non
+#  sporcare la directory della task.
+#
+#  legopc.tix tiene del suo argomento SOLO il basename (file tail), e lo risolve
+#  sulla directory corrente: per questo si fa cd nella task e si passa il nome
+#  nudo, esattamente come lghmi gia' fa per draw2gr.
+proc avvia_legopc {dir tom} {
+    global LGTIX
+    set lpc [file join $LGTIX legopc.tix]
+    if {$dir eq ""} {
+        set etichetta "legopc"
+        set log [file join /tmp "lghmi_legopc.log"]
+        set sh "exec wish [list $lpc] >[list $log] 2>&1"
+    } else {
+        set etichetta "legopc on '[file tail $dir]'"
+        set log [file join /tmp "lghmi_legopc_[file tail $dir].log"]
+        set sh "cd [list $dir] && exec wish [list $lpc] [list $tom] >[list $log] 2>&1"
+    }
+    if {[catch {exec setsid sh -c $sh &} err]} {
+        if {[catch {exec sh -c $sh &} err2]} {
+            tk_messageBox -icon error -title "legopc" -parent . \
+                -message "Cannot launch legopc:\n$err2"
+            return
+        }
+    }
+    .status configure -text "$etichetta started  (log: $log)"
+    if {$dir ne ""} { sorveglia_legopc [file tail $dir] $tom 0 0 }
+}
+
+#  Quando legopc si chiude, ricordare che la configurazione va riallineata.
+#  Il modello puo' essere cambiato, e finche' non si rifa' kUpSim la
+#  simulazione userebbe la vecchia configurazione.
+#
+#  Non c'e' un PID da attendere: il lancio passa per setsid, che puo' forkare, e
+#  l'eventuale figlio non e' raggiungibile da qui. Si guarda percio' il processo
+#  con pgrep, come gia' fa conta_mmi, filtrando sul nome del .tom: e' univoco,
+#  perche' il modello di una task e' uno solo e porta il nome della directory.
+#  "visto" evita il falso allarme fra il lancio e la comparsa del processo;
+#  dopo 20 tentativi a vuoto (10 s) si rinuncia in silenzio, senza restare
+#  appesi per sempre se il lancio e' fallito.
+proc sorveglia_legopc {task tom visto tentativi} {
+    set vivo [expr {![catch {exec pgrep -f "legopc.tix.*[file rootname $tom]"}]}]
+    if {$vivo} {
+        after 2000 [list sorveglia_legopc $task $tom 1 0]
+        return
+    }
+    if {!$visto} {
+        if {$tentativi >= 20} return
+        after 500 [list sorveglia_legopc $task $tom 0 [expr {$tentativi + 1}]]
+        return
+    }
+    catch {.status configure -text \
+        "legopc closed on '$task' - if you changed the model, realign with Tools -> kUpSim."}
+}
+
 #  Ricostruisce il menu Tools per intero, come per il menu File: le etichette
 #  portano il nome del simulatore corrente, che cambia.
 proc aggiorna_menu_tools {} {
@@ -1493,6 +1718,12 @@ proc aggiorna_menu_tools {} {
         }
     }
     .mb.tools add cascade -label "Current simulator" -menu .mb.tools.sim
+    .mb.tools add separator
+    #  Sempre attiva, anche senza simulatore corrente e con una simulazione in
+    #  corso: senza task selezionata apre legopc vuoto, che non tocca niente.
+    #  I rifiuti li fa lancia_legopc, che puo' spiegarli - una voce spenta no.
+    .mb.tools add command -command lancia_legopc \
+        -label "Edit model (legopc) - on the selected task, or empty"
 }
 
 #  Lancia kUpSim sul simulatore corrente, in un terminale.

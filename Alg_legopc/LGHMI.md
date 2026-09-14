@@ -74,7 +74,8 @@ Nella finestra:
 - **File → Logs ▸** → gli **altri log** che `lghmi` scrive in `/tmp`: uno per ogni
   HMI lanciata, più `mmi` e `xstaz`: vedi sotto.
 - **Tools** → aggiorna la configurazione del **simulatore corrente** con
-  `kUpSim`, e permette di cambiare simulatore: vedi sotto.
+  `kUpSim`, permette di cambiare simulatore e di aprire il modello della task
+  selezionata nel CAD (`legopc`): vedi sotto.
 - **?** → versione di LegoPST e documentazione dell'ambiente: vedi sotto.
 - **Refresh** → rilegge l'elenco delle task.
 - **net_startup** → lancia la **simulazione** nella directory corrente e ne
@@ -492,9 +493,9 @@ così più log restano aperti insieme senza pestarsi i piedi.
   è larga apposta (i log veri stanno sotto i 100 KB): serve come protezione, non
   come politica.
 
-## Menù `Tools` — aggiornare la configurazione del simulatore
+## Menù `Tools` — configurazione del simulatore, e modifica dei modelli
 
-Tre voci, che lanciano **`kUpSim`** sul **simulatore corrente** (`$KSIM`) in un
+Le prime tre voci lanciano **`kUpSim`** sul **simulatore corrente** (`$KSIM`) in un
 terminale:
 
 | voce | cosa fa |
@@ -518,6 +519,76 @@ tre passi MMI vengono saltati. Se `dispatcher`, `net_sked` o `banco` sono in
 esecuzione, la conferma avverte che la simulazione **sta usando**
 `variabili.rtf`, `r02.dat` e le pagine, e che le troverebbe cambiate sotto.
 L'anteprima `-n` non chiede conferma: non esegue niente.
+
+### `Tools → Edit model (legopc)`
+
+Apre il **CAD** sul modello della task selezionata, oppure vuoto se non c'è
+selezione. È la stessa cosa che fa l'alias `lgpc`, ma **l'alias non si può
+lanciare**: gli alias non esistono nelle shell non interattive, e dietro `lgpc`
+non c'è nemmeno un eseguibile — è `export LG_TIX=$LG_BIN; wish
+$LG_TIX/legopc.tix`. Qui si lancia `wish` su `legopc.tix` **ereditando
+`LG_TIX`**, così il CAD e le HMI vengono dalla stessa installazione: quella con
+cui `lghmi` è stato avviato.
+
+Il lancio è un **processo indipendente** (`setsid`), come per le HMI: chiudere
+il selettore non porta via il CAD con dentro il lavoro non salvato. L'output va
+in `/tmp/lghmi_legopc_<task>.log`.
+
+`legopc.tix` del suo argomento tiene **solo il basename** e lo risolve sulla
+directory corrente: per questo si fa `cd` nella task e si passa il nome nudo,
+esattamente come per `draw2gr`.
+
+**Il modello di una task è uno solo, e porta il nome della sua directory**
+(`<task>/<task>.tom`). Altri `.tom` nella stessa directory non sono alternative:
+sono un'anomalia, e la voce lo dice invece di sceglierne uno a caso.
+
+La voce è **sempre attiva**. I rifiuti avvengono al momento del clic, perché una
+voce spenta non può spiegarsi:
+
+| situazione | cosa succede |
+|---|---|
+| nessuna selezione | apre `legopc` vuoto — **anche a simulazione in corso**: non sta editando niente |
+| task selezionata, simulazione in corso | **rifiuta**, e offre di aprire `legopc` vuoto |
+| task di un'altra area di lavoro | **rifiuta**, nominando le due aree e indicando `lgswitch` |
+| task di regolazione (nessun `.tom`) | lo dice: si costruiscono dai `.sed`/`.dxf`, non si aprono nel CAD |
+| manca il `.tom` omonimo, ma ce ne sono altri | lo dice, elencandoli come anomalia da correggere |
+
+> **Perché il blocco a simulazione viva.** Salvare da `legopc` riscrive `.tom` e
+> `.i5` mentre la task gira: l'eseguibile in `proc/` e il layout della SHM non
+> corrisponderebbero più a quel che è disegnato, e le HMI `draw2gr` già aperte
+> leggerebbero file che cambiano sotto. Il blocco però **non impedisce** di
+> modificare: impedisce a `lghmi` di *porgere* la task già aperta. Da `legopc`
+> vuoto ci si arriva lo stesso con *Open Model*, e fuori di qui non c'è modo di
+> sorvegliarlo.
+
+> **Perché il controllo sull'area.** `lghmi` elenca anche task che non stanno
+> sotto `$LG_ENTRY`: in modalità `S01` i path del file sono arbitrari, e i bundle
+> FMU hanno le task in `<bundle>/task/<nome>`. Su Linux il contesto lo fissa solo
+> il profilo — `LG_ENTRY` e le derivate `LG_LIBGRAPH`/`LG_LIBUT`/`LG_LIBRARIES` —
+> perché `applyUserFromTom` di `legopc.tix` si aspetta
+> `<LG_ENTRY>/models/<n>/<n>.tom`, che è il **layout Windows**: su Linux non c'è
+> il livello `models` (il profilo pone `LG_MODELS=LG_ENTRY`), quindi quella
+> funzione non scatta mai e non corregge niente. Aprire la task di un'altra area
+> significherebbe risolverne i blocchi contro il `libgraph` **sbagliato**, senza
+> che niente lo dica. Una conseguenza voluta: **le task dentro un bundle FMU non
+> sono modificabili da qui** — un bundle è un artefatto confezionato.
+
+> **Il confronto fra le aree è per identità, non per nome** (`device`+`inode` via
+> `file stat`). Confrontare le stringhe non funziona: `$HOME/legocad` è un
+> **symlink** — lo gestisce `lgswitch` — e `file normalize` di Tcl **non risolve i
+> symlink**, rende assoluto e toglie `.` e `..`, nient'altro. `LG_ENTRY` arriva dal
+> profilo nella grafia col link, mentre in modalità `S01` il path della task nasce
+> da `[file normalize [file join $s01dir $relpath]]`: lì il `..` costringe a
+> risolvere il link e viene fuori il path **reale**
+> (`…/legopst_<area>/legocad/<task>`). Sono due grafie della stessa directory, e
+> un confronto testuale rifiuterebbe **sistematicamente** le task del simulatore
+> su cui si sta lavorando — cioè il caso normale.
+
+Alla chiusura di `legopc` la barra di stato ricorda che, se il modello è
+cambiato, va riallineato con `Tools → kUpSim`. L'attesa non usa un PID — il
+lancio passa per `setsid`, che può forkare — ma un `pgrep` sul nome del `.tom`,
+come già fa `conta_mmi`; se il processo non compare entro 10 secondi si rinuncia
+in silenzio.
 
 ### `Tools → Current simulator` e la variabile `KSIM`
 
