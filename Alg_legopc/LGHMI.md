@@ -74,8 +74,15 @@ Nella finestra:
   con le due liste di pari larghezza: le due finestre si usano insieme, una sopra
   l'altra, e allineate stanno meglio. Il divisorio resta trascinabile e la
   finestra ridimensionabile (minimo 560x300).
-- **File → Open loc path…** → cambia la **directory di lavoro** del selettore,
-  e sotto la voce ci sono le ultime directory usate: vedi sotto.
+- **L'area di lavoro corrente** (`legopst_<nome>`) sta nel **titolo** e nella
+  **prima riga** in alto, rossa se i link `~/legocad` e `~/sked` non indicano
+  un'area sola.
+- **File → Work area ▸** → cambia l'**area di lavoro** (i link `~/legocad` e
+  `~/sked`) con `lgswitch`, dopo aver controllato che niente ci lavori ancora:
+  [vedi sotto](#cambiare-area-di-lavoro-menu-file-work-area).
+- **File → Open Simulator path…** → cambia la **directory di lavoro** del selettore,
+  e sotto la voce ci sono le ultime directory usate nell'area corrente: vedi
+  sotto.
 - **File → Simulation log** → **riapre** la finestra di log di `net_startup`, che
   altrimenti la X chiude per sempre: vedi sotto.
 - **File → Logs ▸** → gli **altri log** che `lghmi` scrive in `/tmp`: uno per ogni
@@ -84,7 +91,8 @@ Nella finestra:
   `kUpSim`, permette di cambiare simulatore e di aprire il modello della task
   selezionata nel CAD (`legopc`): vedi sotto.
 - **?** → versione di LegoPST e documentazione dell'ambiente: vedi sotto.
-- **Refresh** → rilegge l'elenco delle task.
+- **Refresh** → rilegge l'elenco delle task e l'area di lavoro (un `lgswitch`
+  fatto da terminale si vede qui).
 - **net_startup** → lancia la **simulazione** nella directory corrente e ne
   mostra l'output in una finestra di log. È abilitato solo dove si può: vedi
   sotto.
@@ -243,23 +251,26 @@ una voce del suo menù — [`attiva_lghmi`](../Alg_rt/net_simula/new_monit/cont_
 fa `system("$LEGORT_BIN/lghmi -insim &")` — e il banco gira nella directory del
 simulatore, perché lo avvia `net_startup`.
 
-In quel caso il selettore **appartiene a quella simulazione**, e due comandi
+In quel caso il selettore **appartiene a quella simulazione**, e quattro comandi
 vengono **disabilitati**:
 
 | comando | perché |
 |---|---|
-| *File → Open loc path* | lo porterebbe su un'altra directory, scollegandolo dalla simulazione che l'ha aperto |
+| *File → Open Simulator path* | lo porterebbe su un'altra directory, scollegandolo dalla simulazione che l'ha aperto |
 | pulsante *net_startup* | comincia con `killsim`: ammazzerebbe proprio la simulazione da cui è stato lanciato, e il banco con lei |
 | menu *Edit* delle HMI | le HMI lanciate da qui partono **senza** `-edit`: la simulazione è in corso, e il modello non va toccato (vedi [il menu Edit delle HMI](#il-menu-edit-delle-hmi-draw2gr--edit)) |
+| *File → Work area* | cambierebbe l'area sotto la simulazione in corso (vedi [Work area](#cambiare-area-di-lavoro-menu-file-work-area)) |
 
-La voce di menù nasce disabilitata e il pulsante resta spento; la riga di stato
-dice *"lanciato dal banco: directory fissa, simulazione già in corso"* e il
-titolo della finestra porta `(dal banco)`, così si capisce da dove viene.
+Le voci di menù nascono disabilitate e il pulsante resta spento; la riga di
+stato dice *"started from the desk: fixed directory, simulation already
+running"* e il titolo della finestra porta `(from the desk)`, così si capisce da
+dove viene.
 
-Lanciando `lghmi` a mano l'opzione non serve: i due comandi restano
-disponibili, e `net_startup` chiede comunque conferma.
+Lanciando `lghmi` a mano l'opzione non serve: i comandi restano tutti
+disponibili, `net_startup` chiede comunque conferma, e *Work area* si rifiuta da
+sé se trova una simulazione in corso.
 
-## `File → Open loc path…` — cambiare simulazione senza riavviare
+## `File → Open Simulator path…` — cambiare simulazione senza riavviare
 
 Apre un selettore di directory e **porta lì il selettore**: da quella directory
 dipendono la modalità (l'`S01` si cerca nella directory corrente), la lista dei
@@ -270,16 +281,26 @@ faceplate (`r02.dat` della directory), la directory di lavoro dell'`mmi` e il
 passa da una simulazione a un'altra: prima bisognava chiudere il selettore,
 `cd`, e riaprirlo.
 
+Il nome dice cosa si sceglie: la directory del **simulatore**, che diventa anche
+il *Set Sim path* mostrato in alto. Fino a settembre 2026 la voce si chiamava
+*Open loc path*, dall'opzione `-loc` a cui somiglia (ma non è la stessa cosa:
+vedi sotto).
+
 ### I path recenti
 
-Sotto *Open loc path…* il menù File porta le **ultime 3 directory usate**, così
-per tornare su una simulazione già visitata non serve riaprire il dialogo di
-selezione: si clicca la voce.
+Sotto *Open Simulator path…* il menù File porta le **ultime 3 directory usate
+nell'area di lavoro corrente**, così per tornare su una simulazione già visitata
+non serve riaprire il dialogo di selezione: si clicca la voce.
 
 - La lista sta in **`~/.lghmi_recent`**, una riga per path. Non in
   `$LG_ENTRY/legopc_prefs.tcl` come le preferenze di `legopc`, perché
   attraversa le installazioni: la radice utente cambia proprio quando si cambia
   directory.
+- **Il menù mostra solo i path dell'area corrente** (vedi
+  [*Work area*](#cambiare-area-di-lavoro-menu-file-work-area)): un path che sta in
+  un'altra `legopst_*` non compare, mentre quelli fuori da qualunque area si
+  vedono sempre. Il file ne tiene fino a 30 (`MAXRECENTIFILE`), di tutte le
+  aree: tornando a un'area si ritrovano i suoi.
 - Le voci mostrano il path con **`~`** al posto della home, e la più recente
   sta in cima. Riaprire una directory già in lista la **promuove** senza
   duplicarla.
@@ -290,9 +311,9 @@ selezione: si clicca la voce.
   simulazione (c'è un `S01` o `variabili.rtf`): lanciando `lghmi` da casa, in
   dir-scan, non ha senso ricordarsela. Così il menù è utile dalla prima volta,
   senza dover passare almeno una volta dal dialogo.
-- Il numero di path ricordati è la costante `MAXRECENTI` in `lghmi.tcl`.
+- Il numero di path mostrati è la costante `MAXRECENTI` in `lghmi.tcl`.
 
-Con `-insim` la voce *Open loc path* **e tutti i path recenti** sono
+Con `-insim` la voce *Open Simulator path* **e tutti i path recenti** sono
 disabilitati: vedi sopra.
 
 > **Non è la stessa cosa di `-loc DIR`.** L'opzione della riga di comando
@@ -305,6 +326,87 @@ Le due intestazioni in alto — il simulatore `S01` (verde) e il *Set Sim path*
 directory. Per questo esistono sempre come widget, anche vuote: creandole solo
 all'avvio, aprendo una directory con `S01` da una sessione partita in dir-scan
 non ci sarebbe niente da riempire.
+
+## Cambiare area di lavoro (menu File, Work area)
+
+È [`lgswitch`](../docs/COMANDI_LG.md#5-scelta-dellarea-di-lavoro) dentro il
+selettore. Un'**area di lavoro** è una directory `legopst_<nome>` con dentro
+`legocad` e `sked`; quella corrente la scelgono i due link `~/legocad` e
+`~/sked`. Il sottomenù elenca le aree, con la corrente spuntata; quelle a cui
+manca `legocad` o `sked` si vedono ma sono **spente**, con il motivo accanto al
+nome. L'area corrente sta anche **nel titolo** (`[legopst_nuclear]`) e nella
+**prima riga dell'intestazione**, che diventa rossa quando i link non indicano
+un'area sola (link misti, directory vere, link mancanti).
+
+Il sottomenù si ricostruisce a ogni apertura, e l'intestazione a ogni *Refresh*:
+un `lgswitch` fatto in un terminale si vede senza riavviare. Ma solo lì: il
+simulatore corrente e la directory di lavoro del selettore restano quelli di
+prima, quindi dopo un `lgswitch` da terminale conviene riaprire `lghmi`.
+
+### Perché lo switch è così prudente
+
+Tutto il profilo raggiunge l'area **attraverso i link**: `LG_ENTRY=$HOME/legocad`,
+`LG_LIBGRAPH`, `LG_MODELS`, `KSKED=$HOME/sked`, `KSIM=$KSKED/<nome>`, `KPAGES`,
+e il `PATH` con `$HOME/legocad/libut_bin`. Cambiare i link cambia quindi l'area
+anche ai **processi già aperti**, che però restano con la directory corrente
+nella vecchia: un `legopc` continuerebbe a editare un modello della vecchia area
+risolvendone i blocchi contro il `libgraph` della nuova. Nessun errore, solo
+risultati sbagliati.
+
+Per questo lo switch **si rifiuta**, elencando pid, nome e directory, se trova:
+
+| cosa | dove |
+|---|---|
+| un processo qualsiasi dell'utente con la directory corrente **dentro l'area corrente** (HMI `draw2gr`, `config`, `mmi`, `xstaz`, compilazioni, editor…) | nell'area |
+| la simulazione (`dispatcher`, `net_sked`, `banco`) | ovunque |
+| un `legopc` (anche aperto vuoto, legge `libgraph` attraverso `~/legocad`) | ovunque |
+| un altro `lghmi` (resterebbe con l'area vecchia in memoria) | ovunque |
+
+Le **shell interattive** con la directory corrente nell'area (`bash`, `ksh`… con
+soli argomenti-opzione, senza `-c` né uno script) **non bloccano**: la conferma le
+elenca e avvisa che da lì in poi i loro path portano alla nuova area. Una shell
+con `-c` sta eseguendo qualcosa, e blocca. La conferma ricorda anche che **le
+shell già aperte** tengono il loro `KSIM`, che ora nomina una directory della
+nuova area: meglio aprirne di nuove.
+
+Prima di procedere la conferma dice anche se `~/legocad` o `~/sked` sono
+**directory vere**: in quel caso `lgswitch` le **rinomina** in
+`<nome>.prelink-<data>-<ora>`, senza cancellare niente. Se uno dei due esiste e
+non è né un link né una directory, lo switch si rifiuta e lo si sistema a mano.
+
+### Come avviene
+
+Lo switch non è riscritto in Tcl: `lghmi` chiede a `lgswitch --list` cosa c'è
+(aree, stato dei link) e poi esegue **`lgswitch -f <area>`** nella directory dei
+link. L'output va in `/tmp/lghmi_lgswitch.log`, riapribile da *File → Logs*; se
+`lgswitch` fallisce, o se alla fine l'area non è quella scelta, un dialogo mostra
+la coda del log. La regola su cosa è un'area, le copie `.prelink-*` e il rifiuto
+delle aree incomplete restano scritti in un posto solo, `lgswitch`.
+
+La voce è **spenta** — con il motivo nel sottomenù — se:
+
+- `LG_ENTRY` e `KSKED` non finiscono in `legocad` e `sked`, o non stanno nella
+  **stessa directory** (`lgswitch` crea entrambi i link nella directory
+  corrente);
+- `lgswitch` non si trova (si cerca in `$UTIL97/bin`, poi in
+  `$LEGOROOT/util97/bin`, poi nel `PATH`);
+- `lghmi` è stato lanciato con `-insim`: la simulazione gira.
+
+### Dopo lo switch
+
+Il selettore riparte **in dir-scan**, dalla directory dei link (`~`) e **senza
+Set Sim path**: la directory da cui lavorava, il suo `S01` e il suo sim path
+erano della vecchia area. Le liste mostrano le task della nuova area.
+
+Il **simulatore corrente** diventa l'ultimo usato **in quella area**, se esiste
+ancora; altrimenti vale la cascata del profilo (`~/.legosim`, `cassano0`, il
+primo di `ksims`). La scelta si scrive in `~/.legosim`, perché le shell future
+trovino un simulatore che esiste. La memoria per area sta in
+**`~/.lghmi_areas`** (una riga `<directory fisica dell'area>|<simulatore>`), e
+si aggiorna quando si sceglie un simulatore da `Tools → Current simulator` e
+quando si lascia un'area. Sta nella home, come `~/.legosim`, e non dentro le
+aree, che si copiano e si impacchettano. Se la nuova area non ha simulatori, le
+voci di `Tools` si spengono e la riga di stato lo dice.
 
 ## Il pulsante `net_startup` — lanciare la simulazione
 
@@ -572,7 +674,7 @@ voce spenta non può spiegarsi:
 |---|---|
 | nessuna selezione | apre `legopc` vuoto — **anche a simulazione in corso**: non sta editando niente |
 | task selezionata, simulazione in corso | **rifiuta**, e offre di aprire `legopc` vuoto |
-| task di un'altra area di lavoro | **rifiuta**, nominando le due aree e indicando `lgswitch` |
+| task di un'altra area di lavoro | **rifiuta**, nominando le due aree e indicando *File → Work area* (o `lgswitch` da terminale) |
 | task di regolazione (nessun `.tom`) | lo dice: si costruiscono dai `.sed`/`.dxf`, non si aprono nel CAD |
 | manca il `.tom` omonimo, ma ce ne sono altri | lo dice, elencandoli come anomalia da correggere |
 | `legopc` già aperto sulla task | **rifiuta**, indicando pid e directory del CAD già aperto |
@@ -796,14 +898,15 @@ Ora, se `KSIM` manca o punta a una directory che non c'è, `lghmi` **rifà da s�
 la cascata del profilo**: `~/.legosim`, poi `cassano0`, poi il primo di
 `$KSKED`. Solo in memoria: `~/.legosim` non viene riscritto, perché aprire il
 selettore non è una scelta dell'utente e non deve cambiare il default delle
-shell future. Alle variabili derivate (`KWIN`, `KPAGES`, `KLOG`…) non pensa: i
-comandi girano in una shell che chiama `ksetsim` per conto suo, ed è quella a
-derivarle.
+shell future. Delle variabili derivate aggiorna solo `KPAGES`, che serve al
+pulsante *mmi*; alle altre (`KWIN`, `KLOG`…) non pensa: i comandi girano in una
+shell che chiama `ksetsim` per conto suo, ed è quella a derivarle.
 
 Quando il ripiego scatta, la barra di stato lo dice; se non c'è proprio nessun
-simulatore, dice quello e indica dove sceglierne uno.
+simulatore, dice quello e indica dove sceglierne uno. Succede anche dopo
+*File → Work area* verso un'area il cui `sked` non ha simulatori.
 
-> **`Open loc path` non c'entra con il simulatore corrente.** Cambia la
+> **`Open Simulator path` non c'entra con il simulatore corrente.** Cambia la
 > directory su cui lavora il selettore — quale elenco di task si vede e quale
 > *Set Sim path* ereditano le HMI — non `$KSIM`. Sono due cose distinte, e
 > sceglierne una non tocca l'altra.
@@ -818,7 +921,15 @@ funzione `ksims`) con quello corrente marcato. Scegliendone uno:
    `ksims`). La scelta vale quindi anche per **le shell future** e per gli altri
    comandi della toolchain;
 2. i comandi lanciati da `Tools` girano in una shell che **sorgia il profilo e
-   chiama `ksetsim <nome>`**.
+   chiama `ksetsim <nome>`**;
+3. il nome si ricorda come ultimo simulatore **dell'area** di `~/sked`
+   (`~/.lghmi_areas`), per ritrovarlo dopo *File → Work area*;
+4. nell'ambiente di `lghmi` si aggiornano `KSIM`, `KSIMNAME` e **`KPAGES`**, che
+   serve al pulsante *mmi*. `KPAGES` la calcola il `ksetsim` vero, in una
+   subshell che sorgia solo `Alg_env.sh` con `HOME` spostata (così non tocca
+   `~/.legosim`): di norma è `$KSIM/globpages`, ma `$KSIM/ksim.conf` la può
+   ridefinire. Prima restava quella del simulatore con cui `lghmi` era partito,
+   e *mmi* apriva le pagine di quello.
 
 Il punto 2 non è pignoleria: `ksetsim` non imposta solo `KSIM`, ne **deriva una
 ventina di variabili** (`KWIN`, `KPAGES`, `KSTATUS`, `KCASSAFORTE`, `KGRAF`…) e
@@ -956,6 +1067,20 @@ relativi** agli altri documenti — 236 in tutta la documentazione — si
 risolverebbero dentro la directory temporanea e non porterebbero da nessuna
 parte.
 
+**Le ancore dei titoli seguono la regola di GitHub**, perché i rimandi interni
+(`[…](#sezione)`) sono scritti per GitHub: minuscolo, via tutto ciò che non è
+lettera, cifra, spazio, trattino o sottolineatura, e **ogni** spazio diventa un
+trattino, senza fonderli (`File → Logs` dà `file--logs`). Fino a settembre 2026
+i separatori venivano fusi, e i rimandi ai titoli con frecce o lineette non
+funzionavano nel browser: 3 su 24.
+
+**Il `.md` si legge in UTF-8 e l'HTML si scrive in UTF-8**, qualunque sia la
+codifica di sistema. Con `LANG=POSIX`, che il profilo imposta, la lettura con la
+codifica di sistema spezzava ogni carattere non ASCII in due o tre byte: le
+ancore con accenti, frecce o emoji venivano storpiate, e un `à` a fine riga
+perdeva il secondo byte (`0xA0`, che in Latin-1 è uno spazio e cadeva col
+`trim`).
+
 ## Il pulsante `mmi`
 
 **Al centro** della barra in basso, largo il doppio degli altri e con lo sfondo
@@ -1033,6 +1158,21 @@ sopravvive al *Quit* del selettore.
   nell'ambiente → `lghmi` funziona da qualsiasi shell. Gli passa `"$LEGOROOT"`
   come `$1`: senza, il profilo erediterebbe i parametri posizionali dell'helper
   (es. `-loc`) e farebbe `export LEGOROOT=$1`.
+- `lghmi.tcl` sorgia **`lgedit.tcl`** dalla propria directory, e senza non
+  parte: contiene i controlli di *Edit model* e altri che il selettore usa
+  ovunque (`sim_attiva`, `stessa_directory`).
+
+### File che `lghmi` scrive nella home
+
+| File | Contenuto | Chi lo scrive |
+|---|---|---|
+| `~/.lghmi_recent` | le directory usate di recente, fino a 30, di tutte le aree | *Open Simulator path*, i recenti, l'avvio da una directory di simulazione |
+| `~/.lghmi_areas` | l'ultimo simulatore usato in ogni area: una riga per area, con directory fisica e nome separati da una barra verticale | *Tools → Current simulator*, *File → Work area* |
+| `~/.legosim` | il simulatore corrente per le shell future (lo legge `ksetsim_default`) | *Tools → Current simulator*, *File → Work area* |
+
+Se la home non è scrivibile si perde solo la memoria: il selettore funziona lo
+stesso. Nei log in `/tmp` (`lghmi_*.log`) finiscono invece gli output dei
+comandi lanciati, compreso `lghmi_lgswitch.log`.
 
 ## Variabili d'ambiente
 
@@ -1041,7 +1181,10 @@ sopravvive al *Quit* del selettore.
 | `LG_TASKROOT` | directory delle task in modalità dir-scan (default `$HOME/legocad`) |
 | `LG_SIM_PATH` | dir sim pre-impostata per *Set Sim path* (la imposta `lghmi`; `-noloc` la omette); il pulsante *mmi* ne prova per primo il `globpages` |
 | `LG_TIX` | dir di `draw2gr.tcl`/`lghmi.tcl` (dal profilo LegoPST) |
-| `KPAGES` | dir delle pagine MMI usata dal pulsante *mmi* (di norma `$KSIM/globpages`) |
+| `LG_ENTRY`, `KSKED` | i link `~/legocad` e `~/sked` (dal profilo): *Work area* funziona solo se finiscono in `legocad` e `sked` e stanno nella stessa directory; `LG_ENTRY` decide anche quali task hanno il menu *Edit* |
+| `KSIM`, `KSIMNAME` | simulatore corrente (dal profilo, o scelto da *Tools*); se mancano `lghmi` rifà la cascata del profilo |
+| `KPAGES` | dir delle pagine MMI usata dal pulsante *mmi* (di norma `$KSIM/globpages`); `lghmi` la ricalcola quando cambia simulatore |
+| `UTIL97`, `LEGOROOT` | dove cercare `lgswitch` (`$UTIL97/bin`, poi `$LEGOROOT/util97/bin`, poi il `PATH`) e `Alg_env.sh` per ricalcolare `KPAGES` |
 
 ## Troubleshooting
 
@@ -1055,10 +1198,33 @@ sopravvive al *Quit* del selettore.
 - **Le voci di `Tools` sono spente**: agiscono sul simulatore corrente, e non ce
   n'è uno valido. La barra di stato lo dice. Sceglilo da *Tools → Current
   simulator*, o con `ksetsim <nome>` prima di lanciare. Non confonderlo con
-  *Open loc path*, che cambia la directory di lavoro e **non** il simulatore.
+  *Open Simulator path*, che cambia la directory di lavoro e **non** il simulatore.
 - **Le voci `kCompile` sono spente ma `kUpSim` no**: manca il riquadro delle
   regolazioni (`-noreg`), e quelle voci agiscono su una selezione che lì dentro
   non esiste.
+- **File → Work area è spenta, o dice "Not available"**: il motivo è scritto
+  nel sottomenù. Di solito `LG_ENTRY` e `KSKED` mancano o non sono i link
+  `…/legocad` e `…/sked` della stessa directory — un profilo non standard, o il
+  `run_lghmi.sh` di un bundle FMU sulla macchina di destinazione, dove il
+  profilo non c'è — oppure `lgswitch` non si trova. Con `-insim` è spenta di
+  proposito.
+- **Lo switch si rifiuta elencando dei processi**: stanno ancora lavorando
+  sull'area corrente, e dopo lo switch la vedrebbero cambiare sotto di loro.
+  Chiudili — la simulazione con *Simulator Shutdown* dal banco — e riprova. La
+  colonna di destra dice perché ciascuno conta: la directory in cui lavora
+  (relativa all'area), oppure *simulation running*, *legopc (CAD)*, *another
+  lghmi*.
+- **La riga dell'area è rossa**: i link non indicano un'area sola. *MIXED*
+  vuol dire `legocad` e `sked` di aree diverse; *none* che uno dei due è una
+  directory vera o manca. Scegliere un'area da *Work area* rimette le cose a
+  posto (una directory vera viene rinominata in `.prelink-*`, previa conferma).
+- **Dopo un `lgswitch` da terminale** il selettore mostra la nuova area al primo
+  *Refresh*, ma simulatore corrente e directory di lavoro restano quelli di
+  prima: riaprire `lghmi`, oppure fare lo switch da *Work area*.
+- **"lgswitch did not complete the switch"**: il dialogo mostra la fine di
+  `/tmp/lghmi_lgswitch.log` (anche da *File → Logs*). Il caso tipico è la
+  directory dei link non scrivibile: `lgswitch` se ne accorge prima di toccare
+  qualunque cosa, e i link restano com'erano.
 - **La HMI si apre ma Plot/Command non trovano i dati**: la simulazione gira in
   un'altra directory → lancia `lghmi` dalla dir della sim, oppure usa *View → Set
   Sim path* nella HMI. Vedi la sezione *Set Sim path* in

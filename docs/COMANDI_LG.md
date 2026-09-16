@@ -109,7 +109,7 @@ remark e background, Command Mode, Set Sim path, unità di misura:
 
 | Comando | Tipo | Scopo |
 |---|---|---|
-| `lghmi` | script | **Selettore grafico delle task**: apre una finestra con l'elenco delle task e, scegliendone una, lancia la HMI `draw2gr` in un processo indipendente. Ha anche una **modalità faceplate** (`-staz`) che elenca le stazioni di comando compilate in `r02.dat` e apre quella scelta con `xstaz`, avviandolo se serve — utile con `net_startup`, che monta il banco e non ha il dialogo delle stazioni di `net_monit`. Dalla stessa finestra si lancia `net_startup` e si segue il log della simulazione. |
+| `lghmi` | script | **Selettore grafico delle task**: apre una finestra con l'elenco delle task e, scegliendone una, lancia la HMI `draw2gr` in un processo indipendente. Ha anche una **modalità faceplate** (`-staz`) che elenca le stazioni di comando compilate in `r02.dat` e apre quella scelta con `xstaz`, avviandolo se serve — utile con `net_startup`, che monta il banco e non ha il dialogo delle stazioni di `net_monit`. Dalla stessa finestra si lancia `net_startup` e si segue il log della simulazione, e si cambia area di lavoro (*File → Work area*, che usa `lgswitch`). |
 
 Opzioni principali:
 
@@ -118,13 +118,18 @@ Opzioni principali:
 | `-staz` | modalità faceplate invece che task (vedi sopra) |
 | `-loc [DIR]` | pre-imposta il *Set Sim path* delle HMI lanciate (via `LG_SIM_PATH`). Senza `DIR` usa la directory corrente. **È il comportamento di default**: animazione, Plot e Command puntano subito alla simulazione giusta senza doverlo fare a mano in ogni HMI |
 | `-noloc` | non pre-imposta alcun sim path: ogni HMI parte "nuda" |
-| `-insim` | dichiara che il selettore è lanciato **da dentro** una simulazione in corso. Lo passa il banco (`new_monit`). Disabilita *File → Open loc path* e il pulsante *net_startup*, che con `killsim` ammazzerebbe proprio la simulazione che ha aperto il selettore, e lancia le HMI senza menu *Edit* |
+| `-insim` | dichiara che il selettore è lanciato **da dentro** una simulazione in corso. Lo passa il banco (`new_monit`). Disabilita *File → Open Simulator path* e il pulsante *net_startup*, che con `killsim` ammazzerebbe proprio la simulazione che ha aperto il selettore, e *File → Work area*; lancia le HMI senza menu *Edit* |
 | `-noedit` | le HMI `draw2gr` lanciate non hanno il menu *Edit*, che apre il modello della task in `legopc`. Senza, il menu c'è per le task dell'area corrente (mai per quelle dei bundle FMU) |
 
 Dal menu `Tools` si riallinea la configurazione del simulatore (`kUpSim`, cioè
 `lgupsim`), si cambia simulatore corrente, e con **`Edit model (legopc)`** si apre
 il CAD sul modello della task selezionata — rifiutando se una simulazione è in
 corso o se la task appartiene a un'altra area di lavoro.
+
+Dal menu `File → Work area` si **cambia area di lavoro** senza uscire: è
+`lgswitch` (sezione 5), con in più il rifiuto finché qualcosa lavora sull'area
+corrente e, dopo lo switch, il riallineamento di liste e simulatore corrente.
+L'area corrente sta nel titolo della finestra e nella prima riga in alto.
 
 Un terzo riquadro elenca le **task di regolazione** (`r_*`), che prima non
 comparivano affatto perché non hanno un `.tom`: da lì si apre **`config`**,
@@ -171,7 +176,28 @@ Modi d'uso:
 | `lgswitch -f <dir>` | come sopra, **senza chiedere conferma** |
 | `lgswitch -s <sorgente> <link>` | crea un singolo link `<link>` → `<sorgente>`. Rifiuta di procedere se `<link>` esiste e **non** è un link simbolico |
 | `lgswitch -s -f <sorgente> <link>` | come sopra, forzando la sovrascrittura |
+| `lgswitch -l` / `--list` | **non cambia niente**: elenca aree, stato dei link e copie `.prelink-*` in una forma pensata per un programma (vedi sotto). La usa `lghmi` |
 | `lgswitch -h` | aiuto |
+
+L'output di `--list`, una riga per voce con i campi separati dalla barra
+verticale:
+
+```
+link|legocad|link|legopst_nuclear/legocad     # nome, stato (link, dir, altro, assente), destinazione
+link|sked|link|legopst_nuclear/sked
+area|legopst_elsy|1|1                         # nome, ha legocad, ha sked
+area|legopst_2i-retegas_modificato|1|0
+backup|legocad.prelink-20260916-180429        # copie di sicurezza
+```
+
+> **Da `lghmi`.** Lo stesso switch si fa da *File → Work area* del selettore,
+> che prima di chiamare `lgswitch -f` si rifiuta se qualcosa lavora ancora
+> sull'area corrente (simulazione, `legopc`, HMI…) e poi riallinea simulatore
+> corrente e liste. Vedi
+> [LGHMI.md](../Alg_legopc/LGHMI.md#cambiare-area-di-lavoro-menu-file-work-area).
+>
+> I **colori** escono solo se l'output è un terminale: rediretto in un file (è
+> così che lo usa `lghmi`) lo script scrive testo semplice.
 
 > **Cosa succede a ciò che c'è già.** Se `legocad` (o `sked`) è un **link**, viene
 > sostituito. Se è una **directory vera** non viene mai cancellata: viene
@@ -182,6 +208,13 @@ Modi d'uso:
 >
 > La modalità `-s` è più prudente di proposito: su una directory vera **si ferma**
 > invece di rinominarla, e chiede di spostarla a mano.
+>
+> **Se un link non si può togliere** (directory non scrivibile) lo script si
+> ferma con stato 1 e non tocca niente; con `<dir>`/`-f <dir>` lo controlla
+> prima di cambiare il primo dei due link. Fino a settembre 2026 andava avanti:
+> il link vecchio restava, e `ln -s` — trovando un link a una directory — creava
+> quello nuovo **dentro la vecchia area** (`legopst_x/legocad/legocad`),
+> dichiarando successo. Ora i link si creano con `ln -sn`.
 
 > **L'area scelta deve avere entrambe.** Se contiene `legocad` ma non `sked` (o
 > viceversa), il link mancante non viene creato e quello vecchio continuerebbe a
@@ -264,7 +297,7 @@ Due nomi che si incontrano leggendo il codice e che è facile scambiare per coma
 | far girare una simulazione e vederla | `lghmi` |
 | aprire i faceplate di comando | `lghmi -staz` |
 | ricompilare tutto dopo una modifica | `lgupsim` (`lgupsimx` senza MMI) |
-| cambiare area di lavoro | `lgswitch` |
+| cambiare area di lavoro | `lgswitch`, oppure `lghmi` → *File → Work area* |
 | sapere che versione sto usando | `lgversion` |
 | portare un'applicazione su Windows | `python3 util2025/lglinux2win.py` |
 | far dialogare più modelli come FMU | `python3 .../lg_cosim.py` |

@@ -56,14 +56,14 @@ proc area_della_task {dir} {
 #  stringhe.
 #
 #  Confrontare i nomi non funziona, e non e' un dettaglio: $HOME/legocad e'
-#  un SYMLINK (lo gestisce lgswitch) e `file normalize` di Tcl non risolve i
-#  symlink - rende assoluto e toglie "." e "..", nient'altro. LG_ENTRY arriva
-#  dal profilo nella grafia col link ($HOME/legocad), mentre in modalita' S01 il
-#  path della task nasce da [file normalize [file join $s01dir $relpath]]: li'
-#  il ".." costringe a risolvere il link, e viene fuori il path REALE
-#  (.../legopst_<area>/legocad/<task>). Stessa directory, due grafie: il
-#  confronto testuale rifiutava sistematicamente le task del simulatore su cui
-#  si sta lavorando, che e' il caso normale.
+#  un SYMLINK (lo gestisce lgswitch) e `file normalize` di Tcl risolve i
+#  symlink di tutti i componenti TRANNE L'ULTIMO: [file normalize
+#  $HOME/legocad] resta $HOME/legocad, mentre $HOME/legocad/<task> diventa
+#  .../legopst_<area>/legocad/<task>. LG_ENTRY arriva dal profilo nella grafia
+#  col link ($HOME/legocad), mentre il path di una task (dir-scan, S01, recenti)
+#  esce con il link gia' risolto. Stessa directory, due grafie: il confronto
+#  testuale rifiutava sistematicamente le task del simulatore su cui si sta
+#  lavorando, che e' il caso normale.
 #
 #  device+inode e' l'identita' vera: regge symlink, mount e grafie diverse, e
 #  continua a distinguere le aree DAVVERO diverse.
@@ -94,19 +94,24 @@ proc legopc_tix {} {
     return $lpc
 }
 
-#  Il processo $pid e' un legopc, cioe' un wish che esegue legopc.tix?
-#  pgrep -f guarda tutta la riga di comando, e anche un editor aperto su
-#  legopc.tix la contiene: si tengono solo gli interpreti.
-proc esegue_legopc {pid} {
+#  Il processo $pid e' un wish che esegue lo script $script (per nome, per
+#  esempio legopc.tix)? pgrep -f guarda tutta la riga di comando, e anche un
+#  editor aperto su quel file la contiene: si tengono solo gli interpreti.
+proc esegue_script {pid script} {
     if {[catch {open /proc/$pid/cmdline r} fp]} { return 0 }
     fconfigure $fp -translation binary
     set argomenti [split [read $fp] "\0"]
     close $fp
     if {![string match *wish* [file tail [lindex $argomenti 0]]]} { return 0 }
     foreach a [lrange $argomenti 1 end] {
-        if {[file tail $a] eq "legopc.tix"} { return 1 }
+        if {[file tail $a] eq $script} { return 1 }
     }
     return 0
+}
+
+#  Il processo $pid e' un legopc?
+proc esegue_legopc {pid} {
+    return [esegue_script $pid legopc.tix]
 }
 
 #  Questo processo discende da un legopc? Si risale la catena dei padri in
@@ -244,7 +249,8 @@ proc modifica_task {dir vuoto} {
         append msg "legopc would open the model but resolve its blocks against the\n"
         append msg "module library of LG_ENTRY, which is a different area: the model\n"
         append msg "would open and be wrong, with nothing saying so.\n\n"
-        append msg "Switch work area first (lgswitch), then reopen lghmi."
+        append msg "Switch work area first: File -> Work area in lghmi\n"
+        append msg "(or lgswitch in a terminal, then reopen lghmi)."
         tk_messageBox -icon error -title "legopc" -parent . -message $msg
         legopc_evento stato "legopc: '$task' belongs to another work area."
         return

@@ -54,14 +54,15 @@
 #                 Lo passa il banco (new_monit), che apre lghmi dal suo menu e
 #                 gira nella dir del simulatore. In questo caso il selettore
 #                 appartiene a quella simulazione, e vengono DISABILITATI:
-#                   * File -> Open loc path, che lo porterebbe su un'altra
+#                   * File -> Open Simulator path, che lo porterebbe su un'altra
 #                     directory scollegandolo dalla simulazione che l'ha aperto;
 #                   * il pulsante net_startup, che con killsim ammazzerebbe
 #                     proprio la simulazione da cui e' stato lanciato.
-#                 Lanciando lghmi a mano non serve: i due comandi restano
+#                 Lanciando lghmi a mano non serve: i comandi restano
 #                 disponibili, e net_startup chiede comunque conferma.
 #                 Le HMI lanciate con -insim non hanno il menu Edit (vedi
-#                 -noedit): la simulazione e' in corso.
+#                 -noedit), e File -> Work area e' spento: la simulazione e'
+#                 in corso.
 #   -noedit, --noedit
 #                 le HMI draw2gr lanciate NON hanno il menu Edit, che apre il
 #                 modello della task in legopc. Senza questa opzione il menu

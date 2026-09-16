@@ -27,6 +27,14 @@
 #   source md2html.tcl
 #   set html [md2html::documento $percorso_md]      ;# pagina completa
 #   set corpo [md2html::converti $testo]            ;# solo il body
+#
+# CODIFICA
+#   documento legge il .md in UTF-8, qualunque sia la codifica di sistema, e
+#   restituisce una stringa Tcl vera: chi la scrive su file deve aprirlo con
+#   -encoding utf-8 (la pagina dichiara charset=utf-8). Con LANG=POSIX, che il
+#   profilo LegoPST imposta, leggere con la codifica di sistema spezzava ogni
+#   carattere non ASCII in due o tre byte, e le ancore dei titoli con frecce o
+#   lineette non coincidevano piu' con quelle di GitHub.
 
 package require Tcl 8.5
 
@@ -41,14 +49,17 @@ proc md2html::esc {s} {
     string map {& &amp; < &lt; > &gt;} $s
 }
 
-#  Identificatore per i titoli, nello stile di GitHub: minuscolo, i caratteri
-#  non alfanumerici diventano trattini. Serve ai rimandi interni (#sezione),
-#  che la nostra documentazione usa.
+#  Identificatore per i titoli, con la regola di GitHub: minuscolo, via tutto
+#  cio' che non e' lettera, cifra, spazio, trattino o sottolineatura, e poi
+#  OGNI spazio diventa un trattino, senza fonderli. I rimandi interni (#sezione)
+#  della documentazione sono scritti per GitHub e devono risolversi anche qui.
+#  La regola precedente fondeva i separatori ("File → Logs" dava file-logs,
+#  GitHub file--logs), e i rimandi ai titoli con frecce o lineette non
+#  funzionavano nel browser.
 proc md2html::ancora {testo} {
-    set t [string tolower $testo]
-    regsub -all {`|\*|\(|\)|\[|\]|,|\.|:|;|\?|!|'|"|/|\\} $t "" t
-    regsub -all {[^a-z0-9àèéìòù-]+} $t "-" t
-    return [string trim $t "-"]
+    set t [string tolower [string trim $testo]]
+    regsub -all {[^[:alnum:] _-]} $t "" t
+    return [string map {" " "-"} $t]
 }
 
 #  Formattazione dentro una riga: codice, immagini, link, grassetto, corsivo.
@@ -293,6 +304,7 @@ proc md2html::stile {} {
 #  molto - si risolverebbero rispetto alla directory della pagina generata.
 proc md2html::documento {percorso} {
     set fd [open $percorso r]
+    fconfigure $fd -encoding utf-8
     set testo [read $fd]
     close $fd
 

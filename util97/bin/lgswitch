@@ -5,11 +5,17 @@
 # Le directory candidate al link devono essere denominate "legopst_*".
 # ==============================================================================
 
-# Definiamo alcuni colori per un output più leggibile
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-RED='\033[0;31m'
-NC='\033[0m' # No Color
+# Definiamo alcuni colori per un output più leggibile.
+# Solo se l'output e' un terminale: lghmi (File -> Work area) lancia lo script
+# con l'output in un file, e li' i codici di escape sarebbero solo sporcizia.
+if [ -t 1 ]; then
+    GREEN='\033[0;32m'
+    YELLOW='\033[1;33m'
+    RED='\033[0;31m'
+    NC='\033[0m' # No Color
+else
+    GREEN='' ; YELLOW='' ; RED='' ; NC=''
+fi
 
 # --- FUNZIONI ---
 
@@ -52,6 +58,20 @@ mostra_backup() {
     fi
 }
 
+#  Toglie il link <nome> e fallisce se non ci riesce (directory non
+#  scrivibile). Senza il controllo lo script andava avanti: il link vecchio
+#  restava li', e `ln -s` - vedendo un link a una directory - creava il nuovo
+#  link DENTRO la vecchia area (legopst_x/legocad/legocad), poi dichiarava
+#  successo. Per la stessa ragione i link si creano con `ln -sn`, che non
+#  segue mai un link esistente.
+rimuovi_link() {
+    if ! rm -f "$1" || [ -L "$1" ]; then
+        echo -e "${RED}Errore: non riesco a rimuovere il link '$1' (permessi?). Link non cambiato.${NC}"
+        return 1
+    fi
+    return 0
+}
+
 show_help() {
     echo "Uso: $0 [OPZIONE]"
     echo ""
@@ -71,6 +91,9 @@ show_help() {
     echo "                         è una directory o se <link> esiste e non è un link simbolico."
     echo "                         Chiede conferma per sovrascrivere un link esistente."
     echo "  -s -f <sorgente> <link> Come -s, ma forza la sovrascrittura del link senza conferma."
+    echo "  -l, --list             Elenca aree e link in forma leggibile da un programma"
+    echo "                         (una riga per voce, campi separati da '|'). Non cambia nulla."
+    echo "                         La usa lghmi (File -> Work area)."
     echo "  -h, --help             Mostra questo messaggio di aiuto."
     echo ""
     echo "Cosa succede a quello che c'e' gia':"
@@ -117,13 +140,13 @@ handle_single_link() {
         elif [ -L "$target_link" ]; then
             if [ "$force_mode" = true ]; then
                 echo -e "${YELLOW}Modalità -f: rimuovo automaticamente il link esistente '${target_link}'${NC}"
-                rm -f "$target_link"
+                rimuovi_link "$target_link" || return 1
             else
                 echo -e "${YELLOW}ATTENZIONE: Il link '${target_link}' esiste già.${NC}"
                 read -p "Vuoi sovrascriverlo? (S/n): " confirm
                 confirm=${confirm,,}
                 if [[ "$confirm" == "s" || "$confirm" == "si" || "$confirm" == "" ]]; then
-                    rm -f "$target_link"
+                    rimuovi_link "$target_link" || return 1
                 else
                     echo "Sovrascrittura di '$target_link' annullata dall'utente. Link non creato."
                     return 2
@@ -140,7 +163,7 @@ handle_single_link() {
     fi
 
     echo -e "Creazione del link simbolico: ${GREEN}${target_link}${NC} -> ${GREEN}${source_dir}${NC}"
-    ln -s "$source_dir" "$target_link"
+    ln -sn "$source_dir" "$target_link"
     if [ $? -eq 0 ]; then
         echo -e "${GREEN}Link '${target_link}' creato/aggiornato con successo!${NC}"
         return 0
@@ -159,8 +182,16 @@ interactive_backup_and_link() {
     local success=0
     local saltati=""
 
+    #  I due link si cambiano uno dopo l'altro: se il secondo fallisse per i
+    #  permessi, il primo sarebbe gia' cambiato e legocad e sked verrebbero da
+    #  aree diverse. Si controlla prima di toccare qualunque cosa.
+    if [ ! -w . ]; then
+        echo -e "${RED}Errore: la directory corrente ($(pwd)) non e' scrivibile: nessun link cambiato.${NC}"
+        return 1
+    fi
+
     echo -e "${YELLOW}Controllo delle sottodirectory disponibili in '${selected_dir}':${NC}"
-    
+
     # Gestisci legocad
     if [ -d "$legocad_path" ]; then
         echo -e "Trovata sottodirectory: ${GREEN}${legocad_path}${NC}"
@@ -251,12 +282,12 @@ set_link_strict() {
             fi
             echo "Rimozione del vecchio link '${target_link}'..."
         fi
-        rm -f "$target_link"
+        rimuovi_link "$target_link" || return 1
     fi
 
     # 3. Se tutti i controlli sono passati, crea il link.
     echo -e "Creazione del link simbolico: ${GREEN}${target_link}${NC} -> ${GREEN}${source_dir}${NC}"
-    ln -s "$source_dir" "$target_link"
+    ln -sn "$source_dir" "$target_link"
 
     if [ -L "$target_link" ]; then
         echo -e "${GREEN}Link '${target_link}' creato/aggiornato con successo!${NC}"
@@ -287,6 +318,43 @@ directory_mode() {
     # Usa la stessa logica di interactive_backup_and_link
     interactive_backup_and_link "$target_dir" "$force_mode"
     exit $?
+}
+
+#  Stato di un nome della directory corrente: link (anche rotto), dir
+#  (directory vera), altro (esiste ma non e' ne' l'uno ne' l'altra, per esempio
+#  un file) oppure assente.
+stato_nome() {
+    if [ -L "$1" ]; then echo link
+    elif [ -d "$1" ]; then echo dir
+    elif [ -e "$1" ]; then echo altro
+    else echo assente
+    fi
+}
+
+#  Modalita' -l / --list: lo stesso censimento della modalita' interattiva, ma
+#  in righe con campi separati da '|', pensate per un programma (lghmi). Cosi'
+#  la regola su COSA e' un'area resta scritta in un posto solo, qui.
+#
+#    link|<nome>|<stato>|<destinazione>   per legocad e sked; destinazione
+#                                         vuota se non e' un link
+#    area|<nome>|<legocad 0/1>|<sked 0/1> per ogni legopst_*, in ordine
+#    backup|<nome>                        per ogni copia .prelink-*
+#
+#  Non cambia niente e non chiede niente.
+list_mode() {
+    local nome d
+    for nome in legocad sked; do
+        echo "link|${nome}|$(stato_nome "$nome")|$( [ -L "$nome" ] && readlink "$nome" )"
+    done
+    while IFS= read -r d; do
+        d="${d#./}"
+        echo "area|${d}|$( [ -d "$d/legocad" ] && echo 1 || echo 0 )|$( [ -d "$d/sked" ] && echo 1 || echo 0 )"
+    done < <(find . -maxdepth 1 -type d -name "legopst_*" | sort)
+    for d in ./*.prelink-*; do
+        [ -d "$d" ] || continue
+        echo "backup|${d#./}"
+    done
+    exit 0
 }
 
 interactive_mode() {
@@ -369,6 +437,8 @@ fi
 case "$1" in
     -h|--help)
         show_help; exit 0 ;;
+    -l|--list)
+        list_mode ;;
     -f)
         # Modalità force per directory
         if [ $# -ne 2 ]; then

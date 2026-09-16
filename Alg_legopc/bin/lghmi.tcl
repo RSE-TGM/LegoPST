@@ -33,14 +33,19 @@
 # terminale la ammazzava - vedi lancia_net_startup), e da li' la si puo' anche
 # fermare per davvero.
 #
+# File -> Work area cambia l'area di lavoro (i link ~/legocad e ~/sked) con
+# lgswitch, dopo aver controllato che niente lavori ancora sull'area corrente;
+# l'area corrente sta nel titolo e nella prima riga dell'intestazione.
+#
 # Tools -> Edit model apre la task selezionata in legopc. I controlli e il
 # lancio stanno in lgedit.tcl, condivisi con il menu Edit di draw2gr: le HMI
 # lanciate da qui lo hanno (draw2gr -edit) salvo -noedit, -insim o task di
 # un'altra area - vedi hmi_con_edit.
 #
-# La barra dei menu ha File -> Open loc path, che cambia a runtime la directory
-# di lavoro del selettore: equivale a rilanciare lghmi da quella directory, e
-# aggiorna modalita', liste, Set Sim path e stato del pulsante di lancio.
+# La barra dei menu ha File -> Open Simulator path, che cambia a runtime la
+# directory di lavoro del selettore: equivale a rilanciare lghmi da quella
+# directory, e aggiorna modalita', liste, Set Sim path e stato del pulsante di
+# lancio.
 #
 # In entrambe, selezionando una task la HMI viene lanciata in un processo
 # INDIPENDENTE (detached):
@@ -95,10 +100,11 @@ set procmode [expr {[lsearch -exact $argv "-proc"] >= 0}]
 # lo fa il banco (new_monit, attiva_lghmi in cont_rec.c) dal suo menu, e il
 # banco gira nella dir del simulatore. In quel caso il selettore appartiene a
 # quella simulazione e due comandi non hanno senso, o sono dannosi:
-#   * Open loc path  porterebbe il selettore su un'ALTRA directory, scollegandolo
-#                    dalla simulazione che l'ha aperto;
-#   * net_startup    farebbe killsim, cioe' ammazzerebbe proprio la simulazione
-#                    da cui e' stato lanciato (e il banco con lei).
+#   * Open Simulator path  porterebbe il selettore su un'ALTRA directory,
+#                          scollegandolo dalla simulazione che l'ha aperto;
+#   * net_startup          farebbe killsim, cioe' ammazzerebbe proprio la
+#                          simulazione da cui e' stato lanciato (e il banco
+#                          con lei).
 # Entrambi vengono quindi disabilitati.
 set insim [expr {[lsearch -exact $argv "-insim"] >= 0}]
 
@@ -110,9 +116,19 @@ set noeditmode [expr {[lsearch -exact $argv "-noedit"] >= 0}]
 # dialogo di selezione. Stanno in un file nella home e non in
 # $LG_ENTRY/legopc_prefs.tcl perche' la lista attraversa le installazioni: la
 # radice utente cambia proprio quando si cambia directory.
+#  Il menu ne mostra MAXRECENTI, e solo quelle dell'area di lavoro corrente
+#  (File -> Work area); il file ne tiene di piu', di tutte le aree, cosi'
+#  tornando a un'area si ritrovano le sue.
 set RECENTIFILE [file join $env(HOME) .lghmi_recent]
 set MAXRECENTI  3
+set MAXRECENTIFILE 30
 set RECENTI     {}
+
+# L'ultimo simulatore usato in ciascuna area di lavoro, per ritrovarlo dopo
+# File -> Work area. Una riga per area: <directory fisica dell'area>|<nome>.
+# Nella home come ~/.legosim, e non dentro le aree, che si copiano e si
+# impacchettano.
+set AREEFILE [file join $env(HOME) .lghmi_areas]
 set mostra_proc [expr {$procmode || !$stazmode}]
 set mostra_staz [expr {$stazmode || !$procmode}]
 set doppia      [expr {$mostra_proc && $mostra_staz}]
@@ -470,6 +486,11 @@ proc riempi_reg {} {
 
 proc refresh_list {} {
     global mostra_proc mostra_staz mostra_reg doppia
+    #  L'area prima di tutto: i link possono essere cambiati da un lgswitch in
+    #  un terminale, e allora anche i recenti da mostrare sono altri.
+    set prima $::AREE_CORRENTI
+    aggiorna_area
+    if {$::AREE_CORRENTI ne $prima} { catch {aggiorna_menu_file} }
     set msg {}
     if {$mostra_proc} { lappend msg [riempi_proc] }
     if {$mostra_staz} { lappend msg [riempi_staz] }
@@ -773,7 +794,7 @@ proc popup_open_page {lb azione y X Y {etichetta "Open page"}} {
     grab set .popup_open
 }
 
-# --- Directory corrente: "File -> Open loc path" -------------------------
+# --- Directory corrente: "File -> Open Simulator path" -------------------
 #
 # Cambiare directory a runtime equivale a rilanciare lghmi da quella dir: da
 # essa dipendono la modalita' (l'S01 si cerca nella cwd), la lista dei
@@ -823,14 +844,14 @@ proc imposta_loc {dir} {
 #  Legge le directory recenti, scartando quelle che non esistono piu' (una sim
 #  cancellata, un disco smontato): restano nel file ma non nel menu.
 proc carica_recenti {} {
-    global RECENTI RECENTIFILE MAXRECENTI
+    global RECENTI RECENTIFILE MAXRECENTIFILE
     set RECENTI {}
     if {[catch {open $RECENTIFILE r} fd]} return
     while {[gets $fd riga] >= 0} {
         set riga [string trim $riga]
         if {$riga eq "" || ![file isdirectory $riga]} continue
         if {[lsearch -exact $RECENTI $riga] < 0} { lappend RECENTI $riga }
-        if {[llength $RECENTI] >= $MAXRECENTI} break
+        if {[llength $RECENTI] >= $MAXRECENTIFILE} break
     }
     close $fd
 }
@@ -848,13 +869,13 @@ proc salva_recenti {} {
 
 #  Mette <dir> in testa ai recenti (senza doppioni), tronca e salva.
 proc ricorda_recente {dir} {
-    global RECENTI MAXRECENTI
+    global RECENTI MAXRECENTIFILE
     set dir [file normalize $dir]
     set pos [lsearch -exact $RECENTI $dir]
     if {$pos >= 0} { set RECENTI [lreplace $RECENTI $pos $pos] }
     set RECENTI [linsert $RECENTI 0 $dir]
-    if {[llength $RECENTI] > $MAXRECENTI} {
-        set RECENTI [lrange $RECENTI 0 [expr {$MAXRECENTI-1}]]
+    if {[llength $RECENTI] > $MAXRECENTIFILE} {
+        set RECENTI [lrange $RECENTI 0 [expr {$MAXRECENTIFILE-1}]]
     }
     salva_recenti
     aggiorna_menu_file
@@ -864,15 +885,26 @@ proc ricorda_recente {dir} {
 #  Non si toccano le singole voci: gli indici cambierebbero a ogni path in piu'
 #  o in meno, ed e' proprio il tipo di indirizzamento da evitare in un menu Tk.
 proc aggiorna_menu_file {} {
-    global RECENTI insim env
+    global RECENTI MAXRECENTI insim env
     if {![winfo exists .mb.file]} return
     set stato [expr {$insim ? "disabled" : "normal"}]
 
     .mb.file delete 0 end
-    .mb.file add command -label "Open loc path..." -command apri_loc_path -state $stato
-    if {[llength $RECENTI] > 0} {
+    #  Le aree si elencano all'apertura del sottomenu (riempi_menu_aree), non
+    #  qui: possono cambiare anche fuori da lghmi.
+    if {![winfo exists .mb.file.aree]} {
+        menu .mb.file.aree -tearoff 0 -postcommand riempi_menu_aree
+    }
+    .mb.file add cascade -label "Work area" -menu .mb.file.aree -state $stato
+    .mb.file add command -label "Open Simulator path..." -command apri_loc_path -state $stato
+    set visibili {}
+    foreach d $RECENTI {
+        if {[llength $visibili] >= $MAXRECENTI} break
+        if {[recente_visibile $d]} { lappend visibili $d }
+    }
+    if {[llength $visibili] > 0} {
         .mb.file add separator
-        foreach d $RECENTI {
+        foreach d $visibili {
             # ~ al posto della home: i path delle simulazioni sono lunghi e la
             # parte utile e' la coda
             set etichetta $d
@@ -956,7 +988,7 @@ proc vai_a_loc {dir} {
     }
     set err [imposta_loc $dir]
     if {$err ne ""} {
-        tk_messageBox -icon error -title "Open loc path" -parent . -message $err
+        tk_messageBox -icon error -title "Open Simulator path" -parent . -message $err
         return
     }
     ricorda_recente [pwd]
@@ -975,9 +1007,566 @@ proc apri_loc_path {} {
         return
     }
     set dir [tk_chooseDirectory -parent . -mustexist 1 -initialdir [pwd] \
-                 -title "Simulation directory (loc path)"]
+                 -title "Simulator path"]
     if {$dir eq ""} return
     vai_a_loc $dir
+}
+
+# --- File -> Work area: cambiare area di lavoro (lgswitch) ----------------
+#
+# Un'area di lavoro e' una directory legopst_<nome> con dentro legocad e sked.
+# Quella corrente la scelgono due link, <base>/legocad e <base>/sked, e tutto
+# il profilo la raggiunge ATTRAVERSO quei link: LG_ENTRY=$HOME/legocad,
+# LG_LIBGRAPH, LG_MODELS, KSKED=$HOME/sked, KSIM=$KSKED/<nome>, KPAGES, e il
+# PATH con $HOME/legocad/libut_bin. Cambiare i link cambia quindi l'area anche
+# ai processi GIA' APERTI, che pero' restano con la directory corrente nella
+# vecchia: un legopc continuerebbe a editare un modello della vecchia area
+# risolvendone i blocchi contro il libgraph della nuova, senza errori. Per
+# questo lo switch si rifiuta finche' qualcosa lavora sull'area corrente.
+#
+# I link li cambia lgswitch, non questo file: qui si chiede a lgswitch --list
+# cosa c'e' e si lancia lgswitch -f <area>. La regola su cosa e' un'area, le
+# copie .prelink-* delle directory vere e il controllo sulle aree incomplete
+# restano scritti in un posto solo.
+#
+# Dopo lo switch il selettore riparte in dir-scan, dalla directory dei link e
+# senza Set Sim path: la directory da cui lavorava, il suo S01 e il suo sim
+# path erano della vecchia area.
+
+#  Stato dell'area, ricalcolato da aggiorna_area:
+#    AREA_CORRENTE  nome dell'area (il radiobutton del menu), "" se non ce
+#                   n'e' una sola
+#    AREE_BASE      directory FISICA dei link, "" se lo switch non e' gestito
+#    AREE_CORRENTI  directory FISICHE a cui puntano legocad e sked
+#    AREA_SKED      l'area di sked: e' li' che stanno i simulatori
+set AREA_CORRENTE ""
+set AREE_BASE     ""
+set AREE_CORRENTI {}
+set AREA_SKED     ""
+
+#  Il path FISICO di <path>, con tutti i symlink risolti. `file normalize` li
+#  risolve in tutti i componenti tranne l'ultimo: aggiungendone uno fittizio,
+#  anche l'ultimo diventa intermedio.
+proc fisico {path} {
+    return [file dirname [file normalize [file join $path _]]]
+}
+
+#  ~ al posto della home, per i path mostrati.
+proc con_tilde {path} {
+    global env
+    if {$path eq $env(HOME)} { return "~" }
+    if {[string first $env(HOME)/ $path] == 0} {
+        return "~[string range $path [string length $env(HOME)] end]"
+    }
+    return $path
+}
+
+#  La directory che contiene i link legocad e sked, cioe' quella in cui va
+#  eseguito lgswitch. Ritorna {base ""}, oppure {"" motivo} se lo switch da qui
+#  non e' possibile: i due link devono essere quelli che il profilo usa
+#  (LG_ENTRY e KSKED) e stare nella STESSA directory, perche' lgswitch li crea
+#  entrambi nella directory corrente.
+proc base_aree {} {
+    global env
+    set entry [expr {[info exists env(LG_ENTRY)] ? $env(LG_ENTRY) : ""}]
+    set sked  [expr {[info exists env(KSKED)] ? $env(KSKED) : ""}]
+    if {$entry eq "" || $sked eq ""} {
+        return [list "" "LG_ENTRY or KSKED is not set"]
+    }
+    if {[file tail $entry] ne "legocad" || [file tail $sked] ne "sked"} {
+        return [list "" "LG_ENTRY and KSKED do not end in legocad and sked"]
+    }
+    set base [file dirname $entry]
+    if {![stessa_directory $base [file dirname $sked]]} {
+        return [list "" "legocad and sked are not in the same directory"]
+    }
+    if {[comando_lgswitch] eq ""} {
+        return [list "" "lgswitch not found"]
+    }
+    return [list $base ""]
+}
+
+#  Lo script lgswitch dell'installazione corrente (util97/bin), o "" se non
+#  c'e'. Il PATH non basta: l'helper sorgia il profilo solo se manca LG_TIX,
+#  quindi util97/bin puo' non esserci.
+proc comando_lgswitch {} {
+    global env
+    set cand {}
+    if {[info exists env(UTIL97)]}   { lappend cand [file join $env(UTIL97) bin lgswitch] }
+    if {[info exists env(LEGOROOT)]} { lappend cand [file join $env(LEGOROOT) util97 bin lgswitch] }
+    foreach c $cand {
+        if {[file executable $c]} { return $c }
+    }
+    set c [auto_execok lgswitch]
+    return [expr {$c ne "" ? [lindex $c 0] : ""}]
+}
+
+#  Il censimento di `lgswitch --list`, eseguito in <base>. Ritorna un dict:
+#    link    {legocad {stato destinazione} sked {stato destinazione}}
+#    aree    lista di {nome ha_legocad ha_sked}
+#    errore  "" oppure il motivo per cui non si e' potuto leggere
+proc elenco_aree {base} {
+    set ris [dict create link {} aree {} errore ""]
+    set old [pwd]
+    if {[catch {cd $base} err]} {
+        dict set ris errore $err
+        return $ris
+    }
+    set rc [catch {exec [comando_lgswitch] --list 2>@1} out]
+    cd $old
+    if {$rc} {
+        dict set ris errore "lgswitch --list failed: [lindex [split $out \n] 0]"
+        return $ris
+    }
+    foreach riga [split $out "\n"] {
+        set c [split $riga "|"]
+        switch -exact -- [lindex $c 0] {
+            link { dict set ris link [lindex $c 1] [list [lindex $c 2] [lindex $c 3]] }
+            area { dict lappend ris aree [lrange $c 1 3] }
+        }
+    }
+    return $ris
+}
+
+#  Com'e' messa l'area di lavoro, per il titolo, l'intestazione e i controlli.
+#  Ritorna un dict:
+#    base    directory dei link, "" se lo switch non e' gestito (vedi motivo)
+#    motivo  perche' non e' gestito, o perche' non si e' potuto leggere
+#    nome    area corrente, "" se non ce n'e' UNA (link misti, directory vere)
+#    aree    directory FISICHE su cui si lavora adesso: le destinazioni dei
+#            link, o legocad/sked stesse se sono directory vere
+#    sked    area FISICA di sked, "" se sked non e' un link
+#    testo   descrizione per l'intestazione
+#    grave   1 se lo stato merita attenzione (tutto tranne il caso normale)
+#    elenco  il dict di elenco_aree
+proc stato_area {} {
+    set st [dict create base "" motivo "" nome "" aree {} sked "" \
+                        testo "" grave 0 elenco {}]
+    lassign [base_aree] base motivo
+    if {$base eq ""} {
+        dict set st motivo $motivo
+        dict set st testo "Work area: not managed from here ($motivo)"
+        return $st
+    }
+    dict set st base $base
+    set el [elenco_aree $base]
+    dict set st elenco $el
+    if {[dict get $el errore] ne ""} {
+        dict set st motivo [dict get $el errore]
+        dict set st testo "Work area: unknown ([dict get $el errore])"
+        dict set st grave 1
+        return $st
+    }
+    set parti {}
+    set aree {}
+    set nlink 0
+    foreach n {legocad sked} {
+        set stato assente
+        set dest ""
+        if {[dict exists $el link $n]} { lassign [dict get $el link $n] stato dest }
+        switch -exact -- $stato {
+            link {
+                incr nlink
+                set a [file dirname [fisico [file join $base $dest]]]
+                lappend aree $a
+                lappend parti "$n -> [file tail $a]"
+                if {$n eq "sked"} { dict set st sked $a }
+            }
+            dir {
+                lappend aree [fisico [file join $base $n]]
+                lappend parti "$n is a real directory"
+            }
+            altro   { lappend parti "$n is neither a link nor a directory" }
+            default { lappend parti "$n is missing" }
+        }
+    }
+    set aree [lsort -unique $aree]
+    dict set st aree $aree
+    if {$nlink == 2 && [llength $aree] == 1} {
+        dict set st nome [file tail [lindex $aree 0]]
+        dict set st testo "Work area: [file tail [lindex $aree 0]]"
+    } elseif {$nlink == 2} {
+        dict set st testo "Work area: MIXED - [join $parti {, }]"
+        dict set st grave 1
+    } else {
+        dict set st testo "Work area: none - [join $parti {, }]"
+        dict set st grave 1
+    }
+    return $st
+}
+
+#  Ricalcola l'area e la mostra nel titolo e nell'intestazione. Ritorna lo
+#  stato, che il chiamante puo' riusare.
+proc aggiorna_area {} {
+    global insim
+    set st [stato_area]
+    set ::AREA_CORRENTE [dict get $st nome]
+    set ::AREE_BASE     [expr {[dict get $st base] ne "" ? [fisico [dict get $st base]] : ""}]
+    set ::AREE_CORRENTI [dict get $st aree]
+    set ::AREA_SKED     [dict get $st sked]
+
+    set t $::TITOLO_BASE
+    if {[dict get $st nome] ne ""} {
+        append t "  \[[dict get $st nome]\]"
+    } elseif {[dict get $st base] ne ""} {
+        append t "  \[no single work area\]"
+    }
+    if {$insim} { append t "  (from the desk)" }
+    wm title . $t
+    catch {.area configure -text [dict get $st testo] \
+               -foreground [expr {[dict get $st grave] ? "red" : "black"}]}
+    return $st
+}
+
+#  Un path recente va nel menu? No se sta in un'ALTRA area della stessa base
+#  (<base>/legopst_*, diversa da quelle su cui si lavora); si' in tutti gli
+#  altri casi, compresi i path che non stanno in nessuna area. Il file dei
+#  recenti non si tocca: tornando a un'area si ritrovano i suoi.
+proc recente_visibile {dir} {
+    if {$::AREE_BASE eq ""} { return 1 }
+    if {[string first "$::AREE_BASE/legopst_" $dir] != 0} { return 1 }
+    foreach a $::AREE_CORRENTI {
+        if {$dir eq $a || [string first "$a/" $dir] == 0} { return 1 }
+    }
+    return 0
+}
+
+#  Memoria dell'ultimo simulatore per area (AREEFILE): un dict
+#  {area fisica -> nome del simulatore}.
+proc leggi_aree_file {} {
+    global AREEFILE
+    set d [dict create]
+    if {[catch {open $AREEFILE r} fd]} { return $d }
+    while {[gets $fd riga] >= 0} {
+        set i [string last "|" $riga]
+        if {$i <= 0} continue
+        dict set d [string range $riga 0 [expr {$i - 1}]] \
+                   [string range $riga [expr {$i + 1}] end]
+    }
+    close $fd
+    return $d
+}
+
+#  L'ultimo simulatore usato nell'area <area>, o "".
+proc sim_ricordato {area} {
+    set d [leggi_aree_file]
+    if {$area eq "" || ![dict exists $d $area]} { return "" }
+    return [dict get $d $area]
+}
+
+#  Ricorda <nome> come ultimo simulatore dell'area di sked corrente. Se la home
+#  non e' scrivibile si perde solo la memoria, come per i recenti.
+proc ricorda_sim_area {nome} {
+    global AREEFILE
+    if {$::AREA_SKED eq "" || $nome eq ""} return
+    set d [leggi_aree_file]
+    if {[dict exists $d $::AREA_SKED] && [dict get $d $::AREA_SKED] eq $nome} return
+    dict set d $::AREA_SKED $nome
+    catch {
+        set fd [open $AREEFILE w]
+        dict for {a s} $d { puts $fd "$a|$s" }
+        close $fd
+    }
+}
+
+#  Nome del processo (/proc/<pid>/comm).
+proc nome_processo {pid} {
+    if {[catch {open /proc/$pid/comm r} fd]} { return "?" }
+    set n [string trim [read $fd]]
+    close $fd
+    return $n
+}
+
+#  Una shell che aspetta comandi: bash, sh, ksh... con soli argomenti che sono
+#  opzioni, e senza -c. Con -c, o con uno script come argomento, sta eseguendo
+#  qualcosa - i lanci di lghmi passano da sh -c e bash -c - e conta come
+#  processo al lavoro. Uno script lanciato col suo #! ha il suo nome in comm, e
+#  quindi non arriva nemmeno qui.
+proc shell_interattiva {pid nome} {
+    if {[lsearch -exact {bash sh dash ksh ksh93 mksh zsh tcsh csh fish} $nome] < 0} {
+        return 0
+    }
+    if {[catch {open /proc/$pid/cmdline r} fd]} { return 0 }
+    fconfigure $fd -translation binary
+    set argomenti [split [read $fd] "\0"]
+    close $fd
+    foreach a [lrange $argomenti 1 end] {
+        if {$a eq ""} continue
+        if {$a eq "-c" || ![string match -* $a]} { return 0 }
+    }
+    return 1
+}
+
+#  I processi dell'utente con la directory corrente dentro <aree>, escluso
+#  questo selettore. Ritorna {bloccanti shell}, due liste di {pid nome dove}:
+#  le shell interattive sono solo un avviso, tutto il resto blocca. I processi
+#  di altri utenti non si vedono (readlink di cwd e' negato) e non contano.
+proc processi_nell_area {aree} {
+    set io [pid]
+    set bloccanti {}
+    set shell {}
+    foreach d [glob -nocomplain -types d -directory /proc {[0-9]*}] {
+        set p [file tail $d]
+        if {![string is integer -strict $p] || $p == $io} continue
+        if {[catch {file readlink [file join $d cwd]} cwd]} continue
+        set dove ""
+        foreach a $aree {
+            if {$cwd eq $a || [string first "$a/" $cwd] == 0} {
+                set dove "[file tail $a][string range $cwd [string length $a] end]"
+                break
+            }
+        }
+        if {$dove eq ""} continue
+        set nome [nome_processo $p]
+        if {[shell_interattiva $p $nome]} {
+            lappend shell [list $p $nome $dove]
+        } else {
+            lappend bloccanti [list $p $nome $dove]
+        }
+    }
+    return [list $bloccanti $shell]
+}
+
+#  Cio' che impedisce lo switch anche lavorando FUORI dall'area: la
+#  simulazione, i legopc (anche aperti vuoti leggono libgraph attraverso
+#  $HOME/legocad) e gli altri lghmi (resterebbero con l'area vecchia in
+#  memoria). Stesso formato di processi_nell_area; la simulazione non ha pid.
+proc bloccanti_ovunque {} {
+    set out {}
+    foreach p [sim_attiva] { lappend out [list - $p "simulation running"] }
+    foreach {script cosa} {legopc.tix "legopc (CAD)" lghmi.tcl "another lghmi"} {
+        if {[catch {exec pgrep -f $script} pids]} continue
+        foreach p [split [string trim $pids] "\n"] {
+            set p [string trim $p]
+            if {$p eq "" || $p == [pid] || ![esegue_script $p $script]} continue
+            lappend out [list $p [nome_processo $p] $cosa]
+        }
+    }
+    return $out
+}
+
+#  Le ultime <n> righe di un file, per i dialoghi d'errore.
+proc coda_file {file n} {
+    if {[catch {open $file r} fd]} { return "" }
+    set righe [split [string trimright [read $fd]] "\n"]
+    close $fd
+    return [join [lrange $righe end-[expr {$n - 1}] end] "\n"]
+}
+
+#  Il sottomenu File -> Work area, ricostruito a ogni apertura: le aree si
+#  possono creare, e i link cambiare, anche fuori da lghmi. Le aree incomplete
+#  si vedono ma sono spente, con il motivo nell'etichetta.
+proc riempi_menu_aree {} {
+    set m .mb.file.aree
+    $m delete 0 end
+    set st [aggiorna_area]
+    if {[dict get $st base] eq ""} {
+        $m add command -state disabled -label "Not available: [dict get $st motivo]"
+        return
+    }
+    set el [dict get $st elenco]
+    if {[dict get $el errore] ne ""} {
+        $m add command -state disabled -label "Not available: [dict get $el errore]"
+        return
+    }
+    set aree [dict get $el aree]
+    if {[llength $aree] == 0} {
+        $m add command -state disabled \
+            -label "(no legopst_* directory in [con_tilde [dict get $st base]])"
+        return
+    }
+    foreach a $aree {
+        lassign $a nome lc sk
+        set manca {}
+        if {!$lc} { lappend manca legocad }
+        if {!$sk} { lappend manca sked }
+        if {[llength $manca]} {
+            $m add radiobutton -state disabled -variable ::AREA_CORRENTE -value $nome \
+                -label "$nome   (no [join $manca { and }])"
+        } else {
+            $m add radiobutton -variable ::AREA_CORRENTE -value $nome \
+                -label $nome -command [list cambia_area $nome]
+        }
+    }
+    $m add separator
+    set b [con_tilde [dict get $st base]]
+    $m add command -state disabled -label "Links: $b/legocad, $b/sked"
+}
+
+#  Voce del sottomenu: passa all'area <nome>. Il radiobutton ha gia' spostato
+#  la spunta: ogni rinuncia la rimette dov'era (aggiorna_area).
+proc cambia_area {nome} {
+    global insim
+    set st [aggiorna_area]
+    if {$insim} return
+    set base [dict get $st base]
+    if {$base eq ""} {
+        tk_messageBox -icon error -title "Work area" -parent . -message \
+            "The work area cannot be switched from here:\n[dict get $st motivo]"
+        return
+    }
+    set el [dict get $st elenco]
+    set voce [lsearch -inline -exact -index 0 [dict get $el aree] $nome]
+    if {$voce eq ""} {
+        tk_messageBox -icon error -title "Work area" -parent . -message \
+            "'$nome' is no longer in [con_tilde $base]."
+        return
+    }
+    lassign $voce - lc sk
+    if {!$lc || !$sk} {
+        tk_messageBox -icon error -title "Work area" -parent . -message \
+            "'$nome' does not have both legocad and sked.\n\nThe missing link would keep pointing to the current area, and you would\nwork with legocad from one area and sked from another."
+        return
+    }
+    set vecchia [dict get $st nome]
+    if {$vecchia eq $nome} {
+        .status configure -text "Work area: already on $nome."
+        return
+    }
+    set da [expr {$vecchia ne "" ? $vecchia \
+                  : [string map {"Work area: " ""} [dict get $st testo]]}]
+
+    # 1. chi lavora ancora sull'area corrente
+    lassign [processi_nell_area [dict get $st aree]] bloccanti shell
+    set visti {}
+    foreach b $bloccanti { lappend visti [lindex $b 0] }
+    foreach b [bloccanti_ovunque] {
+        if {[lsearch -exact $visti [lindex $b 0]] >= 0} continue
+        lappend bloccanti $b
+    }
+    if {[llength $bloccanti] > 0} {
+        set msg "Cannot switch the work area now: these are still working.\n\n"
+        foreach b [lrange $bloccanti 0 14] {
+            lassign $b p n dove
+            append msg [format "    %-7s %-16s %s\n" $p $n $dove]
+        }
+        if {[llength $bloccanti] > 15} {
+            append msg "    ... and [expr {[llength $bloccanti] - 15}] more\n"
+        }
+        append msg "\nAfter the switch they would reach $nome through ~/legocad\n"
+        append msg "and ~/sked while still working on $da, with nothing saying so.\n\n"
+        append msg "Close them first - the simulation with Simulator Shutdown in the\n"
+        append msg "Master Menu of the desk - then retry."
+        tk_messageBox -icon warning -title "Work area" -parent . -message $msg
+        .status configure -text \
+            "Work area: not switched - [llength $bloccanti] processes still at work."
+        return
+    }
+
+    # 2. cosa c'e' al posto dei link
+    set rinomina {}
+    foreach n {legocad sked} {
+        set stato assente
+        if {[dict exists $el link $n]} { set stato [lindex [dict get $el link $n] 0] }
+        if {$stato eq "altro"} {
+            tk_messageBox -icon error -title "Work area" -parent . -message \
+                "[con_tilde [file join $base $n]] exists and is neither a link nor a directory.\n\nIt is not touched: move it away by hand, then retry."
+            return
+        }
+        if {$stato eq "dir"} { lappend rinomina $n }
+    }
+
+    # 3. conferma
+    set b [con_tilde $base]
+    set msg "Switch the work area?\n\n"
+    append msg "    from:   $da\n"
+    append msg "    to:     $nome\n\n"
+    append msg "$b/legocad and $b/sked will point to $nome.\n"
+    foreach n $rinomina {
+        append msg "\n$b/$n is a real directory, not a link: it will be RENAMED to\n"
+        append msg "$n.prelink-<date>-<time> in the same place. Nothing is deleted.\n"
+    }
+    if {[llength $shell] > 0} {
+        append msg "\nShells working inside the current area:\n"
+        foreach s [lrange $shell 0 9] {
+            lassign $s p n dove
+            append msg [format "    %-7s %-16s %s\n" $p $n $dove]
+        }
+        append msg "They are not stopped, but from now on their paths lead to $nome.\n"
+    }
+    append msg "\nShells already open keep the simulator they started with (KSIM),\n"
+    append msg "which now names a directory of $nome: open new ones after the switch.\n"
+    append msg "\nThis launcher will then list the tasks of $nome, with no Set Sim path."
+    if {[tk_messageBox -icon question -type yesno -default no -parent . \
+             -title "Work area" -message $msg] ne "yes"} {
+        .status configure -text "Work area: not switched."
+        return
+    }
+
+    # 4. il simulatore di adesso resta ricordato per l'area che si lascia
+    ricorda_sim_area [simulatore_corrente]
+
+    # 5. lgswitch, dalla directory dei link: e' li' che crea legocad e sked.
+    #    Il nome del log segue lghmi_*.log, cosi' compare in File -> Logs.
+    set log [file join /tmp lghmi_lgswitch.log]
+    if {[catch {cd $base} err]} {
+        tk_messageBox -icon error -title "Work area" -parent . -message \
+            "Cannot enter $base:\n$err"
+        return
+    }
+    set fallito [catch {exec [comando_lgswitch] -f $nome >$log 2>@1}]
+
+    # 6. riallineamento, anche se lgswitch e' fallito: i link possono essere
+    #    cambiati a meta', e il selettore deve mostrare com'e' adesso
+    set sim [riallinea_dopo_switch]
+    set dopo [.status cget -text]
+    set simtesto [expr {$sim ne "" ? "simulator: $sim" : "no simulator in the new area"}]
+    #  Conta il risultato, non solo il codice di uscita: e' quello che si
+    #  mostra, ed e' quello su cui si lavorera'.
+    if {$::AREA_CORRENTE ne $nome} { set fallito 1 }
+    if {$fallito} {
+        tk_messageBox -icon error -title "Work area" -parent . -message \
+            "lgswitch did not complete the switch:\n\n[coda_file $log 12]\n\n[.area cget -text]\n\nFull output: $log (File -> Logs)."
+        .status configure -text "Work area: lgswitch FAILED - see File -> Logs   |   $dopo"
+        return
+    }
+    .status configure -text "Work area: $nome   |   $simtesto   |   $dopo"
+}
+
+#  Riporta il selettore in una situazione coerente con l'area appena scelta:
+#  directory dei link, dir-scan, niente Set Sim path, e come simulatore quello
+#  ricordato per la nuova area o, in mancanza, la cascata del profilo
+#  (~/.legosim, cassano0, il primo disponibile). La scelta si scrive in
+#  ~/.legosim: e' l'utente che ha cambiato area, e le shell future devono
+#  trovare un simulatore che esiste. Ritorna il nome del simulatore, o "".
+proc riallinea_dopo_switch {} {
+    global env SIMPATH S01FILE s01mode s01_name s01_desc
+    set st [aggiorna_area]
+    if {[dict get $st base] ne ""} { catch {cd [dict get $st base]} }
+    set SIMPATH ""
+    unset -nocomplain env(LG_SIM_PATH)
+    set S01FILE [file join [pwd] S01]
+    set s01mode 0
+    set s01_name ""
+    set s01_desc ""
+
+    set candidati {}
+    set r [sim_ricordato $::AREA_SKED]
+    if {$r ne ""} { lappend candidati $r }
+    if {![catch {open [file join $env(HOME) .legosim] r} fd]} {
+        set voluto [string trim [read $fd]]
+        close $fd
+        if {$voluto ne ""} { lappend candidati $voluto }
+    }
+    lappend candidati cassano0
+    foreach s [lista_simulatori] { lappend candidati $s }
+    set scelto ""
+    if {[info exists env(KSKED)]} {
+        foreach c $candidati {
+            if {[file isdirectory [file join $env(KSKED) $c]]} { set scelto $c ; break }
+        }
+    }
+    if {$scelto ne ""} {
+        imposta_simulatore $scelto 1
+    } else {
+        unset -nocomplain env(KSIM) env(KSIMNAME) env(KPAGES)
+        set ::KSIMSCELTO ""
+        aggiorna_menu_tools
+    }
+    set ::RIPIEGO ""
+    aggiorna_menu_file
+    refresh_list
+    return $scelto
 }
 
 # --- Lancio della simulazione (net_startup) ------------------------------
@@ -1457,6 +2046,7 @@ proc etichetta_log {file} {
         mmi         { return "mmi" }
         xstaz       { return "xstaz (faceplates)" }
         legopc      { return "legopc (CAD)" }
+        lgswitch    { return "lgswitch (work area)" }
     }
     #  I log che portano il nome di cio' su cui hanno lavorato. Senza questi
     #  finirebbero tutti nel ramo "HMI:", che per una compilazione e' falso.
@@ -1529,6 +2119,55 @@ proc apri_log {file} {
 # Nota: "lgupsim" e' un alias di kUpSim in Alg_env.sh, e gli alias non esistono
 # nelle shell non interattive: qui si chiama kUpSim.
 
+#  KPAGES del simulatore in <dir>, calcolata dal ksetsim VERO: di norma e'
+#  $KSIM/globpages, ma $KSIM/ksim.conf la puo' ridefinire, e quella regola non
+#  si ricopia qui. Si sorgia solo Alg_env.sh (che definisce ksetsim senza
+#  chiamarlo) con HOME spostata in una directory che non esiste: ksetsim
+#  scriverebbe ~/.legosim, e il chiamante decide da se' se scriverlo. Resta la
+#  mkdir di status/ e log/ nella directory del simulatore, la stessa che
+#  ksetsim fa in ogni shell. Costa circa 0,2 s. Se qualcosa non va si ripiega
+#  sulla regola normale.
+proc kpages_di {dir} {
+    global env
+    set ripiego [file join $dir globpages]
+    set radice [expr {[info exists env(LEGOROOT)] ? $env(LEGOROOT) : ""}]
+    if {$radice eq "" || ![file exists [file join $radice Alg_env.sh]]} {
+        return $ripiego
+    }
+    set script {. "$LEGOROOT/Alg_env.sh" >/dev/null 2>&1; ksetsim "$1" >/dev/null 2>&1 && printf %s "$KPAGES"}
+    if {[catch {exec env HOME=/nonexistent LEGOROOT=$radice bash -c $script lghmi $dir} out]
+        || $out eq ""} {
+        return $ripiego
+    }
+    return $out
+}
+
+#  Rende corrente il simulatore <nome> di $KSKED: nell'ambiente di lghmi
+#  (KSIM, KSIMNAME, KPAGES), nel radiobutton di Tools e nella memoria per area
+#  (ricorda_sim_area). Con scrivi = 1 lo registra anche in ~/.legosim, che e' la
+#  scelta delle shell future. Ritorna 1 se ~/.legosim e' stato scritto.
+#
+#  KPAGES si aggiorna qui perche' la usa il pulsante mmi: prima restava quella
+#  del simulatore con cui lghmi era partito, e mmi apriva le pagine sbagliate.
+proc imposta_simulatore {nome scrivi} {
+    global env
+    set dir [file join $env(KSKED) $nome]
+    set scritto 0
+    if {$scrivi && ![catch {
+        set fd [open [file join $env(HOME) .legosim] w]
+        puts $fd $nome
+        close $fd
+    }]} { set scritto 1 }
+
+    set env(KSIM)     $dir
+    set env(KSIMNAME) $nome
+    set env(KPAGES)   [kpages_di $dir]
+    set ::KSIMSCELTO  $nome
+    catch {ricorda_sim_area $nome}
+    aggiorna_menu_tools
+    return $scritto
+}
+
 #  I simulatori disponibili: le sottodirectory di $KSKED, come la funzione
 #  ksims del profilo.
 proc lista_simulatori {} {
@@ -1561,8 +2200,8 @@ proc simulatore_corrente {} {
 #  (KWIN, KPAGES, KSTATUS, KCASSAFORTE, KGRAF...) e sorgia $KSIM/ksim.conf.
 #  Quella logica NON si riscrive qui: i comandi si lanciano in una shell che
 #  sorgia il profilo e chiama ksetsim, cosi' a derivare e' il codice che esiste
-#  gia'. Le due variabili aggiornate qui sotto servono solo a quello che si
-#  mostra nei menu e nei dialoghi.
+#  gia'. Di quelle variabili, qui dentro se ne usano tre: KSIM e KSIMNAME per
+#  menu e dialoghi, KPAGES per il pulsante mmi (dir_mmi).
 proc scegli_simulatore {nome} {
     global env
     set dir [file join $env(KSKED) $nome]
@@ -1571,17 +2210,7 @@ proc scegli_simulatore {nome} {
             "Simulator directory not found:\n$dir"
         return
     }
-    set scritto 1
-    if {[catch {
-        set fd [open [file join $env(HOME) .legosim] w]
-        puts $fd $nome
-        close $fd
-    }]} { set scritto 0 }
-
-    set env(KSIM)     $dir
-    set env(KSIMNAME) $nome
-    set ::KSIMSCELTO  $nome
-    aggiorna_menu_tools
+    set scritto [imposta_simulatore $nome 1]
     if {$scritto} {
         .status configure -text \
             "Current simulator: $nome   |   written to ~/.legosim: applies to future shells too"
@@ -1673,7 +2302,8 @@ proc regolazione_scelta {azione} {
         append msg "config resolves libut_reg/libreg and libut_mmi from the current\n"
         append msg "area: working on this task from here would use the WRONG\n"
         append msg "regulation library, with nothing saying so.\n\n"
-        append msg "Switch work area first (lgswitch), then reopen lghmi."
+        append msg "Switch work area first: File -> Work area in lghmi\n"
+        append msg "(or lgswitch in a terminal, then reopen lghmi)."
         tk_messageBox -icon error -title $azione -parent . -message $msg
         .status configure -text "$azione: '$task' belongs to another work area."
         return {}
@@ -2070,6 +2700,10 @@ proc md_in_html {doc} {
     if {[llength [info procs ::md2html::documento]] > 0} {
         if {![catch {md2html::documento $doc} pagina] && $pagina ne ""} {
             if {![catch {open $out w} fd]} {
+                #  documento restituisce testo gia' decodificato da UTF-8
+                #  (vedi md2html.tcl, CODIFICA): con la codifica di sistema,
+                #  sotto LANG=POSIX, frecce e lineette diventerebbero "?"
+                fconfigure $fd -encoding utf-8
                 puts $fd $pagina
                 close $fd
                 return $out
@@ -2260,8 +2894,8 @@ if {$doppia} {
     wm minsize . 340 280
 }
 
-# Barra dei menu. Finora non c'era: nasce per "Open loc path", che cambia la
-# directory di lavoro del selettore e non e' un'azione sulle liste come i
+# Barra dei menu. Finora non c'era: nasce per "Open Simulator path", che cambia
+# la directory di lavoro del selettore e non e' un'azione sulle liste come i
 # pulsanti in basso. Refresh e Quit ci stanno per comodita', ma restano anche
 # in basso, dove si usano.
 menu .mb -tearoff 0
@@ -2329,9 +2963,10 @@ unset -nocomplain _voce _etichetta _rel _rilievo _ok
 #
 #  Qui si rifa' la stessa cascata del profilo, ma SOLO in memoria: non si scrive
 #  ~/.legosim, perche' aprire il selettore non e' una scelta dell'utente e non
-#  deve cambiare il default delle shell future. Alle variabili derivate (KWIN,
-#  KPAGES, KLOG...) non si pensa: i comandi girano in una shell che chiama
-#  ksetsim per conto suo, ed e' quella a derivarle.
+#  deve cambiare il default delle shell future. Delle variabili derivate si
+#  aggiorna solo KPAGES, che usa il pulsante mmi; le altre (KWIN, KLOG...) no:
+#  i comandi girano in una shell che chiama ksetsim per conto suo, ed e' quella
+#  a derivarle.
 proc simulatore_di_ripiego {} {
     global env
     if {[simulatore_corrente] ne ""} { return "" }
@@ -2349,6 +2984,7 @@ proc simulatore_di_ripiego {} {
         if {[file isdirectory $dir]} {
             set env(KSIM)     $dir
             set env(KSIMNAME) $nome
+            set env(KPAGES)   [kpages_di $dir]
             return $nome
         }
     }
@@ -2360,6 +2996,12 @@ proc simulatore_di_ripiego {} {
 # variabile tiene il radiobutton del sottomenu allineato.
 set ::RIPIEGO [simulatore_di_ripiego]
 set ::KSIMSCELTO [simulatore_corrente]
+
+# Il titolo impostato sopra e' la base: aggiorna_area ci aggiunge l'area di
+# lavoro e, con -insim, "(from the desk)". L'area va calcolata prima dei
+# recenti, perche' il menu File mostra solo quelli dell'area corrente.
+set ::TITOLO_BASE [wm title .]
+aggiorna_area
 
 carica_recenti
 aggiorna_menu_file
@@ -2374,7 +3016,6 @@ if {[file exists [file join [pwd] S01]] || \
     ricorda_recente [pwd]
 }
 
-if {$insim} { wm title . "[wm title .]  (from the desk)" }
 
 # Le due righe di intestazione che stavano qui - quella che spiegava come erano
 # disposte le liste e quella che diceva come si apre una voce - sono sparite: la
@@ -2384,13 +3025,18 @@ if {$insim} { wm title . "[wm title .]  (from the desk)" }
 
 # Intestazioni che dipendono dalla directory corrente: il simulatore S01 e il
 # Set Sim path. Vengono create SEMPRE, anche quando non servono, perche'
-# File -> Open loc path puo' cambiare directory a runtime e con essa la
+# File -> Open Simulator path puo' cambiare directory a runtime e con essa la
 # modalita': creandole solo all'avvio, aprendo una dir con S01 da una sessione
 # partita in dir-scan non ci sarebbe nessun widget da riempire. Stanno in un
 # frame perche' l'ordine fra le due resti stabile quando si mostrano e si
 # nascondono (pack/pack forget dentro il frame, non sulla toplevel).
 frame .hdr
 pack  .hdr -side top -fill x
+# L'area di lavoro (File -> Work area) sta sopra le altre due intestazioni ed
+# e' sempre visibile: e' il contesto di tutto il resto. In rosso quando i link
+# non indicano un'area sola.
+label .area -text "" -anchor w -padx 6
+pack  .area -side top -fill x -before .hdr
 label .hdr.s01 -text "" -anchor w -padx 6 -foreground "#006400"
 label .hdr.loc -text "" -anchor w -padx 6 -foreground blue
 

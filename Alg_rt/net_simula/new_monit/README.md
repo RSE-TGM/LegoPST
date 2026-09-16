@@ -16,11 +16,13 @@ Nessun dialogo di display: parte sul `DISPLAY` corrente, e ogni pressione apre
 una nuova istanza.
 
 **`-insim`** dice al selettore che è stato lanciato da dentro una simulazione in
-corso, e gli fa disabilitare i due comandi che sarebbero dannosi in quel
-contesto: *File → Open loc path* (lo scollegherebbe da questa simulazione) e il
+corso, e gli fa disabilitare i comandi che sarebbero dannosi in quel contesto:
+*File → Open Simulator path* (lo scollegherebbe da questa simulazione), il
 pulsante *net_startup* (che con `killsim` ammazzerebbe proprio questa
-simulazione, e il banco con lei). Dettagli in
-[Alg_legopc/LGHMI.md](../../../Alg_legopc/LGHMI.md).
+simulazione, e il banco con lei), *File → Work area* (cambierebbe l'area di
+lavoro sotto la simulazione) e il menu *Edit* delle HMI che lancia (aprirebbe
+nel CAD i modelli in esecuzione). Dettagli in
+[Alg_legopc/LGHMI.md](../../../Alg_legopc/LGHMI.md#lanciato-dal-banco--lopzione--insim).
 
 ## User Programs — comandi utente lanciabili dal monitor
 
