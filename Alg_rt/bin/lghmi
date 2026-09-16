@@ -13,7 +13,7 @@
 #     e' lanciata dalla propria dir modello (path relativo risolto sul S01).
 #   - altrimenti (default): sottodir di $LG_TASKROOT ($HOME/legocad) con *.tom.
 #
-# Uso:   lghmi [-proc | -staz] [-loc [DIR] | -noloc] [-insim]
+# Uso:   lghmi [-proc | -staz] [-loc [DIR] | -noloc] [-insim] [-noedit]
 #   (senza -proc/-staz)
 #                 mostra DUE liste affiancate: a sinistra le pagine di processo
 #                 (task -> HMI draw2gr), a destra i faceplate di comando
@@ -60,6 +60,16 @@
 #                     proprio la simulazione da cui e' stato lanciato.
 #                 Lanciando lghmi a mano non serve: i due comandi restano
 #                 disponibili, e net_startup chiede comunque conferma.
+#                 Le HMI lanciate con -insim non hanno il menu Edit (vedi
+#                 -noedit): la simulazione e' in corso.
+#   -noedit, --noedit
+#                 le HMI draw2gr lanciate NON hanno il menu Edit, che apre il
+#                 modello della task in legopc. Senza questa opzione il menu
+#                 c'e' per le task dell'area corrente ($LG_ENTRY), e mai per
+#                 quelle dei bundle FMU o di un'altra area. Anche con il menu,
+#                 legopc non si apre mentre la simulazione gira ne' su una
+#                 task gia' aperta in un altro legopc. Tools -> Edit model del
+#                 selettore resta disponibile.
 #   Variabili d'ambiente:
 #     LG_TASKROOT   directory delle task (default: $HOME/legocad)
 #     LG_SIM_PATH   dir sim preimpostata per Set Sim path (la setta -loc)
@@ -82,6 +92,7 @@ while [ "$#" -gt 0 ]; do
         -proc|--proc)   WISH_ARGS+=("-proc") ;;
         -noloc|--noloc) LOC=0 ;;
         -insim|--insim) WISH_ARGS+=("-insim") ;;
+        -noedit|--noedit) WISH_ARGS+=("-noedit") ;;
         -reg|--reg)     WISH_ARGS+=("-reg") ;;
         -noreg|--noreg) WISH_ARGS+=("-noreg") ;;
         -loc|--loc)

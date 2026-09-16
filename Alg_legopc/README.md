@@ -294,6 +294,16 @@ LINK TURB.port1|COND.port0 color=red width=3 dash=1   ← singolo tratto (vince 
 - **Applicazione**: al load, dopo `topRead`, `linkstyle_reload $c` (in `raisetopol` e `apri_modello`). `showLinks` (View→Links) riapplica gli override quando una categoria torna visibile ("override vince"). `linkDelete` rimuove l'eventuale override del tratto cancellato. `writeFiles` chiama `linkstyle_save` (persiste anche su Save As).
 - Deployato in `$LG_TIX` via makefile; sorgiato da `legopc.tix`.
 
+## Menu Edit in `draw2gr.tcl` (Linux) — opzione `-edit`
+
+`draw2gr.tcl` ha un menu **Edit** (*Edit model (legopc)...*) che apre nel CAD il modello della task della HMI. È **assente di default** e compare solo con l'opzione con nome `-edit` (`draw2gr.tcl 1 f22circ -edit`), che lo script toglie da `argv`/`argc` come prima cosa: gli argomenti posizionali restano quelli di sempre, su Linux e su Windows.
+
+- **Chi la passa**: solo `lghmi`, per le task dell'area corrente e non con `-noedit`/`-insim`. Non la passano `legopc` (`watchtrends`), i bundle FMU (`run_draw2gr.sh`), `run_fmu --hmi`, `lg_cosim`.
+- **Quando è ignorata anche se passata**: fuori da Linux, con `LG_FMU_BUNDLE`, se `lgedit.tcl` non si legge, e se `draw2gr` discende da un processo `legopc.tix` (catena dei padri in `/proc`).
+- **Controlli al clic**: quelli di `lghmi` *Tools → Edit model*, dallo stesso file [src/tix/lgedit.tcl](src/tix/lgedit.tcl) (`modifica_task`): simulazione in corso, task di un'altra area, `.tom` mancante, `legopc` già aperto sulla task. `lgedit.tcl` è sorgiato da `draw2gr` **solo** con `-edit`.
+
+Dettagli e tabella dei chiamanti: [LGHMI.md](LGHMI.md#il-menu-edit-delle-hmi-draw2gr--edit).
+
 ## Command Mode in `draw2gr.tcl` (Linux) — perturbazione real-time via xaing
 
 `draw2gr.tcl` (tab *HMI & Plot*) ha due modalità, commutate dal tasto a destra del pannello *Selected Set* (`.varch.buttMode.mode`), uguale alla versione Windows:

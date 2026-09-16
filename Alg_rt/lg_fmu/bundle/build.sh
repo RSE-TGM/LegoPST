@@ -224,9 +224,12 @@ if [[ $BUNDLE -eq 1 ]]; then
     #     l'unica HMI lanciata, e da li' l'utente apre le pagine draw2gr che
     #     vuole. Lancia il run_draw2gr.sh del bundle di ciascuna task, quindi
     #     funziona anche tra bundle diversi.
+    #     lgedit.tcl (modifica del modello con legopc) serve a lghmi, che lo
+    #     sorgia sempre per i suoi controlli: senza, il selettore non parte.
+    #     draw2gr lo legge solo con -edit, che nel bundle ignora comunque.
     for s in draw2gr.tcl checkopen.tcl balloon.tcl read_con.tcl read_f01.tcl \
              fileio.tcl itemjoin.tcl read_f14.tcl viewmgr.tcl animate.tcl \
-             bgelement.tcl lghmi.tcl; do
+             bgelement.tcl lghmi.tcl lgedit.tcl; do
         cp -p "$LEGOROOT_ABS/Alg_legopc/bin/$s" "$BD/Alg_legopc/bin/" \
             || { echo "ERR: script tix $s non trovato in $LEGOROOT_ABS/Alg_legopc/bin" >&2; exit 4; }
     done

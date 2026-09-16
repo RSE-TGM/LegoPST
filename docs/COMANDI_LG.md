@@ -94,8 +94,10 @@ Dettagli su immagine, build e installazione: [../docker/README_INSTALLER.md](../
 
 Il CAD si raggiunge anche **da dentro `lghmi`**, con `Tools → Edit model
 (legopc)`, che lo apre direttamente sul modello della task selezionata — vedi la
-sezione 3. Quella strada fa alcuni controlli che la riga di comando non fa
-(area di lavoro, simulazione in corso).
+sezione 3 — e dal menu **Edit** delle HMI `draw2gr` lanciate da `lghmi`, che lo
+apre sulla task di quella HMI. Queste strade fanno alcuni controlli che la riga
+di comando non fa (area di lavoro, simulazione in corso, `legopc` già aperto
+sulla stessa task).
 
 Riferimento completo del CAD — librerie moduli, `.i5`/`.tom`/`.remap`/`.lstyle`,
 remark e background, Command Mode, Set Sim path, unità di misura:
@@ -116,7 +118,8 @@ Opzioni principali:
 | `-staz` | modalità faceplate invece che task (vedi sopra) |
 | `-loc [DIR]` | pre-imposta il *Set Sim path* delle HMI lanciate (via `LG_SIM_PATH`). Senza `DIR` usa la directory corrente. **È il comportamento di default**: animazione, Plot e Command puntano subito alla simulazione giusta senza doverlo fare a mano in ogni HMI |
 | `-noloc` | non pre-imposta alcun sim path: ogni HMI parte "nuda" |
-| `-insim` | dichiara che il selettore è lanciato **da dentro** una simulazione in corso. Lo passa il banco (`new_monit`). Disabilita *File → Open loc path* e il pulsante *net_startup*, che con `killsim` ammazzerebbe proprio la simulazione che ha aperto il selettore |
+| `-insim` | dichiara che il selettore è lanciato **da dentro** una simulazione in corso. Lo passa il banco (`new_monit`). Disabilita *File → Open loc path* e il pulsante *net_startup*, che con `killsim` ammazzerebbe proprio la simulazione che ha aperto il selettore, e lancia le HMI senza menu *Edit* |
+| `-noedit` | le HMI `draw2gr` lanciate non hanno il menu *Edit*, che apre il modello della task in `legopc`. Senza, il menu c'è per le task dell'area corrente (mai per quelle dei bundle FMU) |
 
 Dal menu `Tools` si riallinea la configurazione del simulatore (`kUpSim`, cioè
 `lgupsim`), si cambia simulatore corrente, e con **`Edit model (legopc)`** si apre

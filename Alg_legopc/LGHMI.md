@@ -35,6 +35,7 @@ lghmi -loc         # esplicito, identico al default
 lghmi -loc DIR     # usa DIR come dir della simulazione
 lghmi -noloc       # NON pre-imposta alcun sim path
 lghmi -insim       # lanciato da dentro una simulazione (lo passa il banco)
+lghmi -noedit      # le HMI lanciate non hanno il menu Edit (legopc)
 lghmi -h           # aiuto
 ```
 
@@ -249,6 +250,7 @@ vengono **disabilitati**:
 |---|---|
 | *File → Open loc path* | lo porterebbe su un'altra directory, scollegandolo dalla simulazione che l'ha aperto |
 | pulsante *net_startup* | comincia con `killsim`: ammazzerebbe proprio la simulazione da cui è stato lanciato, e il banco con lei |
+| menu *Edit* delle HMI | le HMI lanciate da qui partono **senza** `-edit`: la simulazione è in corso, e il modello non va toccato (vedi [il menu Edit delle HMI](#il-menu-edit-delle-hmi-draw2gr--edit)) |
 
 La voce di menù nasce disabilitata e il pulsante resta spento; la riga di stato
 dice *"lanciato dal banco: directory fissa, simulazione già in corso"* e il
@@ -539,7 +541,12 @@ senza `xterm` non c'è. Lo stesso vale per `config -c compreg` e `-c creatask`.
 ### `Tools → Edit model (legopc)`
 
 Apre il **CAD** sul modello della task selezionata, oppure vuoto se non c'è
-selezione. È la stessa cosa che fa l'alias `lgpc`, ma **l'alias non si può
+selezione. I controlli e il lancio stanno in
+[`src/tix/lgedit.tcl`](src/tix/lgedit.tcl) (`modifica_task`), condivisi con il
+[menu *Edit* delle HMI](#il-menu-edit-delle-hmi-draw2gr--edit): le due strade
+rifiutano negli stessi casi e con le stesse parole. `lghmi` lo sorgia sempre,
+dalla propria directory, e senza non parte — contiene anche `sim_attiva` e
+`stessa_directory`, che il selettore usa altrove. È la stessa cosa che fa l'alias `lgpc`, ma **l'alias non si può
 lanciare**: gli alias non esistono nelle shell non interattive, e dietro `lgpc`
 non c'è nemmeno un eseguibile — è `export LG_TIX=$LG_BIN; wish
 $LG_TIX/legopc.tix`. Qui si lancia `wish` su `legopc.tix` **ereditando
@@ -568,6 +575,19 @@ voce spenta non può spiegarsi:
 | task di un'altra area di lavoro | **rifiuta**, nominando le due aree e indicando `lgswitch` |
 | task di regolazione (nessun `.tom`) | lo dice: si costruiscono dai `.sed`/`.dxf`, non si aprono nel CAD |
 | manca il `.tom` omonimo, ma ce ne sono altri | lo dice, elencandoli come anomalia da correggere |
+| `legopc` già aperto sulla task | **rifiuta**, indicando pid e directory del CAD già aperto |
+
+> **Perché il blocco della doppia apertura.** Due CAD sullo stesso modello si
+> sovrascriverebbero i salvataggi a vicenda, senza che nessuno dei due lo sappia.
+> Un `legopc` è "sulla task" se la sua **directory corrente** è quella della task
+> (confronto per identità, come per l'area): chi lo lancia su una task ci fa `cd`
+> prima — `lghmi`, `draw2gr`, `lgpc` da un terminale — e `legopc` stesso ci si
+> porta quando apre un modello (`apri_modello`). Così si trova anche il `legopc`
+> partito vuoto che ha poi fatto *Open Model* sulla task. Contano solo i processi
+> che **eseguono** `legopc.tix` (un `wish` con quel file fra gli argomenti), non
+> un editor o una shell che lo nominano. Per i pochi istanti fra il lancio e la
+> comparsa del processo vale un blocco interno: un secondo clic subito dopo il
+> primo è rifiutato lo stesso.
 
 > **Perché il blocco a simulazione viva.** Salvare da `legopc` riscrive `.tom` e
 > `.i5` mentre la task gira: l'eseguibile in `proc/` e il layout della SHM non
@@ -603,8 +623,64 @@ voce spenta non può spiegarsi:
 Alla chiusura di `legopc` la barra di stato ricorda che, se il modello è
 cambiato, va riallineato con `Tools → kUpSim`. L'attesa non usa un PID — il
 lancio passa per `setsid`, che può forkare — ma un `pgrep` sul nome del `.tom`,
-come già fa `conta_mmi`; se il processo non compare entro 10 secondi si rinuncia
-in silenzio.
+come già fa `conta_mmi`, tenendo solo i processi che eseguono davvero
+`legopc.tix`: prima anche una shell che nominava `legopc.tix` e la task nella
+sua riga di comando passava per un CAD aperto, e la chiusura non veniva mai
+segnalata. Se il processo non compare entro 10 secondi si rinuncia in silenzio.
+
+### Il menu `Edit` delle HMI (`draw2gr -edit`)
+
+Le HMI di processo lanciate da `lghmi` hanno un menu **Edit**, fra *File* e
+*View*, con la voce *Edit model (legopc)...*: apre nel CAD il modello della
+task di **quella** HMI, cioè della directory da cui è partita. I controlli sono
+quelli di `Tools → Edit model` (stesso codice, `modifica_task`), con una
+differenza: a simulazione in corso la HMI **rifiuta e basta**, senza proporre
+`legopc` vuoto — da lì si chiede proprio quella task. Alla chiusura di `legopc`
+un avviso ricorda di riallineare con `kUpSim` e che la HMI mostra ancora lo
+schema com'era all'apertura: per vedere le modifiche va chiusa e riaperta.
+
+**Il menu è spento di default, e spento vuol dire assente.** `draw2gr` è
+lanciato da molti chiamanti, e la HMI serve a guardare e perturbare la
+simulazione, non a cambiarne il modello. Il menu compare solo con l'opzione
+`-edit`:
+
+```bash
+cd <task> ; wish $LG_TIX/draw2gr.tcl 1 f22circ -edit
+```
+
+`-edit` è un'opzione **con nome**, non un argomento posizionale: quelli di
+`draw2gr` hanno già significati diversi fra Linux e Windows (su Windows il terzo
+è il `clientNum` di lgser, il quarto `command` attiva il Command Mode), e `$argc`
+è letto in più punti. `draw2gr` la toglie da `argv`/`argc` come prima cosa, così
+per il resto dello script è come se non ci fosse.
+
+Chi la passa, e chi no:
+
+| chiamante | `-edit` |
+|---|---|
+| `lghmi`, task dell'area corrente (`$LG_ENTRY`) | **sì** |
+| `lghmi -noedit` | no |
+| `lghmi -insim` (dal banco: simulazione in corso) | no |
+| `lghmi`, task di un'altra area | no — `modifica_task` la rifiuterebbe sempre |
+| `lghmi`, installazione senza `legopc.tix` | no |
+| `lghmi`, task di un bundle FMU (`run_draw2gr.sh`) | no — sulla macchina target `legopc` non c'è |
+| `legopc` (*HMI & Plot*, `watchtrends`) | no |
+| FMU (`run_fmu --hmi`), `lg_cosim` | no |
+
+La simulazione in corso **non** toglie il menu: può fermarsi mentre la HMI è
+aperta, e il controllo si rifà al momento del clic.
+
+Anche con `-edit`, `draw2gr` **non** mostra il menu, e lo scrive nel log:
+
+- fuori da Linux (`LINUXPLAT`);
+- dentro un bundle FMU (`LG_FMU_BUNDLE`);
+- se non riesce a leggere `lgedit.tcl` (lo sorgia **solo** con `-edit`, così
+  gli altri usi non ne dipendono);
+- se discende da un `legopc`: risale la catena dei processi padre in `/proc`, e
+  se uno di loro esegue `legopc.tix` ignora l'opzione. `watchtrends` non passa
+  `-edit`, ma è il caso da escludere per primo — un secondo CAD aperto dalla HMI
+  del primo — e il controllo lo copre anche se qualcuno aggiungesse l'opzione a
+  quel lancio.
 
 ### Il riquadro `Regulation tasks` e il tool `config`
 

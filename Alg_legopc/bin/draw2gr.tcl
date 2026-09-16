@@ -3,6 +3,26 @@ set ::modegrafpert "Plot"
 set ::comandoAccShM "$env(LG_BIN)/LegoSim/LgSincroAccShM.exe"
 set ::lastmod "-"
 
+# --- Menu Edit (legopc) --------------------------------------------------
+# -edit accende il menu Edit, che apre in legopc il modello di questa task.
+# E' SPENTO di default, e senza -edit il menu non c'e' proprio: la HMI serve a
+# guardare e perturbare la simulazione, non a cambiarne il modello. Lo passa
+# solo lghmi, e solo dove ha senso (hmi_con_edit in lghmi.tcl); legopc, la FMU
+# e lg_cosim lanciano draw2gr senza, e cosi' deve restare.
+# E' un'opzione con nome e non un argomento posizionale: quelli hanno gia'
+# significati diversi fra Linux e Windows, e $argc e' letto piu' sotto
+# (ShowGraf, parsing degli argomenti, Command Mode). Percio' si toglie da
+# argv/argc SUBITO, prima di ogni altro uso: per il resto dello script e' come
+# se non ci fosse.
+set ::d2g_edit [expr {[lsearch -exact $argv "-edit"] >= 0}]
+if {$::d2g_edit} {
+    set argv [lsearch -all -inline -not -exact $argv "-edit"]
+    set argc [llength $argv]
+}
+# Il modello e' quello della directory di partenza (vedi curFileName): la si
+# fissa ora, prima che qualcuno faccia cd.
+set ::d2g_taskdir [pwd]
+
 source $env(LG_TIX)/checkopen.tcl
 
 source $env(LG_TIX)/balloon.tcl
@@ -658,6 +678,57 @@ $m add command -label "Open f22..." -command "openf22 $c "
 $m add command -label "Save Current f22 to..." -command "savef22 $c "
 #$m add command -label "Select Vars" -command "destroy .varch;selVars"
 $m add command -label "Quit" -command "chk_exit"
+
+# Anche con -edit, niente menu Edit dove non avrebbe senso o sarebbe
+# pericoloso:
+#   - fuori da Linux: la versione Windows non ha questo flusso;
+#   - nel bundle FMU (LG_FMU_BUNDLE): sulla macchina target legopc non c'e';
+#   - se mancano i controlli e il lancio, condivisi con lghmi (lgedit.tcl);
+#   - sotto legopc: aprirebbe un secondo CAD dalla HMI lanciata dal primo.
+#     legopc (watchtrends) non passa -edit, ma e' il caso da escludere per
+#     primo e si controlla lo stesso.
+if {$::d2g_edit} {
+    if {$::LINUXPLAT != 1} {
+        set ::d2g_edit 0
+    } elseif {[info exists env(LG_FMU_BUNDLE)] && $env(LG_FMU_BUNDLE) ne ""} {
+        puts stderr "draw2gr: -edit ignored inside an FMU bundle"
+        set ::d2g_edit 0
+    } elseif {[catch {source $env(LG_TIX)/lgedit.tcl} err]} {
+        puts stderr "draw2gr: -edit ignored, cannot load lgedit.tcl: $err"
+        set ::d2g_edit 0
+    } elseif {[lanciato_da_legopc]} {
+        puts stderr "draw2gr: -edit ignored, started from inside legopc"
+        set ::d2g_edit 0
+    }
+}
+
+if {$::d2g_edit} {
+    set m .menu.edit
+    menu $m -tearoff 0 -activebackground darkblue -activeforeground white
+    .menu add cascade -label "Edit" -menu $m -underline 0
+    $m add command -label "Edit model (legopc)..." -command d2g_edit_model
+
+    #  Il modello di QUESTA task, cioe' della directory da cui la HMI e'
+    #  partita. I rifiuti (simulazione in corso, altra area, modello assente,
+    #  legopc gia' aperto) li fa modifica_task, come in lghmi; qui non si
+    #  propone legopc vuoto, perche' dalla HMI si chiede proprio questa task.
+    proc d2g_edit_model {} {
+        if {[legopc_tix] eq ""} return
+        modifica_task $::d2g_taskdir 0
+    }
+
+    #  draw2gr non ha una riga di stato: le notizie di lgedit.tcl vanno nel
+    #  log, e alla chiusura di legopc un avviso ricorda che simulazione e
+    #  schema mostrato qui possono non corrispondere piu' al modello.
+    proc legopc_evento {evento testo} {
+        if {$evento ne "chiuso"} {
+            puts $testo
+            return
+        }
+        tk_messageBox -icon info -title "legopc" -parent . -message \
+            "legopc closed on '$testo'.\n\nIf you changed the model, realign the simulator with kUpSim\n(Tools -> kUpSim in lghmi).\n\nThis HMI still shows the model as it was when it was opened:\nclose it and open it again to see the changes."
+    }
+}
 
 set m .menu.vmgr
 menu $m -tearoff 0 -activebackground darkblue -activeforeground white
