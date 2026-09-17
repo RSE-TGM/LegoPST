@@ -116,6 +116,8 @@ Opzioni utili di `build.sh`:
 - `-o PATH`: output path (default `<cwd>/<MODEL_NAME>.fmu`; convenzione: `<task>/legoclix_<task>_bundle.fmu`)
 - `-n NAME`: model name / identifier (default `LegoCliSINC`)
 - `-k`: keep staging dir (debug del contenuto del bundle prima dello zip)
+- `--r01 FILE`: `r01.dat` da compilare con `compstaz` nella task del bundle, per i
+  bottoni faceplate della HMI (vedi sotto)
 
 ### Eseguire la FMU con `run_fmu.sh` (wrapper utente, sim auto-gestita)
 
@@ -183,6 +185,31 @@ su un blocco elenca i suoi ingressi indipendenti e il click su una variabile apr
 pannello `xaing` per inviare la perturbazione (gradino/rampa/impulso). Per vedere
 l'effetto in diretta, esegui la simulazione con il pacing a tempo reale
 (`run_fmu -r 1`). Requisiti: `DISPLAY` (X11) e una simulazione `net_sked` attiva.
+
+**Elementi operatore delle pagine.** Se lo schema contiene bottoni **faceplate**
+(`@stz_0`) o elementi **set value** (`@set_0`), in *View → Show Value* funzionano
+anche nel bundle: il bundle include `xstaz`, `stazpag`, `viewval` e la libreria
+`remark` di `LG_TIX`, dove stanno quegli elementi. Riferimento:
+[Alg_legopc/README.md](../../Alg_legopc/README.md#elementi-operatore-delle-pagine-faceplate-e-set-value).
+
+I faceplate hanno bisogno di un **`r02.dat` nella task**, perché `xstaz` lo legge
+dalla directory in cui parte e nel bundle la simulazione gira lì. `r02.dat` però
+cita le variabili **per indice** di `variabili.rtf`: quello di un altro
+simulatore (per esempio il simulatore composto di cui la task fa parte)
+punterebbe a variabili sbagliate, senza errori. `build.sh` sceglie quindi così:
+
+1. l'`r02.dat` della task, se c'è (arriva con la copia della task), salvo `--r01`;
+2. altrimenti **compila** con `compstaz`, nella task del bundle e contro la
+   simulazione viva della task, un `r01.dat`: quello indicato con `--r01`,
+   oppure quello della task, oppure quello di una task dell'area il cui
+   `r02.dat` definisce **tutte** le pagine assegnate ai bottoni (righe `;F` del
+   `.remap`);
+3. altrimenti avvisa: i bottoni faceplate resteranno spenti.
+
+Se `compstaz` fallisce (tipicamente: l'`r01.dat` cita variabili che la task da
+sola non ha) il log resta nel bundle, in `task/<name>/compstaz.log`. `compstaz`
+esce con un codice diverso da zero anche quando riesce: il successo si legge
+dalla riga *Fine corretta* dell'output.
 
 ### Selettore delle task con `run_lghmi.sh`
 
@@ -550,13 +577,16 @@ Da lì si vede immediatamente se `n_goup > 1` o se c'è disallineamento.
       restore_perms.sh        # chmod +x post-fmpy.extract (zipfile non preserva mode)
       run_draw2gr.sh          # HMI di UNA task (ricava da sola SHR_USR_KEY/LG_SIM_PATH)
       run_lghmi.sh            # selettore task: da qui si aprono le pagine draw2gr
-      Alg_rt/bin/{dispatcher,net_sked,killsim,net_prepf22}
+      Alg_rt/bin/{dispatcher,net_sked,killsim,net_prepf22,xaing,umis,viewval,xstaz,stazpag,graphics}
+      Alg_legopc/bin/         # script Tcl della HMI (draw2gr, lghmi, lgedit, lgstaz, hmielem...)
+      Alg_legopc/bin/remark/  # elementi testo, display, faceplate, set value
       Alg_rt/lg_fmu/scripts/net_startup_headless.sh
       Alg_rt/lg_fmu/tools/probe_init
       lego_big/bin/{initav,TAVOLE.DAT}
       legocad/lego_big -> ../lego_big        # symlink atteso da Alg_env.sh:118
       lib/{libgfortran.so.5,libgcc_s.so.1,libsqlite3.so.0,libz.so.1}
       task/<name>/            # copia della task (filtrata via rsync exclude)
+        r02.dat               # faceplate: della task, o compilato da r01.dat (vedi sopra)
         launch_sim.fmu.log    # (runtime) output di launch_sim.sh + stato reale
         draw2gr.fmu.log       # (runtime) output della HMI, se aperta
     README.txt
@@ -769,6 +799,10 @@ attiva `[lg_fmu DBG] ...` su stderr in:
 |------|-----------|
 | `<task>/launch_sim.fmu.log` | output di `launch_sim.sh`. Su rc≠0 è riversato anche su stderr come `[lg_fmu LAUNCH] ...` |
 | `<task>/draw2gr.fmu.log` | output della HMI `run_draw2gr.sh`/`wish` (è in background: non ha uno stato d'uscita da controllare, quindi l'errore si legge qui) |
+| `<task>/compstaz.log` | (build) compilazione dell'`r01.dat` per i bottoni faceplate; il successo è la riga *Fine corretta* |
+| `<task>/hmi_setvalue.log` | registro delle scritture degli elementi *set value* della HMI (valore mostrato, valore interno, prima e dopo) |
+| `/tmp/legopc_hmi.log` | output di `viewval -f` e `xaing` lanciati dagli elementi operatore, e i loro errori |
+| `/tmp/lghmi_xstaz.log` | output di `xstaz` avviato da un bottone faceplate |
 
 Prima questi due percorsi scrivevano su `/dev/null` (e il launcher era in pipe a
 `sed`, che ne mascherava lo stato d'uscita): un fallimento si manifestava come

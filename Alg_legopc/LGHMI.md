@@ -135,7 +135,15 @@ stazioni; l'elenco è letto da `stazpag -m`, che conosce il formato binario di
 (`xstaz 1`, processo indipendente, cwd = la directory del `r02.dat`; parte
 iconificato, con la sola finestrella *Quit*), poi gli manda la richiesta della
 pagina con `stazpag`. La richiesta resta in coda finché `xstaz` non la scoda,
-quindi non ci sono corse di avvio.
+quindi non ci sono corse di avvio. **Senza simulazione (`net_sked` assente) non
+avvia niente** e lo dice: prima `xstaz` partiva comunque e restava iconificato,
+mentre `stazpag` falliva perché la coda non c'era.
+
+L'apertura non è scritta in `lghmi.tcl` ma in
+[src/tix/lgstaz.tcl](src/tix/lgstaz.tcl) (`staz_apri`, con `parse_s01`,
+`pagine_di` e `xstaz_attivo`), perché la usano anche i **bottoni faceplate**
+delle pagine di legopc e draw2gr: vedi
+[README.md](README.md#elementi-operatore-delle-pagine-faceplate-e-set-value).
 
 **Un solo `xstaz` per simulazione.** La coda delle richieste
 (`SHR_USR_KEY + ID_MSG_STAZ`) è unica: due `xstaz` avviati su `r02.dat` diversi
@@ -539,7 +547,8 @@ andandoselo a cercare a mano.
 | `lghmi_net_startup.log` | `lancia_net_startup` | i controlli di `net_startup` — ha la **voce sua** |
 | `lghmi_<task>.log` | `launch_hmi`, uno per HMI | `loadf01`, caricamento di `.tom`/F01/F14 |
 | `lghmi_mmi.log` | `launch_mmi` | font mancanti, apertura del `Context.ctx` |
-| `lghmi_xstaz.log` | `apri_faceplate` | banner e versione di `xstaz` |
+| `lghmi_xstaz.log` | `staz_apri` (`lgstaz.tcl`): la lista faceplate e i bottoni faceplate delle pagine | banner e versione di `xstaz` |
+| `lghmi_lgswitch.log` | *File → Work area* | l'output di `lgswitch -f`, con le copie `.prelink-*` |
 
 Tutti sono aperti con `>`, quindi ognuno è sempre **l'ultima esecuzione** di
 quella cosa, non uno storico.
@@ -1158,9 +1167,10 @@ sopravvive al *Quit* del selettore.
   nell'ambiente → `lghmi` funziona da qualsiasi shell. Gli passa `"$LEGOROOT"`
   come `$1`: senza, il profilo erediterebbe i parametri posizionali dell'helper
   (es. `-loc`) e farebbe `export LEGOROOT=$1`.
-- `lghmi.tcl` sorgia **`lgedit.tcl`** dalla propria directory, e senza non
-  parte: contiene i controlli di *Edit model* e altri che il selettore usa
-  ovunque (`sim_attiva`, `stessa_directory`).
+- `lghmi.tcl` sorgia **`lgedit.tcl`** e **`lgstaz.tcl`** (faceplate) dalla
+  propria directory; senza uno dei due non parte. `lgedit.tcl` contiene i
+  controlli di *Edit model* e altri che il selettore usa ovunque
+  (`sim_attiva`, `stessa_directory`).
 
 ### File che `lghmi` scrive nella home
 

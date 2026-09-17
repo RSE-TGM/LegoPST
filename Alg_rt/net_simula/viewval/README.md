@@ -78,6 +78,11 @@ interne con l'inversa della tabella `uni_mis` (`interno = (visuale - B) / A`);
 la riga di stato riporta entrambi. Attenzione: `-f` invece **non** converte,
 lavora direttamente in unità interne.
 
+Gli elementi **set value** (`@set_0`) delle pagine di legopc e draw2gr usano
+`-f` proprio così: convertono loro il valore digitato nelle unità mostrate e
+lanciano `viewval VAR -f <interno> -l <simulazione>/hmi_setvalue.log`. Vedi
+[Alg_legopc/README.md](../../../Alg_legopc/README.md#elementi-operatore-delle-pagine-faceplate-e-set-value).
+
 Sotto c'è la stessa primitiva usata da `-f`: `viewshr(PUTVAR)` →
 `RtDbPPutValue()`, cioè un float depositato nel DB punti, senza semafori e
 senza coordinamento con lo scheduler.

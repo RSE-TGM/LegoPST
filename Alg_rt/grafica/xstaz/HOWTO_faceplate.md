@@ -15,6 +15,11 @@ simulatore LegoPST: si scrive un file di testo `r01.dat`, lo si compila con
 > stazpag                            # elenca le pagine
 > stazpag RISCBP                     # ne apre una
 > ```
+>
+> Una pagina si apre anche **da uno schema**: in legopc, *Add elements ▸
+> Faceplate (xstaz)* mette nello schema un bottone con il nome della pagina, che
+> in *View → Show Value* (legopc o draw2gr) la apre con un clic. Vedi
+> [Alg_legopc/README.md](../../../Alg_legopc/README.md#elementi-operatore-delle-pagine-faceplate-e-set-value).
 
 ## 1. I tre concetti
 
@@ -2159,6 +2164,10 @@ Note di lettura:
       xstaz 1 &               # il visualizzatore parte iconificato
       stazpag RISCBP          # apre la pagina
       ```
+      oppure **dallo schema di processo**, con un bottone faceplate (`@stz_0`)
+      a cui è assegnata la pagina: un clic in *View → Show Value* fa le stesse
+      cose di `lghmi`. Vedi
+      [Alg_legopc/README.md](../../../Alg_legopc/README.md#elementi-operatore-delle-pagine-faceplate-e-set-value).
 
 ### Dopo ogni modifica a `r01.dat`
 

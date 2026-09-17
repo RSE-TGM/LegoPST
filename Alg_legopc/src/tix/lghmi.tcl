@@ -77,11 +77,18 @@ catch {source [file join $env(LG_TIX) balloon.tcl]}
 # area_della_task). Non e' facoltativo come i precedenti: senza, mezzo
 # selettore non funziona. Si cerca accanto a questo script, che e' dove il
 # makefile e build.sh (bundle FMU) lo mettono, anche con LG_TIX non definito.
-if {[catch {source [file join [file dirname [file normalize [info script]]] lgedit.tcl]} err]} {
-    tk_messageBox -icon error -title "lghmi" -message \
-        "Cannot load lgedit.tcl, which must sit next to lghmi.tcl:\n\n$err\n\nReinstall the Tcl scripts (make in Alg_legopc/src/tix)."
-    exit 1
+#
+# lgstaz.tcl, allo stesso modo, porta i faceplate: parse_s01, le pagine di
+# r02.dat e l'apertura con xstaz, condivise con i bottoni faceplate delle
+# pagine di legopc e draw2gr.
+foreach _lib {lgedit.tcl lgstaz.tcl} {
+    if {[catch {source [file join [file dirname [file normalize [info script]]] $_lib]} err]} {
+        tk_messageBox -icon error -title "lghmi" -message \
+            "Cannot load $_lib, which must sit next to lghmi.tcl:\n\n$err\n\nReinstall the Tcl scripts (make in Alg_legopc/src/tix)."
+        exit 1
+    }
 }
+unset -nocomplain _lib
 
 set TASKROOT [expr {[info exists env(LG_TASKROOT)] && $env(LG_TASKROOT) ne "" \
                     ? $env(LG_TASKROOT) : [file join $env(HOME) legocad]}]
@@ -163,81 +170,6 @@ set SIMPATH  [expr {[info exists env(LG_SIM_PATH)] && $env(LG_SIM_PATH) ne "" ? 
 # ITEMS = lista parallela alla listbox: {label dir name} per ogni voce.
 set ITEMS {}
 
-# --- Parsing S01 --------------------------------------------------------
-# Il file S01 e' diviso in sezioni separate da righe che iniziano con '****'
-# (quattro asterischi a partire dalla prima colonna):
-#   sez.1  nome simulatore + descrizione (una riga)
-#   sez.2  una riga per task: nome + descrizione
-#   sez.3  una riga per task (associazione posizionale con la sez.2):
-#          path relativo <tab/spazi> lettera tipo (P=processo, R=regolazione)
-# Ritorna la lista {name desc dir} delle sole task di PROCESSO (P), con il
-# path risolto in assoluto rispetto alla directory del file S01.
-proc parse_s01 {path {tipi P}} {
-    global s01_name s01_desc
-    set s01dir [file dirname $path]
-    if {[catch {open $path r} fh]} { return {} }
-    set data [read $fh]
-    close $fh
-
-    # Suddividi in sezioni sui separatori '****' in colonna 1.
-    set sec 0
-    array set S {}
-    foreach line [split $data "\n"] {
-        if {[string range $line 0 3] eq "****"} { incr sec; continue }
-        lappend S($sec) $line
-    }
-
-    # sez.1: prima riga non vuota = nome + descrizione simulatore.
-    if {[info exists S(1)]} {
-        foreach l $S(1) {
-            if {[string trim $l] eq ""} continue
-            if {[regexp {^(\S+)\s*(.*)$} $l -> nm ds]} {
-                set s01_name $nm
-                set s01_desc [string trim $ds]
-            }
-            break
-        }
-    }
-
-    # sez.2: nome + descrizione di ogni task.
-    set names {}
-    if {[info exists S(2)]} {
-        foreach l $S(2) {
-            if {[string trim $l] eq ""} continue
-            if {[regexp {^(\S+)\s*(.*)$} $l -> nm ds]} {
-                lappend names [list $nm [string trim $ds]]
-            }
-        }
-    }
-
-    # sez.3: path relativo + tipo (P/R) di ogni task.
-    set paths {}
-    if {[info exists S(3)]} {
-        foreach l $S(3) {
-            if {[string trim $l] eq ""} continue
-            if {[regexp {^(\S+)\s+(\S+)} $l -> rp tp]} {
-                lappend paths [list $rp $tp]
-            }
-        }
-    }
-
-    # Associazione posizionale sez.2 <-> sez.3; tieni solo il tipo P.
-    set out {}
-    set n [expr {min([llength $names], [llength $paths])}]
-    for {set i 0} {$i < $n} {incr i} {
-        lassign [lindex $names $i] name desc
-        lassign [lindex $paths $i] relpath tipo
-        #  In modalita' faceplate servono anche le task di REGOLAZIONE (R):
-        #  r01.dat/r02.dat vivono li', non nelle task di processo.
-        set tenere 0
-        foreach t $tipi { if {[string equal -nocase $tipo $t]} { set tenere 1 } }
-        if {!$tenere} continue
-        set dir [file normalize [file join $s01dir $relpath]]
-        lappend out [list $name $desc $dir]
-    }
-    return $out
-}
-
 # --- Task = sottodir di $root con almeno un *.tom (modalita' dir-scan) ---
 #  Le task di REGOLAZIONE presenti sotto $root.
 #
@@ -295,36 +227,8 @@ proc dirs_con_r02 {} {
     return $out
 }
 
-#  Pagine definite in <dir>/r02.dat. La lettura la fa 'stazpag -m', che conosce
-#  il formato binario: qui non si reimplementa il layout delle strutture.
-#  Ritorna una lista di {nome descrizione num_stazioni}.
-proc pagine_di {dir} {
-    set old [pwd]
-    if {[catch {cd $dir}]} { return {} }
-    set rc [catch {exec stazpag -m} out]
-    cd $old
-    if {$rc} { return {} }
-    set res {}
-    foreach riga [split $out "\n"] {
-        if {[string trim $riga] eq ""} continue
-        set campi [split $riga "|"]
-        if {[llength $campi] < 3} continue
-        lappend res [list [lindex $campi 0] [lindex $campi 1] [lindex $campi 2]]
-    }
-    return $res
-}
-
-#  xstaz gia' in esecuzione? Ritorna {pid cwd}, oppure {} se non c'e'.
-proc xstaz_attivo {} {
-    if {[catch {exec pgrep -x xstaz} out]} { return {} }
-    set pid [lindex [split [string trim $out]] 0]
-    if {$pid eq ""} { return {} }
-    set cwd ""
-    catch {set cwd [file readlink /proc/$pid/cwd]}
-    return [list $pid $cwd]
-}
-
-#  Apre la pagina selezionata: avvia xstaz se serve, poi gli manda la richiesta.
+#  Apre la pagina selezionata. Avvio di xstaz e richiesta li fa staz_apri
+#  (lgstaz.tcl), condivisa con i bottoni faceplate delle pagine draw2gr.
 proc apri_faceplate {} {
     global ITEMS_STAZ LB_STAZ
     set sel [$LB_STAZ curselection]
@@ -334,48 +238,18 @@ proc apri_faceplate {} {
     }
     lassign [lindex $ITEMS_STAZ [lindex $sel 0]] label dir nome
 
-    #  La coda delle richieste (SHR_USR_KEY + ID_MSG_STAZ) e' UNA per
-    #  simulazione: due xstaz avviati su r02.dat diversi si ruberebbero i
-    #  messaggi a vicenda, quindi non se ne lancia mai un secondo.
-    set attivo [xstaz_attivo]
-    if {[llength $attivo]} {
-        lassign $attivo pid cwd
-        if {$cwd ne "" && [file normalize $cwd] ne [file normalize $dir]} {
-            tk_messageBox -icon warning -title "xstaz" -parent . -message \
-                "xstaz is already running (pid $pid) in the directory:\n$cwd\n\nThe request queue is unique per simulation: close that xstaz before opening pages of:\n$dir"
-            return
+    lassign [staz_apri $dir $nome] esito msg
+    switch -- $esito {
+        ok {
+            .status configure -text "Page '$nome' requested from xstaz  ($dir)"
         }
-    } else {
-        set log [file join /tmp "lghmi_xstaz.log"]
-        set old [pwd]
-        if {[catch {cd $dir}]} {
-            tk_messageBox -icon error -title "xstaz" -parent . \
-                -message "Directory not accessible:\n$dir"
-            return
+        altrove {
+            tk_messageBox -icon warning -title "xstaz" -parent . -message $msg
         }
-        #  xstaz parte ICONIFICATO (una finestrella con il solo tasto Quit) e
-        #  apre le pagine su richiesta. setsid lo stacca dal selettore.
-        set errore ""
-        if {[catch {exec setsid xstaz 1 > $log 2>@1 &} errore]} {
-            catch {exec xstaz 1 > $log 2>@1 &} errore
-        }
-        cd $old
-        if {![llength [xstaz_attivo]]} {
-            after 700
+        default {
+            tk_messageBox -icon error -title "Faceplate" -parent . -message $msg
         }
     }
-
-    #  La richiesta resta in coda finche' xstaz non la scoda: nessuna corsa.
-    set old [pwd]
-    cd $dir
-    set rc [catch {exec stazpag $nome} out]
-    cd $old
-    if {$rc} {
-        tk_messageBox -icon error -title "Faceplate" -parent . -message \
-            "Cannot request page '$nome':\n$out"
-        return
-    }
-    .status configure -text "Page '$nome' requested from xstaz  ($dir)"
 }
 
 #  Riempie la lista delle pagine di PROCESSO (task con .tom). Ritorna il testo

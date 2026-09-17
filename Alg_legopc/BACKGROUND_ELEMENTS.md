@@ -13,9 +13,11 @@ Un'**icona/disegno decorativo**: un'immagine statica posizionata sul canvas che
   (che alimenta `pag2f01` → F01).
 - Lo **zoom lo scala** insieme allo schema; la **rotazione è disabilitata**.
 
-È il "terzo tipo" della famiglia non-topologica, accanto agli elementi della
-libreria `remark`: testo statico (`@com_0`, *Add Text*) e display dinamico
-(`@val_0`, *Add Display*).
+Fa parte della famiglia non-topologica, con gli elementi della libreria
+`remark`: testo statico (`@com_0`), display dinamico (`@val_0`), bottone
+faceplate (`@stz_0`) e invio di valori (`@set_0`). Quelli si inseriscono dal
+popup di Model Topology, *Add elements ▸*; i decori di background invece dal
+browser di libreria, come i moduli.
 
 ---
 
@@ -109,8 +111,8 @@ produce l'immagine giusta per **qualunque** decoro.
 Quando istanzia un elemento, legopc (helper `elementScript`, usato da `itemAdd`,
 `itemAddFromfile`, `topRead`):
 
-1. usa `<lib>/<nome>.tcl` **se esiste** (moduli veri e `@com_0`/`@val_0` ce
-   l'hanno);
+1. usa `<lib>/<nome>.tcl` **se esiste** (moduli veri e gli elementi della
+   libreria `remark`, `@com_0`/`@val_0`/`@stz_0`/`@set_0`, ce l'hanno);
 2. altrimenti, **solo se il nome inizia con `@`**, usa `$LG_TIX/bgelement.tcl`.
 
 Il **gate `@`** è la rete di sicurezza: un **modulo vero** (nome senza `@`) con
@@ -250,6 +252,9 @@ Non serve toccare zoom (ereditato dal tag `module`), esclusione topologia
 
 ---
 
-Vedi anche la sezione *"Libreria `background`"* in [CLAUDE.md](../CLAUDE.md) per
-il contesto architetturale, e la libreria `remark` per gli elementi testo
-(`@com_0`) e display (`@val_0`).
+Vedi anche, in [README.md](README.md), la sezione
+[*Libreria `background`*](README.md#libreria-background--iconedisegni-decorativi-bgimage)
+per il contesto architetturale, e
+[*Elementi della libreria `remark`*](README.md#elementi-della-libreria-remark--testo-display-ed-elementi-operatore)
+per testo (`@com_0`), display (`@val_0`) ed elementi operatore
+(`@stz_0`, `@set_0`).

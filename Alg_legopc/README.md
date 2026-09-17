@@ -203,7 +203,7 @@ rmdir $LG_FILESI5          # rimuove la dir → modalità libreria ATTIVA
 
 File di topologia salvato da legopc (`fileio.tcl`). Formato testuale, contiene per ogni istanza: tipo modulo, nome istanza, posizione canvas, path della libreria di appartenenza. Viene usato dall'applicazione per ricaricare lo schema; genera in parallelo il `.top` per `pag2f01`.
 
-## Elementi della libreria `remark` — testo e display dinamici
+## Elementi della libreria `remark` — testo, display ed elementi operatore
 
 La libreria **`$LG_TIX/remark/`** contiene elementi di annotazione (non moduli di
 simulazione). **Sta con legopc, non con le librerie grafiche dell'utente**:
@@ -222,16 +222,18 @@ perdendo testo e animazione. Non serve quindi toccare i modelli esistenti. Sul c
 
 | Elemento | Classe | Inserimento | Comportamento |
 |---|---|---|---|
-| `@com_0` | `@com` | popup tasto-destro → **Add Text** (`AddRemark`) | Testo statico. Se inizia con `#tag`, anima la variabile `tag` (read-only: la variabile **non** è modificabile a run-time) |
-| `@val_0` | `@val` | popup tasto-destro → **Add Display** (`AddDisplay`) | **Display dinamico**: casella valore senza testo statico (placeholder `--?--`); variabile **sempre ridefinibile a run-time** con doppio-click in *Show Value* |
+| `@com_0` | `@com` | popup tasto-destro → **Add elements ▸ Text** (`AddRemark`) | Testo statico. Se inizia con `#tag`, anima la variabile `tag` (read-only: la variabile **non** è modificabile a run-time) |
+| `@val_0` | `@val` | popup tasto-destro → **Add elements ▸ Display** (`AddDisplay`) | **Display dinamico**: casella valore senza testo statico (placeholder `--?--`); variabile **sempre ridefinibile a run-time** con doppio-click in *Show Value* |
+| `@stz_0` | `@stz` | popup tasto-destro → **Add elements ▸ Faceplate (xstaz)** (`AddFaceplate`) | **Bottone faceplate**: apre una pagina di `r02.dat` con `xstaz`. Vedi [Elementi operatore](#elementi-operatore-delle-pagine-faceplate-e-set-value) |
+| `@set_0` | `@set` | popup tasto-destro → **Add elements ▸ Set value** (`AddSetValue`) | **Invio di valori** a una variabile di ingresso durante la simulazione. Vedi [Elementi operatore](#elementi-operatore-delle-pagine-faceplate-e-set-value) |
 
-**Vincolo sull'ordine dei tag (`@val_0.tcl`)**: i tag 0..7 devono restare identici a `@com_0` (`0=id, 2=cls, 3=ori, 5=lpath, 7=font`) perché `leggi_font` e altro codice in `legopc.tix` usano **indici posizionali fissi**. Il tag distintivo `freeval` va quindi aggiunto **per ultimo** (indice 8).
+**Vincolo sull'ordine dei tag (`@val_0.tcl`, `@stz_0.tcl`, `@set_0.tcl`)**: i tag 0..7 devono restare identici a `@com_0` (`0=id, 2=cls, 3=ori, 5=lpath, 7=font`) perché `leggi_font` e altro codice in `legopc.tix` usano **indici posizionali fissi**. Il tag distintivo (`freeval`, `hmistaz`, `hmiset`) va quindi aggiunto **per ultimo** (indice 8).
 
 **Comportamento del display `@val_0`** (logica in `animate.tcl`, condivisa da `legopc.tix` tab *Data assignment & Simulation* / canvas `$c2` e da `draw2gr.tcl` *HMI & Plot*):
-- In *View → Show Value*, doppio-click sul campo apre un dialogo che chiede il nome variabile, **validato** contro `tipVarMod` (rifiuta variabili non presenti nel modello).
+- In *View → Show Value*, doppio-click sul campo apre un dialogo che chiede il nome variabile, **validato** contro `tipVarMod` (rifiuta variabili non presenti nel modello). Sotto il campo c'è l'**elenco filtrabile** di tutte le variabili del modello, con tipo (`IN`/`US`/`UA`) e descrizione: scrivendo nel campo l'elenco si restringe ai nomi che contengono quel testo, un clic mette il nome nel campo, il doppio clic conferma. È lo stesso componente del dialogo *Variable to set* degli elementi operatore (`hmi_lista_variabili` in [src/tix/hmielem.tcl](src/tix/hmielem.tcl)).
 - Una checkbox sceglie la **modalità di visualizzazione**: *solo valore* (`1.55E08 Pa`) oppure *etichetta* (`PCOL 1.55E08 Pa`).
 - Stile casella come i blocchi: senza bordo, **giallo** in simulazione (valore live via pipe), **azzurro** (`cyan`) nei valori di stazionario (F14). La casella copre il placeholder.
-- Il menu popup voce **Add Display** è abilitato negli stessi contesti di **Add Text** (sfondo / porta); la logica `entryconfigure` del popup usa **indici posizionali** che vanno riallineati in tutti i rami se si aggiungono/tolgono voci.
+- **Il popup di Model Topology** raccoglie gli elementi in **Add elements ▸** (come *File → Export as ▸*), abilitato su sfondo e porte. Lo stato delle voci lo imposta `topol_pop_stati` **per etichetta**, non per indice: prima gli indici erano cablati in cinque rami, e ogni voce aggiunta li spostava tutti. Le due voci che cambiano etichetta — *Modify Text* (che sugli elementi operatore diventa *Assign page...* / *Assign variable...*) e *Delete* (*Delete link* sui collegamenti) — si indirizzano con l'indice ricordato alla costruzione (`::topol_pop_modifica`, `::topol_pop_delete`).
 
 ## Libreria `background` — icone/disegni decorativi (`bgimage`)
 
@@ -270,11 +272,15 @@ Side-file di runtime accanto al `.tom` (`<modello>.remap`), gestito da `animate.
 TURB=T02TURBO1        ← blocco: campo rimappato sulla variabile T02TURBO1
 VAL1=PCOL;L           ← display @val_0: variabile PCOL, modalità etichetta (token ;L)
 VAL2=TCOL             ← display @val_0: variabile TCOL, modalità solo-valore
+F001=RISCBP;F         ← bottone faceplate @stz_0: pagina RISCBP di r02.dat
+S001=WEST;S           ← set value @set_0: variabile di ingresso WEST
 ```
 
 - Chiave = nome istanza (univoco sul canvas, garantito da `inputModName`).
-- Valore = nome variabile; token opzionale **`;L`** (solo elementi `@val_0`) = modalità etichetta.
-- Al caricamento le righe la cui variabile non è più nel modello (`tipVarMod`) vengono **scartate** e il file riscritto ripulito.
+- Valore = nome variabile; token opzionale **`;L`** (solo elementi `@val_0`) = modalità etichetta; **`;F`** = pagina di faceplate (`@stz_0`); **`;S`** = variabile di un set value (`@set_0`).
+- Al caricamento le righe la cui variabile non è più nel modello (`tipVarMod`) vengono **scartate** e il file riscritto ripulito. Le righe **`;F`** non si validano: il valore è una pagina, non una variabile.
+- **Una voce alla volta con `anim_remap_set`**: rilegge il file, cambia la voce e lo riscrive, aggiornando anche la memoria. La usano le assegnazioni (display, elementi operatore, remap dei blocchi in draw2gr). `anim_save_remap` invece scrive **tutta la memoria**, che fuori da *Show Value* può mancare o essere di un altro modello, e cancellerebbe le voci scritte nel frattempo da un'altra applicazione (legopc e draw2gr lavorano sullo stesso file).
+- **Compatibilità**: una versione di legopc/draw2gr precedente a settembre 2026 non conosce `;F` e, riscrivendo il file ripulito, **cancella** le pagine dei bottoni faceplate (le prende per variabili inesistenti).
 
 ## File `.lstyle` — override per-modello dello stile delle connessioni
 
@@ -293,6 +299,97 @@ LINK TURB.port1|COND.port0 color=red width=3 dash=1   ← singolo tratto (vince 
 - **UI**: tasto destro su una connessione → voce **"Line style…"** nel popup (abilitata solo sui link, indirizzata **per label** per non dipendere dagli indici del menu). Dialogo con scelta *This connection only* / *All "<cat>" connections*, color picker, spessore, tratteggio, **Apply** / **Reset to default**. Salvataggio immediato (come `.remap`).
 - **Applicazione**: al load, dopo `topRead`, `linkstyle_reload $c` (in `raisetopol` e `apri_modello`). `showLinks` (View→Links) riapplica gli override quando una categoria torna visibile ("override vince"). `linkDelete` rimuove l'eventuale override del tratto cancellato. `writeFiles` chiama `linkstyle_save` (persiste anche su Save As).
 - Deployato in `$LG_TIX` via makefile; sorgiato da `legopc.tix`.
+
+## Elementi operatore delle pagine: faceplate e set value
+
+Due elementi della libreria `remark` trasformano uno schema in un **pannello per
+l'operatore**: in *View → Show Value* (tab *Data Assignment & Simulation* di
+legopc e HMI draw2gr) non si limitano a mostrare valori, ma aprono faceplate e
+mandano valori alla simulazione in corso. Codice in
+[src/tix/hmielem.tcl](src/tix/hmielem.tcl) (sorgiato da `animate.tcl`), elementi
+[@stz_0.tcl](src/tix/remark/@stz_0.tcl) e [@set_0.tcl](src/tix/remark/@set_0.tcl).
+
+| | Faceplate (`@stz_0`, tag `hmistaz`) | Set value (`@set_0`, tag `hmiset`) |
+|---|---|---|
+| cosa si assegna | una **pagina** di `r02.dat` | una **variabile di ingresso** (`tipVarMod` = `IN`) |
+| nel `.remap` | `F001=RISCBP;F` | `S001=WEST;S` |
+| segnaposto (Model Topology) | `[ xstaz: RISCBP ]`, blu | `[ set: WEST ]`, rosso scuro |
+| in *Show Value* | **bottone disegnato** con il nome della pagina | casella `WEST 12.5 bar` (gialla dal vivo, azzurra fuori) + bottone **Set** |
+| **clic sinistro** (al rilascio) | apre la pagina con `xstaz` | apre il dialogo di invio |
+| **tasto destro** | menu: pagina assegnata, *Open page*, *Assign page...* | menu: variabile assegnata, *Set value...*, *Assign variable...* |
+
+**Assegnazione.** Da *Model Topology* il dialogo si apre subito dopo l'inserimento
+(si può annullare) e poi con la voce del popup che per i testi è *Modify Text*; in
+*Show Value* dal menu del tasto destro. In entrambi i casi il valore va nel
+`.remap` (`anim_remap_set`): nel `.tom` resta solo l'etichetta del segnaposto,
+che `hmi_aggiorna_etichette` riallinea al file dopo ogni caricamento.
+- **Pagina**: il dialogo elenca le pagine degli `r02.dat` trovati (`staz_dirs`, in
+  [src/tix/lgstaz.tcl](src/tix/lgstaz.tcl)): la directory della simulazione
+  (*Set Sim path*), il simulatore corrente (`$KSIM`) e le task dell'area del
+  modello, con l'`S01` per le task di regolazione. Un nome che non c'è si può
+  usare lo stesso, dopo conferma.
+- **Variabile**: elenco filtrabile degli ingressi del modello con la loro
+  descrizione (lo stesso componente del dialogo dei display, `hmi_lista_variabili`); una variabile calcolata (`US`/`UA`) è rifiutata, perché il modello
+  la riscriverebbe al passo successivo. Se il F01 non è caricato (Model
+  Topology) il nome non si può verificare, e il dialogo lo dice.
+
+**Apertura della pagina.** È la stessa di `lghmi` (`staz_apri`, in `lgstaz.tcl`):
+si cerca l'`r02.dat` che definisce la pagina, si avvia `xstaz 1` in quella
+directory se non gira già, e si manda `stazpag <pagina>`. Se `xstaz` gira su
+un'altra directory la richiesta si rifiuta con un dialogo: la coda è una sola
+per simulazione.
+
+Il clic agisce **al rilascio** del tasto, come un bottone vero, e un secondo
+clic entro mezzo secondo si ignora: con i display si è abituati al doppio clic,
+e il secondo clic arrivava allo schema, che il window manager portava sopra il
+dialogo appena aperto.
+
+**Invio di un valore.** Il dialogo (uno per elemento, non bloccante) mostra il
+valore attuale aggiornato ogni secondo e ha due strade:
+- **Send**: scrittura diretta con `viewval VAR -f <valore> -l <registro>`. Il
+  valore si digita nelle **unità mostrate** e si converte in quelle interne con
+  l'inversa della tabella unità (`interno = (visuale - B) / A`), perché `-f` non
+  converte. `viewval` esce con 0 anche senza simulazione, quindi lo stato si
+  controlla prima.
+- **Perturbation...**: il pannello `xaing` (gradino, rampa...), applicato dallo
+  scheduler, come il Command Mode di draw2gr.
+
+Il dialogo è **transient** della finestra dello schema: resta sopra di lei
+quando si clicca lo schema e non ha un'icona sua. Se è già aperto, un nuovo clic
+lo **ritira e lo rimostra** vicino al puntatore, perché su WSLg/XWayland `raise`
+e `deiconify` di una finestra già mappata spesso non hanno effetto. Prima di
+questa correzione, dopo qualche apertura e chiusura il dialogo poteva restare
+nascosto dietro lo schema, o iconizzato senza che si riuscisse a ripristinarlo,
+e sembrava non aprirsi più finché non si chiudeva draw2gr. Il suo aggiornamento
+periodico è uno solo e si ferma con la finestra (prima, chiudere e riaprire
+entro un secondo lasciava vivo quello vecchio).
+
+I numeri si scrivono **con il punto** decimale: `0,5` viene rifiutato, e il
+dialogo lo dice.
+
+Ogni invio va nel **registro delle scritture** `hmi_setvalue.log`, nella
+directory della simulazione (in `/tmp` se non è scrivibile): una riga di
+commento con valore e unità mostrate, seguita dalla riga che `viewval -l`
+scrive con i valori interni prima e dopo.
+
+**Senza simulazione non si disturba.** "Dal vivo" vuol dire pipe di *Show Value*
+aperta e `net_sked` vivo (`hmi_live`, controllo di `net_sked` al massimo ogni
+3 s). Altrimenti:
+- gli elementi si disegnano **spenti** (bottoni grigi, casella azzurra con il
+  valore di stazionario) e un clic mostra un **fumetto breve** (*No simulation
+  running*), senza dialoghi;
+- se la simulazione si ferma mentre *Show Value* è attivo, al ciclo successivo
+  gli elementi si spengono, e il dialogo di invio disattiva i suoi bottoni;
+- ogni comando esterno gira in un `catch`, con l'output in `/tmp/legopc_hmi.log`;
+  nello stesso log vanno le aperture del dialogo di invio e **ogni tentativo di
+  invio**, anche quelli che non partono, con il motivo (simulazione assente,
+  valore non numerico): è la prima cosa da guardare se "non succede niente";
+- `xstaz` non si avvia se `net_sked` non c'è (prima lo faceva anche `lghmi`, e
+  restava iconificato ad aspettare);
+- se manca `viewval`, *Show Value* lo dice con il dialogo di sempre **e** nella
+  riga di stato del tab *Data Assignment* (`hmi_stato`).
+
+Fuori da Linux gli elementi si vedono ma restano spenti.
 
 ## Menu Edit in `draw2gr.tcl` (Linux) — opzione `-edit`
 

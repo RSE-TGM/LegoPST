@@ -100,7 +100,8 @@ di comando non fa (area di lavoro, simulazione in corso, `legopc` già aperto
 sulla stessa task).
 
 Riferimento completo del CAD — librerie moduli, `.i5`/`.tom`/`.remap`/`.lstyle`,
-remark e background, Command Mode, Set Sim path, unità di misura:
+remark e background, elementi operatore (bottoni faceplate e invio di valori
+dagli schemi), Command Mode, Set Sim path, unità di misura:
 [../Alg_legopc/README.md](../Alg_legopc/README.md).
 
 ---
@@ -296,6 +297,7 @@ Due nomi che si incontrano leggendo il codice e che è facile scambiare per coma
 | disegnare schemi e modelli | `lgpc` |
 | far girare una simulazione e vederla | `lghmi` |
 | aprire i faceplate di comando | `lghmi -staz` |
+| comandare la simulazione da uno schema (faceplate, valori) | `lgpc` → *Add elements ▸ Faceplate / Set value*, poi *Show Value* in `lghmi`/draw2gr |
 | ricompilare tutto dopo una modifica | `lgupsim` (`lgupsimx` senza MMI) |
 | cambiare area di lavoro | `lgswitch`, oppure `lghmi` → *File → Work area* |
 | sapere che versione sto usando | `lgversion` |

@@ -2386,6 +2386,11 @@ set y $::currTid_y
         }
 #se è un'immagine di background (bgimage) non ha testo statico da modificare
         if {[lsearch -exact $mylist  bgimage] != -1} { return }
+#se è un elemento operatore (@stz_0/@set_0) si assegna la pagina o la variabile
+        if {[lsearch -exact $mylist hmistaz] != -1 || [lsearch -exact $mylist hmiset] != -1} {
+            hmi_assegna $c [lindex [$c find withtag $::currTid] 0]
+            return
+        }
 #è un remark, procedo
 	set mytag [lindex $mylist [lsearch $mylist id* ]]
 	set fontbuff [leggi_font $c $mytag 1 "qq"]
@@ -2890,12 +2895,26 @@ bind $c <B1-ButtonRelease> {
     	}
     $pop add command -label "Paste" -under 0 -command "IncollaItem $c"                                    
     $pop add command -label "Help" -under 0 -command "loadHelp $c"
-    $pop add command -label "Add Text" -under 0 -command "AddRemark $c"
-    $pop add command -label "Add Display" -under 4 -command "AddDisplay $c"
+    # Elementi non topologici, in un sottomenu come File -> Export as: testo,
+    # display, e gli elementi operatore delle pagine (hmielem.tcl).
+    set popadd $pop.add
+    menu $popadd -activebackground darkblue -activeforeground white -tearoff 0
+    $popadd add command -label "Text"              -command "AddRemark $c"
+    $popadd add command -label "Display"           -command "AddDisplay $c"
+    $popadd add separator
+    $popadd add command -label "Faceplate (xstaz)" -command "AddFaceplate $c"
+    $popadd add command -label "Set value"         -command "AddSetValue $c"
+    $pop add cascade -label "Add elements" -under 0 -menu $popadd
+    # Due voci cambiano etichetta secondo quello che c'e' sotto il puntatore
+    # ("Modify Text" / "Assign page..." / "Assign variable...", "Delete" /
+    # "Delete link"): non si possono cercare per etichetta, quindi se ne
+    # ricorda l'indice. Le altre si indirizzano per etichetta (topol_pop_stati).
     $pop add command -label "Modify Text" -under 0 -command "modifica_remark $c"
+    set ::topol_pop_modifica [$pop index end]
     $pop add command -label "Rename" -under 0 -command "CambiaNome $c"
     $pop add command -label "Rotate module" -under 0 -command "itemRotate $c"
     $pop add command -label "Delete" -under 0 -command "itemDelete_new $c"
+    set ::topol_pop_delete [$pop index end]
     $pop add command -label "Bring to Front" -under 0 -command "itemBringToFront $c"
     $pop add command -label "Send to Back"   -under 0 -command "itemSendToBack $c"
     $pop add command -label "Line style..." -command "linkstyle_dialog_current $c"
@@ -2923,109 +2942,60 @@ bind $c <B1-ButtonRelease> {
 # "Line style..." abilitato solo sui link (indirizzato per LABEL: non dipende
 # dagli indici numerici che cambiano tra piattaforme/voci aggiunte)
                      catch {$pop entryconfigure "Line style..." -state disabled}
+                     set nomod "Modify Text"
                      if {[lsearch [$c gettags $::currTid] link*] != -1} then {
 # è un link
                      itemStartDrag $c $::currTid_x $::currTid_y
                      catch {$pop entryconfigure "Line style..." -state normal}
-                     $pop entryconfigure 1 -state disabled
-                     $pop entryconfigure 2 -state disabled
-                     $pop entryconfigure 3 -state disabled
-                     $pop entryconfigure 4 -state disabled
-                     $pop entryconfigure 5 -state disabled
-                     $pop entryconfigure 6 -state disabled
-                     $pop entryconfigure 7 -state disabled
-                     $pop entryconfigure 8 -state disabled
-                     $pop entryconfigure 9 -state normal -label "Delete link"
-                     $pop entryconfigure 10 -state disabled
-                     $pop entryconfigure 11 -state disabled
+                     topol_pop_stati $pop {Copy disabled Paste disabled Help disabled
+                         Add disabled Modify disabled Rename disabled Rotate disabled
+                         Delete normal Front disabled Back disabled} "Delete link"
                     } elseif {[lsearch -exact $::currTags selectitem] != -1} then {
 # è il rettangolo di selezione di un elemento selezionato (es. appena incollato):
 # il click destro sul bordo cadrebbe altrimenti nel ramo "else" con Copy disabilitato.
 # Lo tratto come contesto "selezione": Copy copia la selezione (mult_sel=1), Paste/Delete attivi.
                      set ::mult_sel 1
-                     $pop entryconfigure 1 -state normal
-                     if {[info exists ::currTidCopy] == 1} then {$pop entryconfigure 2 -state normal
-                          } else {$pop entryconfigure 2 -state disabled}
-                     $pop entryconfigure 3 -state disabled
-                     $pop entryconfigure 4 -state disabled
-                     $pop entryconfigure 5 -state disabled
-                     $pop entryconfigure 6 -state disabled
-                     $pop entryconfigure 7 -state disabled
-                     $pop entryconfigure 8 -state disabled
-                     $pop entryconfigure 9 -state normal -label "Delete"
-                     $pop entryconfigure 10 -state normal
-                     $pop entryconfigure 11 -state normal
+                     topol_pop_stati $pop [list Copy normal Paste [topol_pop_paste] \
+                         Help disabled Add disabled Modify disabled Rename disabled \
+                         Rotate disabled Delete normal Front normal Back normal]
                     } elseif { $::currTid == ""} then {
 # è lo sfondo
-                     $pop entryconfigure 1 -state disabled
-                     if {[info exists ::currTidCopy] == 1} then {$pop entryconfigure 2 -state normal
-                          } else {$pop entryconfigure 2 -state disabled}
-                     $pop entryconfigure 3 -state disabled
-                     $pop entryconfigure 4 -state normal
-                     $pop entryconfigure 5 -state normal
-                     $pop entryconfigure 6 -state disabled
-                     $pop entryconfigure 7 -state disabled
-                     $pop entryconfigure 8 -state disabled
-                     $pop entryconfigure 9 -state disabled -label "Delete"
-                     $pop entryconfigure 10 -state disabled
-                     $pop entryconfigure 11 -state disabled
+                     topol_pop_stati $pop [list Copy disabled Paste [topol_pop_paste] \
+                         Help disabled Add normal Modify disabled Rename disabled \
+                         Rotate disabled Delete disabled Front disabled Back disabled]
                     } elseif {[lsearch -exact $::currTags  remarkdescr] != -1} then {
-# è un testo
+# è un testo (o un display, o un elemento operatore: per questi "Modify"
+# diventa l'assegnazione della pagina o della variabile)
                      itemStartDrag $c $::currTid_x $::currTid_y
-                     $pop entryconfigure 1 -state normal
-                     $pop entryconfigure 2 -state disabled
-                     $pop entryconfigure 3 -state disabled
-                     $pop entryconfigure 4 -state disabled
-                     $pop entryconfigure 5 -state disabled
-                     $pop entryconfigure 6 -state normal
-                     $pop entryconfigure 7 -state disabled
-                     $pop entryconfigure 8 -state disabled
-                     $pop entryconfigure 9 -state normal -label "Delete"
-                     $pop entryconfigure 10 -state disabled
-                     $pop entryconfigure 11 -state disabled
+                     if {[lsearch -exact $::currTags hmistaz] != -1} {
+                         set nomod "Assign page..."
+                     } elseif {[lsearch -exact $::currTags hmiset] != -1} {
+                         set nomod "Assign variable..."
+                     }
+                     topol_pop_stati $pop {Copy normal Paste disabled Help disabled
+                         Add disabled Modify normal Rename disabled Rotate disabled
+                         Delete normal Front disabled Back disabled}
 
                    } elseif {[lsearch -exact $::currTags  module] != -1} then {
 # è un modulo
                      itemStartDrag $c $::currTid_x $::currTid_y
-                     $pop entryconfigure 1 -state normal
-                     $pop entryconfigure 2 -state disabled
-                     $pop entryconfigure 3 -state normal
-                     $pop entryconfigure 4 -state disabled
-                     $pop entryconfigure 5 -state disabled
                      if {$::mult_sel == 0} then {
-                        $pop entryconfigure 3 -state normal
-                        $pop entryconfigure 4 -state disabled
-                        $pop entryconfigure 5 -state disabled
-                        $pop entryconfigure 6 -state disabled
-                     	$pop entryconfigure 7 -state normal
-                     	$pop entryconfigure 8 -state normal
-                     	} else {
-                        $pop entryconfigure 3 -state disabled
-                        $pop entryconfigure 4 -state disabled
-                        $pop entryconfigure 5 -state disabled
-                     		$pop entryconfigure 6 -state disabled
-                     		$pop entryconfigure 7 -state disabled
-                     		$pop entryconfigure 8 -state disabled
-                      }
-                     $pop entryconfigure 9 -state normal -label "Delete"
-                     $pop entryconfigure 10 -state normal
-                     $pop entryconfigure 11 -state normal
+                        set singolo normal
+                     } else {
+                        set singolo disabled
+                     }
+                     topol_pop_stati $pop [list Copy normal Paste disabled \
+                         Help $singolo Add disabled Modify disabled Rename $singolo \
+                         Rotate $singolo Delete normal Front normal Back normal]
 
                 } else {
 # è una porta o qulcos'altro
-                     $pop entryconfigure 1 -state disabled
-                     $pop entryconfigure 2 -state normal
-                     $pop entryconfigure 3 -state disabled
-                     $pop entryconfigure 4 -state normal
-                     $pop entryconfigure 5 -state normal
-                     $pop entryconfigure 6 -state disabled
-                     $pop entryconfigure 7 -state disabled
-                     $pop entryconfigure 8 -state disabled
-                     $pop entryconfigure 9 -state disabled -label "Delete"
-                     $pop entryconfigure 10 -state disabled
-                     $pop entryconfigure 11 -state disabled
+                     topol_pop_stati $pop {Copy disabled Paste normal Help disabled
+                         Add normal Modify disabled Rename disabled Rotate disabled
+                         Delete disabled Front disabled Back disabled}
 
                 	}
+                     $pop entryconfigure $::topol_pop_modifica -label $nomod
 
                  }
 
@@ -3052,6 +3022,34 @@ bind $c <Control-Button-5> {
 
 return $c
 
+}
+
+#  Abilita le voci del popup di Model Topology. <stati> e' una lista
+#  {voce stato ...} con nomi brevi; le voci si indirizzano per ETICHETTA, non
+#  per indice: gli indici cambiano a ogni voce aggiunta (e' successo con Add
+#  elements, che ha preso il posto di Add Text e Add Display). Modify e Delete
+#  cambiano etichetta, quindi per loro si usa l'indice ricordato alla
+#  costruzione. <delete> e' l'etichetta da dare a Delete.
+proc topol_pop_stati {pop stati {delete Delete}} {
+    foreach {voce stato} $stati {
+        switch -- $voce {
+            Copy   { $pop entryconfigure "Copy" -state $stato }
+            Paste  { $pop entryconfigure "Paste" -state $stato }
+            Help   { $pop entryconfigure "Help" -state $stato }
+            Add    { $pop entryconfigure "Add elements" -state $stato }
+            Modify { $pop entryconfigure $::topol_pop_modifica -state $stato }
+            Rename { $pop entryconfigure "Rename" -state $stato }
+            Rotate { $pop entryconfigure "Rotate module" -state $stato }
+            Delete { $pop entryconfigure $::topol_pop_delete -state $stato -label $delete }
+            Front  { $pop entryconfigure "Bring to Front" -state $stato }
+            Back   { $pop entryconfigure "Send to Back" -state $stato }
+        }
+    }
+}
+
+#  Paste e' attivo solo se c'e' qualcosa di copiato.
+proc topol_pop_paste {} {
+    return [expr {[info exists ::currTidCopy] ? "normal" : "disabled"}]
 }
 
 proc itemDelete_new {c} {
@@ -3299,49 +3297,49 @@ if { $pastemod_to != "" && $pastemod_to != "" } {ffconnect $c $pastemod_from   $
 
 }
 
-proc AddRemark {c} {
-	
+#  Inserisce, dove si e' cliccato col tasto destro, un elemento non
+#  topologico della libreria remark (Add elements). Il nome istanza e' il
+#  primo progressivo libero. Ritorna l'id dell'item creato.
+proc AddElementoRemark {c ctool} {
+
 global progNumb env
 set lpath [remarkLibPath]
-set ctool "@com_0"
 set ori n
 
 set x $::currTid_x
 set y $::currTid_y
 
-
-
 set enval $progNumb
 if {[string length $enval] > 4} {set enval [string range $enval 0 3]}
 if {[string length $enval] < 4} {set enval [string range ${enval}____ 0 3]}
 set prnum [string toupper $enval]
-#tk_messageBox -message "IncollaItem: $::currTags\n lpath=$lpath ctool=$ctool ori=$ori\n progNumb=$progNumb\n prnum=$prnum"
 
 set curname "?"
-itemAddFromfile $c $x $y $ctool $lpath $prnum $ori $curname
+return [itemAddFromfile $c $x $y $ctool $lpath $prnum $ori $curname]
 
 }
 
-# Scorciatoia per inserire un display dinamico (elemento valore-libero @val_0
-# della libreria remark): identica ad AddRemark ma con ctool @val_0.
+# Add elements -> Text: un testo (@com_0).
+proc AddRemark {c} {
+	AddElementoRemark $c "@com_0"
+}
+
+# Add elements -> Display: un display dinamico (elemento valore-libero @val_0).
 proc AddDisplay {c} {
+	AddElementoRemark $c "@val_0"
+}
 
-global progNumb env
-set lpath [remarkLibPath]
-set ctool "@val_0"
-set ori n
+# Add elements -> Faceplate (xstaz) e Set value: gli elementi operatore delle
+# pagine (hmielem.tcl). Dopo l'inserimento si chiede subito la pagina o la
+# variabile; si puo' annullare e assegnarla poi (tasto destro, o in Show Value).
+proc AddFaceplate {c} {
+	set id [AddElementoRemark $c "@stz_0"]
+	catch {hmi_assegna $c $id}
+}
 
-set x $::currTid_x
-set y $::currTid_y
-
-set enval $progNumb
-if {[string length $enval] > 4} {set enval [string range $enval 0 3]}
-if {[string length $enval] < 4} {set enval [string range ${enval}____ 0 3]}
-set prnum [string toupper $enval]
-
-set curname "?"
-itemAddFromfile $c $x $y $ctool $lpath $prnum $ori $curname
-
+proc AddSetValue {c} {
+	set id [AddElementoRemark $c "@set_0"]
+	catch {hmi_assegna $c $id}
 }
 
 proc agg_vis_noti { } {
@@ -3520,6 +3518,11 @@ grid $nn2.calc_trans -row 6 -column 2 -rowspan 1 -columnspan 1 -pady 1m
 grid $nn2.watch -row 7 -column 2 -rowspan 1 -columnspan 1 -pady 1m
 
 grid $nn -row 2 -column 0 -rowspan 1 -columnspan 1 -sticky w
+# Riga di stato del tab: la usano Show Value e gli elementi operatore
+# (hmi_stato, hmielem.tcl) per i problemi che non meritano un dialogo.
+label $f.hmistato -text "" -anchor w -foreground "#8b0000"
+grid $f.hmistato -row 3 -column 0 -columnspan 3 -sticky w
+set ::hmi_status_widget $f.hmistato
 grid $nn.rich -row 2 -column 2 -rowspan 1 -columnspan 1 -sticky w
 grid $nn.vrich -row 2 -column 3 -rowspan 1 -columnspan 1 -sticky w
 grid $nn.imp  -row 2 -column 4 -rowspan 1 -columnspan 1 -sticky w
@@ -3663,6 +3666,8 @@ if { $modo != 0 } {
 }
 # Riapplica gli override di stile connessioni per-modello (.lstyle)
 catch {linkstyle_reload $c}
+# Etichette degli elementi operatore dal .remap (hmielem.tcl)
+catch {hmi_aggiorna_etichette $c}
 
 
 #
@@ -4452,6 +4457,8 @@ proc raisetopol { c } {
 
     		# Riapplica gli override di stile connessioni per-modello (.lstyle)
     		catch {linkstyle_reload $c}
+    		# Etichette degli elementi operatore dal .remap (hmielem.tcl)
+    		catch {hmi_aggiorna_etichette $c}
 
     		if { $::showon == 4 } { set qq [$c gettags infoitemname ]; anima chiudi qq }
 		
@@ -4511,6 +4518,8 @@ proc raisedata { c c2 } {
         	if { ![loadF01 $c2 no]} {
         			return 2
         		}
+		# Etichette degli elementi operatore dal .remap (hmielem.tcl)
+		catch {hmi_aggiorna_etichette $c2}
         				
 		ShowNames $c2 $showon
 		$nn2.golg3 configure -state disable 

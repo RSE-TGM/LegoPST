@@ -1252,8 +1252,11 @@ proc anim_apply_remap { c name } {
     set tags_curr [$c gettags $item]
     set pisqu_name [file rootname [lindex $tags_curr [lsearch $tags_curr *.name]]]
 
-    # Aggiorna remap in memoria
-    set ::anim_remap($pisqu_name) $name
+    # Aggiorna il remap in memoria e su disco. anim_remap_set rilegge il file
+    # prima di riscriverlo: legopc puo' avervi assegnato nel frattempo pagine
+    # e variabili degli elementi operatore, che la riscrittura della sola
+    # memoria cancellerebbe.
+    catch { anim_remap_set $pisqu_name $name }
 
     # Aggiorna tag *.nome_anim sull'item (letto dal loop mode 2)
     set old_nome_anim [lsearch $tags_curr *.nome_anim]
@@ -1274,11 +1277,11 @@ proc anim_apply_remap { c name } {
     set ::anim_selected_rect -1
     set ::anim_selected_mod  ""
 
-    # Salva su disco
-    catch { anim_save_remap }
 }
 
 topRead $c $curFileName
+# Etichette degli elementi operatore dal .remap (hmielem.tcl)
+catch {hmi_aggiorna_etichette $c}
 viewConn_reapply $c
 draw2gr_syncZoom $c
 loadF01 $c no

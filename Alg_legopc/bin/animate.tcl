@@ -54,7 +54,9 @@ proc anim_load_remap {} {
                 set var $rhs
             }
             if {[string equal $inst ""] || [string equal $var ""]} continue
-            if {$can_validate && ![info exists tipVarMod($var)]} {
+            # ";F" (faceplate @stz_0, hmielem.tcl): il valore e' una pagina di
+            # r02.dat, non una variabile, e non si valida contro il modello
+            if {$can_validate && $mode ne "F" && ![info exists tipVarMod($var)]} {
                 # variabile non più nel modello → riga obsoleta, salta
                 set had_stale 1
                 continue
@@ -89,6 +91,71 @@ proc anim_save_remap {} {
         }
         close $fid
     }
+}
+
+# Il .remap su disco, senza validare e senza toccare le strutture in memoria:
+# un dict {istanza -> {valore modo}}. Vuoto se il file non c'e'.
+proc anim_remap_leggi {} {
+    global curFileName
+    set d [dict create]
+    if {![info exists curFileName] || $curFileName eq ""} { return $d }
+    set fname "[file rootname $curFileName].remap"
+    if {[catch {open $fname r} fid]} { return $d }
+    while {[gets $fid line] >= 0} {
+        set line [string trim $line]
+        if {$line eq "" || [string index $line 0] eq "#"} continue
+        set eqpos [string first "=" $line]
+        if {$eqpos < 1} continue
+        set inst [string trim [string range $line 0 [expr {$eqpos-1}]]]
+        set rhs  [string trim [string range $line [expr {$eqpos+1}] end]]
+        set mode ""
+        set semipos [string first ";" $rhs]
+        if {$semipos >= 0} {
+            set mode [string trim [string range $rhs [expr {$semipos+1}] end]]
+            set rhs  [string trim [string range $rhs 0 [expr {$semipos-1}]]]
+        }
+        if {$inst eq "" || $rhs eq ""} continue
+        dict set d $inst [list $rhs $mode]
+    }
+    close $fid
+    return $d
+}
+
+# Cambia UNA voce del .remap (valore "" = la toglie) e la riporta in memoria.
+# Rilegge il file prima di riscriverlo: anim_save_remap scrive le strutture in
+# memoria, che fuori da Show Value possono mancare o essere di un altro
+# modello, e riscrivere quelle cancellerebbe le altre voci. Ritorna 1 se il
+# file e' stato scritto.
+proc anim_remap_set {inst valore {mode ""}} {
+    global curFileName
+    if {![info exists curFileName] || $curFileName eq "" \
+        || $curFileName eq "untitled" || $curFileName eq "-"} { return 0 }
+    set fname "[file rootname $curFileName].remap"
+    if {![file isdirectory [file dirname $fname]]} { return 0 }
+    set d [anim_remap_leggi]
+    if {$valore eq ""} {
+        dict unset d $inst
+        catch {unset ::anim_remap($inst)}
+        catch {unset ::anim_mode($inst)}
+    } else {
+        dict set d $inst [list $valore $mode]
+        set ::anim_remap($inst) $valore
+        if {$mode ne ""} {
+            set ::anim_mode($inst) $mode
+        } else {
+            catch {unset ::anim_mode($inst)}
+        }
+    }
+    if {[catch {
+        set fid [open $fname w]
+        puts $fid "# LegoPC animation remap - generato automaticamente"
+        foreach k [lsort [dict keys $d]] {
+            lassign [dict get $d $k] v m
+            puts $fid [expr {$m ne "" ? "$k=$v;$m" : "$k=$v"}]
+        }
+        close $fid
+    }]} { return 0 }
+    return 1
 }
 
 # Ritorna la variabile animata effettiva per una data istanza:
@@ -144,6 +211,7 @@ puts stdout "anima- path=$::anima_sim_path"
 
 			if {[catch {open "| $viewer" r+} ::pipeanim]} {
 tk_messageBox -message "anima: 1 Error opening pipe: $::pipeanim"
+                catch {hmi_stato "Show Value: cannot start $viewer ($::pipeanim)"}
   			set ::pipeanim 0
   			set ::pipeon 0
   			} else {
@@ -242,6 +310,9 @@ foreach item [$c find withtag module] {
             incr nelem
             continue
         }
+        # --- Elementi operatore (@stz_0/@set_0): hmi_campi, dopo il ciclo ---
+        if {[lsearch -exact $tags_curr hmistaz] != -1 || \
+            [lsearch -exact $tags_curr hmiset] != -1} { continue }
         set is_remark 0
         if {[lsearch -exact $tags_curr  remarkdescr] != -1} {
 # è un remark...
@@ -306,6 +377,8 @@ foreach item [$c find withtag module] {
 
         }
 
+       # elementi operatore: faceplate e set value (hmielem.tcl)
+       catch {hmi_campi $c [hmi_live]}
 ##############
        update
        set ::indicatore_after [after $refr_anim_ms anima_aggiorna $c 2]
@@ -347,6 +420,8 @@ if { $mod == 2 } {
 	       update
 		 }
 	   }
+# elementi operatore: valori e stato dal vivo/spento (hmielem.tcl)
+catch {hmi_aggiorna $c}
 set ::indicatore_after [after $refr_anim_ms anima_aggiorna $c 2]
 }
 
@@ -370,6 +445,9 @@ anim_load_remap
             incr nelem
             continue
         }
+        # --- Elementi operatore (@stz_0/@set_0): hmi_campi, dopo il ciclo ---
+        if {[lsearch -exact $tags_curr hmistaz] != -1 || \
+            [lsearch -exact $tags_curr hmiset] != -1} { continue }
         set is_remark 0
         if {[lsearch -exact $tags_curr  remarkdescr] != -1} {
 # è un remark...
@@ -431,6 +509,8 @@ anim_load_remap
 
         }
 
+       # elementi operatore, spenti: senza simulazione non si invia niente
+       catch {hmi_campi $c 0}
 ##############
        update
 }
@@ -555,6 +635,23 @@ proc anim_freeval_dialog { c item } {
         -variable ::freeval_mode -anchor w
     grid $w.f.cb -row 1 -column 0 -columnspan 2 -sticky w -pady 4
 
+    # Elenco filtrabile delle variabili del modello, come nel dialogo
+    # "Variable to set" (hmi_lista_variabili, hmielem.tcl): si scrive per
+    # restringerlo, un clic sceglie, il doppio clic conferma. Qui ci sono
+    # tutte le variabili, con il loro tipo: un display puo' mostrare anche
+    # uscite e variabili calcolate.
+    set tutte [hmi_variabili_tutte]
+    hmi_lista_variabili $w.f.v $w.f.e ::freeval_var $tutte \
+        [list anim_freeval_apply $c $item $w] 1
+    grid $w.f.v -row 2 -column 0 -columnspan 2 -sticky nsew -pady 4
+    if {[llength $tutte] == 0} {
+        set nota "Variabili del modello non caricate."
+    } else {
+        set nota "[llength $tutte] variabili del modello. Scrivi per filtrare,\nclic per scegliere, doppio clic per confermare."
+    }
+    label $w.f.n -text $nota -anchor w -justify left -foreground "#555555"
+    grid $w.f.n -row 3 -column 0 -columnspan 2 -sticky w
+
     frame $w.btn
     pack $w.btn -pady 8
     button $w.btn.ok  -text OK      -width 8 -default active \
@@ -587,13 +684,9 @@ proc anim_freeval_apply { c item w } {
 
     set tags_curr [$c gettags $item]
     set inst_name [file rootname [lindex $tags_curr [lsearch $tags_curr *.name]]]
-    set ::anim_remap($inst_name) $var
-    if {$::freeval_mode} {
-        set ::anim_mode($inst_name) "L"
-    } else {
-        catch {unset ::anim_mode($inst_name)}
-    }
-    catch { anim_save_remap }
+    # anim_remap_set aggiorna memoria e file, rileggendo il file prima: altre
+    # applicazioni possono avervi scritto nel frattempo.
+    catch { anim_remap_set $inst_name $var [expr {$::freeval_mode ? "L" : ""}] }
     catch { grab release $w }
     catch { destroy $w }
 
@@ -778,3 +871,8 @@ proc umis_apply { w exe refresh_cmd } {
     }
     if {$refresh_cmd ne ""} { uplevel #0 $refresh_cmd }
 }
+
+# Elementi operatore delle pagine (faceplate @stz_0, set value @set_0): usano
+# le proc di questo file (anima, conv_umis, anim_remap_*), quindi si caricano
+# per ultimi. Stanno accanto a questo script, come lgstaz.tcl che sorgiano.
+source [file join [file dirname [file normalize [info script]]] hmielem.tcl]

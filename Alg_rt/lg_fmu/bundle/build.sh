@@ -29,12 +29,15 @@
 #   -v, --version V        version stringa (default: 1.0.0)
 #   -k, --keep-staging     non rimuovere la dir di staging (debug)
 #   -b, --bundle           include runtime LegoPST self-contained (P7)
+#   --r01 FILE             r01.dat da compilare (compstaz) nella task del bundle
+#                          per i bottoni faceplate della HMI (default: r02.dat
+#                          della task, o r01.dat trovato nell'area; vedi 3.5)
 #   -h, --help
 
 set -eu
 
 usage() {
-    sed -n '2,28p' "$0" | sed 's/^# \{0,1\}//'
+    sed -n '2,31p' "$0" | sed 's/^# \{0,1\}//'
     exit 0
 }
 
@@ -48,6 +51,7 @@ VERSION="1.0.0"
 OUTPUT=""
 KEEP_STAGING=0
 BUNDLE=0
+R01_FILE=""
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -57,6 +61,7 @@ while [[ $# -gt 0 ]]; do
         -v|--version)       VERSION="$2"; shift 2 ;;
         -k|--keep-staging)  KEEP_STAGING=1; shift ;;
         -b|--bundle)        BUNDLE=1; shift ;;
+        --r01)              R01_FILE="$(cd "$(dirname "$2")" && pwd)/$(basename "$2")"; shift 2 ;;
         -h|--help)          usage ;;
         *)                  echo "ERRORE: opzione sconosciuta: $1" >&2; exit 1 ;;
     esac
@@ -177,7 +182,10 @@ if [[ $BUNDLE -eq 1 ]]; then
     # file testo per-simulazione uni_misc.cfg letto da viewval/graphics/xaing.
     # viewval: motore di View->Show Value (pipe "viewval -s"): senza, la HMI del
     # bundle non mostra i valori live delle variabili.
-    for b in dispatcher net_sked killsim net_prepf22 xaing umis viewval; do
+    # xstaz + stazpag: faceplate di comando, aperti dai bottoni @stz_0 della
+    # HMI (hmielem.tcl) e dalla lista faceplate di lghmi (lgstaz.tcl).
+    for b in dispatcher net_sked killsim net_prepf22 xaing umis viewval \
+             xstaz stazpag; do
         cp -p "$LEGOROOT_ABS/Alg_rt/bin/$b" "$BD/Alg_rt/bin/" \
             || { echo "ERR: $b non trovato in $LEGOROOT_ABS/Alg_rt/bin" >&2; exit 4; }
     done
@@ -227,9 +235,11 @@ if [[ $BUNDLE -eq 1 ]]; then
     #     lgedit.tcl (modifica del modello con legopc) serve a lghmi, che lo
     #     sorgia sempre per i suoi controlli: senza, il selettore non parte.
     #     draw2gr lo legge solo con -edit, che nel bundle ignora comunque.
+    #     lgstaz.tcl (faceplate) serve a lghmi e a hmielem.tcl; hmielem.tcl
+    #     (bottoni faceplate e invio valori delle pagine) lo sorgia animate.tcl.
     for s in draw2gr.tcl checkopen.tcl balloon.tcl read_con.tcl read_f01.tcl \
              fileio.tcl itemjoin.tcl read_f14.tcl viewmgr.tcl animate.tcl \
-             bgelement.tcl lghmi.tcl lgedit.tcl; do
+             bgelement.tcl lghmi.tcl lgedit.tcl lgstaz.tcl hmielem.tcl; do
         cp -p "$LEGOROOT_ABS/Alg_legopc/bin/$s" "$BD/Alg_legopc/bin/" \
             || { echo "ERR: script tix $s non trovato in $LEGOROOT_ABS/Alg_legopc/bin" >&2; exit 4; }
     done
@@ -318,6 +328,65 @@ if [[ $BUNDLE -eq 1 ]]; then
         --exclude='out/' \
         --exclude='backtrack.dat' \
         "$TASK_PATH_ABS/" "$BD/task/$TASK_NAME/"
+
+    # Elementi non topologici delle pagine (testo, display, faceplate, set
+    # value): vivono in $LG_TIX/remark, e remarkLibPath li cerca li'. Senza,
+    # si ripiegherebbe sulla remark delle librerie utente, che gli elementi
+    # nuovi (@stz_0, @set_0) non li ha.
+    cp -a "$LEGOROOT_ABS/Alg_legopc/bin/remark" "$BD/Alg_legopc/bin/" \
+        || { echo "ERR: Alg_legopc/bin/remark non trovato" >&2; exit 4; }
+
+    # ---- faceplate (xstaz): r02.dat per i bottoni della HMI ----------------
+    # xstaz legge r02.dat dalla directory in cui parte, e nel bundle la
+    # simulazione gira nella task: l'r02.dat deve stare li'. Ma r02.dat cita
+    # le variabili per INDICE di variabili.rtf (compstaz le risolve contro la
+    # simulazione): quello di un altro simulatore punterebbe a variabili
+    # sbagliate, senza errori. Quindi, in ordine:
+    #   1. l'r02.dat della task, se c'e' (e' arrivato con la copia), salvo
+    #      --r01;
+    #   2. altrimenti si COMPILA con compstaz, nella task del bundle, un
+    #      r01.dat: quello di --r01, oppure quello della task, oppure quello
+    #      di una task dell'area il cui r02.dat definisce tutte le pagine
+    #      assegnate ai bottoni (righe ";F" del .remap);
+    #   3. altrimenti niente, e lo si dice: i bottoni restano spenti.
+    # compstaz esce con 24 anche quando va bene: il successo si legge
+    # nell'output ("Fine corretta"), come fa kCompStaz.
+    BTD="$BD/task/$TASK_NAME"
+    PAGINE_F="$(sed -n 's/^[^#=]*=\(.*\);F$/\1/p' "$TASK_PATH_ABS"/*.remap 2>/dev/null | sort -u || true)"
+    R01_SRC="$R01_FILE"
+    if [[ -f "$BTD/r02.dat" && -z "$R01_SRC" ]]; then
+        echo "  + faceplate: r02.dat della task"
+    else
+        [[ -z "$R01_SRC" && -f "$TASK_PATH_ABS/r01.dat" ]] && R01_SRC="$TASK_PATH_ABS/r01.dat"
+        if [[ -z "$R01_SRC" && -n "$PAGINE_F" ]]; then
+            for d in "$(dirname "$TASK_PATH_ABS")"/*/; do
+                d="${d%/}"
+                [[ -f "$d/r02.dat" && -f "$d/r01.dat" ]] || continue
+                ELENCO="$(cd "$d" && "$LEGOROOT_ABS/Alg_rt/bin/stazpag" -m 2>/dev/null | cut -d'|' -f1 || true)"
+                TUTTE=1
+                for p in $PAGINE_F; do
+                    grep -qx "$p" <<< "$ELENCO" || TUTTE=0
+                done
+                if [[ $TUTTE -eq 1 ]]; then R01_SRC="$d/r01.dat"; break; fi
+            done
+        fi
+        if [[ -n "$R01_SRC" ]]; then
+            [[ -f "$R01_SRC" ]] || { echo "ERR: r01.dat non trovato: $R01_SRC" >&2; exit 4; }
+            cp -p "$R01_SRC" "$BTD/r01.dat"
+            rm -f "$BTD/r02.dat"
+            (cd "$BTD" && "$LEGOROOT_ABS/Alg_rt/bin/compstaz" > compstaz.log 2>&1) || true
+            if grep -q "Fine corretta" "$BTD/compstaz.log" && [[ -f "$BTD/r02.dat" ]]; then
+                echo "  + faceplate: r02.dat compilato da $R01_SRC"
+            else
+                echo "AVVISO: compstaz fallito su $R01_SRC (log nel bundle: task/$TASK_NAME/compstaz.log):" >&2
+                echo "        i bottoni faceplate della HMI resteranno spenti" >&2
+                rm -f "$BTD/r02.dat"
+            fi
+        elif [[ -n "$PAGINE_F" ]]; then
+            echo "AVVISO: nessun r01.dat dell'area definisce le pagine dei bottoni faceplate:" >&2
+            echo "        $(echo $PAGINE_F). Indicane uno con --r01." >&2
+        fi
+    fi
 
     # Shared libs: ldd di tutti i binari, copia non-system .so in lib/
     SO_LIST="$(mktemp)"
@@ -457,7 +526,11 @@ export TCLLIBPATH="$SCRIPT_DIR/tcllib"          # wish trova Tix8.4.3 qui
 WISH="$SCRIPT_DIR/tclbin/wish"
 
 # env LegoPC richieste da draw2gr.tcl e dagli script sorgia
-export LEGORT_BIN="$SCRIPT_DIR/Alg_rt/bin"      # xaing, graphics
+export LEGORT_BIN="$SCRIPT_DIR/Alg_rt/bin"      # xaing, graphics, xstaz, stazpag
+# SHR_TAV_KEY: la usa xaing (pannello di perturbazione). La FMU la imposta
+# (lg_fmi2.c), ma run_draw2gr.sh parte anche da lghmi: stesso default di
+# Alg_env.sh.
+export SHR_TAV_KEY="${SHR_TAV_KEY:-999}"
 export LG_ENTRY="$SCRIPT_DIR/legocad"
 export LG_BIN="$SCRIPT_DIR/Alg_legopc/bin"
 export LG_TIX="$LG_BIN"

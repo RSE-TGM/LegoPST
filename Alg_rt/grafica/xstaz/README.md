@@ -141,8 +141,18 @@ l'elenco delle pagine (nome, descrizione, numero di stazioni); avvia `xstaz` se
 non è già attivo e gli manda la richiesta. A sinistra ci sono le pagine di
 processo, così le due interfacce della simulazione si aprono dalla stessa
 finestra; con `-staz` si limita ai faceplate, con `-proc` al processo. Vedi
-[Alg_legopc/LGHMI.md](../../../Alg_legopc/LGHMI.md). Sotto, il meccanismo a riga
-di comando su cui si appoggia.
+[Alg_legopc/LGHMI.md](../../../Alg_legopc/LGHMI.md).
+
+Le pagine si aprono anche **dagli schemi**: un bottone faceplate (`@stz_0`) in
+legopc o in draw2gr apre, con un clic in *View → Show Value*, la pagina che gli
+è stata assegnata. Vedi
+[Alg_legopc/README.md](../../../Alg_legopc/README.md#elementi-operatore-delle-pagine-faceplate-e-set-value).
+`lghmi` e i bottoni usano la stessa procedura, `staz_apri` in
+[lgstaz.tcl](../../../Alg_legopc/src/tix/lgstaz.tcl), che **senza `net_sked`
+non avvia `xstaz`**: altrimenti resterebbe iconificato ad aspettare una coda che
+non c'è.
+
+Sotto, il meccanismo a riga di comando su cui si appoggiano.
 
 `xstaz` da solo non serve a niente: all'avvio crea unicamente una finestrella
 **iconificata** con il tasto *Quit* e poi aspetta un messaggio sulla coda
