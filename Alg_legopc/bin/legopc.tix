@@ -750,6 +750,10 @@ proc itemStartDrag {c x y} {
 # debug   puts "itemStartDrag: c=$c x=$x y=$y"
 global lastX lastY mult_sel
 
+# I segnaposti degli elementi operatore (hmielem.tcl) non seguono il
+# trascinamento: si tolgono adesso e si rifanno in itemFinishDrag.
+catch {hmi_segnaposti_via $c}
+
 # inibisco il delete della selezione...
 set ::inib 1
 
@@ -1127,6 +1131,7 @@ proc itemFinishDrag {c x y} {
       if [info exists oldinfoMode] {
 	   set infoMode $oldinfoMode
       }
+catch {hmi_segnaposti $c}
 if { $::styledrag == 0 } { return }
 drawlinks $c
 nascondi_links $c 0
@@ -1195,6 +1200,10 @@ global progNumb modified needbuild
 	source [elementScript $libp $ctool]
 	set modified 1
 	set needbuild 1
+
+	# segnaposto degli elementi operatore e dei display nel canvas di disegno
+	# (hmielem.tcl): differito, perche' chi incolla sistema testo e font dopo
+	catch {hmi_segnaposti_dopo $c}
 
 	return $mymodId
 
@@ -2378,10 +2387,10 @@ set y $::currTid_y
 	set mylist [$c gettags $::currTid]
 #se non è una remark esco
         if {[lsearch -exact $mylist  remarkdescr] == -1} { return }
-#se è un elemento valore-libero @val_0 non ha testo statico modificabile
+#se è un elemento valore-libero @val_0 si sceglie la variabile da mostrare,
+#con lo stesso dialogo del doppio-click in Show Value
         if {[lsearch -exact $mylist  freeval] != -1} {
-            tk_messageBox -icon info -type ok -title "Valore libero" \
-                -message "Questo elemento non ha testo statico.\nIn modalità View -> Show Value, fai doppio-click sul campo per assegnare la variabile da animare."
+            anim_freeval_dialog $c [lindex [$c find withtag $::currTid] 0]
             return
         }
 #se è un'immagine di background (bgimage) non ha testo statico da modificare
@@ -3069,6 +3078,9 @@ if {[lsearch [$c gettags $::currTid] link*] != -1} {
 ####
 }
 
+# via anche i segnaposti degli elementi cancellati (hmielem.tcl)
+catch {hmi_segnaposti $c}
+
 
 #foreach ::currTid $::select_list {
 #if {[lsearch [$c gettags $::currTid] link*] != -1} {
@@ -3116,6 +3128,7 @@ proc itemBringToFront {c} {
         $c raise $item
         set modified 1
     }
+    catch {hmi_segnaposti $c}
 }
 
 proc itemSendToBack {c} {
@@ -3134,6 +3147,7 @@ proc itemSendToBack {c} {
         $c lower $item
         set modified 1
     }
+    catch {hmi_segnaposti $c}
 }
 
 proc IncollaItem {c} {
@@ -3325,8 +3339,16 @@ proc AddRemark {c} {
 }
 
 # Add elements -> Display: un display dinamico (elemento valore-libero @val_0).
+# Come per gli elementi operatore, si chiede subito la variabile da mostrare,
+# con lo stesso elenco filtrabile (anim_freeval_dialog, animate.tcl).
 proc AddDisplay {c} {
-	AddElementoRemark $c "@val_0"
+	set id [AddElementoRemark $c "@val_0"]
+	# Senza le variabili del modello (niente f01.dat) non si chiede niente:
+	# l'elemento resta con "--?--" e la variabile si assegna piu' tardi.
+	if {[info procs hmi_variabili_disponibili] ne "" && [hmi_variabili_disponibili]} {
+		catch {anim_freeval_dialog $c $id}
+	}
+	catch {hmi_segnaposti $c}
 }
 
 # Add elements -> Faceplate (xstaz) e Set value: gli elementi operatore delle
@@ -3335,11 +3357,15 @@ proc AddDisplay {c} {
 proc AddFaceplate {c} {
 	set id [AddElementoRemark $c "@stz_0"]
 	catch {hmi_assegna $c $id}
+	catch {hmi_segnaposti $c}
 }
 
 proc AddSetValue {c} {
 	set id [AddElementoRemark $c "@set_0"]
-	catch {hmi_assegna $c $id}
+	if {[info procs hmi_variabili_disponibili] ne "" && [hmi_variabili_disponibili]} {
+		catch {hmi_assegna $c $id}
+	}
+	catch {hmi_segnaposti $c}
 }
 
 proc agg_vis_noti { } {
@@ -3666,8 +3692,9 @@ if { $modo != 0 } {
 }
 # Riapplica gli override di stile connessioni per-modello (.lstyle)
 catch {linkstyle_reload $c}
-# Etichette degli elementi operatore dal .remap (hmielem.tcl)
+# Etichette e segnaposti degli elementi operatore dal .remap (hmielem.tcl)
 catch {hmi_aggiorna_etichette $c}
+catch {hmi_segnaposti $c}
 
 
 #
@@ -3822,6 +3849,9 @@ set mod 4
 		anima chiudi qq
 	    ShowNames $c $mod
 	    ShowNames $c2 $mod	
+	    # fuori da Show Value tornano i segnaposti disegnati (hmielem.tcl)
+	    catch {hmi_segnaposti $c}
+	    catch {hmi_segnaposti $c2}
 	}
 }
 
@@ -4457,8 +4487,9 @@ proc raisetopol { c } {
 
     		# Riapplica gli override di stile connessioni per-modello (.lstyle)
     		catch {linkstyle_reload $c}
-    		# Etichette degli elementi operatore dal .remap (hmielem.tcl)
+    		# Etichette e segnaposti degli elementi operatore (hmielem.tcl)
     		catch {hmi_aggiorna_etichette $c}
+    		catch {hmi_segnaposti $c}
 
     		if { $::showon == 4 } { set qq [$c gettags infoitemname ]; anima chiudi qq }
 		
@@ -4518,8 +4549,9 @@ proc raisedata { c c2 } {
         	if { ![loadF01 $c2 no]} {
         			return 2
         		}
-		# Etichette degli elementi operatore dal .remap (hmielem.tcl)
+		# Etichette e, fuori da Show Value, segnaposti disegnati (hmielem.tcl)
 		catch {hmi_aggiorna_etichette $c2}
+		if {$showon != 4} { catch {hmi_segnaposti $c2} }
         				
 		ShowNames $c2 $showon
 		$nn2.golg3 configure -state disable 

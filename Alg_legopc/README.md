@@ -223,7 +223,7 @@ perdendo testo e animazione. Non serve quindi toccare i modelli esistenti. Sul c
 | Elemento | Classe | Inserimento | Comportamento |
 |---|---|---|---|
 | `@com_0` | `@com` | popup tasto-destro → **Add elements ▸ Text** (`AddRemark`) | Testo statico. Se inizia con `#tag`, anima la variabile `tag` (read-only: la variabile **non** è modificabile a run-time) |
-| `@val_0` | `@val` | popup tasto-destro → **Add elements ▸ Display** (`AddDisplay`) | **Display dinamico**: casella valore senza testo statico (placeholder `--?--`); variabile **sempre ridefinibile a run-time** con doppio-click in *Show Value* |
+| `@val_0` | `@val` | popup tasto-destro → **Add elements ▸ Display** (`AddDisplay`) | **Display dinamico**: casella valore senza testo statico (placeholder `--?--`). La variabile si sceglie **all'inserimento**, dallo stesso elenco filtrabile degli elementi operatore, ed è **sempre ridefinibile**: doppio-click in *Show Value*, o la voce del popup che per i testi è *Modify Text* |
 | `@stz_0` | `@stz` | popup tasto-destro → **Add elements ▸ Faceplate (xstaz)** (`AddFaceplate`) | **Bottone faceplate**: apre una pagina di `r02.dat` con `xstaz`. Vedi [Elementi operatore](#elementi-operatore-delle-pagine-faceplate-e-set-value) |
 | `@set_0` | `@set` | popup tasto-destro → **Add elements ▸ Set value** (`AddSetValue`) | **Invio di valori** a una variabile di ingresso durante la simulazione. Vedi [Elementi operatore](#elementi-operatore-delle-pagine-faceplate-e-set-value) |
 
@@ -313,10 +313,36 @@ mandano valori alla simulazione in corso. Codice in
 |---|---|---|
 | cosa si assegna | una **pagina** di `r02.dat` | una **variabile di ingresso** (`tipVarMod` = `IN`) |
 | nel `.remap` | `F001=RISCBP;F` | `S001=WEST;S` |
-| segnaposto (Model Topology) | `[ xstaz: RISCBP ]`, blu | `[ set: WEST ]`, rosso scuro |
+| in *Model Topology* | bottone grigio con il nome della pagina | casella grigia `WEST` + bottone grigio **Set** |
 | in *Show Value* | **bottone disegnato** con il nome della pagina | casella `WEST 12.5 bar` (gialla dal vivo, azzurra fuori) + bottone **Set** |
 | **clic sinistro** (al rilascio) | apre la pagina con `xstaz` | apre il dialogo di invio |
 | **tasto destro** | menu: pagina assegnata, *Open page*, *Assign page...* | menu: variabile assegnata, *Set value...*, *Assign variable...* |
+
+**In legopc si vedono come in *Show Value* a simulazione ferma** — nel tab
+*Model Topology*, e nel tab *Data Assignment & Simulation* finché *Show Value*
+non è attivo; quando lo si accende, il posto lo prendono le caselle vive, e
+spegnendolo tornano i segnaposti —
+casella per il display, bottoni grigi per faceplate e set value, con dentro la
+variabile o la pagina assegnata, invece del testo dell'elemento.
+Quando non è ancora assegnata, la casella o il bottone ci sono lo stesso, con
+il posto del nome occupato da **`--?--`** per il display (un solo `?` darebbe
+una casella minuscola) e da **`xstaz: ?`** / **`set: ?`** per gli altri due:
+si vede dov'è l'elemento e cosa gli manca. Il
+disegno sta **sopra** l'elemento ma ha `-state disabled`: Tk lo disegna e non
+lo considera nella scelta dell'oggetto sotto il puntatore, così il clic arriva
+sempre all'elemento e trascinamento, selezione e menù del tasto destro
+funzionano come prima. Non porta il tag `module` né quello dell'istanza: chi
+conta i moduli (`writeFiles`, il `.top`) e chi legge i tag per posizione non lo
+vede.
+
+Il disegno non si sposta da solo: si rifà quando qualcosa cambia (caricamento
+del modello, inserimento, incolla, assegnazione, fine trascinamento,
+cancellazione, cambio di sovrapposizione), e durante il trascinamento si toglie
+per non restare indietro; lo zoom invece lo scala da sé, come le caselle di
+*Show Value*. Nel `.tom` resta un'etichetta di testo con il **solo nome** (la
+pagina, la variabile, o `xstaz: ?` / `set: ?`): è quello che si vede dove il
+disegno non c'è — una versione più vecchia, un altro programma — ed è corta
+apposta, così la casella che le sta sopra la copre esatta senza allargarsi.
 
 **Assegnazione.** Da *Model Topology* il dialogo si apre subito dopo l'inserimento
 (si può annullare) e poi con la voce del popup che per i testi è *Modify Text*; in
@@ -329,7 +355,13 @@ che `hmi_aggiorna_etichette` riallinea al file dopo ogni caricamento.
   modello, con l'`S01` per le task di regolazione. Un nome che non c'è si può
   usare lo stesso, dopo conferma.
 - **Variabile**: elenco filtrabile degli ingressi del modello con la loro
-  descrizione (lo stesso componente del dialogo dei display, `hmi_lista_variabili`); una variabile calcolata (`US`/`UA`) è rifiutata, perché il modello
+  descrizione (lo stesso componente del dialogo dei display, `hmi_lista_variabili`).
+  In *Model Topology* le variabili non sono caricate — le carica il tab dei dati —
+  quindi se accanto al modello c'è già un `f01.dat` lo si **legge** (`readF01`,
+  `hmi_assicura_variabili`), senza ricostruire niente: `cad_crealg1` riscrive i
+  file della task e ci mette secondi. Se quel file non c'è, all'inserimento non
+  si chiede niente: l'elemento resta con `?` e la variabile si assegna più
+  tardi; una variabile calcolata (`US`/`UA`) è rifiutata, perché il modello
   la riscriverebbe al passo successivo. Se il F01 non è caricato (Model
   Topology) il nome non si può verificare, e il dialogo lo dice.
 

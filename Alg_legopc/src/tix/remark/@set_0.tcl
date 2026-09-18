@@ -10,7 +10,7 @@
 # va quindi aggiunto PER ULTIMO (indice 8), senza spostare gli altri.
 # Solo ASCII nel testo: con LANG=POSIX Tcl non decodifica UTF-8.
 
-	set mymodId [$c create text $x $y -text {[ set: ? ]}]
+	set mymodId [$c create text $x $y -text {set: ?}]
 
 	$c addtag id$mymodId withtag $mymodId
 	$c addtag module withtag $mymodId

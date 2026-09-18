@@ -78,12 +78,13 @@ proc hmi_valore {inst tipo {fonte mem}} {
     return $::anim_remap($inst)
 }
 
-#  Testo del segnaposto (quello che si vede fuori da Show Value e che il .tom
-#  conserva).
+#  Testo dell'elemento: quello che il .tom conserva e che si vede dove il
+#  segnaposto disegnato non c'e' (una versione piu' vecchia, un altro
+#  programma). E' lo STESSO testo del segnaposto, cosi' la casella che gli sta
+#  sopra lo copre esatto senza allargarsi.
 proc hmi_etichetta {tipo valore} {
-    if {$valore eq ""} { set valore "?" }
-    set nome [expr {$tipo eq "staz" ? "xstaz" : "set"}]
-    return [format {[ %s: %s ]} $nome $valore]
+    if {$valore ne ""} { return $valore }
+    return [expr {$tipo eq "staz" ? "xstaz: ?" : "set: ?"}]
 }
 
 #  Rimette le etichette dei segnaposto d'accordo con il .remap: la pagina o la
@@ -264,6 +265,8 @@ proc hmi_campo {c item live} {
 
 #  Tutti gli elementi di un canvas. Registra lo stato per hmi_aggiorna.
 proc hmi_campi {c live} {
+    #  Show Value prende il posto dei segnaposti disegnati (tab dei dati).
+    hmi_segnaposti_via $c
     foreach item [concat [$c find withtag hmistaz] [$c find withtag hmiset]] {
         catch {hmi_campo $c $item $live}
     }
@@ -355,6 +358,135 @@ proc hmi_aggiorna {c} {
             hmi_adatta_set $c $item
         }
     }
+}
+
+# --------------------------------------------------------------------------
+# Segnaposti nel canvas di disegno (Model Topology)
+# --------------------------------------------------------------------------
+#
+# Nel tab del disegno gli elementi si vedono come in Show Value a simulazione
+# ferma - casella per il display, bottoni grigi per faceplate e set value, con
+# dentro la variabile o la pagina assegnata - invece del testo fra parentesi
+# quadre che il .tom conserva.
+#
+# I pezzi disegnati stanno SOPRA l'elemento ma hanno "-state disabled": Tk li
+# disegna e basta, non li considera nella scelta dell'oggetto sotto il
+# puntatore. Cosi' il clic arriva sempre all'elemento, e trascinamento,
+# selezione e menu del tasto destro funzionano come prima. Non portano il tag
+# del modulo ne' quello dell'istanza: chi conta i moduli (writeFiles, il .top)
+# e chi legge i tag per posizione non li vede.
+#
+# Non si spostano da soli: si ridisegnano quando qualcosa cambia (caricamento,
+# inserimento, assegnazione, fine trascinamento, cancellazione, incolla,
+# ordine di sovrapposizione). Durante il trascinamento si tolgono, cosi' non
+# restano indietro. Lo zoom invece li scala da se', come le caselle di
+# Show Value.
+
+#  E' un canvas di legopc (Model Topology o Data Assignment)? Li' gli elementi
+#  si vedono come segnaposti disegnati; quando pero' e' attivo Show Value, nel
+#  tab dei dati comandano le caselle vive e i segnaposti si tolgono. In
+#  draw2gr ::canv1 e' la pagina, e li' comanda sempre Show Value.
+proc hmi_canvas_disegno {c} {
+    if {![info exists ::envir] || $::envir eq "Draw2Gr"} { return 0 }
+    foreach v {::canv1 ::canv2} {
+        if {[info exists $v] && $c eq [set $v]} { return 1 }
+    }
+    return 0
+}
+
+#  La variabile di un display @val_0 dal .remap (le righe senza suffisso, o
+#  con ";L" per la modalita' etichetta).
+proc hmi_valore_display {inst} {
+    set d [anim_remap_leggi]
+    if {![dict exists $d $inst]} { return "" }
+    lassign [dict get $d $inst] var m
+    if {$m eq "F" || $m eq "S"} { return "" }
+    return $var
+}
+
+#  Casella piatta (il display): testo su fondo pieno, senza bordo.
+proc hmi_casella {c cx cy testo tags minbox {fondo "#ececec"} {fg black}} {
+    lassign [hmi_font $c] font base
+    set t [$c create text $cx $cy -text $testo -font $font -fill $fg -tags $tags]
+    set ::origFontOf($c,$t) $base
+    lassign [$c bbox $t] x1 y1 x2 y2
+    if {[llength $minbox] == 4} {
+        lassign $minbox m1 n1 m2 n2
+        set x1 [expr {min($x1, $m1)}] ; set y1 [expr {min($y1, $n1)}]
+        set x2 [expr {max($x2, $m2)}] ; set y2 [expr {max($y2, $n2)}]
+    }
+    set r [$c create rectangle [expr {$x1 - 1}] [expr {$y1 - 1}] \
+               [expr {$x2 + 1}] [expr {$y2 + 1}] -fill $fondo -outline "" -tags $tags]
+    $c raise $t
+    return [list $t $r]
+}
+
+#  Ridisegna il segnaposto di un elemento.
+proc hmi_segnaposto {c item} {
+    set tags [$c gettags $item]
+    set tg [list hmiedit hmiedit$item]
+    $c delete hmiedit$item
+    lassign [$c bbox $item] x1 y1 x2 y2
+    if {$x1 eq ""} return
+    set cx [expr {($x1 + $x2) / 2.0}]
+    set cy [expr {($y1 + $y2) / 2.0}]
+    set inst [hmi_inst $c $item]
+    if {[lsearch -exact $tags freeval] >= 0} {
+        #  Senza variabile assegnata la casella c'e' lo stesso, con "--?--"
+        #  al posto del nome (come il placeholder di @val_0): si vede subito
+        #  che il display e' li' e cosa gli manca, e un solo "?" sarebbe una
+        #  casella minuscola.
+        set var [hmi_valore_display $inst]
+        hmi_casella $c $cx $cy [expr {$var ne "" ? $var : "--?--"}] $tg \
+            [list $x1 $y1 $x2 $y2]
+    } elseif {[lsearch -exact $tags hmistaz] >= 0} {
+        set pag [hmi_valore $inst staz file]
+        hmi_bottone $c $cx $cy [expr {$pag ne "" ? $pag : "xstaz: ?"}] 0 $tg \
+            [list $x1 $y1 $x2 $y2]
+    } elseif {[lsearch -exact $tags hmiset] >= 0} {
+        set var [hmi_valore $inst set file]
+        lassign [hmi_casella $c $cx $cy [expr {$var ne "" ? $var : "set: ?"}] $tg \
+                     [list $x1 $y1 $x2 $y2]] t r
+        lassign [$c bbox $r] b1 c1 b2 c2
+        set ids [hmi_bottone $c 0 0 "Set" 0 [concat $tg hmieditb$item]]
+        lassign [$c bbox hmieditb$item] d1 e1 d2 e2
+        $c move hmieditb$item [expr {$b2 + 3 - $d1}] \
+            [expr {($c1 + $c2) / 2.0 - ($e1 + $e2) / 2.0}]
+    } else {
+        return
+    }
+    #  Disegnati ma non cliccabili: il clic passa all'elemento sotto.
+    foreach id [$c find withtag hmiedit$item] { $c itemconfigure $id -state disabled }
+}
+
+#  Ridisegna tutti i segnaposti del canvas di disegno.
+proc hmi_segnaposti {c} {
+    if {![hmi_canvas_disegno $c]} return
+    $c delete hmiedit
+    foreach item [concat [$c find withtag freeval] [$c find withtag hmistaz] \
+                      [$c find withtag hmiset]] {
+        catch {hmi_segnaposto $c $item}
+    }
+}
+
+#  Ridisegno differito: la chiamano le operazioni del canvas (inserimento,
+#  incolla) che finiscono di sistemare testo e font DOPO aver creato
+#  l'elemento. A operazione conclusa ne resta uno solo.
+proc hmi_segnaposti_dopo {c} {
+    if {![hmi_canvas_disegno $c]} return
+    if {[info exists ::hmi_segnaposti_attesa($c)]} return
+    set ::hmi_segnaposti_attesa($c) 1
+    after idle [list hmi_segnaposti_ora $c]
+}
+
+proc hmi_segnaposti_ora {c} {
+    unset -nocomplain ::hmi_segnaposti_attesa($c)
+    catch {hmi_segnaposti $c}
+}
+
+#  Li toglie (durante un trascinamento resterebbero indietro).
+proc hmi_segnaposti_via {c} {
+    catch {$c delete hmiedit}
 }
 
 # --------------------------------------------------------------------------
@@ -485,10 +617,13 @@ proc hmi_dopo_assegnazione {c item} {
                -text [hmi_etichetta $tipo [hmi_valore [hmi_inst $c $item] $tipo]]}
     if {[info exists ::envir] && $::envir ne "Draw2Gr" \
         && [info exists ::canv1] && $c eq $::canv1} {
+        # solo Model Topology salva il .tom
         set ::modified 1
     }
     if {[llength [$c find withtag hmov$item]]} {
         hmi_campo $c $item [hmi_live]
+    } elseif {[hmi_canvas_disegno $c]} {
+        catch {hmi_segnaposto $c $item}
     }
 }
 
@@ -603,9 +738,37 @@ proc hmi_togli {c item w tipo} {
     hmi_dopo_assegnazione $c $item
 }
 
+#  Gli elenchi dei dialoghi hanno bisogno delle variabili del modello. Nel tab
+#  del disegno (Model Topology) il F01 non e' caricato - lo carica il tab dei
+#  dati - ma se accanto al modello c'e' gia' un f01.dat lo si legge qui, senza
+#  ricostruire niente: cad_crealg1 riscrive i file della task e ci mette
+#  secondi. Se il file non c'e', gli elenchi restano vuoti e i dialoghi lo
+#  dicono.
+proc hmi_assicura_variabili {} {
+    if {[array size ::tipVarMod] > 0} return
+    if {![info exists ::curFileName]} return
+    if {$::curFileName eq "" || $::curFileName eq "untitled" || $::curFileName eq "-"} return
+    set dir [file dirname $::curFileName]
+    if {![file isfile [file join $dir f01.dat]]} return
+    set old [pwd]
+    if {[catch {cd $dir}]} return
+    catch {readF01}
+    catch {cd $old}
+}
+
+#  Si possono elencare le variabili del modello? Se no (niente f01.dat accanto
+#  al modello, per esempio una task mai compilata) all'inserimento non si
+#  chiede niente: l'elemento resta con "?" e la variabile si assegna piu'
+#  tardi, dal tasto destro o in Show Value.
+proc hmi_variabili_disponibili {} {
+    hmi_assicura_variabili
+    return [expr {[array size ::tipVarMod] > 0}]
+}
+
 #  Le variabili di ingresso del modello caricato, ordinate. Vuota se il F01
-#  non e' caricato.
+#  non e' caricato e non si e' potuto leggere.
 proc hmi_variabili_in {} {
+    hmi_assicura_variabili
     set out {}
     foreach n [array names ::tipVarMod] {
         if {$::tipVarMod($n) eq "IN"} { lappend out $n }
@@ -659,6 +822,7 @@ proc hmi_dialogo_variabile {c item} {
 #  Tutte le variabili del modello caricato, ordinate. Vuota se il F01 non e'
 #  caricato.
 proc hmi_variabili_tutte {} {
+    hmi_assicura_variabili
     return [lsort [array names ::tipVarMod]]
 }
 

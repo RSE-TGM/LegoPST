@@ -615,8 +615,21 @@ proc anim_freeval_dialog { c item } {
     set tags_curr [$c gettags $item]
     set inst_name [file rootname [lindex $tags_curr [lsearch $tags_curr *.name]]]
     set ::freeval_var  [anim_get_var $inst_name ""]
-    set ::freeval_mode [expr {[info exists ::anim_mode($inst_name)] && \
-                              $::anim_mode($inst_name) eq "L" ? 1 : 0}]
+    set modo [expr {[info exists ::anim_mode($inst_name)] ? $::anim_mode($inst_name) : ""}]
+    # Nel tab del disegno le strutture del remap non sono caricate (le carica
+    # Show Value): si legge il file. I suffissi ";F" e ";S" sono di altri
+    # elementi (faceplate, set value) e qui non contano.
+    if {$::freeval_var eq ""} {
+        set d [anim_remap_leggi]
+        if {[dict exists $d $inst_name]} {
+            lassign [dict get $d $inst_name] v m
+            if {$m ne "F" && $m ne "S"} {
+                set ::freeval_var $v
+                set modo $m
+            }
+        }
+    }
+    set ::freeval_mode [expr {$modo eq "L" ? 1 : 0}]
 
     set w .freeval_dlg
     catch {destroy $w}
@@ -676,7 +689,9 @@ proc anim_freeval_apply { c item w } {
             -message "Inserire un nome di variabile."
         return
     }
-    if {![info exists tipVarMod($var)]} {
+    # Fuori dal tab dei dati (Model Topology) il F01 puo' non essere caricato:
+    # li' il nome non si puo' verificare, e si accetta com'e' scritto.
+    if {[array size tipVarMod] > 0 && ![info exists tipVarMod($var)]} {
         tk_messageBox -parent $w -icon error -type ok \
             -message "Variabile '$var' non presente nel modello."
         return
@@ -689,6 +704,14 @@ proc anim_freeval_apply { c item w } {
     catch { anim_remap_set $inst_name $var [expr {$::freeval_mode ? "L" : ""}] }
     catch { grab release $w }
     catch { destroy $w }
+
+    # Fuori da Show Value (Model Topology, o il tab dei dati con un'altra
+    # modalita') non ci sono campi animati: si rifa' il segnaposto disegnato.
+    if {[info procs hmi_canvas_disegno] ne "" && [hmi_canvas_disegno $c] \
+        && (![info exists ::showon] || $::showon != 4)} {
+        catch {hmi_segnaposto $c $item}
+        return
+    }
 
     # refresh immediato del campo
     set lc [$c bbox $item]
