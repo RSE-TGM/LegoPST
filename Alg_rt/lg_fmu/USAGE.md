@@ -187,8 +187,8 @@ l'effetto in diretta, esegui la simulazione con il pacing a tempo reale
 (`run_fmu -r 1`). Requisiti: `DISPLAY` (X11) e una simulazione `net_sked` attiva.
 
 **Elementi operatore delle pagine.** Se lo schema contiene bottoni **faceplate**
-(`@stz_0`) o elementi **set value** (`@set_0`), in *View → Show Value* funzionano
-anche nel bundle: il bundle include `xstaz`, `stazpag`, `viewval` e la libreria
+(`@stz_0`) o elementi **set value** (`@set_0`), in *View → Show Value* (il modo
+con cui la pagina si apre) funzionano anche nel bundle: il bundle include `xstaz`, `stazpag`, `viewval` e la libreria
 `remark` di `LG_TIX`, dove stanno quegli elementi. Riferimento:
 [Alg_legopc/README.md](../../Alg_legopc/README.md#elementi-operatore-delle-pagine-faceplate-e-set-value).
 

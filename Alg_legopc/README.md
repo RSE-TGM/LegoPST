@@ -318,17 +318,21 @@ mandano valori alla simulazione in corso. Codice in
 | **clic sinistro** (al rilascio) | apre la pagina con `xstaz` | apre il dialogo di invio |
 | **tasto destro** | menu: pagina assegnata, *Open page*, *Assign page...* | menu: variabile assegnata, *Set value...*, *Assign variable...* |
 
-**In legopc si vedono come in *Show Value* a simulazione ferma** — nel tab
-*Model Topology*, e nel tab *Data Assignment & Simulation* finché *Show Value*
-non è attivo; quando lo si accende, il posto lo prendono le caselle vive, e
-spegnendolo tornano i segnaposti —
-casella per il display, bottoni grigi per faceplate e set value, con dentro la
-variabile o la pagina assegnata, invece del testo dell'elemento.
-Quando non è ancora assegnata, la casella o il bottone ci sono lo stesso, con
-il posto del nome occupato da **`--?--`** per il display (un solo `?` darebbe
-una casella minuscola) e da **`xstaz: ?`** / **`set: ?`** per gli altri due:
-si vede dov'è l'elemento e cosa gli manca. Il
-disegno sta **sopra** l'elemento ma ha `-state disabled`: Tk lo disegna e non
+**In legopc si vedono come in *Show Value* a simulazione ferma**: casella per
+il display, bottoni grigi per faceplate e set value, con dentro la variabile o
+la pagina assegnata invece del testo dell'elemento. Nel tab *Model
+Topology* si vedono **sempre** (lì *Show Value* non legge la simulazione, vedi
+*Menu View* più sotto); nel tab *Data Assignment & Simulation* si
+vedono finché *Show Value* è spento — ma quel tab ci entra già acceso, quindi
+lì di norma si trovano subito le caselle vive, e spegnendolo tornano i
+segnaposti.
+
+Quando l'assegnazione non c'è ancora, la casella o il bottone ci sono lo
+stesso, con il posto del nome occupato da **`--?--`** per il display (un solo
+`?` darebbe una casella minuscola) e da **`xstaz: ?`** / **`set: ?`** per gli
+altri due: si vede dov'è l'elemento e cosa gli manca.
+
+Il disegno sta **sopra** l'elemento ma ha `-state disabled`: Tk lo disegna e non
 lo considera nella scelta dell'oggetto sotto il puntatore, così il clic arriva
 sempre all'elemento e trascinamento, selezione e menù del tasto destro
 funzionano come prima. Non porta il tag `module` né quello dell'istanza: chi
@@ -451,6 +455,74 @@ Dettagli e tabella dei chiamanti: [LGHMI.md](LGHMI.md#il-menu-edit-delle-hmi-dra
 
 Riferimento sender C originale: [monit_perturba.c](../Alg_rt/net_simula/net_monit/monit_perturba.c) (`vfork`/`execve` di xaing + `msg_snd` di `RIC_AING`). Struttura messaggio: [ric_aing.h](../AlgLib/libinclude/ric_aing.h).
 
+## Menu View — ordine delle voci e modo di visualizzazione di partenza
+
+In **legopc** l'ordine delle voci (`legopc.tix`, blocco `set m .menu.view`) è:
+prima i **modi di visualizzazione**, poi gli strumenti del disegno.
+
+```
+Show Value          <- radio, e' il default del tab Data Assignment
+--------
+Show OFF
+Show Names
+Show Classes
+Show Connections...
+--------
+Links...
+Info...
+Set Sim path      >  (solo Linux)
+Units...             (solo Linux)
+StileAnim            (su Windows: Show infoitemname)
+--------
+Zoom              >
+Find name
+```
+
+**Ogni tab ha il suo modo di default, e ci torna a ogni ingresso.** La globale
+`showon` (a cui sono legati i radiobutton) vale per il tab in vista; i default
+stanno nell'array `::showon_tab` (`1` Model Topology, `2` Data Assignment &
+Simulation, `3` Task Configuration) e li rimette `cambia_tab_showon`, chiamata
+da `raisetopol`/`raisedata`/`raisetaskconf`. Dentro un tab il modo si cambia a
+mano quanto si vuole, ma uscendo e rientrando si riparte dal default:
+
+| Tab | Modo a ogni ingresso | Perché |
+|---|---|---|
+| *Model Topology* | **Show Names** | è il tab del disegno: serve sapere come si chiama ogni blocco |
+| *Data Assignment & Simulation* | **Show Value** | è il tab della simulazione: si entra per vedere i valori |
+| *Task Configuration* | **Show Names** | — |
+
+Uscendo da *Show Value* `cambia_tab_showon` fa anche `anima chiudi`: se no la
+pipe di `viewval` resterebbe a girare su un canvas non più in vista.
+
+**Show Value vale solo nel tab dei dati.** Negli altri tab vuol dire soltanto
+"pagina senza etichette": `ShowNamesfilt` esce subito se `modalita != 2`, quindi
+**non apre la pipe di `viewval`** e non legge la simulazione (coerente con i
+segnaposti disegnati, che sono statici). Due punti da non toccare:
+
+- `raisetopol` con `showon == 4` (succede solo se si sceglie *Show Value* a mano
+  restando nel disegno) fa `ShowNames $c 1`, non `ShowNames $c 4`: con `4` la
+  proc disegna per ogni modulo un testo vuoto **su rettangolo giallo**, cioè
+  caselle vuote sparse sul disegno;
+- `raisedata`, entrando nel tab dei dati, richiama `ShowNamesfilt $c $c2 4`
+  (mette in moto la lettura dei valori) invece di `ShowNames $c2 4`, che
+  darebbe le stesse caselle vuote.
+
+**Anche in `draw2gr.tcl`** (menu `.menu.vmgr`) *Show Value* è la **prima voce**
+e il **modo di partenza** (`set showon 4`): la pagina è un'interfaccia
+operatore, si apre per vedere i valori. In coda allo startup, dopo
+`topRead`/`loadF01`, il modo si applica da solo — `ShowNamesfilt $c $c 4` se
+vale 4, `ShowNames $c $showon` altrimenti — dove prima c'era un `ShowNames $c 2`
+fisso. Le altre voci del menu (*Graf sequential/circular*, *Find name*, *Zoom*,
+*Set Sim path*, *Units...*) sono rimaste dov'erano.
+
+**Gotcha indici menu**: le proc `raisetopol`/`raisedata`/`raisetaskconf` fanno
+`entryconfigure` sul menu View; **tutte** le voci sono indirizzate **per label**
+(`"Links..."`, `"Info..."`, `"Show OFF"`, `"Set Sim path"`, `"Units..."`, …)
+perché gli indici numerici cambiano tra piattaforme e a ogni voce aggiunta o
+spostata (l'inserimento di *Units...* aveva rotto `entryconfigure 4` → errore
+`unknown option "-state"` sul separatore; il riordino ha spostato *Links...*
+dall'indice 0 al 7).
+
 ## Set Sim path — animazione/Plot/Command su una simulazione in un'altra directory
 
 Voce **View → Set Sim path** (in `legopc.tix` tab *Data Assignment* e in `draw2gr.tcl`): imposta la globale `::anima_sim_path` (definita in `animate.tcl`) = directory della simulazione in corso. Serve quando la HMI è stata avviata in una dir diversa da quella della sim attiva. Tre consumatori, tutti da allineare a quella dir:
@@ -477,8 +549,6 @@ La selezione dell'unità è **per tipo di grandezza** (prima lettera del nome va
 **Show Value e unità**: il path **live** (pipe `viewval -s`) converte già in viewval (`cerca_umis`→`sel`→`A*val+B`, [main_viewval.c](../Alg_rt/net_simula/viewval/main_viewval.c) modo server). Il path **statico F14** (caselle azzurre) converte lato Tcl: `umis_load` (animate.tcl) carica la tabella via `umis -l` dalla dir sim (`umis_sim_dir` = `::anima_sim_path` o cwd), `conv_umis` converte i valori `matrVf14`, `ret_umis` usa la tabella caricata (fallback: vecchia switch MKS hardcoded). `umis_load` è richiamata all'attivazione (modi 1 e 3 di `anima_aggiorna`).
 
 **Dialogo View → Units…** (`umis_dialog` in animate.tcl; voci menu in draw2gr.tcl e legopc.tix, solo Linux): radiobutton per tipo (tipi a unità singola nascosti), OK → una `exec umis TIPO unità` per tipo cambiato → `refresh_cmd` (`umis_refresh_showvalue[_pc]`) rilancia Show Value se attivo, così **viewval riparte e rilegge le unità** (viewval legge il file solo all'avvio). Windows (sincview) non gestito.
-
-**Gotcha indici menu**: in legopc.tix le proc `raisetopol`/`raisedata`/`raisetaskconf` fanno `entryconfigure` sul menu View; le voci dopo *Info...* sono ora indirizzate **per label** (`"Show OFF"`, `"Set Sim path"`, `"Units..."`, …) perché gli indici numerici cambiano tra piattaforme e a ogni voce aggiunta (l'inserimento di *Units...* aveva rotto `entryconfigure 4` → errore `unknown option "-state"` sul separatore).
 
 ## Tool C in `Alg_legopc/src/c_files/`
 

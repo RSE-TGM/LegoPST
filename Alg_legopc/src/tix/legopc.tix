@@ -3814,6 +3814,15 @@ set mod 4
 }
 	if { $mod == 4 } {
 
+          # Show Value ha senso solo nel tab dei dati: altrove (disegno, task)
+          # vuol dire "pagina senza etichette" e nessuna lettura dalla
+          # simulazione -- restano i segnaposti disegnati degli elementi.
+          if { $modalita != 2 } {
+              anima chiudi qq
+              catch {hmi_segnaposti $c}
+              return
+          }
+
           if  { $::LINUXPLAT == 1 } {
             anima chiudi qq
             set sked_running 0
@@ -4477,6 +4486,17 @@ source $env(LG_TIX)/openhelp.tcl
 source $env(LG_TIX)/settings.tcl
 # Fine inclusi del  main di legopc.tix ----------------------------------------
 
+# Entrando in un tab il modo del menu View torna al default di quel tab
+# (::showon_tab): dentro il tab si puo' cambiare, ma uscendo e rientrando si
+# riparte dal default. Lasciando Show Value si ferma anche l'animazione, se no
+# la pipe di viewval resterebbe a girare sul canvas non piu' in vista.
+proc cambia_tab_showon { nuovo } {
+	global showon
+	if { ![info exists ::showon_tab($nuovo)] } { return }
+	if { $showon == 4 && $::showon_tab($nuovo) != 4 } { anima chiudi qq }
+	set showon $::showon_tab($nuovo)
+}
+
 proc raisetopol { c } {
 	   	global showon  curFileName
 		global model_img data_img  task_img modalita
@@ -4491,9 +4511,15 @@ proc raisetopol { c } {
     		catch {hmi_aggiorna_etichette $c}
     		catch {hmi_segnaposti $c}
 
-    		if { $::showon == 4 } { set qq [$c gettags infoitemname ]; anima chiudi qq }
-		
-		ShowNames $c $showon
+    		cambia_tab_showon 1
+    		if { $::showon == 4 } {
+    			# Show Value nel tab del disegno = pagina come la vede
+    			# l'operatore: via i nomi dei moduli, restano i segnaposti
+    			# disegnati (ShowNames 4 disegnerebbe caselle gialle vuote).
+    			ShowNames $c 1
+    		} else {
+    			ShowNames $c $showon
+    		}
 		.menu.file entryconfigure 0 -state normal 
 		.menu.file entryconfigure 2 -state normal 
 		.menu.file entryconfigure 3 -state normal 
@@ -4512,8 +4538,8 @@ proc raisetopol { c } {
 		}
 		.menu.lib  entryconfigure 0 -state normal 
 		.menu.lib  entryconfigure 1 -state normal 
-		.menu.view  entryconfigure 0 -state normal
-		.menu.view  entryconfigure 1 -state normal
+		.menu.view  entryconfigure "Links..." -state normal
+		.menu.view  entryconfigure "Info..." -state normal
 		# voci indirizzate per LABEL: gli indici numerici cambiano tra
 		# piattaforme e a ogni voce aggiunta (es. Units...)
 		if { $::LINUXPLAT == 1 } {
@@ -4549,11 +4575,18 @@ proc raisedata { c c2 } {
         	if { ![loadF01 $c2 no]} {
         			return 2
         		}
+		cambia_tab_showon 2
 		# Etichette e, fuori da Show Value, segnaposti disegnati (hmielem.tcl)
 		catch {hmi_aggiorna_etichette $c2}
 		if {$showon != 4} { catch {hmi_segnaposti $c2} }
-        				
-		ShowNames $c2 $showon
+
+		if {$showon == 4} {
+			# il tab dei dati parte in Show Value: mette in moto la
+			# lettura dei valori, non le etichette vuote di ShowNames
+			ShowNamesfilt $c $c2 4
+		} else {
+			ShowNames $c2 $showon
+		}
 		$nn2.golg3 configure -state disable 
 		$nn2.calc_trans configure -state disable	
 		if {$curFileName != "untitled" && $curFileName != "" && $curFileName != "-"} { $nn2.golg3 configure -state normal ; $nn2.calc_trans configure -state normal ; agg_vis_noti }
@@ -4572,8 +4605,8 @@ proc raisedata { c c2 } {
 		}
 		.menu.lib  entryconfigure 0 -state disabled 
 		.menu.lib  entryconfigure 1 -state disabled 
-		.menu.view  entryconfigure 0 -state disabled
-		.menu.view  entryconfigure 1 -state disabled
+		.menu.view  entryconfigure "Links..." -state disabled
+		.menu.view  entryconfigure "Info..." -state disabled
 		# voci indirizzate per LABEL: gli indici numerici cambiano tra
 		# piattaforme e a ogni voce aggiunta (es. Units...)
 		if { $::LINUXPLAT == 1 } {
@@ -4599,9 +4632,9 @@ proc raisetaskconf { c c2 c4 } {
 	set modalita 3
 	avverti $c
     	
-    	if { $::showon == 4 } { set qq [$c4 gettags infoitemname ]; anima chiudi qq}
+	cambia_tab_showon 3
 
-	ShowNames $c4 $showon
+	if { $::showon == 4 } { ShowNames $c4 1 } else { ShowNames $c4 $showon }
 	.menu.file entryconfigure 0 -state disabled 
 	.menu.file entryconfigure 2 -state disabled 
 	.menu.file entryconfigure 3 -state disabled 
@@ -4612,8 +4645,8 @@ proc raisetaskconf { c c2 c4 } {
 	.menu.file entryconfigure 11 -state disabled 
 	.menu.lib  entryconfigure 0 -state disabled 
 	.menu.lib  entryconfigure 1 -state disabled 
-	.menu.view  entryconfigure 0 -state disabled
-	.menu.view  entryconfigure 1 -state disabled
+	.menu.view  entryconfigure "Links..." -state disabled
+	.menu.view  entryconfigure "Info..." -state disabled
 	# voci indirizzate per LABEL: gli indici numerici cambiano tra
 	# piattaforme e a ogni voce aggiunta (es. Units...)
 	if { $::LINUXPLAT == 1 } {
@@ -4678,6 +4711,12 @@ proc createtask { f c c2} {
     set needbuild 0
     set f14time 0
     set showon 2
+# Modo di visualizzazione (menu View) di default per tab: 1 Model Topology,
+# 2 Data Assignment & Simulation, 3 Task Configuration. Il default si rimette
+# a ogni ingresso nel tab (lo fa cambia_tab_showon): il tab del disegno torna
+# a "Show Names", quello dei dati a "Show Value".
+    array set ::showon_tab {1 2 2 4 3 2}
+    set showon $::showon_tab(1)
     set DIRMODEL " "
     set ::fileChange "NO"
     set ::select_list " "
@@ -4965,6 +5004,19 @@ if { $::LINUXPLAT == 0 } {
     set m .menu.view
     menu $m -tearoff 0 -activebackground darkblue -activeforeground white
     .menu add cascade -label "View" -menu $m -underline 0
+
+    # Ordine delle voci: prima i modi di visualizzazione (Show Value in cima,
+    # e' il default del tab Data Assignment & Simulation), poi gli strumenti
+    # del disegno. Le voci si indirizzano per LABEL (entryconfigure
+    # "Links..."): gli indici numerici cambiano tra piattaforme e a ogni voce
+    # aggiunta.
+    $m add radio -label "Show Value" -variable showon -value 4 -command "ShowNamesfilt $c $c2 1; ShowNamesfilt $c $c2 4"
+    $m add separator
+    $m add radio -label "Show OFF" -variable showon -value 1 -command "ShowNamesfilt $c $c2 1"
+    $m add radio -label "Show Names" -variable showon -value 2 -command "ShowNamesfilt $c $c2 1; ShowNamesfilt $c $c2 2"
+    $m add radio -label "Show Classes" -variable showon -value 3 -command "ShowNamesfilt $c $c2 1; ShowNamesfilt $c $c2 3"
+    $m add command -label "Show Connections..." -command "viewConn_dlg $c $c2 $::c4glob"
+    $m add separator
     $m add command -label "Links..." -command "optLinks $c"
     $m add command -label "Info..." -command "optInfo $c"
 
@@ -4993,13 +5045,6 @@ if { $::LINUXPLAT != 0 } {
 ##    	exec $env(LG_BROWSER) [pwd]
 #    	exec $env(LG_BROWSER) $DIRMODEL
 #    	}
-    
-    $m add separator
-    $m add radio -label "Show OFF" -variable showon -value 1 -command "ShowNamesfilt $c $c2 1"
-    $m add radio -label "Show Names" -variable showon -value 2 -command "ShowNamesfilt $c $c2 1; ShowNamesfilt $c $c2 2"
-    $m add radio -label "Show Classes" -variable showon -value 3 -command "ShowNamesfilt $c $c2 1; ShowNamesfilt $c $c2 3"
-    $m add command -label "Show Connections..." -command "viewConn_dlg $c $c2 $::c4glob"
-    $m add radio -label "Show Value" -variable showon -value 4 -command "ShowNamesfilt $c $c2 1; ShowNamesfilt $c $c2 4"
     
 
 

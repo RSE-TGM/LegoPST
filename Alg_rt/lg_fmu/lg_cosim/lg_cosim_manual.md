@@ -374,7 +374,8 @@ la sessione e **sopravvive** alla fine del run, così puoi guardare lo stato fin
 Nella pagina hai schema animato, *View → Show Value*, Plot e **Command Mode**
 (perturbazione via `xaing`): in co-simulazione perturbi il modello mentre il
 master scambia le variabili. Se lo schema contiene **bottoni faceplate** o
-elementi **set value**, in *Show Value* aprono le pagine di `xstaz` e mandano
+elementi **set value**, in *Show Value* (il modo di partenza della pagina)
+aprono le pagine di `xstaz` e mandano
 valori agli ingressi della FMU di quella pagina (vedi
 [Alg_legopc/README.md](../../../Alg_legopc/README.md#elementi-operatore-delle-pagine-faceplate-e-set-value)
 e, per l'`r02.dat` nel bundle, [USAGE.md](../USAGE.md)). Usa **`--speedup 1.0`** o simile — a velocità massima

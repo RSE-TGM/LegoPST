@@ -734,17 +734,20 @@ set m .menu.vmgr
 menu $m -tearoff 0 -activebackground darkblue -activeforeground white
 .menu add cascade -label "View" -menu $m -underline 0
 
-set showon 2
+# Modo di partenza: Show Value. La pagina e' un'interfaccia operatore, si apre
+# per vedere i valori; e' anche la prima voce del menu (come in legopc.tix).
+set showon 4
 
 # $m add radio -label "Show OFF" -variable showon -value 1 -command "ShowNames $c 1"
 # $m add radio -label "Show Names" -variable showon -value 2 -command "ShowNames $c 1; ShowNames $c 2"
 # $m add radio -label "Show Classes" -variable showon -value 3 -command "ShowNames $c 1; ShowNames $c 3"
 
+    $m add radio -label "Show Value" -variable showon -value 4 -command "ShowNamesfilt $c $c 1; ShowNamesfilt $c $c 4"
+    $m add separator
     $m add radio -label "Show OFF" -variable showon -value 1 -command "ShowNamesfilt $c $c 1"
     $m add radio -label "Show Names" -variable showon -value 2 -command "ShowNamesfilt $c $c 1; ShowNamesfilt $c $c 2"
     $m add radio -label "Show Classes" -variable showon -value 3 -command "ShowNamesfilt $c $c 1; ShowNamesfilt $c $c 3"
     $m add command -label "Show Connections..." -command "viewConn_dlg $c $c $c"
-    $m add radio -label "Show Value" -variable showon -value 4 -command "ShowNamesfilt $c $c 1; ShowNamesfilt $c $c 4"
 
 
 if  { $::LINUXPLAT == 1 } {
@@ -1289,7 +1292,13 @@ loadF01 $c no
 
 showIt "-"
 
-catch { ShowNames $c 2}
+# All'avvio si applica il modo del menu View (default Show Value): con 4 parte
+# la lettura dei valori, altrimenti bastano le etichette sui blocchi.
+if { $showon == 4 } {
+    catch { ShowNamesfilt $c $c 4 }
+} else {
+    catch { ShowNames $c $showon }
+}
 #wm title . "$envir - $f22name - $curFileName"
 wm title . "HMI & Plot  - $f22name - $curFileName.tom"
 
