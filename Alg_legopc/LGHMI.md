@@ -135,9 +135,27 @@ stazioni; l'elenco è letto da `stazpag -m`, che conosce il formato binario di
 (`xstaz 1`, processo indipendente, cwd = la directory del `r02.dat`; parte
 iconificato, con la sola finestrella *Quit*), poi gli manda la richiesta della
 pagina con `stazpag`. La richiesta resta in coda finché `xstaz` non la scoda,
-quindi non ci sono corse di avvio. **Senza simulazione (`net_sked` assente) non
-avvia niente** e lo dice: prima `xstaz` partiva comunque e restava iconificato,
-mentre `stazpag` falliva perché la coda non c'era.
+quindi non ci sono corse di avvio.
+
+**Anche senza simulazione** (`net_sked` assente) la pagina si apre, con i
+valori fermi, e la riga di stato lo dice (*No simulation running: the values
+are not live.*): è quello che serve mentre si costruiscono e si configurano le
+stazioni. Funziona perché:
+
+- `xstaz` non trova il DB punti condiviso (`RtCreateDbPunti` ritorna NULL: la
+  chiave dell'header non c'è) e va avanti lo stesso;
+- la coda delle richieste la **crea `xstaz`** (`msg_create_fam`), non solo
+  `net_sked`. L'unica attesa è quella: appena lanciato, `xstaz` la crea qualche
+  istante dopo, e `stazpag` che arriva prima non la trova (esce con 5).
+  `staz_apri` allora riprova per al massimo 3 secondi, solo se `xstaz` l'ha
+  appena avviato lui;
+- un `xstaz` avviato così **non si aggancia più** alla simulazione, ma non ci
+  arriva: `net_startup`, `net_simula` e `simula` cominciano con `killsim`, che
+  lo chiude. (Eccezione: in co-simulazione con `LG_COSIM_NO_KILLSIM=1` il
+  `killsim` non c'è, e un `xstaz` aperto prima va chiuso a mano.)
+
+`xstaz` legge `SHR_USR_KEY` con `atoi(getenv(...))` senza controllarla: se la
+variabile manca `staz_apri` non lo lancia e dice di sorgiare il profilo.
 
 L'apertura non è scritta in `lghmi.tcl` ma in
 [src/tix/lgstaz.tcl](src/tix/lgstaz.tcl) (`staz_apri`, con `parse_s01`,

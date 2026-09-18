@@ -148,9 +148,11 @@ legopc o in draw2gr apre, con un clic in *View → Show Value*, la pagina che gl
 è stata assegnata. Vedi
 [Alg_legopc/README.md](../../../Alg_legopc/README.md#elementi-operatore-delle-pagine-faceplate-e-set-value).
 `lghmi` e i bottoni usano la stessa procedura, `staz_apri` in
-[lgstaz.tcl](../../../Alg_legopc/src/tix/lgstaz.tcl), che **senza `net_sked`
-non avvia `xstaz`**: altrimenti resterebbe iconificato ad aspettare una coda che
-non c'è.
+[lgstaz.tcl](../../../Alg_legopc/src/tix/lgstaz.tcl), che apre le pagine
+**anche a simulazione ferma**, con i valori fermi: serve a costruire e
+configurare le stazioni. Vedi
+[Alg_legopc/LGHMI.md](../../../Alg_legopc/LGHMI.md) per come funziona senza
+`net_sked`.
 
 Sotto, il meccanismo a riga di comando su cui si appoggiano.
 
@@ -169,8 +171,12 @@ stazpag RISCBP          # chiede la pagina: si apre la finestra del faceplate
 ```
 
 `stazpag` verifica che il nome esista in `r02.dat` prima di spedire, e se la
-coda non c'è dice che la simulazione non è avviata invece di fallire in
-silenzio. In alternativa si può lanciare `net_monit` a mano — usa una coda diversa da
+coda non c'è lo dice (esce con 5) invece di fallire in silenzio. La coda la
+crea lo schedulatore **o `xstaz` stesso** (`msg_create_fam` all'avvio): la
+sequenza qui sopra funziona quindi anche **senza simulazione** — `xstaz` non
+trova il DB punti e mostra le pagine con i valori fermi, che è quanto basta per
+controllarne l'aspetto. Basta lasciargli un istante per creare la coda prima
+del primo `stazpag`. In alternativa si può lanciare `net_monit` a mano — usa una coda diversa da
 quella del banco (`ID_MSG_MONIT` 3 contro `ID_MSG_BANCO` 4) — ma **solo con la
 simulazione già avviata**: `net_monit` non è autosufficiente, all'avvio si
 aggancia al `dispatcher` e ne aspetta l'ACK. Senza `dispatcher` e `net_sked`

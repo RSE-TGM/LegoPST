@@ -277,7 +277,9 @@ proc hmi_campi {c live} {
 proc hmi_campo_staz {c item live} {
     catch {$c delete hmov$item}
     set pagina [hmi_valore [hmi_inst $c $item] staz]
-    set attivo [expr {$live && $pagina ne "" && [staz_disponibile]}]
+    #  Il faceplate non ha bisogno della simulazione (staz_apri, lgstaz.tcl):
+    #  la pagina si apre anche a simulazione ferma, con i valori fermi.
+    set attivo [expr {$pagina ne "" && [staz_disponibile]}]
     set testo [expr {$pagina ne "" ? $pagina : "xstaz: ?"}]
     lassign [hmi_ingombro $c $item] x1 y1 x2 y2
     hmi_bottone $c [expr {($x1 + $x2) / 2.0}] [expr {($y1 + $y2) / 2.0}] \
@@ -546,16 +548,13 @@ proc hmi_menu {c item X Y} {
     tk_popup $m $X $Y
 }
 
-#  Faceplate: apre la pagina. Ogni impedimento legato alla simulazione e' un
-#  fumetto; solo xstaz su un'altra simulazione merita un dialogo.
+#  Faceplate: apre la pagina, anche a simulazione ferma (serve a costruire e
+#  configurare le stazioni). Gli impedimenti sono un fumetto; solo xstaz su
+#  un'altra simulazione merita un dialogo.
 proc hmi_apri_staz {c item X Y} {
     set pagina [hmi_valore [hmi_inst $c $item] staz]
     if {$pagina eq ""} {
         hmi_fumetto $X $Y "No page assigned: right-click to assign one."
-        return
-    }
-    if {![hmi_live]} {
-        hmi_fumetto $X $Y "No simulation running."
         return
     }
     if {![staz_disponibile]} {
@@ -571,7 +570,13 @@ proc hmi_apri_staz {c item X Y} {
     }
     lassign [staz_apri $dir $pagina] esito msg
     switch -- $esito {
-        ok      { hmi_fumetto $X $Y "Page $pagina requested." 1200 }
+        ok      {
+            if {$msg eq ""} {
+                hmi_fumetto $X $Y "Page $pagina requested." 1200
+            } else {
+                hmi_fumetto $X $Y "Page $pagina requested.\n$msg" 2500
+            }
+        }
         altrove { tk_messageBox -icon warning -title "xstaz" \
                       -parent [winfo toplevel $c] -message $msg }
         default {

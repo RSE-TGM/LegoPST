@@ -33,9 +33,9 @@ proc staz_disponibile {} {
     return 1
 }
 
-#  La simulazione gira? Basta net_sked: e' lui che crea la coda delle
-#  richieste. Si usa ps -A, non ps -a: la simulazione un terminale puo' non
-#  averlo (vedi Alg_rt/net_simula/viewval/README.md).
+#  La simulazione gira? Basta net_sked. Si usa ps -A, non ps -a: la
+#  simulazione un terminale puo' non averlo (vedi
+#  Alg_rt/net_simula/viewval/README.md).
 proc staz_sim_viva {} {
     if {[catch {exec ps -A -o comm} out]} { return 0 }
     foreach riga [split $out "\n"] {
@@ -207,21 +207,33 @@ proc staz_dir_di_pagina {dirs nome} {
 
 #  Apre la pagina <nome> dell'r02.dat in <dir>: avvia xstaz se serve, poi gli
 #  manda la richiesta. Ritorna {esito messaggio}:
-#    ok       richiesta spedita
+#    ok       richiesta spedita; il messaggio non e' vuoto se la simulazione
+#             non gira (la pagina si apre, ma con i valori fermi)
 #    altrove  xstaz gira gia' su un'altra directory: non se ne lancia un
 #             secondo (la coda e' UNA per simulazione, due xstaz si
 #             ruberebbero i messaggi)
-#    errore   directory inaccessibile, lancio o richiesta falliti (tipicamente:
-#             la simulazione non e' avviata e la coda non c'e')
+#    errore   directory inaccessibile, lancio o richiesta falliti
 #  L'output di xstaz va in <log>, lo stesso file che lghmi mostra in
 #  File -> Logs.
+#
+#  La simulazione NON serve: si aprono le pagine anche a simulazione ferma,
+#  per costruire e configurare le stazioni. Senza simulazione xstaz non trova
+#  il DB punti (RtCreateDbPunti ritorna NULL: la chiave dell'header non c'e')
+#  e va avanti lo stesso, e la coda delle richieste la crea lui
+#  (msg_create_fam), cosi' stazpag la trova. Un xstaz avviato cosi' non si
+#  aggancia piu' alla simulazione, ma non ci arriva: net_startup, net_simula e
+#  simula cominciano con killsim, che lo chiude.
 proc staz_apri {dir nome {log /tmp/lghmi_xstaz.log}} {
-    #  Senza simulazione la coda non c'e': stazpag lo direbbe, ma solo DOPO che
-    #  xstaz e' stato avviato, e resterebbe li' iconificato ad aspettare una
-    #  simulazione che non c'e'.
-    if {![staz_sim_viva]} {
-        return [list errore "The simulation is not running: no faceplate can be opened."]
+    #  xstaz legge SHR_USR_KEY con atoi(getenv(...)) senza controllarla: senza
+    #  la variabile andrebbe in crash.
+    if {![info exists ::env(SHR_USR_KEY)] || $::env(SHR_USR_KEY) eq ""} {
+        return [list errore "SHR_USR_KEY is not defined: source the LegoPST profile."]
     }
+    set nota ""
+    if {![staz_sim_viva]} {
+        set nota "No simulation running: the values are not live."
+    }
+    set avviato 0
     set attivo [xstaz_attivo]
     if {[llength $attivo]} {
         lassign $attivo pid cwd
@@ -240,20 +252,31 @@ proc staz_apri {dir nome {log /tmp/lghmi_xstaz.log}} {
             catch {exec $xs 1 > $log 2>@1 &}
         }
         cd $old
+        set avviato 1
         if {![llength [xstaz_attivo]]} {
             after 700
         }
     }
 
     #  La richiesta resta in coda finche' xstaz non la scoda: nessuna corsa.
+    #  Fa eccezione la coda stessa: a simulazione ferma la crea il xstaz appena
+    #  lanciato, qualche istante dopo essere partito, e stazpag che arriva prima
+    #  non la trova (esce con 5). In quel caso si riprova per al massimo 3 s.
     set old [pwd]
     if {[catch {cd $dir}]} {
         return [list errore "Directory not accessible:\n$dir"]
     }
-    set rc [catch {exec [staz_cmd stazpag] $nome 2>@1} out]
+    set tentativi [expr {$avviato ? 15 : 1}]
+    for {set i 0} {$i < $tentativi} {incr i} {
+        set rc [catch {exec [staz_cmd stazpag] $nome 2>@1} out opt]
+        if {!$rc} break
+        set ec [dict get $opt -errorcode]
+        if {[lindex $ec 0] ne "CHILDSTATUS" || [lindex $ec 2] != 5} break
+        after 200
+    }
     cd $old
     if {$rc} {
         return [list errore "Cannot request page '$nome':\n$out"]
     }
-    return [list ok ""]
+    return [list ok $nota]
 }

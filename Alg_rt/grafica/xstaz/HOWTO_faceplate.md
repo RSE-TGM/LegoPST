@@ -2145,7 +2145,10 @@ Note di lettura:
       Zero righe e `r02.dat` appena scritto = compilazione pulita.
 - [ ] **6. Avviare il simulatore** e **inizializzarlo**. `xstaz` legge i valori
       dal DB punti condiviso, quindi senza simulazione i faceplate restano a
-      zero. Con `net_simula` (dispatcher + `net_sked` + `net_monit`) ricordarsi
+      zero. Per controllare solo **l'aspetto** delle pagine (disposizione,
+      etichette, colori) la simulazione non serve: `lghmi` e i bottoni
+      faceplate le aprono anche a simulazione ferma, e si può saltare al
+      punto 7. Con `net_simula` (dispatcher + `net_sked` + `net_monit`) ricordarsi
       che appena avviato lo schedulatore è in **STOP**: nel menu *Control* è
       abilitata solo `Initialize`, e sia `Run` sia il pulsante delle stazioni
       restano grigi finché non la si preme.

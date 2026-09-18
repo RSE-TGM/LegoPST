@@ -411,17 +411,23 @@ scrive con i valori interni prima e dopo.
 **Senza simulazione non si disturba.** "Dal vivo" vuol dire pipe di *Show Value*
 aperta e `net_sked` vivo (`hmi_live`, controllo di `net_sked` al massimo ogni
 3 s). Altrimenti:
-- gli elementi si disegnano **spenti** (bottoni grigi, casella azzurra con il
+- il **set value** si disegna **spento** (bottone grigio, casella azzurra con il
   valore di stazionario) e un clic mostra un **fumetto breve** (*No simulation
-  running*), senza dialoghi;
+  running*), senza dialoghi: non c'è niente a cui mandare il valore;
+- il **faceplate** invece resta **attivo** e apre la pagina lo stesso, con i
+  valori fermi (fumetto *Page … requested. No simulation running: the values
+  are not live.*): serve a costruire e configurare le stazioni senza avviare
+  la simulazione;
 - se la simulazione si ferma mentre *Show Value* è attivo, al ciclo successivo
   gli elementi si spengono, e il dialogo di invio disattiva i suoi bottoni;
 - ogni comando esterno gira in un `catch`, con l'output in `/tmp/legopc_hmi.log`;
   nello stesso log vanno le aperture del dialogo di invio e **ogni tentativo di
   invio**, anche quelli che non partono, con il motivo (simulazione assente,
   valore non numerico): è la prima cosa da guardare se "non succede niente";
-- `xstaz` non si avvia se `net_sked` non c'è (prima lo faceva anche `lghmi`, e
-  restava iconificato ad aspettare);
+- `xstaz` parte anche senza `net_sked`: la coda delle richieste la crea lui
+  (vedi `staz_apri` in [lgstaz.tcl](src/tix/lgstaz.tcl) e
+  [LGHMI.md](LGHMI.md)); se manca `SHR_USR_KEY` non lo si lancia, perché
+  andrebbe in crash;
 - se manca `viewval`, *Show Value* lo dice con il dialogo di sempre **e** nella
   riga di stato del tab *Data Assignment* (`hmi_stato`).
 

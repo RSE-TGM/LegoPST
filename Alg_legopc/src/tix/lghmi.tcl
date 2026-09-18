@@ -241,7 +241,10 @@ proc apri_faceplate {} {
     lassign [staz_apri $dir $nome] esito msg
     switch -- $esito {
         ok {
-            .status configure -text "Page '$nome' requested from xstaz  ($dir)"
+            #  msg non vuoto: la simulazione non gira, la pagina si apre ferma
+            set t "Page '$nome' requested from xstaz  ($dir)"
+            if {$msg ne ""} { append t "  -  $msg" }
+            .status configure -text $t
         }
         altrove {
             tk_messageBox -icon warning -title "xstaz" -parent . -message $msg
