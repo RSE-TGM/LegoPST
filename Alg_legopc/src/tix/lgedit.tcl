@@ -6,7 +6,10 @@
 #                area_della_task);
 #   draw2gr.tcl  SOLO se lanciato con -edit (menu Edit). Senza -edit draw2gr
 #                non lo legge nemmeno, quindi gli altri usi di draw2gr
-#                (legopc, FMU, lg_cosim, Windows) restano come prima.
+#                (legopc, FMU, lg_cosim, Windows) restano come prima;
+#   modelli.tcl  (legopc, File -> Open Model): solo i controlli -
+#                esegue_legopc, stessa_directory, tom_della_task - per dire
+#                quali modelli sono gia' aperti in un altro legopc.
 #
 # Una sola implementazione: il selettore e la HMI rifiutano negli stessi casi
 # e con le stesse parole.
@@ -179,7 +182,8 @@ proc legopc_aperto_su {dir} {
 #
 #     Attenzione: questo non IMPEDISCE di modificare, impedisce di porgere la
 #     task gia' aperta. Da legopc vuoto ci si arriva lo stesso con Open Model,
-#     e fuori di qui non c'e' modo di sorvegliarlo.
+#     che avvisa soltanto (modelli.tcl): li' conta la simulazione DEL modello,
+#     qui una simulazione qualsiasi.
 #
 #  2. TASK DI UN'ALTRA AREA. lghmi elenca anche task che non stanno sotto
 #     $LG_ENTRY: in modalita' S01 i path del file sono arbitrari, e i bundle FMU

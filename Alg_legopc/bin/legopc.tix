@@ -43,6 +43,9 @@ proc aprimodello { c c2 f4 modo } {
     global showon curFileName DIRMODEL
 
     if {[ apri_modello $c $c2 $modo]} { return 1};
+    # modello aperto (Open Model, Browse, lgpc <modello>): Include model si
+    # puo' usare subito, senza passare dal cambio di tab (modelli.tcl)
+    catch {modelli_menu_modello}
 #tk_messageBox -icon error -message "aprimodello: $curFileName appname=[tk appname] "
 
     ShowNamesfilt $c $c2 $showon;
@@ -118,7 +121,7 @@ proc  ImportF01 {c} {
 	if {$mex == "yes"} {
 		$c delete all
 		wm title . "LegoPC - untitled"
-            .menu.file entryconfigure 4 -state disabled
+            .menu.file entryconfigure "Include model..." -state disabled
             set curFileName untitled; set modified 0; set needbuild 0
 	    set typesRead {
 	            {"f01.dat files"	{.dat}		TEXT}
@@ -2015,76 +2018,10 @@ proc buildLegoFiles_linux {c} {
 
 
 
-proc include {c} {
-   global env curFileName modified modified1 needbuild
-   
-   catch { destroy .include }
-   toplevel .include
-   wm title .include "Included model choice"
-   frame .include.first
-   frame .include.second -relief ridge -bd 1 -height 2
-   frame .include.third
-   frame .include.fourth -relief ridge -bd 1 -height 2
-   frame .include.fifth
-   label .include.first.lab -text "Choose model to include ..." -font "Courier 12 bold"
-   tixComboBox .include.first.model -editable false
-   .include.first.model subwidget entry configure -background white -font "Courier 12 bold"
-   set models_list [glob $env(LG_MODELS)/*]
-   foreach i $models_list {
-       set curr_file [file tail $i]
-       if [file isdirectory $i] {
-          .include.first.model insert end $curr_file
-       }
-   }
-   label .include.third.lab -text "Include model ..." -font "Courier 12 bold"
-   radiobutton .include.third.n -text "...  above current" -variable direction -relief flat -value N
-   radiobutton .include.third.s -text "...  below current" -variable direction -relief flat -value S
-   radiobutton .include.third.w -text "...  on left  side" -variable direction -relief flat -value W
-   radiobutton .include.third.e -text "...  on right side" -variable direction -relief flat -value E
-   .include.third.n  select
-   button .include.fifth.ok -text OK -command {
-      set included [.include.first.model cget -value]
-      if { ! [file exists $env(LG_MODELS)/$included/$included.tom] } {
-        tk_messageBox -icon warning -title "WARNING" -type ok -parent . \
-           -message "File:\n\n      $env(LG_MODELS)/$included/$included.tom\n\n does not exist!\n "
-      } else {
-         set modified 1
-#         set modified1 1
-         set needbuild 1
-         set pathList [file split $curFileName] 
-         set curModel [lindex $pathList [expr [llength $pathList]-2] ]
-         set olddir [pwd]
-         cd $env(LG_MODELS)/$curModel
-         exec $env(LG_TOOLS)/inhoud $curModel $included $direction
-         file rename -force inhoud.tom $curModel.tom
-         cd $olddir
-#         file delete -force  $curModel/proc
-         file delete -force $olddir/$curModel.top
-         file delete -force $olddir/f01.dat
-#tk_messageBox -message "include: eccomi $olddir $curModel"  -type ok -icon warning       
-	 if { [topRead $c $curModel]} {return 1}
-         set modified 1
-#         set modified1 1
-         set needbuild 1
-#         topWrite $c save
-if { $::LINUXPLAT == 0 } {
-	 if { ![buildLegoFiles $c]} {return 1}
-} else {
-	 if { ![buildLegoFiles_linux $c]} {return 1} 
-}
-         destroy .include
-      }
-   }
-   button .include.fifth.canc -text Cancel -command "destroy .include"
-   pack .include.first.lab .include.first.model -side top -pady 1m
-   pack .include.third.lab .include.third.n .include.third.s \
-        .include.third.w .include.third.e -side top -anchor w -pady 1m
-   pack .include.fifth.ok .include.fifth.canc -side left -expand 1 -pady 1m
-   pack .include.first .include.second .include.third .include.fourth .include.fifth \
-         -side top -fill x -pady 1m -padx 1m 
-
-return 0
-}
+#  include (Include model...) e' stata sostituita da modelli_includi in
+#  modelli.tcl: stesso inhoud, con il modello scelto dall'elenco dei modelli,
+#  la domanda sulle modifiche non salvate, il backup .tom.bak, gli errori di
+#  inhoud mostrati, la fusione di .remap/.lstyle e i blocchi rinominati.
 
 proc loadHelp {c } {
 
@@ -3864,66 +3801,10 @@ set mod 4
 	}
 }
 
-proc DupModel { c c2 c4} {
-
-	global envir
-	global env curFileName modified DIRMODEL
-	global wsXsiz wsYsiz
-
-	if {$curFileName == "untitled" || $curFileName == "" || $curFileName == "-"} {
-		set messaggio "No Model to 'Save As...'"
-		tk_messageBox -message $messaggio -type ok -icon error
-		return
-	}
-
-	toplevel $c.dupmod
-	wm title $c.dupmod "ModelName Duplication"
-	set curmodel [ file tail [ file dirname  $curFileName ] ]
-	label $c.dupmod.lab -text "Copy current model $curmodel to:" -font "Courier 12"
-	entry $c.dupmod.ent -textvariable modelName
-	frame $c.dupmod.but
-	
-	button $c.dupmod.but.ok -text OK -command {
-          if [file isdirectory $env(LG_MODELS)/$modelName] {
-                tk_messageBox -icon info -message "model already exists!" \
-                                    -type ok -parent .
-	  } elseif {[string length $modelName] > 8} {
-                tk_messageBox -icon warning -message "Model name too long (max 8 char.)" \
-                                    -type ok -parent .
-               
-          } else {
-		file mkdir $env(LG_MODELS)/$modelName
-          file copy -force  $curFileName $env(LG_MODELS)/$modelName/${modelName}.tom
-          catch { file copy -force  f14.dat $env(LG_MODELS)/$modelName }
-          catch { file copy -force  f01.dat $env(LG_MODELS)/$modelName }
-          catch { file copy -force  foraus.for $env(LG_MODELS)/$modelName }
-          catch { file copy -force  tasks.dat $env(LG_MODELS)/$modelName }
-          catch { file copy -force  simul.dat $env(LG_MODELS)/$modelName }
-	  set modified 1
-#	  set modified1 1
-	  set curFileName $env(LG_MODELS)/${modelName}/${modelName}.tom
-
-#	  apri_modello $c $c2 1
-	  
-          if {[apri_modello $c $c2 1]} {return 1}
-	  ShowNamesfilt $c $c2 $showon
-	  if { $::LINUXNOMATLAB != 1 } {
-	   open_simul $f4 $DIRMODEL/tasks.dat;
-	   load_task $DIRMODEL $c4;
-	  }
-
-          }
-          destroy $c.dupmod     
-	}
-	
-	button $c.dupmod.but.canc -text Canc -command {
-		destroy $c.dupmod
-		return
-	}
-	pack $c.dupmod.but.ok $c.dupmod.but.canc -side left -padx 2m -fill x
-	pack $c.dupmod.lab $c.dupmod.ent $c.dupmod.but -side top -pady 3m -padx 2m
-
-} 
+#  DupModel (Save As...) e' stata sostituita da modelli_salva_come in
+#  modelli.tcl: stesso comportamento, con il nome scelto dall'elenco dei
+#  modelli, la domanda sulle modifiche non salvate e la copia di .remap e
+#  .lstyle.
 
 
 proc saveSN {}  {
@@ -4484,6 +4365,9 @@ source $env(LG_TIX)/rotate.tcl
 source $env(LG_TIX)/legodat_v2.tix
 source $env(LG_TIX)/openhelp.tcl
 source $env(LG_TIX)/settings.tcl
+# File -> Open Model: elenco dei modelli dell'area (dopo animate.tcl, che
+# porta hmielem.tcl con l'elenco filtrabile hmi_lista)
+source $env(LG_TIX)/modelli.tcl
 # Fine inclusi del  main di legopc.tix ----------------------------------------
 
 # Entrando in un tab il modo del menu View torna al default di quel tab
@@ -4520,21 +4404,20 @@ proc raisetopol { c } {
     		} else {
     			ShowNames $c $showon
     		}
-		.menu.file entryconfigure 0 -state normal 
-		.menu.file entryconfigure 2 -state normal 
-		.menu.file entryconfigure 3 -state normal 
-		.menu.file entryconfigure 4 -state normal
-# 5 è separator 
-		.menu.file entryconfigure 6 -state normal 
-		.menu.file entryconfigure 7 -state disabled 
-# 8 è separator 
-		.menu.file entryconfigure 9 -state normal 
-# 10 è separator 
+		# voci del File menu per ETICHETTA: gli indici si spostano a ogni voce
+		# aggiunta (Delete Model, dopo Include model, li ha spostati)
+		.menu.file entryconfigure "New Model" -state normal 
+		.menu.file entryconfigure "Save Model" -state normal 
+		.menu.file entryconfigure "Save As..." -state normal 
+		.menu.file entryconfigure "Include model..." -state normal
+		.menu.file entryconfigure "Build F01/F14" -state normal 
+		.menu.file entryconfigure "Save F01/F14" -state disabled 
+		.menu.file entryconfigure "Set canvas size" -state normal 
 		# Export as: abilitato solo se e' aperto un modello (.tom)
 		if {$curFileName ne "untitled" && $curFileName ne "" && $curFileName ne "-"} {
-			.menu.file entryconfigure 11 -state normal
+			.menu.file entryconfigure "Export as" -state normal
 		} else {
-			.menu.file entryconfigure 11 -state disabled
+			.menu.file entryconfigure "Export as" -state disabled
 		}
 		.menu.lib  entryconfigure 0 -state normal 
 		.menu.lib  entryconfigure 1 -state normal 
@@ -4590,18 +4473,18 @@ proc raisedata { c c2 } {
 		$nn2.golg3 configure -state disable 
 		$nn2.calc_trans configure -state disable	
 		if {$curFileName != "untitled" && $curFileName != "" && $curFileName != "-"} { $nn2.golg3 configure -state normal ; $nn2.calc_trans configure -state normal ; agg_vis_noti }
-		.menu.file entryconfigure 0 -state disabled 
-		.menu.file entryconfigure 2 -state disabled 
-		.menu.file entryconfigure 3 -state disabled 
-		.menu.file entryconfigure 4 -state disabled
-		.menu.file entryconfigure 6 -state disabled
-		.menu.file entryconfigure 7 -state normal 
-		.menu.file entryconfigure 9 -state disabled 
+		.menu.file entryconfigure "New Model" -state disabled 
+		.menu.file entryconfigure "Save Model" -state disabled 
+		.menu.file entryconfigure "Save As..." -state disabled 
+		.menu.file entryconfigure "Include model..." -state disabled
+		.menu.file entryconfigure "Build F01/F14" -state disabled
+		.menu.file entryconfigure "Save F01/F14" -state normal 
+		.menu.file entryconfigure "Set canvas size" -state disabled 
 		# Export as: abilitato solo se e' aperto un modello (.tom)
 		if {$curFileName ne "untitled" && $curFileName ne "" && $curFileName ne "-"} {
-			.menu.file entryconfigure 11 -state normal
+			.menu.file entryconfigure "Export as" -state normal
 		} else {
-			.menu.file entryconfigure 11 -state disabled
+			.menu.file entryconfigure "Export as" -state disabled
 		}
 		.menu.lib  entryconfigure 0 -state disabled 
 		.menu.lib  entryconfigure 1 -state disabled 
@@ -4635,14 +4518,14 @@ proc raisetaskconf { c c2 c4 } {
 	cambia_tab_showon 3
 
 	if { $::showon == 4 } { ShowNames $c4 1 } else { ShowNames $c4 $showon }
-	.menu.file entryconfigure 0 -state disabled 
-	.menu.file entryconfigure 2 -state disabled 
-	.menu.file entryconfigure 3 -state disabled 
-	.menu.file entryconfigure 4 -state disabled 
-	.menu.file entryconfigure 6 -state disabled
-	.menu.file entryconfigure 7 -state disabled 
-	.menu.file entryconfigure 9 -state disabled 
-	.menu.file entryconfigure 11 -state disabled 
+	.menu.file entryconfigure "New Model" -state disabled 
+	.menu.file entryconfigure "Save Model" -state disabled 
+	.menu.file entryconfigure "Save As..." -state disabled 
+	.menu.file entryconfigure "Include model..." -state disabled 
+	.menu.file entryconfigure "Build F01/F14" -state disabled
+	.menu.file entryconfigure "Save F01/F14" -state disabled 
+	.menu.file entryconfigure "Set canvas size" -state disabled 
+	.menu.file entryconfigure "Export as" -state disabled 
 	.menu.lib  entryconfigure 0 -state disabled 
 	.menu.lib  entryconfigure 1 -state disabled 
 	.menu.view  entryconfigure "Links..." -state disabled
@@ -4914,7 +4797,7 @@ after 200 {
 	if {$mex == "yes"} {
 		$c delete all 
 		wm title . "LegoPC- untitled"
-            .menu.file entryconfigure 4 -state disabled
+            .menu.file entryconfigure "Include model..." -state disabled
             set curFileName untitled; set modified 0; set needbuild 0
 	}
     }
@@ -4926,13 +4809,15 @@ after 200 {
     #$m add command -label "Open..." -command "topRead $c {}"
 ###    $m add command -label "Open Model..." -command { set ret11 0 ; set ret11 [ apri_modello $c $c2 0]; if { $ret11 == 2 } { return }; ShowNamesfilt $c $c2 $showon; open_simul $f4 $DIRMODEL/tasks.dat; load_task $DIRMODEL $c4 }
 
+#  Open Model: l'elenco dei modelli dell'area (modelli.tcl), con Browse... per
+#  il selettore di file di prima.
 $m add command -label "Open Model..." -command {
     if {[catch {set _page [.indice.nb raised]}] || $_page ne "model_topol"} {
         tk_messageBox -icon warning -type ok -title "Open Model" \
             -message "Per aprire un nuovo modello passare prima al tab \"Model Topology\"."
         return
     }
-    aprimodello $c $c2 $f4 0
+    modelli_dialogo $c $c2 $f4
 }
 
 #    $m add command -label "Open Model..." -command { 
@@ -4949,8 +4834,12 @@ $m add command -label "Open Model..." -command {
      $m add command -label "Save Model" -command " topWrite $c save "
 
 #    $m add command -label "Save As..." -command "topWrite $c saveas"
-    $m add command -label "Save As..." -command { . configure -cursor "watch"; DupModel $c $c2 $c4 ; . configure -cursor "arrow"}
-    $m add command -label "Include model..." -command "include $c" -state disabled
+    #  Save As: il nome della copia dall'elenco dei modelli (modelli.tcl)
+    $m add command -label "Save As..." -command { modelli_salva_come $c $c2 $c4 $f4 }
+    $m add command -label "Include model..." -command "modelli_includi $c" -state disabled
+#  Delete Model: il modello nel cestino dell'area (modelli.tcl). Sempre
+#  attiva, come Open Model: il modello aperto la rifiuta da se'.
+$m add command -label "Delete Model..." -command "modelli_cancella $c"
     $m add separator
 if { $::LINUXPLAT == 0 } {
     $m add command -label "Build F01/F14" -command { $c configure -cursor "watch" ; update ; buildLegoFiles $c;  $c configure -cursor "arrow" }
@@ -4977,7 +4866,7 @@ if { $::LINUXPLAT == 0 } {
     $m entryconfigure "Export as" -state disabled
 
 #    $m add separator
-#    $m add command -label "Duplicate Model" -command "DupModel $c $c2 $c4"
+#    $m add command -label "Duplicate Model" (ora Save As..., modelli_salva_come)
     $m add separator
 if { $::LINUXPLAT == 0 } {
 ## solo per windows

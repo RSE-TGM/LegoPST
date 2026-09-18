@@ -230,7 +230,7 @@ perdendo testo e animazione. Non serve quindi toccare i modelli esistenti. Sul c
 **Vincolo sull'ordine dei tag (`@val_0.tcl`, `@stz_0.tcl`, `@set_0.tcl`)**: i tag 0..7 devono restare identici a `@com_0` (`0=id, 2=cls, 3=ori, 5=lpath, 7=font`) perché `leggi_font` e altro codice in `legopc.tix` usano **indici posizionali fissi**. Il tag distintivo (`freeval`, `hmistaz`, `hmiset`) va quindi aggiunto **per ultimo** (indice 8).
 
 **Comportamento del display `@val_0`** (logica in `animate.tcl`, condivisa da `legopc.tix` tab *Data assignment & Simulation* / canvas `$c2` e da `draw2gr.tcl` *HMI & Plot*):
-- In *View → Show Value*, doppio-click sul campo apre un dialogo che chiede il nome variabile, **validato** contro `tipVarMod` (rifiuta variabili non presenti nel modello). Sotto il campo c'è l'**elenco filtrabile** di tutte le variabili del modello, con tipo (`IN`/`US`/`UA`) e descrizione: scrivendo nel campo l'elenco si restringe ai nomi che contengono quel testo, un clic mette il nome nel campo, il doppio clic conferma. È lo stesso componente del dialogo *Variable to set* degli elementi operatore (`hmi_lista_variabili` in [src/tix/hmielem.tcl](src/tix/hmielem.tcl)).
+- In *View → Show Value*, doppio-click sul campo apre un dialogo che chiede il nome variabile, **validato** contro `tipVarMod` (rifiuta variabili non presenti nel modello). Sotto il campo c'è l'**elenco filtrabile** di tutte le variabili del modello, con tipo (`IN`/`US`/`UA`) e descrizione: scrivendo nel campo l'elenco si restringe ai nomi che contengono quel testo, un clic mette il nome nel campo, il doppio clic conferma. È lo stesso componente del dialogo *Variable to set* degli elementi operatore e di *File → Open Model* (`hmi_lista`, con la variante `hmi_lista_variabili`, in [src/tix/hmielem.tcl](src/tix/hmielem.tcl)); il filtro non distingue maiuscole e minuscole.
 - Una checkbox sceglie la **modalità di visualizzazione**: *solo valore* (`1.55E08 Pa`) oppure *etichetta* (`PCOL 1.55E08 Pa`).
 - Stile casella come i blocchi: senza bordo, **giallo** in simulazione (valore live via pipe), **azzurro** (`cyan`) nei valori di stazionario (F14). La casella copre il placeholder.
 - **Il popup di Model Topology** raccoglie gli elementi in **Add elements ▸** (come *File → Export as ▸*), abilitato su sfondo e porte. Lo stato delle voci lo imposta `topol_pop_stati` **per etichetta**, non per indice: prima gli indici erano cablati in cinque rami, e ogni voce aggiunta li spostava tutti. Le due voci che cambiano etichetta — *Modify Text* (che sugli elementi operatore diventa *Assign page...* / *Assign variable...*) e *Delete* (*Delete link* sui collegamenti) — si indirizzano con l'indice ricordato alla costruzione (`::topol_pop_modifica`, `::topol_pop_delete`).
@@ -297,7 +297,7 @@ LINK TURB.port1|COND.port0 color=red width=3 dash=1   ← singolo tratto (vince 
 - **Chiave `LINK`** = coppia porte **normalizzata** `min|max` di `mod.port` (indipendente dall'ordine, stabile tra sessioni — a differenza del tag `link<sId>.<eId>` che usa ID item volatili). Risolta da `linkstyle_key_from_line` (linea→link tag→porte→moduli via `*.name`).
 - **Chiave `CAT`** = nome categoria (`tycon`, prima 4 lettere del `*_ptype`).
 - **UI**: tasto destro su una connessione → voce **"Line style…"** nel popup (abilitata solo sui link, indirizzata **per label** per non dipendere dagli indici del menu). Dialogo con scelta *This connection only* / *All "<cat>" connections*, color picker, spessore, tratteggio, **Apply** / **Reset to default**. Salvataggio immediato (come `.remap`).
-- **Applicazione**: al load, dopo `topRead`, `linkstyle_reload $c` (in `raisetopol` e `apri_modello`). `showLinks` (View→Links) riapplica gli override quando una categoria torna visibile ("override vince"). `linkDelete` rimuove l'eventuale override del tratto cancellato. `writeFiles` chiama `linkstyle_save` (persiste anche su Save As).
+- **Applicazione**: al load, dopo `topRead`, `linkstyle_reload $c` (in `raisetopol` e `apri_modello`). `showLinks` (View→Links) riapplica gli override quando una categoria torna visibile ("override vince"). `linkDelete` rimuove l'eventuale override del tratto cancellato. `writeFiles` chiama `linkstyle_save`; *File → Save As* copia `<modello>.lstyle` nella copia, rinominato (vedi *File → Open Model, Save Model, Save As, Include model, Delete Model*).
 - Deployato in `$LG_TIX` via makefile; sorgiato da `legopc.tix`.
 
 ## Elementi operatore delle pagine: faceplate e set value
@@ -461,6 +461,198 @@ Dettagli e tabella dei chiamanti: [LGHMI.md](LGHMI.md#il-menu-edit-delle-hmi-dra
 
 Riferimento sender C originale: [monit_perturba.c](../Alg_rt/net_simula/net_monit/monit_perturba.c) (`vfork`/`execve` di xaing + `msg_snd` di `RIC_AING`). Struttura messaggio: [ric_aing.h](../AlgLib/libinclude/ric_aing.h).
 
+## File → Open Model, Save Model, Save As, Include model, Delete Model — l'elenco dei modelli dell'area
+
+*File → Open Model...* non apre più il selettore di file: mostra l'**elenco dei
+modelli** che stanno in `$LG_MODELS` (su Linux `~/legocad`, cioè l'area scelta
+con `lgswitch`), con l'area nel titolo (*Open Model - legopst_nuclear*). Codice
+in [src/tix/modelli.tcl](src/tix/modelli.tcl), sorgiato da `legopc.tix`.
+
+```
+Model:  [slb_______________]
+Model          Modified          In use
+SLB1_NI2       2026-09-15 16:23
+Test_x1        2026-09-18 16:11  open in legopc (pid 21372)
+Beta           2026-09-18 16:11  simulation running
+        [ Open ]  [ Browse... ]  [ Cancel ]
+```
+
+- **Cosa è un modello**: una directory con il `.tom` **omonimo**
+  (`<dir>/<dir>.tom`) — quello che legopc apre per nome (`topRead`) e che lghmi
+  considera il modello della task (`tom_della_task`). Le directory con soli
+  `.tom` di altro nome (copie di backup come `MDC_NI0_bad/MDC_NI0.tom`) non
+  compaiono; una directory con più `.tom` compare una volta, per quello
+  omonimo. Le task di regolazione `r_*` non hanno `.tom` e non compaiono.
+- **Colonne**: nome, data dell'ultima modifica del `.tom`, e chi lo sta usando.
+  Ordine alfabetico (`lsort -dictionary`).
+- **Ricerca**: è l'elenco filtrabile di *Variable to set* (`hmi_lista`):
+  scrivendo nel campo le righe si restringono, un clic mette il nome nel campo,
+  doppio clic o *Open* (o Invio) apre. Nel campo basta un pezzo del nome se
+  lascia una riga sola, e le maiuscole non contano.
+- **Browse...** apre il selettore di file di prima, per un `.tom` fuori
+  dall'area o con un nome diverso dalla sua directory.
+- **Modifiche non salvate**: prima dell'elenco c'è la stessa domanda del cambio
+  di tab (`avverti`: salvare topologia, f01, f14?). Come lì, rispondere *No*
+  **annulla** l'apertura: non esiste un "scarta e continua".
+
+**"In use"** — calcolato all'apertura dell'elenco e **ricontrollato al
+momento di aprire**, perché nel frattempo può cambiare:
+
+| Segno | Come si vede |
+|---|---|
+| `open in legopc (pid N)` | un **altro** legopc ha la directory corrente nella directory del modello: legopc ci si porta quando apre un modello. Stesso criterio di `legopc_aperto_su` (lgedit.tcl), ma in un giro solo per tutti i modelli |
+| `simulation running` | un `net_sked` dell'utente gira nella directory di un simulatore il cui `S01` elenca il modello tra le task di processo (`net_startup` fa `cd` nella directory del simulatore). Nei bundle FMU conta anche la directory del `net_sked` stessa |
+
+In entrambi i casi aprire si può, dopo un avviso con *Yes/No* (default *No*).
+È più preciso del controllo di *Edit model* di lghmi (`sim_attiva`), che rifiuta
+se gira **una** simulazione qualsiasi: qui conta quella del modello. Le
+directory si confrontano per identità (`stessa_directory`, device+inode),
+perché `~/legocad` e `~/sked` sono link e la stessa directory arriva con grafie
+diverse; per il titolo, `modelli_fisica` risolve anche il link dell'ultimo
+componente, che `file normalize` lascia com'è. Su Windows la colonna *In use*
+resta vuota (niente `/proc` né `pgrep`).
+
+`lgpc` lanciato senza argomento parte vuoto come prima; con il nome di un
+modello lo apre direttamente (vedi [docs/COMANDI_LG.md](../docs/COMANDI_LG.md)).
+
+### In scrittura: Save Model e Save As
+
+Lo stesso elenco, con le stesse colonne, serve a scegliere il **nome di un
+modello nuovo** (`modelli_chiedi_nome`). Mostra i nomi già presi, e sotto il
+campo una riga dice in tempo reale se il nome va bene; *Save* resta spento
+finché non va bene.
+
+- ***Save Model*** con un modello aperto **salva subito**, senza dialogo, come
+  prima. Il dialogo compare solo per un modello **mai salvato** (il ramo
+  "untitled" di `topWrite` in [fileio.tcl](src/tix/fileio.tcl), che chiama
+  `modelli_salva_nuovo`), al posto del campo *ModelName Selection*. Resta
+  **sincrono**: `topWrite` aspetta la scelta e ritorna 0/1 come prima, quindi
+  funziona anche dalla domanda "Save...?" del cambio di tab. Gli altri
+  programmi che sorgiano `fileio.tcl` non caricano `modelli.tcl` e tengono il
+  campo di prima.
+- ***Save As...*** (`modelli_salva_come`, al posto di `DupModel`): prima la
+  domanda sulle modifiche non salvate (`avverti`, *No* annulla), perché la
+  copia si fa **dai file su disco** e deve partire dall'ultima versione del
+  disegno. Copia `.tom` (rinominato), `f14.dat`, `f01.dat`, `foraus.for`,
+  `tasks.dat`, `simul.dat` — come prima — **più `<modello>.remap` e
+  `<modello>.lstyle` rinominati**, che prima si perdevano: assegnazioni di
+  display, faceplate e set value, e stili delle connessioni. `proc/` e i file
+  di build no: la copia si ricompila all'apertura. Poi si passa alla copia.
+  Se la copia fallisce, la directory appena creata si cancella.
+
+**Regole del nome nuovo** (`modelli_nome_nuovo`): quelle di prima — non
+esistente, al massimo 8 caratteri — più solo lettere, cifre, `_` e `-` (un `/`
+creava sottodirectory) e nessun omonimo **anche con maiuscole diverse**
+(`slb1_ni2` contro `SLB1_NI2`: due directory distinte solo su Linux). Contano
+tutte le voci dell'area, non solo i modelli: `libgraph`, le task `r_*`, i
+backup. Un nome esistente si rifiuta sempre: in scrittura l'elenco non
+sovrascrive.
+
+Attenzione a un comportamento di `writeFiles` che resta com'era: riscrive il
+`.tom` **solo se il modello risulta modificato** (`modified`), mentre il `.top`
+lo riscrive sempre. Un modello nuovo salvato con il canvas vuoto crea quindi la
+directory e il `.top`, ma non il `.tom`.
+
+*Import f01* ha ancora il suo campo *New model* (scelta dell'utente).
+
+**La voce *Include model...*** si accende anche dopo *Open Model*, *Browse*,
+`lgpc <modello>`, *Save Model* e *Save As* (`modelli_menu_modello`): prima la
+accendeva solo il cambio di tab (`raisetopol`, per indice 4), e dopo un'apertura
+restava spenta finché non si passava a un altro tab e si tornava.
+
+### Include model
+
+Lo stesso elenco, **senza il modello corrente**, e sotto la posizione
+dell'incluso: *above* (default), *below*, *on the left*, *on the right*
+(`modelli_includi`). La fusione la fa ancora `inhoud`
+([src/inhoud/inhoud.c](src/inhoud/inhoud.c)): nella directory del modello
+corrente, `inhoud <corrente> <incluso> <N|S|W|E>` legge i due `.tom` **dal
+disco** e scrive `inhoud.tom`, che prende il posto di `<corrente>.tom`; poi il
+modello si ricarica e si ricompila. Intorno:
+
+- prima, la domanda sulle modifiche non salvate (`avverti`, *No* annulla),
+  perché `inhoud` legge il file;
+- se il modello corrente è aperto in un altro legopc o la sua simulazione è in
+  corso, un avviso *Yes/No*: è lui che si riscrive e si ricompila (l'incluso si
+  legge soltanto);
+- **backup** `<corrente>.tom.bak`, riscritto a ogni inclusione;
+- se `inhoud` fallisce ("ties to nonexisting blocks", "no symbols more left",
+  troppi blocchi) il suo messaggio si mostra e il `.tom` corrente **non si
+  tocca**;
+- i blocchi dell'incluso con un nome già usato vengono rinominati da `inhoud`
+  (quarto carattere: `0`–`9`, poi `$`, `?`, `!`) e le coppie vanno in
+  `changed.out`: una finestra le mostra;
+- **`.remap` e `.lstyle` dell'incluso si fondono nel corrente**, con i nomi
+  nuovi. Nel `.remap` si rinominano la chiave (l'istanza) e il valore quando è
+  una variabile — una variabile LEGO porta nei suoi ultimi 4 caratteri il nome
+  del blocco (`WALIPGCD` è del blocco `PGCD`), e la ricompilazione le dà il
+  nome nuovo — ma non la pagina di un faceplate (`;F`). Del `.lstyle` entrano
+  solo gli stili dei singoli tratti (`LINK`): gli override di categoria (`CAT`)
+  valgono per tutto il modello e ricolorerebbero anche i tratti del corrente;
+- l'incluso deve stare nella stessa area del corrente (`inhoud` lo cerca in
+  `../<nome>`): se il modello aperto non è in `$LG_MODELS` l'inclusione si
+  rifiuta.
+
+I dati (`f14`) del modello incluso restano fuori, come prima: la ricompilazione
+parte dall'`f14` del corrente, e i blocchi inclusi si completano in *Data
+Assignment*.
+
+### Delete Model
+
+Lo stesso elenco (`modelli_cancella`), con il bottone *Delete* rosso. Il modello
+**non si cancella**: la sua directory si **sposta nel cestino dell'area**,
+`$LG_MODELS/.deleted/<nome>_<AAAAMMGG_hhmmss>`. Il punto la nasconde a tutti gli
+elenchi (`glob *` non vede le directory nascoste: né quelli di legopc né il
+dir-scan di lghmi), e il cestino segue l'area quando `lgswitch` la sposta.
+
+- **Rifiuto** se il modello è in uso: è quello aperto in questo legopc, è
+  aperto in un altro legopc, o la sua simulazione è in corso. Un avviso non
+  basterebbe: si toglierebbe la directory a chi la sta usando.
+- **Conferma** *Yes/No* (default *No*) con path, dimensione (`du -sk`) e
+  destinazione, più due avvisi quando servono:
+  - il modello è una task di un **simulatore dell'area**: un `S01` sotto
+    `$KSKED` (`~/sked`) lo elenca. Quel simulatore non si aggiorna (`kUpSim`) e
+    non parte finché il modello non torna o non si toglie dal suo `S01`, che
+    *Delete Model* **non modifica**;
+  - **altri processi** lavorano nella sua directory (una HMI `draw2gr`, una
+    shell, un editor): spostarla non toglie loro niente, ma quello che salvano
+    da lì in poi finisce nel cestino.
+- Invio **non** cancella: servono il bottone o il doppio clic, e poi la conferma.
+- Alla fine un messaggio dice dov'è finito e dà il comando per ripristinarlo.
+
+**Ripristino e svuotamento, a mano** (scelta dell'utente):
+
+```sh
+ls $LG_MODELS/.deleted                                   # cosa c'e' nel cestino
+mv $LG_MODELS/.deleted/SLB1_NI2_20260918_170821 $LG_MODELS/SLB1_NI2   # ripristino
+rm -rf $LG_MODELS/.deleted/SLB1_NI2_20260918_170821      # cancellazione definitiva
+```
+
+Il ripristino funziona solo se nel frattempo non è stato creato un modello con
+lo stesso nome. Un modello pesa: `SLB1_NI2` occupa 130 MB, tra `proc/` e i file
+di build.
+
+**Il File menu si indirizza per etichetta.** `raisetopol`, `raisedata`,
+`raisetaskconf`, *Import f01*, *New Model* e il `topRead` di `muovi.tcl`
+accendevano e spegnevano le voci per indice (0–11): *Delete Model*, inserito
+dopo *Include model*, le avrebbe spostate tutte. Ora usano le etichette
+(`entryconfigure "Save As..."`), come il menu View.
+
+**`inhoud` corretto (settembre 2026).** Tre difetti del C:
+
+- le righe si leggevano a 79 caratteri (`char line[81]`), mentre nei `.tom`
+  reali arrivano a 107: ora si leggono intere (`LINE_MAX_INH` 1024);
+- **perdeva la parola `busy`** nelle connessioni del modello incluso su porte a
+  due cifre: `busy port17 DEGA` diventava ` port17 DEGA`, perché `char b[6]`
+  riceveva `port17` più il terminatore e il byte in più azzerava `a`. Ogni
+  inclusione rovinava così le connessioni dalla porta 10 in su (13 su un
+  modello come `PWRN1PSS`);
+- `changed.out` usciva spezzato su due righe per coppia (il nome vecchio
+  veniva copiato con il suo `\n` in un campo di 5 byte).
+
+Verifica: su tre coppie di modelli reali il nuovo `inhoud` produce lo stesso
+file del vecchio **tranne** le righe `busy portNN`, che ora sono giuste.
+
 ## Menu View — ordine delle voci e modo di visualizzazione di partenza
 
 In **legopc** l'ordine delle voci (`legopc.tix`, blocco `set m .menu.view`) è:
@@ -529,7 +721,7 @@ solo per Windows: draw2gr aveva la sola `<Control-MouseWheel>` e il Ctrl+rotella
 non faceva nulla (`d2g_zoomWheel` in draw2gr.tcl, `addcanvas` in legopc.tix).
 
 **Gotcha indici menu**: le proc `raisetopol`/`raisedata`/`raisetaskconf` fanno
-`entryconfigure` sul menu View; **tutte** le voci sono indirizzate **per label**
+`entryconfigure` sul menu View (e sul File menu, vedi *Delete Model*); **tutte** le voci sono indirizzate **per label**
 (`"Links..."`, `"Info..."`, `"Show OFF"`, `"Set Sim path"`, `"Units..."`, …)
 perché gli indici numerici cambiano tra piattaforme e a ogni voce aggiunta o
 spostata (l'inserimento di *Units...* aveva rotto `entryconfigure 4` → errore

@@ -831,28 +831,39 @@ proc hmi_variabili_tutte {} {
     return [lsort [array names ::tipVarMod]]
 }
 
-#  Elenco filtrabile di variabili, lo stesso in tutti i dialoghi che ne
-#  scelgono una (Variable to set, e Variabile da animare dei display @val_0):
-#  scrivendo nel campo di testo l'elenco si restringe ai nomi che contengono
-#  quel testo, un clic su una riga ne mette il nome nel campo, il doppio clic
-#  conferma.
-#    f      frame da creare, con l'elenco e la sua barra (lo impacchetta il
-#           chiamante)
-#    entry  il campo di testo del dialogo
-#    testo  la variabile globale legata al campo (es. ::hmi_var_nome)
-#    nomi   le variabili da elencare
-#    ok     il comando del doppio clic
-#    tipo   1 per mostrare anche il tipo (IN, US, UA)
+#  Elenco filtrabile, lo stesso in tutti i dialoghi che scelgono un nome da
+#  una lista: le variabili (Variable to set, Variabile da animare dei display
+#  @val_0) e i modelli di File -> Open Model di legopc (modelli.tcl).
+#  Scrivendo nel campo di testo l'elenco si restringe ai nomi che contengono
+#  quel testo, senza distinguere maiuscole e minuscole; un clic su una riga ne
+#  mette il nome nel campo, il doppio clic conferma.
+#    f        frame da creare, con l'elenco e la sua barra (lo impacchetta il
+#             chiamante)
+#    entry    il campo di testo del dialogo
+#    testo    la variabile globale legata al campo (es. ::hmi_var_nome)
+#    nomi     i nomi da elencare, nell'ordine in cui mostrarli
+#    ok       il comando del doppio clic
+#    riga     prefisso di comando: [{*}$riga $nome] e' il testo della riga
+#    testata  intestazione delle colonne sopra l'elenco ("" = nessuna)
+#    larg     larghezza dell'elenco, in caratteri
 #  Ritorna la listbox.
-proc hmi_lista_variabili {f entry testo nomi ok {tipo 0}} {
+proc hmi_lista {f entry testo nomi ok riga {testata ""} {larg 64}} {
     frame $f
-    listbox $f.lb -height 12 -width 64 -font {Courier 10} \
+    listbox $f.lb -height 12 -width $larg -font {Courier 10} \
         -yscrollcommand [list $f.sb set]
     scrollbar $f.sb -command [list $f.lb yview]
+    if {$testata ne ""} {
+        #  stesso font e stesso rientro del testo della listbox, cosi' le
+        #  colonne dell'intestazione cadono sopra quelle delle righe
+        set rientro [expr {[$f.lb cget -borderwidth] + [$f.lb cget -highlightthickness] \
+                           + [$f.lb cget -selectborderwidth]}]
+        label $f.t -text $testata -font {Courier 10 bold} -anchor w -bd 0 -padx $rientro
+        pack $f.t -side top -fill x
+    }
     pack $f.sb -side right -fill y
     pack $f.lb -side left -fill both -expand 1
     set ::hmi_lista_nomi($f.lb) $nomi
-    set ::hmi_lista_opz($f.lb) [list $testo $tipo]
+    set ::hmi_lista_opz($f.lb) [list $testo $riga]
     bind $f.lb <<ListboxSelect>> [list hmi_lista_scelta $f.lb]
     bind $f.lb <Double-1> $ok
     bind $f.lb <Destroy> [list hmi_lista_via $f.lb]
@@ -861,29 +872,44 @@ proc hmi_lista_variabili {f entry testo nomi ok {tipo 0}} {
     return $f.lb
 }
 
-#  Riempie l'elenco con le variabili il cui nome contiene il testo scritto.
+#  L'elenco delle variabili del modello caricato. tipo = 1 per mostrare anche
+#  il tipo (IN, US, UA).
+proc hmi_lista_variabili {f entry testo nomi ok {tipo 0}} {
+    return [hmi_lista $f $entry $testo $nomi $ok [list hmi_riga_variabile $tipo]]
+}
+
+#  Una riga dell'elenco delle variabili: nome, tipo se chiesto, descrizione.
+proc hmi_riga_variabile {tipo n} {
+    if {$tipo} {
+        set t [expr {[info exists ::tipVarMod($n)] ? $::tipVarMod($n) : ""}]
+        return [format "%-10s %-3s %s" $n $t [hmi_descrizione $n]]
+    }
+    return [format "%-10s %s" $n [hmi_descrizione $n]]
+}
+
+#  Riempie l'elenco con i nomi che contengono il testo scritto.
 proc hmi_lista_filtra {lb} {
-    lassign $::hmi_lista_opz($lb) testo tipo
+    lassign $::hmi_lista_opz($lb) testo riga
     upvar #0 $testo valore
     set filtro [string toupper [string trim $valore]]
     $lb delete 0 end
     set mostrati {}
     foreach n $::hmi_lista_nomi($lb) {
-        if {$filtro ne "" && [string first $filtro $n] < 0} continue
+        if {$filtro ne "" && [string first $filtro [string toupper $n]] < 0} continue
         lappend mostrati $n
-        if {$tipo} {
-            set t [expr {[info exists ::tipVarMod($n)] ? $::tipVarMod($n) : ""}]
-            $lb insert end [format "%-10s %-3s %s" $n $t [hmi_descrizione $n]]
-        } else {
-            $lb insert end [format "%-10s %s" $n [hmi_descrizione $n]]
-        }
+        $lb insert end [{*}$riga $n]
     }
     set ::hmi_lista_mostrati($lb) $mostrati
 }
 
+#  I nomi che l'elenco mostra adesso, cioe' quelli che passano il filtro.
+proc hmi_lista_mostrati {lb} {
+    return $::hmi_lista_mostrati($lb)
+}
+
 #  Clic su una riga: il suo nome va nel campo di testo.
 proc hmi_lista_scelta {lb} {
-    lassign $::hmi_lista_opz($lb) testo tipo
+    lassign $::hmi_lista_opz($lb) testo riga
     upvar #0 $testo valore
     set sel [$lb curselection]
     if {[llength $sel]} {

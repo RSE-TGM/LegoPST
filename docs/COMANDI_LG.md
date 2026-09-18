@@ -86,7 +86,33 @@ Dettagli su immagine, build e installazione: [../docker/README_INSTALLER.md](../
 |---|---|---|
 | `lgpc` | alias | **Lancia il CAD grafico** `legopc.tix`: disegno degli schemi, librerie di moduli, generazione dei `.i5`/`.tom`. Imposta `LG_TIX=$LG_BIN` prima di partire, quindi usa sempre la versione corrente in `Alg_legopc/bin`. È il comando normale. |
 | `lgpcu` | alias | Lo stesso CAD ma con il **wish "ultimo"** (`$LG_WISH`, in `tcltktix-8.3.5b/`) invece di quello di sistema. Serve solo quando il wish di sistema dà problemi con Tix. |
-| `lgpc2` | func | Lancia `wish $LG_TIX/legopc.tix` **senza reimpostare `LG_TIX`**: rispetta un `LG_TIX` già esportato a mano. L'uso previsto non è documentato da nessuna parte, e differisce da `lgpc` solo per questo. |
+| `lgpc2` | func | Lancia `wish $LG_TIX/legopc.tix` **senza reimpostare `LG_TIX`**: rispetta un `LG_TIX` già esportato a mano. L'uso previsto non è documentato da nessuna parte. Attenzione: essendo una funzione senza `"$@"`, **ignora gli argomenti** — `lgpc2 <modello>` apre legopc vuoto. |
+
+**Aprire subito un modello.** `lgpc` e `lgpcu` accettano **un** argomento, il
+nome del modello (cioè della task):
+
+```sh
+lgpc                  # legopc vuoto: poi File -> Open Model... (elenco dei modelli)
+lgpc SLB1_NI2         # apre $LG_MODELS/SLB1_NI2/SLB1_NI2.tom
+lgpc SLB1_NI2.tom     # stessa cosa
+```
+
+Senza alias è `wish $LG_BIN/legopc.tix SLB1_NI2`. Quello che conta:
+
+- il nome si cerca **nell'area di lavoro corrente**, come
+  `$LG_MODELS/<nome>/<nome>.tom` (`topRead` in
+  [fileio.tcl](../Alg_legopc/src/tix/fileio.tcl)); `LG_MODELS` passa dal link
+  `~/legocad`, quindi è l'area scelta con `lgswitch`;
+- di un path si usa **solo il nome finale**: `lgpc /altra/area/X/X.tom` apre la
+  `X` dell'area corrente, se c'è, altrimenti *not found*. Per una task di
+  un'altra area si cambia prima area (`lgswitch`, o *File → Work area* di
+  `lghmi`). L'unico caso in cui il path cambia l'area è la struttura
+  `<entry>/models/<nome>/<nome>.tom` (`applyUserFromTom`), che non è quella
+  usata su Linux;
+- la directory da cui si lancia non conta: legopc si sposta da sé nella
+  directory del modello;
+- più di un argomento dà l'errore *Wrong number or arguments*; un nome che non
+  esiste dà *Model … not found! No model loaded*, e legopc resta aperto vuoto.
 
 > `lgpc0` **non esiste più** (rimosso il 2026-08-02): lanciava la legopc originale
 > da `$LG_BASE/bin_old`, generata da `src/tix_old`, sorgente ormai escluso dal

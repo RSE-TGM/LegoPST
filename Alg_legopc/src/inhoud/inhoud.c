@@ -10,6 +10,13 @@
  It produces a new .tom in the current model including the specified
  one.
  Convention: I=inserting model; i=inserted model
+
+ 2026-09: righe lette per intero (LINE_MAX_INH, prima 80 caratteri:
+ le righe piu' lunghe dei .tom - fino a 107 in modelli reali - venivano
+ lette in due pezzi e sfasavano il conteggio delle righe del modello
+ inserito); nomi dei blocchi copiati con al piu' 4 caratteri (oldname
+ riceveva la riga intera, "\n" compreso: changed.out usciva spezzato su
+ due righe); controllo dei limiti MAX_DIM_MODELS.
  
  **************************************************************/
 
@@ -24,6 +31,7 @@
 
 #define MARG 100
 #define MAX_DIM_MODELS 800
+#define LINE_MAX_INH 1024	/* righe del .tom lette per intero */
 
 struct oldnew {
 	char oldname[5];
@@ -47,9 +55,9 @@ int   counter=1;
 
 char  Imodel[100], imodel[100];
 char  direction;
-char  line[81];
+char  line[LINE_MAX_INH];
 char  block[2*MAX_DIM_MODELS][5];
-char  a[5], b[6], c[5];
+char  a[LINE_MAX_INH], b[LINE_MAX_INH], c[LINE_MAX_INH];
 
 float XMAX_i, YMAX_i, XMAX_I, YMAX_I;
 float DX_I, DY_I, DX_i, DY_i;
@@ -69,7 +77,7 @@ struct oldnew newnames[MAX_DIM_MODELS];
   strcpy(Imodel,argv[1]);
   strcat(Imodel,".tom");
   
-  sprintf(imodel,"..\/%s\/%s.tom",argv[2],argv[2]);
+  snprintf(imodel,sizeof imodel,"../%s/%s.tom",argv[2],argv[2]);
 
   direction=toupper(argv[3][0]);
   if (direction != 'N' && direction != 'S' &&
@@ -91,23 +99,23 @@ struct oldnew newnames[MAX_DIM_MODELS];
     XMAX_I=0.0;
     YMAX_I=0.0;
 
-    fgets(line,80,Ifile);
+    fgets(line,sizeof line,Ifile);
 
-    fgets(line,80,Ifile);
+    fgets(line,sizeof line,Ifile);
     sscanf(line,"%d %d",&DIM_X_I,&DIM_Y_I);
 
-    fgets(line,80,Ifile);
+    fgets(line,sizeof line,Ifile);
     while (strncmp(line,"****",4)) {
-       fgets(line,80,Ifile);
-       fgets(line,80,Ifile);
+       fgets(line,sizeof line,Ifile);
+       fgets(line,sizeof line,Ifile);
 
-       fgets(line,80,Ifile);
+       fgets(line,sizeof line,Ifile);
        sscanf(line,"%f %f",&x,&y);
        if (x > XMAX_I) XMAX_I=x;
        if (y > YMAX_I) YMAX_I=y;
 
-       fgets(line,80,Ifile);
-       fgets(line,80,Ifile);
+       fgets(line,sizeof line,Ifile);
+       fgets(line,sizeof line,Ifile);
     }
   }
 
@@ -119,23 +127,23 @@ struct oldnew newnames[MAX_DIM_MODELS];
     XMAX_i=0.0;
     YMAX_i=0.0;
     
-    fgets(line,80,ifile);
+    fgets(line,sizeof line,ifile);
     
-    fgets(line,80,ifile);
+    fgets(line,sizeof line,ifile);
     sscanf(line,"%d %d",&DIM_X_i,&DIM_Y_i);
         
-    fgets(line,80,ifile);
+    fgets(line,sizeof line,ifile);
     while (strncmp(line,"****",4)) {
-       fgets(line,80,ifile);    
-       fgets(line,80,ifile);
+       fgets(line,sizeof line,ifile);    
+       fgets(line,sizeof line,ifile);
        
-       fgets(line,80,ifile);
+       fgets(line,sizeof line,ifile);
        sscanf(line,"%f %f",&x,&y);
        if (x > XMAX_i) XMAX_i=x;
        if (y > YMAX_i) YMAX_i=y;
  
-       fgets(line,80,ifile);    
-       fgets(line,80,ifile); 
+       fgets(line,sizeof line,ifile);    
+       fgets(line,sizeof line,ifile); 
     }
   }
               
@@ -185,47 +193,57 @@ struct oldnew newnames[MAX_DIM_MODELS];
    } else {
       rewind(Ifile);
      
-      fgets(line,80,Ifile);
+      fgets(line,sizeof line,Ifile);
       fputs(line,newfile);
      
-      fgets(line,80,Ifile);
+      fgets(line,sizeof line,Ifile);
       sprintf(line,"%d %d\n",DNEW_X,DNEW_Y);
       fputs(line,newfile);
      
-      fgets(line,80,Ifile);
+      fgets(line,sizeof line,Ifile);
       while (strncmp(line,"****",4)) {
         fputs(line,newfile);
-        fgets(line,80,Ifile);
+        fgets(line,sizeof line,Ifile);
            
         fputs(line,newfile);
-        fgets(line,80,Ifile);
+        fgets(line,sizeof line,Ifile);
        
-        sscanf(line,"%s",block[iblock++]);
+        if (iblock >= 2*MAX_DIM_MODELS) {
+           printf("Too many blocks (max %d)",2*MAX_DIM_MODELS);
+           return(1);
+        }
+        sscanf(line,"%4s",block[iblock++]);
         fputs(line,newfile);
-        fgets(line,80,Ifile);
+        fgets(line,sizeof line,Ifile);
 
         sscanf(line,"%f %f",&x,&y);
         sprintf(line,"%f %f\n",x+DX_I,y+DY_I);
         fputs(line,newfile);
-        fgets(line,80,Ifile);
+        fgets(line,sizeof line,Ifile);
  
         fputs(line,newfile);    
-        fgets(line,80,Ifile); 
+        fgets(line,sizeof line,Ifile); 
       } 
   
       rewind(ifile);
-      fgets(line,80,ifile);
-      fgets(line,80,ifile);
+      fgets(line,sizeof line,ifile);
+      fgets(line,sizeof line,ifile);
       
-      fgets(line,80,ifile);
+      fgets(line,sizeof line,ifile);
       while (strncmp(line,"****",4)) {
         fputs(line,newfile);
-        fgets(line,80,ifile);
+        fgets(line,sizeof line,ifile);
           
         fputs(line,newfile);
-        fgets(line,80,ifile);
+        fgets(line,sizeof line,ifile);
  
-		strcpy(newnames[inewnames].oldname,line);
+		if (inewnames >= MAX_DIM_MODELS || iblock >= 2*MAX_DIM_MODELS) {
+		   printf("Too many blocks (max %d)",MAX_DIM_MODELS);
+		   return(1);
+		}
+		/* solo il nome (4 caratteri): la riga porta anche il "\n" */
+		strncpy(newnames[inewnames].oldname,line,4);
+		newnames[inewnames].oldname[4]='\0';
         while (exists(line,block,iblock,&index)) {
            switch (line[3]) {
               case '0':
@@ -274,40 +292,40 @@ struct oldnew newnames[MAX_DIM_MODELS];
            }
         }
 		newnames[inewnames++].index=iblock;
-        sscanf(line,"%s",block[iblock++]);
+        sscanf(line,"%4s",block[iblock++]);
         fputs(line,newfile);
-        fgets(line,80,ifile);
+        fgets(line,sizeof line,ifile);
       
         sscanf(line,"%f %f",&x,&y);
         sprintf(line,"%f %f\n",x+DX_i,y+DY_i);
         fputs(line,newfile);
-        fgets(line,80,ifile);
+        fgets(line,sizeof line,ifile);
         fputs(line,newfile);    
-        fgets(line,80,ifile);
+        fgets(line,sizeof line,ifile);
        }
        
        fputs("****\n",newfile);
 
-       fgets(line,80,Ifile);
+       fgets(line,sizeof line,Ifile);
        while(! feof(Ifile) && strncmp(line,"****",4)) {
           fputs(line,newfile);
-		  fgets(line,80,Ifile);
+		  fgets(line,sizeof line,Ifile);
        }   
        fclose(Ifile);
  
-	   fgets(line,80,ifile);
+	   fgets(line,sizeof line,ifile);
        while(! feof(ifile) && strncmp(line,"****",4)) {
 		  if (!strncmp(line,"busy",4)) {
-			  sscanf(line,"%s %s %s",&a,&b,&c);
+			  sscanf(line,"%s %s %s",a,b,c);
 			  strcpy(c,calculate_new_name(c,block,newnames,inewnames));
-			  sprintf(line,"%s %s %s\n",a,b,c);
+			  snprintf(line,sizeof line,"%s %s %s\n",a,b,c);
 		  } else if (counter == 2) {
-			  sscanf(line,"%s",&c);
+			  sscanf(line,"%s",c);
 			  strcpy(c,calculate_new_name(c,block,newnames,inewnames));
-			  sprintf(line,"%s\n",c);
+			  snprintf(line,sizeof line,"%s\n",c);
 		  }
 		  fputs(line,newfile);
-		  fgets(line,80,ifile);
+		  fgets(line,sizeof line,ifile);
 		  if (!strncmp(line,"++++",4)) {
 			  counter=0;
 		  } else {

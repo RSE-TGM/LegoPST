@@ -102,6 +102,13 @@ proc topWrite {c mode} {
 	}
 	if {$curFileName == "untitled" || $curFileName == "-" || $curFileName == "" } {
 #tk_messageBox -icon error -message "topWrite: if "
+		#  In legopc il nome del modello nuovo si sceglie con l'elenco dei
+		#  modelli dell'area, lo stesso di File -> Open Model (modelli.tcl).
+		#  Gli altri programmi che sorgiano questo file non lo caricano: per
+		#  loro resta il campo di sempre, qui sotto.
+		if {[info procs modelli_salva_nuovo] ne ""} {
+			return [modelli_salva_nuovo $c $envir]
+		}
 		catch { destroy  $c.mod }
 		toplevel $c.mod
 		wm title $c.mod "ModelName Selection"
@@ -516,7 +523,7 @@ proc topRead {c model} {
 	set modified 0
         if {$curFileName != "untitled" && $envir != "Draw2Gr" && $envir != "Edit_Simul" && $envir != "PostProc" } {
 #GUAG: non so perch�c'�questo comando.. lo tolgo
-#           .menu.file entryconfigure 4 -state normal
+#           .menu.file entryconfigure "Include model..." -state normal
         }
         
         return 0

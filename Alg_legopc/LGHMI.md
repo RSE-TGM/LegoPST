@@ -723,8 +723,10 @@ voce spenta non può spiegarsi:
 > corrisponderebbero più a quel che è disegnato, e le HMI `draw2gr` già aperte
 > leggerebbero file che cambiano sotto. Il blocco però **non impedisce** di
 > modificare: impedisce a `lghmi` di *porgere* la task già aperta. Da `legopc`
-> vuoto ci si arriva lo stesso con *Open Model*, e fuori di qui non c'è modo di
-> sorvegliarlo.
+> vuoto ci si arriva lo stesso con *File → Open Model*, che però **avvisa**
+> (senza bloccare) se la simulazione di quel modello è in corso o se un altro
+> `legopc` ce l'ha già aperto: vedi *File → Open Model* in
+> [README.md](README.md).
 
 > **Perché il controllo sull'area.** `lghmi` elenca anche task che non stanno
 > sotto `$LG_ENTRY`: in modalità `S01` i path del file sono arbitrari, e i bundle

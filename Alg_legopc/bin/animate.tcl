@@ -95,11 +95,15 @@ proc anim_save_remap {} {
 
 # Il .remap su disco, senza validare e senza toccare le strutture in memoria:
 # un dict {istanza -> {valore modo}}. Vuoto se il file non c'e'.
-proc anim_remap_leggi {} {
+proc anim_remap_leggi {{fname ""}} {
     global curFileName
     set d [dict create]
-    if {![info exists curFileName] || $curFileName eq ""} { return $d }
-    set fname "[file rootname $curFileName].remap"
+    #  senza argomento il .remap del modello aperto; con un path quel file
+    #  (Include Model legge quello del modello incluso, modelli.tcl)
+    if {$fname eq ""} {
+        if {![info exists curFileName] || $curFileName eq ""} { return $d }
+        set fname "[file rootname $curFileName].remap"
+    }
     if {[catch {open $fname r} fid]} { return $d }
     while {[gets $fid line] >= 0} {
         set line [string trim $line]

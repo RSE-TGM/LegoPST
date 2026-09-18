@@ -87,7 +87,7 @@ proc topRead {c model} {
 	close $fileid
 	set modified 0
         if {$curFileName != "untitled" && $envir != "Draw2Gr" && $envir != "Edit_Simul" && $envir != "PostProc" } {
-           .menu.file entryconfigure 4 -state normal
+           .menu.file entryconfigure "Include model..." -state normal
         }
 #tk_messageBox -message "topRead 4: fine"
 }
