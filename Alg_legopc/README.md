@@ -515,6 +515,13 @@ vale 4, `ShowNames $c $showon` altrimenti — dove prima c'era un `ShowNames $c 
 fisso. Le altre voci del menu (*Graf sequential/circular*, *Find name*, *Zoom*,
 *Set Sim path*, *Units...*) sono rimaste dov'erano.
 
+**Zoom con Ctrl+rotella** (un passo per scatto nei livelli del menu *Zoom*):
+attenzione, su Linux/X11 la rotella arriva come **`Button-4`/`Button-5`**, e Tk
+8.6 su X11 `<MouseWheel>` non lo genera affatto. Serve quindi la coppia di bind
+`<Control-Button-4>`/`<Control-Button-5>`, con `<Control-MouseWheel>` tenuta
+solo per Windows: draw2gr aveva la sola `<Control-MouseWheel>` e il Ctrl+rotella
+non faceva nulla (`d2g_zoomWheel` in draw2gr.tcl, `addcanvas` in legopc.tix).
+
 **Gotcha indici menu**: le proc `raisetopol`/`raisedata`/`raisetaskconf` fanno
 `entryconfigure` sul menu View; **tutte** le voci sono indirizzate **per label**
 (`"Links..."`, `"Info..."`, `"Show OFF"`, `"Set Sim path"`, `"Units..."`, …)

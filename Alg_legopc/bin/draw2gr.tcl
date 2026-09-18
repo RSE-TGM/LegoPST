@@ -972,17 +972,25 @@ proc resetZoom {c} {
     doZoom $c 1.0
 }
 
-# Zoom con Ctrl+MouseWheel
-bind $c <Enter> {focus %W}
-bind $c <Control-MouseWheel> {
+# Zoom con Ctrl+rotella: un passo avanti o indietro nei livelli del menu Zoom.
+# Su Linux/X11 la rotella arriva come Button-4 (su) e Button-5 (giu'), NON come
+# <MouseWheel>: Tk 8.6 quell'evento su X11 non lo genera proprio, per cui con la
+# sola bind <Control-MouseWheel> (Windows) il Ctrl+rotella qui non faceva nulla.
+# Stesse bind di legopc.tix (proc addcanvas).
+proc d2g_zoomWheel {w su} {
     set _zlevels {0.25 0.5 0.75 1.0 1.5 2.0 3.0 4.0}
-    set _cur [expr {[info exists ::zoomLevelOf(%W)] ? $::zoomLevelOf(%W) : 1.0}]
+    set _cur [expr {[info exists ::zoomLevelOf($w)] ? $::zoomLevelOf($w) : 1.0}]
     set _idx [lsearch $_zlevels $_cur]
-    if {%D > 0} { incr _idx } else { incr _idx -1 }
+    if {$_idx < 0} { set _idx [lsearch $_zlevels 1.0] }
+    if {$su} { incr _idx } else { incr _idx -1 }
     if {$_idx >= 0 && $_idx < [llength $_zlevels]} {
-        doZoom %W [lindex $_zlevels $_idx]
+        doZoom $w [lindex $_zlevels $_idx]
     }
 }
+bind $c <Enter> {focus %W}
+bind $c <Control-Button-4>   { d2g_zoomWheel %W 1 }
+bind $c <Control-Button-5>   { d2g_zoomWheel %W 0 }
+bind $c <Control-MouseWheel> { d2g_zoomWheel %W [expr {%D > 0}] }
 # Dopo topRead il canvas è ridisegnato a 100%: sincronizza stato zoom
 proc draw2gr_syncZoom {c} {
     set ::zoomLevelOf($c) 1.0
