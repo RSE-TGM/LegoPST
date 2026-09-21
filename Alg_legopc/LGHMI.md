@@ -80,6 +80,9 @@ Nella finestra:
 - **File → Work area ▸** → cambia l'**area di lavoro** (i link `~/legocad` e
   `~/sked`) con `lgswitch`, dopo aver controllato che niente ci lavori ancora:
   [vedi sotto](#cambiare-area-di-lavoro-menu-file-work-area).
+- **File → Current simulator ▸** → sceglie il **simulatore corrente** (`$KSIM`)
+  fra quelli dell'area; l'elenco si legge all'apertura del sottomenu: [vedi
+  sotto](#file--current-simulator-e-la-variabile-ksim).
 - **File → Open Simulator path…** → cambia la **directory di lavoro** del selettore,
   e sotto la voce ci sono le ultime directory usate nell'area corrente: vedi
   sotto.
@@ -88,8 +91,8 @@ Nella finestra:
 - **File → Logs ▸** → gli **altri log** che `lghmi` scrive in `/tmp`: uno per ogni
   HMI lanciata, più `mmi` e `xstaz`: vedi sotto.
 - **Tools** → aggiorna la configurazione del **simulatore corrente** con
-  `kUpSim`, permette di cambiare simulatore, di aprire il modello della task
-  selezionata nel CAD (`legopc`) e di aprire un **terminale** nella directory
+  `kUpSim`, compila le regolazioni (`kCompile`), apre il modello della task
+  selezionata nel CAD (`legopc`) e apre un **terminale** nella directory
   corrente: vedi sotto.
 - **?** → versione di LegoPST e documentazione dell'ambiente: vedi sotto.
 - **Refresh** → rilegge l'elenco delle task e l'area di lavoro (un `lgswitch`
@@ -430,7 +433,7 @@ ancora; altrimenti vale la cascata del profilo (`~/.legosim`, `cassano0`, il
 primo di `ksims`). La scelta si scrive in `~/.legosim`, perché le shell future
 trovino un simulatore che esiste. La memoria per area sta in
 **`~/.lghmi_areas`** (una riga `<directory fisica dell'area>|<simulatore>`), e
-si aggiorna quando si sceglie un simulatore da `Tools → Current simulator` e
+si aggiorna quando si sceglie un simulatore da `File → Current simulator` e
 quando si lascia un'area. Sta nella home, come `~/.legosim`, e non dentro le
 aree, che si copiano e si impacchettano. Se la nuova area non ha simulatori, le
 voci di `Tools` si spengono e la riga di stato lo dice.
@@ -633,7 +636,23 @@ così più log restano aperti insieme senza pestarsi i piedi.
 
 ## Menù `Tools` — configurazione del simulatore, e modifica dei modelli
 
-Le prime tre voci lanciano **`kUpSim`** sul **simulatore corrente** (`$KSIM`):
+Le voci, in quest'ordine:
+
+```
+Edit model (legopc) - on the selected task, or empty
+--------
+kUpSim                 >   le tre varianti di kUpSim
+kCompile               >   le tre compilazioni della regolazione
+--------
+Terminal - shell in the current directory
+```
+
+Le varianti di `kUpSim` e di `kCompile` stanno in un **sottomenu** ciascuna: il
+menu resta corto e le varianti restano vicine. Un sottomenu spento spegne tutte
+le sue voci. Il simulatore corrente, su cui `kUpSim` e `kCompile` agiscono, si
+sceglie da *File → Current simulator* (prima stava qui).
+
+Il sottomenu **`kUpSim`** lancia `kUpSim` sul **simulatore corrente** (`$KSIM`):
 
 | voce | cosa fa |
 |---|---|
@@ -642,8 +661,8 @@ Le prime tre voci lanciano **`kUpSim`** sul **simulatore corrente** (`$KSIM`):
 | `kUpSim -n - preview: show the steps without running them` | prova a vuoto |
 
 Il nome del simulatore sta **nell'etichetta della prima voce**, così si sa su
-cosa si sta per agire senza aprire nulla. Se `$KSIM` non è definita o non è una
-directory, le tre voci sono disabilitate.
+cosa si sta per agire. Se `$KSIM` non è definita o non è una directory, il
+sottomenu è disabilitato.
 
 > `lgupsim` è un **alias** di `kUpSim` in `Alg_env.sh` (e `lgupsimx` di
 > `kUpSim -nommi`). Gli alias non esistono nelle shell non interattive: qui si
@@ -851,12 +870,12 @@ Tre azioni, tutte sulla task **selezionata in quel riquadro**:
 | dove | azione | come gira |
 |---|---|---|
 | doppio clic, `Invio`, tasto destro | `config` — l'editor | processo indipendente (`setsid`), log in `/tmp`: è una GUI Motif, non un batch |
-| `Tools` | `1. kCompile Regolation` | nel **visore di log** |
-| `Tools` | `2. kCompile Task` | nel **visore di log** |
-| `Tools` | `3. kCompile Page` | nel **visore di log** |
+| `Tools → kCompile` | `1. kCompile Regolation` | nel **visore di log** |
+| `Tools → kCompile` | `2. kCompile Task` | nel **visore di log** |
+| `Tools → kCompile` | `3. kCompile Page` | nel **visore di log** |
 
-Le tre voci in `Tools` sono **spente** con `-noreg`: agiscono su una selezione
-che senza quel riquadro non esiste.
+Il sottomenu `kCompile` è **spento** con `-noreg`: le sue voci agiscono su una
+selezione che senza quel riquadro non esiste.
 
 > **L'ordine conta, ed è il motivo per cui le etichette sono numerate.**
 > Produrre una task di regolazione vuol dire, in quest'ordine:
@@ -929,16 +948,16 @@ aperto e dove.
 
 ### Quando le voci di `Tools` sono spente
 
-Tutte le voci che agiscono sul simulatore — le tre di `kUpSim` e le tre di
-`kCompile` — sono accese solo se c'è un **simulatore corrente**, cioè se `$KSIM`
-esiste ed è una directory. `kCompile` in particolare comincia con `kTest`, che
+I sottomenu che agiscono sul simulatore — `kUpSim` e `kCompile` — sono accesi
+solo se c'è un **simulatore corrente**, cioè se `$KSIM` esiste ed è una
+directory. `kCompile` in particolare comincia con `kTest`, che
 senza `KSIMNAME` esce NOK.
 
 Normalmente il simulatore lo fissa il profilo all'avvio (`ksetsim_default`) e
 `lghmi` lo eredita. Ma **l'eredità non è garantita**: il wrapper risorgia il
 profilo solo se `LG_TIX` è vuota, quindi un lancio da un ambiente che ha
 `LG_TIX` ma non `KSIM` arrivava qui senza simulatore, e trovava **tutte le voci
-spente senza che nulla dicesse perché**. Bastava passare da *Tools → Current
+spente senza che nulla dicesse perché**. Bastava passare da *File → Current
 simulator* per vederle accendersi — quella voce imposta `env(KSIM)` dentro il
 processo Tcl — e la cosa sembrava un capriccio dell'interfaccia.
 
@@ -959,7 +978,7 @@ simulatore, dice quello e indica dove sceglierne uno. Succede anche dopo
 > *Set Sim path* ereditano le HMI — non `$KSIM`. Sono due cose distinte, e
 > sceglierne una non tocca l'altra.
 
-### `Tools → Current simulator` e la variabile `KSIM`
+### `File → Current simulator` e la variabile `KSIM`
 
 Il sottomenù elenca i simulatori di `$KSKED` (le stesse directory della
 funzione `ksims`) con quello corrente marcato. Scegliendone uno:
@@ -1216,8 +1235,8 @@ sopravvive al *Quit* del selettore.
 | File | Contenuto | Chi lo scrive |
 |---|---|---|
 | `~/.lghmi_recent` | le directory usate di recente, fino a 30, di tutte le aree | *Open Simulator path*, i recenti, l'avvio da una directory di simulazione |
-| `~/.lghmi_areas` | l'ultimo simulatore usato in ogni area: una riga per area, con directory fisica e nome separati da una barra verticale | *Tools → Current simulator*, *File → Work area* |
-| `~/.legosim` | il simulatore corrente per le shell future (lo legge `ksetsim_default`) | *Tools → Current simulator*, *File → Work area* |
+| `~/.lghmi_areas` | l'ultimo simulatore usato in ogni area: una riga per area, con directory fisica e nome separati da una barra verticale | *File → Current simulator*, *File → Work area* |
+| `~/.legosim` | il simulatore corrente per le shell future (lo legge `ksetsim_default`) | *File → Current simulator*, *File → Work area* |
 
 Se la home non è scrivibile si perde solo la memoria: il selettore funziona lo
 stesso. Nei log in `/tmp` (`lghmi_*.log`) finiscono invece gli output dei
@@ -1245,7 +1264,7 @@ comandi lanciati, compreso `lghmi_lgswitch.log`.
   S01, il file non ha task di tipo `P`. Le task di **regolazione** non stanno
   lì: non hanno un `.tom`, e hanno un riquadro loro.
 - **Le voci di `Tools` sono spente**: agiscono sul simulatore corrente, e non ce
-  n'è uno valido. La barra di stato lo dice. Sceglilo da *Tools → Current
+  n'è uno valido. La barra di stato lo dice. Sceglilo da *File → Current
   simulator*, o con `ksetsim <nome>` prima di lanciare. Non confonderlo con
   *Open Simulator path*, che cambia la directory di lavoro e **non** il simulatore.
 - **Le voci `kCompile` sono spente ma `kUpSim` no**: manca il riquadro delle

@@ -377,7 +377,7 @@ proc refresh_list {} {
     set nota [aggiorna_stato_startup]
     if {$nota ne ""} { lappend msg $nota }
     aggiorna_etichette_loc
-    # un simulatore creato dopo l'avvio compare nel sottomenu al primo Refresh
+    # stato delle voci di Tools e nome del simulatore nella voce di kUpSim
     catch {aggiorna_menu_tools}
     #  Perche' le voci di Tools sono come sono: senza questa riga un menu tutto
     #  spento non dice niente, e sembra un guasto.
@@ -758,6 +758,23 @@ proc ricorda_recente {dir} {
     aggiorna_menu_file
 }
 
+#  File -> Current simulator: i simulatori di $KSKED (lista_simulatori), letti
+#  all'apertura del sottomenu. Il radiobutton acceso e' quello corrente
+#  (::KSIMSCELTO); sceglierne uno lo imposta (scegli_simulatore).
+proc riempi_menu_simulatori {} {
+    set m .mb.file.sim
+    $m delete 0 end
+    set sims [lista_simulatori]
+    if {[llength $sims] == 0} {
+        $m add command -state disabled -label "(no simulator in \$KSKED)"
+        return
+    }
+    foreach sim $sims {
+        $m add radiobutton -label $sim -value $sim \
+            -variable ::KSIMSCELTO -command [list scegli_simulatore $sim]
+    }
+}
+
 #  Ricostruisce il menu File PER INTERO a ogni cambiamento dei recenti.
 #  Non si toccano le singole voci: gli indici cambierebbero a ogni path in piu'
 #  o in meno, ed e' proprio il tipo di indirizzamento da evitare in un menu Tk.
@@ -773,6 +790,14 @@ proc aggiorna_menu_file {} {
         menu .mb.file.aree -tearoff 0 -postcommand riempi_menu_aree
     }
     .mb.file add cascade -label "Work area" -menu .mb.file.aree -state $stato
+    #  Il simulatore corrente: prima l'area, poi il simulatore di quell'area.
+    #  Anche questo si elenca all'apertura (riempi_menu_simulatori), cosi' un
+    #  simulatore creato fuori da lghmi compare senza Refresh. Sempre attivo,
+    #  come quando stava nel menu Tools.
+    if {![winfo exists .mb.file.sim]} {
+        menu .mb.file.sim -tearoff 0 -postcommand riempi_menu_simulatori
+    }
+    .mb.file add cascade -label "Current simulator" -menu .mb.file.sim
     .mb.file add command -label "Open Simulator path..." -command apri_loc_path -state $stato
     set visibili {}
     foreach d $RECENTI {
@@ -2327,53 +2352,52 @@ proc aggiorna_menu_tools {} {
     set stato [expr {$nome ne "" ? "normal" : "disabled"}]
     set quale [expr {$nome ne "" ? $nome : "no simulator"}]
 
+    #  Ordine: Edit model, kUpSim, kCompile, Terminal. Le varianti di kUpSim e
+    #  di kCompile stanno in un sottomenu ciascuno: il menu resta corto e le
+    #  varianti restano vicine. Il simulatore corrente si sceglie dal menu File
+    #  (Current simulator, riempi_menu_simulatori): qui si ricostruisce il menu
+    #  perche' la prima voce di kUpSim porta il suo nome.
     .mb.tools delete 0 end
-    .mb.tools add command -state $stato -command [list lancia_kupsim {}] \
-        -label "kUpSim - realign the configuration of $quale"
-    .mb.tools add command -state $stato -command [list lancia_kupsim -nommi] \
-        -label "kUpSim -nommi - without the MMI faceplate pages"
-    .mb.tools add command -state $stato -command [list lancia_kupsim -n] \
-        -label "kUpSim -n - preview: show the steps without running them"
-    .mb.tools add separator
 
-    if {![winfo exists .mb.tools.sim]} { menu .mb.tools.sim -tearoff 0 }
-    .mb.tools.sim delete 0 end
-    set sims [lista_simulatori]
-    if {[llength $sims] == 0} {
-        .mb.tools.sim add command -state disabled \
-            -label "(no simulator in \$KSKED)"
-    } else {
-        foreach sim $sims {
-            .mb.tools.sim add radiobutton -label $sim -value $sim \
-                -variable ::KSIMSCELTO -command [list scegli_simulatore $sim]
-        }
-    }
-    .mb.tools add cascade -label "Current simulator" -menu .mb.tools.sim
-    .mb.tools add separator
     #  Sempre attiva, anche senza simulatore corrente e con una simulazione in
     #  corso: senza task selezionata apre legopc vuoto, che non tocca niente.
     #  I rifiuti li fa modifica_task (lgedit.tcl), che puo' spiegarli - una voce
     #  spenta no.
     .mb.tools add command -command lancia_legopc \
         -label "Edit model (legopc) - on the selected task, or empty"
-    #  Le due compilazioni della sola task di regolazione selezionata. Vivono
-    #  qui, accanto a kUpSim, perche' sono compilazioni: l'editor invece sta sul
-    #  pulsante del suo riquadro, dove c'e' la lista su cui agisce.
-    #  Spente senza il riquadro delle regolazioni (-noreg): agiscono sulla voce
-    #  selezionata li' dentro, e senza quella lista non c'e' niente da scegliere.
-    #  Spente senza il riquadro (-noreg): agiscono sulla voce selezionata li'
-    #  dentro. E spente anche senza simulatore corrente: kCompile comincia con
-    #  kTest, che senza KSIMNAME esce NOK e ferma tutto.
+    .mb.tools add separator
+
+    #  kUpSim sul simulatore corrente: il nome sta nella prima voce, cosi' si sa
+    #  su cosa si sta per agire. Spento, con le sue voci, senza simulatore.
+    if {![winfo exists .mb.tools.kupsim]} { menu .mb.tools.kupsim -tearoff 0 }
+    .mb.tools.kupsim delete 0 end
+    .mb.tools.kupsim add command -state $stato -command [list lancia_kupsim {}] \
+        -label "kUpSim - realign the configuration of $quale"
+    .mb.tools.kupsim add command -state $stato -command [list lancia_kupsim -nommi] \
+        -label "kUpSim -nommi - without the MMI faceplate pages"
+    .mb.tools.kupsim add command -state $stato -command [list lancia_kupsim -n] \
+        -label "kUpSim -n - preview: show the steps without running them"
+    .mb.tools add cascade -label "kUpSim" -menu .mb.tools.kupsim -state $stato
+
+    #  Le tre compilazioni della sola task di regolazione selezionata: accanto a
+    #  kUpSim perche' sono compilazioni (l'editor invece sta sul pulsante del
+    #  suo riquadro, dove c'e' la lista su cui agisce). Spente senza il riquadro
+    #  delle regolazioni (-noreg), perche' agiscono sulla voce selezionata li'
+    #  dentro, e senza simulatore corrente: kCompile comincia con kTest, che
+    #  senza KSIMNAME esce NOK e ferma tutto.
     set sreg [expr {($::mostra_reg && $nome ne "") ? "normal" : "disabled"}]
-    .mb.tools add separator
-    .mb.tools add command -state $sreg -command [list lancia_kcompile Regolation] \
+    if {![winfo exists .mb.tools.kcompile]} { menu .mb.tools.kcompile -tearoff 0 }
+    .mb.tools.kcompile delete 0 end
+    .mb.tools.kcompile add command -state $sreg -command [list lancia_kcompile Regolation] \
         -label "1. kCompile Regolation - compile the regulation schemes"
-    .mb.tools add command -state $sreg -command [list lancia_kcompile Task] \
+    .mb.tools.kcompile add command -state $sreg -command [list lancia_kcompile Task] \
         -label "2. kCompile Task - build the task executable"
-    .mb.tools add command -state $sreg -command [list lancia_kcompile Page] \
+    .mb.tools.kcompile add command -state $sreg -command [list lancia_kcompile Page] \
         -label "3. kCompile Page - compile the pages mmi animates"
-    #  Sempre attiva: un terminale serve anche senza simulatore corrente.
+    .mb.tools add cascade -label "kCompile" -menu .mb.tools.kcompile -state $sreg
     .mb.tools add separator
+
+    #  Sempre attiva: un terminale serve anche senza simulatore corrente.
     .mb.tools add command -command apri_terminale \
         -label "Terminal - shell in the current directory"
 }
