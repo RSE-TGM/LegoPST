@@ -261,6 +261,46 @@ backup|legocad.prelink-20260916-180429        # copie di sicurezza
 È la prima cosa da eseguire quando si segnala un problema: senza versione e numero
 di build, una segnalazione non è verificabile.
 
+### Il terminale: `lgterm`
+
+| Comando | Tipo | Scopo |
+|---|---|---|
+| `lgterm` | script | **Apre una finestra di terminale con il terminale scelto dall'utente** (`LG_XTERM`), traducendo titolo, geometria, colore e comando nella sintassi di quel terminale. Lo usano `kStat`, `kLeeF22`, *Export as → FMU* e *Tools → Terminal* di legopc, che prima chiamavano `xterm` per nome, con opzioni solo sue (`kStat` e `kLeeF22` cercavano addirittura `/usr/bin/X11/xterm`, che su Fedora non esiste). |
+
+```sh
+lgterm                                   # terminale interattivo nella directory corrente
+lgterm -t "Titolo" -g 80x24+100+100 -- comando arg1 "arg 2"
+lgterm -t "Build" -H -c "make -f Makefile.mk; ls"   # -H: resta aperto fino a Invio
+lgterm --list                            # terminali noti, installati, quale si usa e perche'
+lgterm --which                           # solo il nome di quello che si usa
+```
+
+Terminali che conosce: **xterm, xfce4-terminal, tilix, konsole, gnome-terminal,
+lxterminal** (con un altro prova la convenzione `-e comando`). `-bg` vale solo per
+xterm e xfce4-terminal; `-H` è uguale per tutti. xfce4-terminal e tilix li lancia
+come processo nuovo (`--disable-server`, `--new-process`): per default aprirebbero
+la finestra in un'istanza già attiva, con l'**ambiente di quella** — e i comandi
+di LegoPST vogliono `SHR_USR_KEY`, `KSIM`, `LG_*` di chi li lancia.
+
+**Come si sceglie il terminale.** In legopc, *File → Settings*, campo *Terminal*:
+il menu *Installed* accanto elenca i terminali che `lgterm` sa usare, fra quelli
+presenti. La scelta va in `$LG_ENTRY/legopc_prefs.tcl` e **vale subito ovunque**:
+`lgterm` la rilegge a ogni lancio, quindi la seguono anche le shell e i `lghmi`
+già aperti, senza risorgiare niente. Ordine con cui `lgterm` decide:
+
+1. **`LGTERM`**, se esportata: per forzare un terminale in una shell;
+2. la **preferenza di legopc**;
+3. **`LG_XTERM`**;
+4. il primo terminale installato fra quelli noti.
+
+Un terminale non installato si salta. Il profilo rilegge la preferenza a ogni
+sorgiata e la mette in `LG_XTERM`, che vale per chi la legge direttamente: prima
+lo faceva solo se `LG_XTERM` era vuota, e una shell che l'aveva già fissata a
+`xterm` da una sorgiata precedente restava su `xterm` anche risorgiando — ed era
+per questo che `lgterm`, lanciato da lì, apriva xterm. `legopc_prefs.tcl` sta
+nell'area di lavoro: con `lgswitch` su un'altra area vale la preferenza di
+quell'area.
+
 ---
 
 ## 7. Conversione fra Linux e Windows
@@ -327,6 +367,7 @@ Due nomi che si incontrano leggendo il codice e che è facile scambiare per coma
 | ricompilare tutto dopo una modifica | `lgupsim` (`lgupsimx` senza MMI) |
 | cambiare area di lavoro | `lgswitch`, oppure `lghmi` → *File → Work area* |
 | sapere che versione sto usando | `lgversion` |
+| usare un terminale diverso da xterm | legopc → *File → Settings* → *Terminal* (`lgterm --list` per vedere quale si usa) |
 | portare un'applicazione su Windows | `python3 util2025/lglinux2win.py` |
 | far dialogare più modelli come FMU | `python3 .../lg_cosim.py` |
 

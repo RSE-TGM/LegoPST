@@ -459,7 +459,21 @@ lg_pick LG_BROWSER    firefox falkon chromium chromium-browser google-chrome epi
 lg_pick LG_TEXTEDITOR mousepad gedit kate kwrite xed pluma leafpad gvim xdg-open
 lg_pick LG_ICOEDITOR  gimp krita drawing kolourpaint pinta mtpaint xdg-open
 lg_pick LG_PDFVIEWER  evince atril okular qpdfview zathura xpdf xdg-open
-lg_pick LG_XTERM      xterm konsole gnome-terminal xfce4-terminal lxterminal
+#  Il terminale scelto in legopc (File -> Settings, menu "Installed"; salvato
+#  in $LG_ENTRY/legopc_prefs.tcl) vale anche per le shell: si rilegge a OGNI
+#  sorgiata, anche se LG_XTERM c'e' gia' (una sorgiata precedente l'aveva
+#  fissata al default, e risorgiare non cambiava niente). Come in legopc, la
+#  preferenza vince su LG_XTERM; un terminale non installato si ignora.
+#  lgterm (util97) la rilegge comunque a ogni lancio; per forzare un altro
+#  terminale in una shell: export LGTERM=<terminale>.
+if [ -f "$LG_ENTRY/legopc_prefs.tcl" ]; then
+    _lg_xt=$(sed -n 's/^set ::pref_xterm *{\(.*\)}.*$/\1/p' "$LG_ENTRY/legopc_prefs.tcl" | head -1)
+    if [ -n "$_lg_xt" ] && command -v "$_lg_xt" >/dev/null 2>&1; then
+        export LG_XTERM=$_lg_xt
+    fi
+    unset _lg_xt
+fi
+lg_pick LG_XTERM      xterm konsole gnome-terminal xfce4-terminal tilix lxterminal
 
 unset -f lg_pick
 #  ---------------------------------------------------------------------------

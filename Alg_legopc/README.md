@@ -86,6 +86,15 @@ Cinque variabili dicono a legopc quali programmi lanciare. Ordine di precedenza:
    che finisce quello che si imposta da *File → Settings*, ed è lì che va
    cambiata la preferenza di un utente.
 
+**Il terminale** fa un passo in più: *File → Settings* ha accanto al campo
+*Terminal* il menu *Installed* (i terminali che `lgterm` sa usare, fra quelli
+presenti), e la scelta vale subito ovunque: `lgterm` rilegge `::pref_xterm` da
+`legopc_prefs.tcl` a ogni lancio, e il profilo a ogni sorgiata (la preferenza
+vince su `LG_XTERM`, come in legopc; `LGTERM` la forza in una shell). Le finestre di
+terminale con un comando dentro (*Export as → FMU*, *Tools → Terminal*, che prima
+si chiamava *Xterm*, e `kStat`/`kLeeF22`) le apre `lgterm`: vedi
+[docs/COMANDI_LG.md](../docs/COMANDI_LG.md), *Il terminale*.
+
 Prima erano hardcodate su programmi non sempre installati (`/usr/bin/mozilla`,
 `kwrite`, più un `export LG_TEXTEDITOR=leafpad` in `.profile_legoroot` che
 arrivava *dopo* Alg_env.sh e ne annullava la scelta), mentre `LG_ICOEDITOR`,

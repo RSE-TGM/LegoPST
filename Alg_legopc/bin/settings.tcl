@@ -6,7 +6,9 @@
 #   LG_BROWSER     browser HTML     (default: xdg-open o quello da .profile_legoroot)
 #   LG_ICOEDITOR   editor icone     (default: gimp o quello da .profile_legoroot)
 #   LG_PDFVIEWER   viewer PDF/PNG   (default: evince o quello da .profile_legoroot)
-#   LG_XTERM       terminale X      (default: xterm o quello da .profile_legoroot)
+#   LG_XTERM       terminale X      (default: xterm o quello da .profile_legoroot;
+#                                    menu "Installed" con i terminali che lgterm
+#                                    sa usare, fra quelli presenti)
 #
 # Le modifiche vengono applicate immediatamente all'env del processo corrente
 # e salvate in legopc_prefs.tcl (in LG_ENTRY = dir utente, non sovrascritta
@@ -72,6 +74,24 @@ proc lancia_settings {} {
         grid $w.f.btn$row -row $row -column 2 -sticky w  -pady 3
         incr row
     }
+
+    # Terminal: accanto al campo, i terminali che lgterm (util97) sa usare,
+    # fra quelli installati. Il terminale scelto vale per tutto LegoPST: lo
+    # usa lgterm (kStat, kLeeF22, Export as -> FMU, Tools -> Terminal) e il
+    # profilo lo legge da legopc_prefs.tcl per le shell aperte dopo.
+    set rt [expr {$row - 1}]
+    menubutton $w.f.mbt -text "Installed" -relief raised -indicatoron 1 \
+        -menu $w.f.mbt.m
+    menu $w.f.mbt.m -tearoff 0
+    set n 0
+    foreach t {xfce4-terminal tilix xterm konsole gnome-terminal lxterminal} {
+        if {[auto_execok $t] ne ""} {
+            $w.f.mbt.m add radiobutton -label $t -variable ::settings_xt -value $t
+            incr n
+        }
+    }
+    if {$n == 0} { $w.f.mbt configure -state disabled }
+    grid $w.f.mbt -row $rt -column 3 -sticky w -pady 3 -padx 2
 
     # ── Separatore + bottoni ──
     frame $w.sep -height 2 -relief groove -bd 1

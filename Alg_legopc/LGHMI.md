@@ -88,8 +88,9 @@ Nella finestra:
 - **File → Logs ▸** → gli **altri log** che `lghmi` scrive in `/tmp`: uno per ogni
   HMI lanciata, più `mmi` e `xstaz`: vedi sotto.
 - **Tools** → aggiorna la configurazione del **simulatore corrente** con
-  `kUpSim`, permette di cambiare simulatore e di aprire il modello della task
-  selezionata nel CAD (`legopc`): vedi sotto.
+  `kUpSim`, permette di cambiare simulatore, di aprire il modello della task
+  selezionata nel CAD (`legopc`) e di aprire un **terminale** nella directory
+  corrente: vedi sotto.
 - **?** → versione di LegoPST e documentazione dell'ambiente: vedi sotto.
 - **Refresh** → rilegge l'elenco delle task e l'area di lavoro (un `lgswitch`
   fatto da terminale si vede qui).
@@ -907,6 +908,24 @@ che senza quel riquadro non esiste.
 > due, perché non modifica file ma **rigenera la task**: l'eseguibile in `proc/`
 > viene ricostruito sotto la simulazione, che continuerebbe a usare il vecchio
 > fino al riavvio.
+
+### `Tools → Terminal`
+
+*Terminal - shell in the current directory* apre un terminale nella **directory
+corrente del selettore**: quella di lancio, di solito il simulatore, oppure quella
+scelta con *File → Open Simulator path* o fra le recenti (`imposta_loc` ci fa
+`cd`). La shell eredita l'ambiente di `lghmi`, quindi `KSIM` e le altre variabili
+del simulatore corrente e `LG_SIM_PATH`. La voce è sempre attiva, anche senza
+simulatore corrente.
+
+Il terminale è quello scelto dall'utente, aperto da **`lgterm`** (in legopc,
+*File → Settings → Terminal*; vedi [docs/COMANDI_LG.md](../docs/COMANDI_LG.md),
+*Il terminale*). `lgterm` lancia xfce4-terminal e tilix come processo nuovo:
+lanciati normalmente aprirebbero la finestra in un'istanza già attiva, **con
+l'ambiente di quella** e non di `lghmi`. Senza `lgterm` — nel bundle FMU non c'è
+— si usa `$LG_XTERM`, oppure `xterm`; se nemmeno quello è installato, un
+messaggio dice come installarne uno. La riga di stato dice quale terminale si è
+aperto e dove.
 
 ### Quando le voci di `Tools` sono spente
 

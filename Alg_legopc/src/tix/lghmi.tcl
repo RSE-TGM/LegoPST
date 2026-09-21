@@ -2372,6 +2372,47 @@ proc aggiorna_menu_tools {} {
         -label "2. kCompile Task - build the task executable"
     .mb.tools add command -state $sreg -command [list lancia_kcompile Page] \
         -label "3. kCompile Page - compile the pages mmi animates"
+    #  Sempre attiva: un terminale serve anche senza simulatore corrente.
+    .mb.tools add separator
+    .mb.tools add command -command apri_terminale \
+        -label "Terminal - shell in the current directory"
+}
+
+#  Tools -> Terminal: un terminale nella directory corrente del selettore,
+#  cioe' quella del simulatore di solito (di lancio, o scelta con Open
+#  Simulator path / le recenti: imposta_loc ci fa cd). L'ambiente e' quello di
+#  lghmi: KSIM e le altre del simulatore corrente, LG_SIM_PATH.
+#  Il terminale e' quello scelto dall'utente, aperto da lgterm (util97), che
+#  lancia xfce4-terminal e tilix come processo nuovo: aperti nudi, mettono la
+#  finestra in un'istanza gia' attiva, con l'ambiente di quella. Senza lgterm
+#  - nel bundle FMU non c'e' - LG_XTERM o xterm.
+proc apri_terminale {} {
+    global env
+    set dir [pwd]
+    if {[auto_execok lgterm] ne ""} {
+        set cmd [list lgterm]
+    } else {
+        set t [expr {[info exists env(LG_XTERM)] && $env(LG_XTERM) ne "" ? $env(LG_XTERM) : "xterm"}]
+        if {[auto_execok $t] eq ""} {
+            tk_messageBox -icon error -title "Terminal" -parent . -message \
+                "No terminal found ('$t' is not installed).\nInstall one (sudo dnf install xfce4-terminal) and choose it in legopc,\nFile -> Settings, or set LG_XTERM."
+            return
+        }
+        set cmd [list $t]
+    }
+    if {[catch {exec {*}$cmd &} err]} {
+        tk_messageBox -icon error -title "Terminal" -parent . \
+            -message "Cannot open the terminal:\n$err"
+        return
+    }
+    #  quale si e' aperto davvero: lgterm sceglie da se' (preferenza di legopc
+    #  prima di LG_XTERM), l'ambiente di lghmi puo' non saperlo
+    if {[lindex $cmd 0] eq "lgterm"} {
+        if {[catch {exec lgterm --which} quale] || $quale eq ""} { set quale "terminal" }
+    } else {
+        set quale [lindex $cmd 0]
+    }
+    .status configure -text "$quale opened in $dir"
 }
 
 #  Esegue un comando LegoPST seguendone l'output nel VISORE DI LOG, invece che

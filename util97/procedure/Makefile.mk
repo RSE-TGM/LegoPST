@@ -23,7 +23,10 @@ all:../bin/creasim ../bin/creastazsim ../bin/direct.sh ../bin/mkstaz \
     ../bin/mod2pag ../bin/modoff ../bin/modrtf ../bin/newval.sh \
     ../bin/numcifre ../bin/pulipag ../bin/punt2canc.sh ../bin/sosti.sh \
     ../bin/tab2sem.sh ../bin/tab2sem_all.sh \
-	../bin/lgswitch ../bin/lgswitch_legacy ../bin/lgversion
+	../bin/lgswitch ../bin/lgswitch_legacy ../bin/lgversion ../bin/lgterm
+#
+../bin/lgterm: lgterm.sh
+	cp lgterm.sh ../bin/lgterm;chmod 777 ../bin/lgterm ;
 #
 ../bin/lgversion: lgversion.sh
 	cp lgversion.sh ../bin/lgversion;chmod 777 ../bin/lgversion ;
