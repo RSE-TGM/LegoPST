@@ -25,6 +25,8 @@ LegoPST provides a robust, modular framework for modeling the complex interactio
 - **Configuration System**: Hierarchical management of pages and components
 - **Real-Time Simulation**: Simulation engine for operator training
 - **Integrated CAD**: Design tools for process schematics
+- **Runtime HMI**: Live supervision on the model drawing (`lghmi`, `draw2gr`) with values, engineering units, command mode and operator faceplates
+- **FMI 2.0 Export**: Any task can be exported as an FMU - a light variant for machines running LegoPST, or a self-contained bundle that runs on a bare Linux box - for co-simulation with third-party tools
 
 ## 🏗️ Architecture
 
@@ -34,11 +36,16 @@ LegoPST provides a robust, modular framework for modeling the complex interactio
 LegoPST/
 ├── AlgLib/           # Core algorithm libraries
 ├── Alg_mmi/          # Man-Machine Interface
-├── Alg_rt/           # Runtime System
-├── Alg_legopc/       # Models Building Tools
-├── lego_big/         # Component libraries
-├── kprocedure/       # Administrative scripts
+├── Alg_rt/           # Runtime System (simulation engine, HMI, FMU export)
+├── Alg_legopc/       # Models Building Tools (legopc, draw2gr, lghmi)
+├── legocad/          # Sources of the process and control modules
+├── lego_big/         # Component libraries (linked as legocad/lego_big)
+├── kprocedure/       # Administrative scripts (sources)
+├── kbin/             # Administrative scripts (installed commands)
+├── kutil/            # Administrative utilities
 ├── docker/           # Docker build and install scripts
+├── demo/             # Demo work area (tarball)
+├── docs/             # Guides: build, commands, configuration files
 ├── util97/           # Legacy utilities
 ├── util2007/         # Other legacy utilities
 ├── util2025/         # Modern utilities
@@ -49,7 +56,7 @@ LegoPST/
 
 **AlgLib/** - Core algorithm libraries
 - Contains fundamental libraries (libRt.a, libcom.a, libsim.a, etc.)
-- Threading support via dcethreads
+- Threading support via POSIX threads (pthreads)
 - Database support via SQLite
 - Shared memory and IPC utilities
 
@@ -65,10 +72,15 @@ LegoPST/
 - Network simulation components
 - Session management
 
-**legocad/** - CAD Tools
-- Engineering design tools
-- Model creation and editing
-- Library management for plant components
+**Alg_legopc/** - Model Building Tools
+- `legopc`: graphical editor for process models, pages and operator elements
+- `draw2gr`: runtime HMI drawn on the model itself
+- `lghmi`: task selector, HMI and simulator launcher
+- Model dialogs, module libraries, PDF/PNG export
+
+**legocad/** - Module sources and libraries
+- Fortran sources of the process modules (`libut`) and of the control modules (`libut_reg`)
+- Component libraries shared with `lego_big/`
 
 **kprocedure/** - Administrative Scripts
 - System management utilities
@@ -88,7 +100,7 @@ LegoPST/
 ### Configuration System
 The system uses hierarchical configuration:
 1. Environment variables set in `.profile_legoroot`
-2. Platform detection (32/64-bit Linux)
+2. OS detection via `uname` (the supported platform is Linux x86_64)
 3. Extension-based directory structure
 4. User-specific settings in home directories
 
@@ -103,7 +115,9 @@ Alternatively, if you want a stable installation on your Fedora 41 machine, you 
 
 #### Prerequisites
 
-Only **Docker** is required. Install it on your system:
+**Docker** is required, plus a working X11 display on the host: a native X server on
+Linux, or WSLg on Windows/WSL. `lgrun --socat` additionally needs `socat` on the host.
+Install Docker on your system:
 
 ```bash
 # Ubuntu/Debian/WSL
@@ -227,7 +241,7 @@ sudo dnf install -y --setopt=install_weak_deps=False \
     git \
     gcc gfortran make \
     fastfetch \
-    xterm xclock xhost xauth \
+    xterm xfce4-terminal xclock xhost xauth \
     hostname \
     glibc-langpack-en \
     libX11-devel \
@@ -246,7 +260,9 @@ sudo dnf install -y --setopt=install_weak_deps=False \
     which \
     procps-ng \
     cpio \
-    xdg-open \
+    zip \
+    rsync \
+    xdg-utils \
     ghostscript \
     drawing \
     evince \
@@ -261,6 +277,16 @@ sudo dnf clean all
 
 
 ```
+
+> **Choosing a terminal.** LegoPST opens terminal windows through `lgterm`, which
+> defaults to the spartan `xterm`. To use a better one, install it (`xfce4-terminal`
+> is in the list above) and pick it in `legopc` under *File -> Settings -> Terminal*.
+> The choice is read at every launch, so it applies to programs that are already
+> running. `lgterm --list` shows which terminals are installed and which one wins.
+
+> **Optional, only for the FMU features**: `python3` with `fmpy` (a virtualenv is
+> enough) to run an exported FMU, and Docker to test a bundle in a clean container.
+> See [Alg_rt/lg_fmu/USAGE.md](Alg_rt/lg_fmu/USAGE.md).
 
 #### Download LegoPST package and set up user environment
 
@@ -278,10 +304,29 @@ echo "source $LEGOROOT/.profile_legoroot " >> $HOME/.bashrc
 
 ```
 
+#### Create your work area
+
+The package brings the tools, not the models. `legocad` and `sked` in your home are
+**symbolic links** to a *work area*, a `legopst_*` directory holding models and
+simulators; `lgswitch` switches the two links between areas, so a demo, a real plant
+and a trial can sit side by side. Start from the demo area shipped with the repository:
+
+```bash
+cd $HOME
+# Creates ~/legopst_userstd, with legocad/ (models) and sked/ (simulators)
+tar xzf $LEGOROOT/demo/legopst_userstd.tgz
+# Points ~/legocad and ~/sked at it
+lgswitch legopst_userstd
+```
+
+`lgswitch` with no argument lists the areas it finds in the current directory and asks
+which one to use; `lgswitch -l` prints the current state without changing anything.
+The same switch is available from `lghmi`, under *File -> Work area*.
+
 ### Restart shell session
 The system automatically detects:
 - **LEGOROOT**: Project root path
-- **Platform**: 32/64-bit Linux detection
+- **Platform**: operating system, via `uname` (Linux x86_64)
 - **Compiler flags**: gcc/gfortran configuration
 - **Database paths**: SQLite and threading
 
@@ -299,22 +344,57 @@ source .profile_legoroot
 
 # Clean build
 make -f Makefile.mk clean
-# Full build
+
+# Full build: compiles every subproject and installs the commands.
+# It does NOT build the Docker image, so it needs no Docker on the machine.
 make -f Makefile.mk
 
-# Build Docker image (local only)
+# Build the Docker image (optional, ~4.5 GB, needs Docker installed and running)
 make -f Makefile.mk docker
 
-# Build Docker image and push to registry
+# Build the Docker image and push it to the registry
 make -f Makefile.mk docker-push
+
+# List every target
+make -f Makefile.mk help
 
 # then go to
 # Option 2 - Running in a fully configured Fedora 41
 ```
 
+> Without `source .profile_legoroot` the include paths stay empty (`-I -I`) and the
+> build fails in a way that does not say why. See [docs/BUILD.md](docs/BUILD.md).
+
 ## 🎮 Usage
 
+### Where to start: `lghmi`
+
+```bash
+lghmi
+```
+
+`lghmi` is the control desk of the simulator, and nearly everything is reachable from
+there:
+
+- the **tasks of the current simulator**, read from its `S01`: pick one and its HMI
+  (`draw2gr`) opens on the model drawing itself, with live values, engineering units
+  and command mode;
+- **start the simulation** (`net_startup`) and follow its log in the same window;
+- **command faceplates** (`xstaz`), which open even with no simulation running - handy
+  while building and configuring the stations;
+- *File -> Work area*: switch work area, the `lgswitch` above;
+- *File -> Current simulator*: the simulator you are looking at is the one you work on,
+  the one `KSIM` and every `k*` command refer to;
+- *Tools*: edit the model, the `kUpSim` and `kCompile` submenus, and a terminal opened
+  in the current directory.
+
+The whole tour is in [Alg_legopc/LGHMI.md](Alg_legopc/LGHMI.md).
+
 ### Simulator directory structure
+
+`legocad` and `sked` are the two symbolic links set by `lgswitch`
+([Create your work area](#create-your-work-area)): they point inside the work area you
+picked, so this is what you see from your home.
 
 ```
 cd /home/user/
@@ -337,6 +417,9 @@ sked/
 ```bash
 cd /home/user/legocad/pmod1
 lgpc
+
+# or, from anywhere, naming the model
+lgpc pmod1
 ```
 #### Process modeling Main Files
 - **\*.tom**: Model Topology   
@@ -356,9 +439,38 @@ config
 - **\*.a**: Object libraries
 - **\*.reg**: Regulation page
 ## 🔧 Simulator Configuration
+A simulator is a directory under `~/sked`: it declares which tasks it is made of, how
+they run and how they are wired to each other.
+
 #### Simulator Main Files
-- **S01**: Simulator topology
-- **etc**: 
+- **al_sim.conf**: what the simulator is made of - tasks, integration steps, MMI page
+  names, connection rules. `creasim` installs it, then it is edited by hand. See
+  [docs/AL_SIM_CONF.md](docs/AL_SIM_CONF.md)
+- **S01**: Simulator topology - tasks, types, paths, steps and input/output connections,
+  generated from `al_sim.conf` by `kConnex`
+- **Simulator**: sizing - `MAX_CAMPIONI`, `NUM_VAR`, snapshot, backtrack
+- **task directories**: one per model, each with its executable, data and `out/`
+
+`creasim` creates a simulator, `ksims` lists them, `ksetsim <name>` picks the current
+one (`KSIM`), which is the one every `k*` command acts upon - in `lghmi` it follows the
+directory you are looking at. See [docs/BUILD.md](docs/BUILD.md).
+
+## 📚 Documentation
+
+| Topic | Document |
+|---|---|
+| **Index of all the documentation** (md, html, pdf, doc, txt) | [INDICE_DOCUMENTAZIONE.html](INDICE_DOCUMENTAZIONE.html) |
+| Build, versioning, choosing the current simulator | [docs/BUILD.md](docs/BUILD.md) |
+| Dependencies, compilers, directory conventions | [Environment_setup.md](Environment_setup.md) |
+| The `lg*` commands: `lgpc`, `lghmi`, `lgswitch`, `lgterm`, ... | [docs/COMANDI_LG.md](docs/COMANDI_LG.md) |
+| Graphical CAD `legopc`: libraries, model dialogs, pages, export | [Alg_legopc/README.md](Alg_legopc/README.md) |
+| `lghmi`: tasks, HMI, work areas, current simulator, `S01` format | [Alg_legopc/LGHMI.md](Alg_legopc/LGHMI.md) |
+| `al_sim.conf`: how a simulator is composed | [docs/AL_SIM_CONF.md](docs/AL_SIM_CONF.md) |
+| MMI pages and configuration | [Alg_mmi/README.md](Alg_mmi/README.md) |
+| FMU export and co-simulation (FMI 2.0) | [Alg_rt/lg_fmu/USAGE.md](Alg_rt/lg_fmu/USAGE.md) |
+| Command faceplates: `compstaz`, `xstaz` | [Alg_rt/grafica/xstaz/README.md](Alg_rt/grafica/xstaz/README.md) |
+| The `kprocedure` commands | [kbin/README.md](kbin/README.md) |
+| Code conventions | [CONVENTIONS.md](CONVENTIONS.md) |
 
 ## 🏭 Use Cases
 
@@ -382,11 +494,11 @@ config
 - **Recursive Makefiles**: Modular build
 - **Static Libraries**: Optimized linking
 - **Version Management**: The project version is defined in the `VERSION` file at the repository root. The build system (`Makefile.mk`) reads this file and injects the version into all scripts (`lgdock`, `lgrun`). The file `version.h` is auto-generated at build time with git commit hash and build number for C/Fortran code.
-- **Cross-compilation**: Multi-arch support
+- **Target**: Linux x86_64 (Fedora 41 is the reference platform)
 
 ### Other features
 
-- **pThreads**: Compatibility layer
+- **POSIX threads**: pthreads compatibility layer
 - **Shared Memory**: Efficient IPC
 - **Message Queues**: Asynchronous communication
 - **Semaphores**: Process synchronization

@@ -24,10 +24,10 @@ RUN dnf update -y && \
         ksh \
         which \
         sudo \
-        ps \
+        procps-ng \
         passwd \
         cpio \
-        xdg-open \
+        xdg-utils \
         ghostscript \
         gimp \
         evince \

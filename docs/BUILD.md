@@ -12,7 +12,19 @@ This builds all subprojects in sequence:
 - Alg_rt (runtime components)
 - legocad (CAD tools with lego_big)
 - util97 and util2007 utilities
-- docker components
+- docker launchers (`lgdock`, `lgdock_socat`, `lgdock_multi`) and `repo_info.conf`
+
+It does **not** build the Docker image, so it runs on a machine without Docker.
+
+## Docker Image
+```bash
+make -f Makefile.mk docker        # builds aguagliardi/legopst_multi:2.0 (~4.5 GB)
+make -f Makefile.mk docker-push   # builds it and pushes it to the registry
+```
+
+Both run `docker/BuildImage -y`, which needs Docker installed and running. Rebuild the
+image whenever something that ends up inside it changes - the whole repository is
+copied in, the demo tarball included.
 
 ## Clean Build
 ```bash

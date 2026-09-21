@@ -122,9 +122,12 @@ piedi l'ambiente, come si compila.</p>
   <div class="riga1"><a class="tit" href="README.md">Panoramica del progetto</a>
     <span class="b md">md</span><span class="path">README.md</span></div>
   <p><b>Ambito:</b> architettura, componenti core, librerie, sistema di configurazione,
-  glossario dei pezzi che compongono un simulatore.</p>
+  glossario dei pezzi che compongono un simulatore. Anche installazione (container Docker
+  oppure Fedora 41), creazione dell'area di lavoro dalla demo, compilazione dai sorgenti
+  e indice della documentazione.</p>
   <p class="uso"><b>Quando serve:</b> è la porta d'ingresso. Se non sai cosa siano una
-  <i>task</i>, un <i>modello</i>, lo <i>scheduler</i> o la <i>SHM dei punti</i>, si comincia da qui.</p>
+  <i>task</i>, un <i>modello</i>, lo <i>scheduler</i> o la <i>SHM dei punti</i>, si comincia da qui;
+  ed è quello che legge chi installa LegoPST su una macchina nuova.</p>
 </div>
 
 <div class="scheda">
@@ -138,7 +141,8 @@ piedi l'ambiente, come si compila.</p>
 <div class="scheda">
   <div class="riga1"><a class="tit" href="docs/BUILD.md">Compilazione e gestione dei simulatori</a>
     <span class="b md">md</span><span class="path">docs/BUILD.md</span></div>
-  <p><b>Ambito:</b> <code>make -f Makefile.mk</code>, versioning, i comandi
+  <p><b>Ambito:</b> <code>make -f Makefile.mk</code>, l'immagine Docker come target a parte
+  (<code>make docker</code>), versioning, i comandi
   <code>ksetsim</code>/<code>ksims</code> per scegliere il simulatore attivo,
   <code>creasim</code>, <code>kDiffS01</code>.</p>
   <p class="uso"><b>Quando serve:</b> ogni volta che si compila. Contiene anche il tranello più

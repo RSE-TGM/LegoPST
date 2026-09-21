@@ -18,7 +18,7 @@ all: version.h # Assicuriamoci che version.h sia controllato/generato prima di c
 	cd ./util97; $(MAKE) -f Makefile.mk
 	cd ./Alg_legopc; $(MAKE) -f Makefile.mk
 	cd ./util2007; $(MAKE) -f Makefile.mk
-	cd ./docker; $(MAKE) -f Makefile.mk
+	cd ./docker; $(MAKE) -f Makefile.mk   # solo i lanciatori lgdock*, non l'immagine
 #	cd ./docker_root; $(MAKE) -f Makefile.mk
 
 # --- Gestione di version.h ---
@@ -78,6 +78,9 @@ help:
 	@echo "                     kprocedure -> kutil -> Alg_mmi/AlgLib -> Alg_mmi"
 	@echo "                     -> Alg_rt -> legocad/lego_big -> legocad"
 	@echo "                     -> util97 -> Alg_legopc -> util2007 -> docker"
+	@echo "                   Di docker/ installa solo i lanciatori (lgdock,"
+	@echo "                   lgdock_socat, lgdock_multi): l'immagine Docker NON"
+	@echo "                   viene costruita, si chiede con il target 'docker'"
 	@echo ""
 	@echo "  clean            Rimuove tutti i file oggetto (*.o), le librerie (*.a)"
 	@echo "                   e il file version.h generato"

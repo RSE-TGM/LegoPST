@@ -237,7 +237,9 @@ runtime (`sked_start.c`, `sked_fine.c`, `lg5sim.for`), quindi si esclude
 > Dopo aver rigenerato il tarball **va ricostruita l'immagine Docker**: il
 > `Dockerfile_LegoPST` copia l'intero repository (`COPY /LegoPST
 > /home/legoroot_fedora41`) e la demo viaggia lì dentro. Senza rebuild, `lgrun -d`
-> continua a estrarre il tarball vecchio.
+> continua a estrarre il tarball vecchio. L'immagine si costruisce con
+> `make -f Makefile.mk docker` dalla radice del repository (o `docker/BuildImage -y`):
+> il `make` normale non la tocca.
 
 ## Disinstallazione
 

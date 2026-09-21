@@ -23,7 +23,14 @@ BUILD_DEPENDENCIES := $(DOCKERFILE) lgdock lgdock_socat lgdock_multi
 # Questo è il modo più semplice se BuildImage non crea un file specifico tracciabile da Make.
 .PHONY: all build clean check_docker repo_info
 
-all: build repo_info $(LEGORT_BIN)/lgdock $(LEGORT_BIN)/lgdock_socat $(LEGORT_BIN)/lgdock_multi
+#  'all' NON costruisce l'immagine: installa solo i lanciatori (lgdock,
+#  lgdock_socat, lgdock_multi) e repo_info.conf. L'immagine e' 4,5 GB, vuole
+#  Docker installato e in esecuzione, e non serve a chi compila i sorgenti:
+#  sarebbe una sorpresa in fondo a 'make' nella radice, che fallisce su una
+#  macchina senza Docker. Si costruisce a parte:
+#      make -f Makefile.mk docker        (dalla radice del repository)
+#      make -f Makefile.mk build         (da qui)
+all: repo_info $(LEGORT_BIN)/lgdock $(LEGORT_BIN)/lgdock_socat $(LEGORT_BIN)/lgdock_multi
 
 # Genera repo_info.conf con le coordinate del repository git
 repo_info: repo_info.conf

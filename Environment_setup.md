@@ -24,7 +24,7 @@ sudo apt install libbsd-dev libsqlite3-dev libgdbm-compat-dev
 - Shared includes in `libinclude/` directories
 
 ## Threading and IPC
-- Uses DCE threads compatibility layer
+- Uses POSIX threads (pthreads); the old DCE threads layer is no longer built
 - Extensive shared memory usage
 - Message queues for inter-process communication
 - Semaphores for synchronization
