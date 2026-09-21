@@ -12,7 +12,7 @@ fileio.tcl monitor_v2.tcl preinst.tcl read_f01.tcl select.tcl lg4_drift.inp lg5_
 checkopen.tcl animate.tcl balloon.tcl sincviewGui.tcl settings.tcl muovi.tcl tixwish.ico \
 md2html.tcl \
 vorwahl1.for vorwahl2.for migrate_i5.tcl gen_missing_i5.sh bgelement.tcl linkstyle.tcl \
-lghmi.tcl lgedit.tcl lgstaz.tcl hmielem.tcl modelli.tcl
+lghmi.tcl lgedit.tcl lgstaz.tcl hmielem.tcl modelli.tcl esporta.tcl
 
 # 2. Lista dei file destinati alla cartella preinst/
 PREINST_FILES = vorwahl1_x.for vorwahl2_x.for templ.lib makevorwahl

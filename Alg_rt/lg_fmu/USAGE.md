@@ -186,6 +186,13 @@ pannello `xaing` per inviare la perturbazione (gradino/rampa/impulso). Per veder
 l'effetto in diretta, esegui la simulazione con il pacing a tempo reale
 (`run_fmu -r 1`). Requisiti: `DISPLAY` (X11) e una simulazione `net_sked` attiva.
 
+**Export dello schema.** Anche la HMI del bundle ha *File → Export as ▸ PDF / PNG*
+([esporta.tcl](../../Alg_legopc/src/tix/esporta.tcl)). La conversione usa
+Ghostscript, che **non è nel bundle**: se sulla macchina target manca, il
+dialogo dice che l'esportazione è impossibile e propone un ripiego (PostScript,
+o fotografia della finestra). Vedi
+[Alg_legopc/README.md](../../Alg_legopc/README.md), *File → Export as*.
+
 **Elementi operatore delle pagine.** Se lo schema contiene bottoni **faceplate**
 (`@stz_0`) o elementi **set value** (`@set_0`), in *View → Show Value* (il modo
 con cui la pagina si apre) funzionano anche nel bundle: il bundle include `xstaz`, `stazpag`, `viewval` e la libreria

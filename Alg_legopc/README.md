@@ -279,8 +279,42 @@ S001=WEST;S           ← set value @set_0: variabile di ingresso WEST
 - Chiave = nome istanza (univoco sul canvas, garantito da `inputModName`).
 - Valore = nome variabile; token opzionale **`;L`** (solo elementi `@val_0`) = modalità etichetta; **`;F`** = pagina di faceplate (`@stz_0`); **`;S`** = variabile di un set value (`@set_0`).
 - Al caricamento le righe la cui variabile non è più nel modello (`tipVarMod`) vengono **scartate** e il file riscritto ripulito. Le righe **`;F`** non si validano: il valore è una pagina, non una variabile.
-- **Una voce alla volta con `anim_remap_set`**: rilegge il file, cambia la voce e lo riscrive, aggiornando anche la memoria. La usano le assegnazioni (display, elementi operatore, remap dei blocchi in draw2gr). `anim_save_remap` invece scrive **tutta la memoria**, che fuori da *Show Value* può mancare o essere di un altro modello, e cancellerebbe le voci scritte nel frattempo da un'altra applicazione (legopc e draw2gr lavorano sullo stesso file).
+- **Una voce alla volta con `anim_remap_set`**: rilegge il file, cambia la voce e lo riscrive, aggiornando anche la memoria. La usano le assegnazioni (display, elementi operatore, remap dei blocchi in legopc e draw2gr). `anim_save_remap` invece scrive **tutta la memoria**, che fuori da *Show Value* può mancare o essere di un altro modello, e cancellerebbe le voci scritte nel frattempo da un'altra applicazione (legopc e draw2gr lavorano sullo stesso file).
 - **Compatibilità**: una versione di legopc/draw2gr precedente a settembre 2026 non conosce `;F` e, riscrivendo il file ripulito, **cancella** le pagine dei bottoni faceplate (le prende per variabili inesistenti).
+
+### Remap di un blocco dal doppio clic (legopc e draw2gr)
+
+In *View → Show Value*, un **doppio clic sul campo** sotto l'icona di un blocco
+(giallo dal vivo, azzurro a simulazione ferma; non i remark) sceglie quale
+**variabile del blocco** mostrare, e la scelta va nel `.remap` (`TURB=T02TURBO1`).
+Il legame è uno solo, `anim_field_remap` in [animate.tcl](src/tix/animate.tcl);
+cambia solo come si sceglie:
+
+| | draw2gr | legopc (tab *Data Assignment & Simulation*) |
+|---|---|---|
+| doppio clic | il campo diventa verde e si apre l'elenco delle variabili del blocco nel **pannello del Plot** (`anim_field_select` → `showIt`) | il campo diventa verde e si apre il dialogo ***Variable to show***, con il nome del blocco nel titolo (`anim_field_dialog`) |
+| scelta | clic su una variabile del pannello (`setSlot`) | elenco filtrabile delle variabili del blocco, con tipo e descrizione, e quella attuale selezionata; doppio clic, Invio o *OK* |
+| annullare | secondo doppio clic sullo stesso campo | *Cancel*, Escape o chiusura |
+
+Le variabili sono quelle del blocco nel F01 caricato (`blocNvar`/`blocVars`, le
+stesse di `loadVariables`); legopc le legge direttamente, perché
+`loadVariables` riscrive le globali del pannello dei dati. Il dialogo mostra la
+variabile attuale e quella di default (`<prefisso .anim><istanza>`); nel campo
+si può scrivere il nome anche in minuscolo.
+
+Il salvataggio è comune (`anim_apply_remap`, spostata da `draw2gr.tcl` ad
+`animate.tcl`): `anim_remap_set` per la voce del `.remap`, tag
+`<variabile>.nome_anim` sul modulo (lo legge il ciclo dal vivo), testo della
+casella aggiornato subito — a simulazione ferma con il valore di stazionario,
+come il modo 3 — e campo rimesso del **suo** colore (prima tornava sempre
+giallo, anche se era azzurro).
+
+**Tag dei campi ripuliti a ogni avvio di Show Value** (`anim_togli_campi_vecchi`,
+modi 1 e 3): prima il modo 3 non toglieva i `*.visual` dei campi precedenti e
+il modo 1 solo il primo, così un modulo poteva portarne due e chi cercava il
+primo trovava una casella già cancellata; allo stesso modo un `*.nome_anim`
+vecchio restava davanti a quello nuovo quando il `.remap` cambiava da un'altra
+applicazione, e il ciclo dal vivo mostrava la variabile vecchia.
 
 ## File `.lstyle` — override per-modello dello stile delle connessioni
 
@@ -432,6 +466,46 @@ aperta e `net_sked` vivo (`hmi_live`, controllo di `net_sked` al massimo ogni
   riga di stato del tab *Data Assignment* (`hmi_stato`).
 
 Fuori da Linux gli elementi si vedono ma restano spenti.
+
+## File → Export as (PDF, PNG) — in legopc e in draw2gr
+
+Il canvas in vista si esporta in PDF o PNG da *File → Export as ▸*: in legopc
+(il tab corrente, *Model Topology* o *Data Assignment*) e in draw2gr (lo schema
+della HMI, compresi i valori di *Show Value*). Il codice è uno solo,
+[src/tix/esporta.tcl](src/tix/esporta.tcl), sorgiato da `legopc.tix` e da
+`draw2gr.tcl`; prima stava in `legopc.tix`, e draw2gr non l'aveva.
+
+**La strada normale** passa per Ghostscript: il canvas diventa PostScript con
+il comando di Tk (`$c postscript`, `plotPS_internal`, pagina A4 con l'orientamento
+che fa venire il disegno più grande) e `gs` lo converte in PDF (`pdfwrite`) o in
+PNG (`png16m`, a 96/150/300 dpi scelti in un dialogo). Il file va accanto al
+`.tom`, con il nome del modello (`<modello>.pdf`, `<modello>.png`); se quella
+directory non è scrivibile — un bundle FMU installato in sola lettura — si
+chiede dove salvarlo. Poi il PDF si apre con il viewer (`LG_PDFVIEWER`, o il
+primo tra evince/okular/...), il PNG con `LG_ICOEDITOR` se c'è, altrimenti con
+il viewer.
+
+**Senza Ghostscript l'esportazione è impossibile**, e il dialogo lo dice per
+prima cosa, con il comando per installarlo. Poi **propone** un ripiego, che si
+fa solo rispondendo *Sì* (default *No*: nessun file che non si è chiesto):
+
+| Formato | Ripiego proposto |
+|---|---|
+| PDF | salvare il **PostScript** (`<modello>.ps`: vettoriale, stampabile), da convertire poi con `ps2pdf` |
+| PNG | **fotografare la finestra** con il pacchetto Tcl `Img` (formato `window`) o con `import` di ImageMagick: solo la parte del disegno visibile, alla risoluzione dello schermo |
+| PNG, senza nemmeno quelli | salvare il PostScript, come per il PDF, con il comando `gs` per il PNG |
+
+Se Ghostscript c'è ma fallisce, il messaggio dice *Esportazione non riuscita*
+con l'errore, e il PostScript resta al posto del risultato.
+
+Nel **bundle FMU** `esporta.tcl` c'è (`build.sh` lo copia con gli altri script
+di draw2gr), Ghostscript no: sulla macchina target l'export funziona se `gs` è
+installato, altrimenti valgono i ripieghi. Un bundle generato prima di
+`esporta.tcl` non mostra la voce, senza errori.
+
+In legopc *Export as* si accende anche subito dopo *Open Model*/*Save* (come
+*Include model*, `modelli_menu_modello`): prima solo il cambio di tab la
+accendeva.
 
 ## Menu Edit in `draw2gr.tcl` (Linux) — opzione `-edit`
 

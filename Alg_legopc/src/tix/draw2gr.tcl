@@ -677,6 +677,18 @@ menu $m -tearoff 0 -activebackground darkblue -activeforeground white
 $m add command -label "Open f22..." -command "openf22 $c "
 $m add command -label "Save Current f22 to..." -command "savef22 $c "
 #$m add command -label "Select Vars" -command "destroy .varch;selVars"
+# Export as: lo schema come PDF o PNG, come File -> Export as di legopc
+# (esporta.tcl, comune ai due; con i ripieghi se manca Ghostscript). Un
+# bundle FMU generato prima di esporta.tcl non ce l'ha: niente voce, niente
+# errore.
+if {![catch {source $env(LG_TIX)/esporta.tcl}]} {
+    $m add separator
+    $m add cascade -label "Export as" -menu $m.export
+    menu $m.export -tearoff 0 -activebackground darkblue -activeforeground white
+    $m.export add command -label "PDF" -command {plotPDF $::draw2gr_c}
+    $m.export add command -label "PNG" -command {plotPNG $::draw2gr_c}
+    $m add separator
+}
 $m add command -label "Quit" -command "chk_exit"
 
 # Anche con -edit, niente menu Edit dove non avrebbe senso o sarebbe
@@ -1209,85 +1221,26 @@ set ::anim_selected_item -1
 set ::anim_selected_rect -1
 set ::anim_selected_mod  ""
 
-# Gestisce il doppio-click sul campo giallo sotto un'icona.
+# Doppio clic sul campo sotto un'icona (anim_field_remap, animate.tcl): il
+# campo si evidenzia e si apre l'elenco delle variabili del blocco nel pannello
+# del Plot; il clic su una variabile (setSlot) chiama anim_apply_remap, che sta
+# in animate.tcl ed e' la stessa di legopc. Un secondo doppio clic sullo
+# stesso campo lo deseleziona.
 # item  = canvas id del modulo
-# rect  = canvas id del rettangolo giallo
+# rect  = canvas id del rettangolo del campo
 # modtags = lista dei tag del modulo (passata da animate.tcl)
 proc anim_field_select { c item rect modtags } {
-    # Deseleziona il campo precedentemente selezionato
-    if {$::anim_selected_rect != -1} {
-        catch { $c itemconfigure $::anim_selected_rect \
-                    -fill yellow -outline yellow }
-    }
-
-    # Toggle: doppio-click sullo stesso campo → deseleziona
+    # Toggle: doppio-click sullo stesso campo -> deseleziona
     if {$::anim_selected_item == $item} {
-        set ::anim_selected_item -1
-        set ::anim_selected_rect -1
-        set ::anim_selected_mod  ""
+        anim_field_rilascia $c
         return
     }
-
-    # Selezione nuovo campo
-    set ::anim_selected_item $item
-    set ::anim_selected_rect $rect
-
-    # Ricava codice modulo (4 chars) dai tag per filtrare la lista variabili
-    # Usa la stessa logica di showVars: tag index 5 (NOME.name) → 4 chars
-    # ma più robusto: cerca *.name e usa i primi 4 char del nome istanza
-    # (corrispondono al tipo di blocco F01)
-    set name_tag [file rootname [lindex $modtags [lsearch $modtags *.name]]]
-    set ::anim_selected_mod [string range $name_tag 0 3]
-
-    # Evidenzia il campo selezionato (bordo verde, sfondo lime)
-    $c itemconfigure $rect -fill "#CCFF99" -outline "#00AA00"
+    # Selezione nuovo campo (il precedente torna del suo colore)
+    anim_field_evidenzia $c $item $rect $modtags
 
     # Apre automaticamente la lista variabili per questo modulo
     # (stessa chiamata di showVars ma senza bisogno di current)
     showIt $::anim_selected_mod
-}
-
-# Applica il remap: chiamato da setSlot quando un campo è selezionato.
-# name = nome variabile completo (da nomeVars, es. "T02TURBO1")
-proc anim_apply_remap { c name } {
-    global tipVarMod
-
-    set item $::anim_selected_item
-    set rect $::anim_selected_rect
-    if {$item == -1} return
-
-    # Sicurezza: la variabile deve esistere in F01
-    if {![info exists tipVarMod($name)]} return
-
-    # Ricava nome istanza dal tag *.name del modulo
-    set tags_curr [$c gettags $item]
-    set pisqu_name [file rootname [lindex $tags_curr [lsearch $tags_curr *.name]]]
-
-    # Aggiorna il remap in memoria e su disco. anim_remap_set rilegge il file
-    # prima di riscriverlo: legopc puo' avervi assegnato nel frattempo pagine
-    # e variabili degli elementi operatore, che la riscrittura della sola
-    # memoria cancellerebbe.
-    catch { anim_remap_set $pisqu_name $name }
-
-    # Aggiorna tag *.nome_anim sull'item (letto dal loop mode 2)
-    set old_nome_anim [lsearch $tags_curr *.nome_anim]
-    if {$old_nome_anim >= 0} {
-        set old_tag [lindex $tags_curr $old_nome_anim]
-        $c dtag $item $old_tag
-    }
-    $c addtag ${name}.nome_anim withtag $item
-
-    # Aggiorna subito il testo visibile (senza aspettare il prossimo tick)
-    set pisqu_tid [file rootname [lindex [$c gettags $item] \
-                       [lsearch [$c gettags $item] *.visual]]]
-    catch { $c itemconfigure $pisqu_tid -text "$name ..." }
-
-    # Ripristina colore giallo normale e deseleziona
-    catch { $c itemconfigure $rect -fill yellow -outline yellow }
-    set ::anim_selected_item -1
-    set ::anim_selected_rect -1
-    set ::anim_selected_mod  ""
-
 }
 
 topRead $c $curFileName

@@ -128,11 +128,13 @@ proc modelli_riga {nome} {
                 [clock format $quando -format "%Y-%m-%d %H:%M"] [modelli_testo_uso $lp $sp]]
 }
 
-#  C'e' un modello su disco, nel tab del disegno: Include model si puo' usare.
-#  Lo accendeva solo il cambio di tab (raisetopol), quindi dopo Open Model o
-#  Save la voce restava spenta finche' non si cambiava tab e si tornava.
+#  C'e' un modello su disco, nel tab del disegno: Include model ed Export as
+#  si possono usare. Li accendeva solo il cambio di tab (raisetopol), quindi
+#  dopo Open Model o Save le voci restavano spente finche' non si cambiava
+#  tab e si tornava.
 proc modelli_menu_modello {} {
     catch {.menu.file entryconfigure "Include model..." -state normal}
+    catch {.menu.file entryconfigure "Export as" -state normal}
 }
 
 #  Prepara l'elenco: riempie ::modelli_info (nome -> {dir mtime pid_legopc

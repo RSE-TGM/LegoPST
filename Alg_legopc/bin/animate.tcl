@@ -173,6 +173,219 @@ proc anim_get_var { pisqu_name pisqu_default } {
     return $pisqu_default
 }
 
+# ============================================================
+# REMAP dal doppio clic sul campo di un blocco (Show Value)
+# ============================================================
+# Doppio clic sul campo giallo (o azzurro, a simulazione ferma) sotto l'icona
+# di un blocco: si sceglie quale variabile del blocco mostrare, e la scelta
+# va nel .remap (anim_remap_set). La scelta la fa ciascun programma a modo
+# suo, il resto e' comune:
+#   draw2gr  anim_field_select (draw2gr.tcl): il campo si evidenzia e si apre
+#            l'elenco delle variabili del blocco nel pannello del Plot; il
+#            clic su una variabile (setSlot) chiama anim_apply_remap;
+#   legopc   non ha quel pannello: anim_field_dialog apre un dialogo con le
+#            stesse variabili, nell'elenco filtrabile degli altri dialoghi.
+#
+# ::anim_selected_item  canvas id del modulo del campo selezionato (-1 = nessuno)
+# ::anim_selected_rect  canvas id del rettangolo del campo
+# ::anim_selected_mod   nome (4 caratteri) del blocco
+# ::anim_selected_fill  colore del campo prima dell'evidenziazione (giallo dal
+#                       vivo, azzurro statico), da rimettere dopo
+#  una per una: ::anim_selected_item la inizializza gia' la testa del file, e
+#  draw2gr imposta le sue dopo aver sorgiato questo file
+foreach {_anim_v _anim_i} {item -1 rect -1 mod "" fill yellow} {
+    if {![info exists ::anim_selected_$_anim_v]} { set ::anim_selected_$_anim_v $_anim_i }
+}
+unset _anim_v _anim_i
+
+#  Toglie dai moduli i tag *.visual e *.nome_anim dei campi di prima: Show
+#  Value li rimette a ogni avvio, e un modulo che ne porta due - il vecchio
+#  punta a una casella gia' cancellata - fa leggere a chi cerca il primo (il
+#  ciclo dal vivo, anim_apply_remap) quello sbagliato. Succedeva riaccendendo
+#  Show Value a simulazione ferma (il modo 3 non ripuliva niente; il modo 1
+#  toglieva solo il primo *.visual) o dopo un remap scritto da un'altra
+#  applicazione (il nome_anim vecchio restava davanti al nuovo).
+proc anim_togli_campi_vecchi {c} {
+    foreach item [$c find withtag module] {
+        foreach t [$c gettags $item] {
+            if {[string match *.visual $t] || [string match *.nome_anim $t]} {
+                $c dtag $item $t
+            }
+        }
+    }
+}
+
+proc anim_field_remap {c item rect modtags} {
+    if {[info procs anim_field_select] ne ""} {
+        anim_field_select $c $item $rect $modtags
+    } else {
+        anim_field_dialog $c $item $rect $modtags
+    }
+}
+
+#  Evidenzia il campo <rect> del modulo <item> (bordo verde, sfondo lime) e lo
+#  ricorda come selezionato; il campo selezionato prima torna com'era.
+proc anim_field_evidenzia {c item rect modtags} {
+    anim_field_rilascia $c
+    set ::anim_selected_item $item
+    set ::anim_selected_rect $rect
+    set nome [file rootname [lindex $modtags [lsearch $modtags *.name]]]
+    set ::anim_selected_mod [string range $nome 0 3]
+    set ::anim_selected_fill [$c itemcget $rect -fill]
+    $c itemconfigure $rect -fill "#CCFF99" -outline "#00AA00"
+}
+
+#  Il campo selezionato torna del suo colore e nessun campo e' piu' selezionato.
+proc anim_field_rilascia {c} {
+    if {$::anim_selected_rect != -1} {
+        catch {$c itemconfigure $::anim_selected_rect \
+                   -fill $::anim_selected_fill -outline yellow}
+    }
+    set ::anim_selected_item -1
+    set ::anim_selected_rect -1
+    set ::anim_selected_mod  ""
+}
+
+#  Applica il remap al campo selezionato: <name> e' la variabile scelta.
+#  Comune a draw2gr (setSlot) e legopc (anim_field_dialog).
+proc anim_apply_remap { c name } {
+    global tipVarMod
+
+    set item $::anim_selected_item
+    if {$item == -1} return
+
+    # Sicurezza: la variabile deve esistere in F01
+    if {![info exists tipVarMod($name)]} return
+
+    # Ricava nome istanza dal tag *.name del modulo
+    set tags_curr [$c gettags $item]
+    set pisqu_name [file rootname [lindex $tags_curr [lsearch $tags_curr *.name]]]
+
+    # Aggiorna il remap in memoria e su disco. anim_remap_set rilegge il file
+    # prima di riscriverlo: legopc e draw2gr possono avervi scritto nel
+    # frattempo (pagine e variabili degli elementi operatore, altri remap), e
+    # la riscrittura della sola memoria cancellerebbe quelle voci.
+    catch { anim_remap_set $pisqu_name $name }
+
+    # Aggiorna tag *.nome_anim sull'item (letto dal loop mode 2): via tutti
+    # quelli che ha, non solo il primo
+    foreach t $tags_curr {
+        if {[string match *.nome_anim $t]} { $c dtag $item $t }
+    }
+    $c addtag ${name}.nome_anim withtag $item
+
+    # Aggiorna subito il testo visibile: dal vivo lo rinfresca il prossimo
+    # ciclo (1 s); a simulazione ferma non passa nessuno, e si mette il valore
+    # di stazionario, come anima_aggiorna modo 3
+    # la casella: il tag *.visual il cui item esiste ancora
+    set pisqu_tid ""
+    foreach t [$c gettags $item] {
+        if {[string match *.visual $t] && [$c find withtag [file rootname $t]] ne ""} {
+            set pisqu_tid [file rootname $t]
+        }
+    }
+    set testo "$name ..."
+    if {(![info exists ::pipeon] || !$::pipeon) && [info exists ::matrVf14($name,valu)]} {
+        catch {set testo "[conv_umis $name $::matrVf14($name,valu)] [ret_umis $name]"}
+    }
+    catch { $c itemconfigure $pisqu_tid -text $testo }
+
+    anim_field_rilascia $c
+}
+
+#  legopc: la variabile del blocco da mostrare, scelta in un dialogo. Le
+#  variabili sono quelle del blocco nel F01 caricato (blocNvar/blocVars, le
+#  stesse che loadVariables mostra in draw2gr), lette senza passare da
+#  loadVariables, che riscrive le globali del pannello dei dati.
+proc anim_field_dialog {c item rect modtags} {
+    set inst [file rootname [lindex $modtags [lsearch $modtags *.name]]]
+    set blocco [string range $inst 0 3]
+    set default "[file rootname [lindex $modtags [lsearch $modtags *.anim]]]$inst"
+    if {![info exists ::blocNvar($blocco)]} {
+        tk_messageBox -parent [winfo toplevel $c] -icon warning -title "Variable to show" \
+            -message "Block $blocco not found in the F01 loaded: build F01/F14 first."
+        return
+    }
+    set nomi {}
+    array unset ::anim_scelta_info
+    for {set i 0} {$i < $::blocNvar($blocco)} {incr i} {
+        set n $::blocVars($blocco,$i,nome)
+        lappend nomi $n
+        set ::anim_scelta_info($n) [list $::blocVars($blocco,$i,tipo) $::blocVars($blocco,$i,desc)]
+    }
+
+    anim_field_evidenzia $c $item $rect $modtags
+    set attuale [anim_get_var $inst $default]
+    set ::anim_var_nome ""
+
+    set w .anim_var_blocco
+    catch {destroy $w}
+    toplevel $w
+    wm title $w "Variable to show - $inst"
+    wm transient $w [winfo toplevel $c]
+    wm protocol $w WM_DELETE_WINDOW [list anim_field_dialog_via $c $w]
+    label $w.info -anchor w -justify left -text \
+        "Variable shown under block $inst ([llength $nomi] variables).\nNow: $attuale    Default: $default"
+    frame $w.f
+    label $w.f.l -text "Variable:"
+    entry $w.f.e -textvariable ::anim_var_nome -width 16
+    pack $w.f.l -side left
+    pack $w.f.e -side left -fill x -expand 1
+    set ok [list anim_field_dialog_ok $c $w]
+    #  il filtro parte vuoto, cosi' si vedono tutte le variabili del blocco;
+    #  quella di adesso e' selezionata
+    set lb [hmi_lista $w.l $w.f.e ::anim_var_nome $nomi $ok anim_riga_blocco \
+                [format "%-10s %-3s %s" Name Typ Description]]
+    set i [lsearch -exact $nomi $attuale]
+    if {$i >= 0} { $lb selection set $i ; $lb see $i }
+    frame $w.b
+    button $w.b.ok -text OK -width 10 -command $ok
+    button $w.b.no -text Cancel -width 10 -command [list anim_field_dialog_via $c $w]
+    pack $w.b.ok $w.b.no -side left -padx 6
+    pack $w.info -side top -fill x -padx 8 -pady {8 4}
+    pack $w.f -side top -fill x -padx 8 -pady 4
+    pack $w.b -side bottom -pady 8
+    pack $w.l -side top -fill both -expand 1 -padx 8
+    bind $w.f.e <Return> $ok
+    bind $w <Escape> [list anim_field_dialog_via $c $w]
+    focus $w.f.e
+}
+
+#  Una riga dell'elenco delle variabili del blocco: nome, tipo, descrizione.
+proc anim_riga_blocco {n} {
+    lassign $::anim_scelta_info($n) tipo desc
+    return [format "%-10s %-3s %s" $n $tipo $desc]
+}
+
+#  OK: la variabile scritta nel campo (anche in minuscolo) o, a campo vuoto,
+#  la riga selezionata; deve essere del blocco.
+proc anim_field_dialog_ok {c w} {
+    set t [string trim $::anim_var_nome]
+    if {$t eq ""} {
+        set lb $w.l.lb
+        set sel [$lb curselection]
+        if {[llength $sel]} { set t [lindex [hmi_lista_mostrati $lb] [lindex $sel 0]] }
+    }
+    set nome ""
+    foreach n [array names ::anim_scelta_info] {
+        if {[string equal -nocase $n $t]} { set nome $n; break }
+    }
+    if {$nome eq ""} {
+        tk_messageBox -parent $w -icon warning -title "Variable to show" -message \
+            [expr {$t eq "" ? "Choose a variable from the list." \
+                            : "'$t' is not a variable of this block: choose one from the list."}]
+        return
+    }
+    destroy $w
+    anim_apply_remap $c $nome
+}
+
+#  Cancel, Escape o chiusura: il campo torna com'era.
+proc anim_field_dialog_via {c w} {
+    catch {destroy $w}
+    anim_field_rilascia $c
+}
+
 # Mostra balloon con il nome della variabile animata (tasto destro premuto).
 proc anim_show_balloon { x y pisqu_name pisqu_default } {
     set varname [anim_get_var $pisqu_name $pisqu_default]
@@ -288,13 +501,8 @@ if { $mod == 1 } {
 # Funziona sia da draw2gr.tcl che da legopc.tix grazie a curFileName globale.
 anim_load_remap
 
-# reset: eventualmente cancello i precedenti campi già creati
-foreach item [$c find withtag module] {
-        set tags_curr [$c gettags $item]
-        set pisqu_tid [file rootname [lindex $tags_curr [lsearch $tags_curr *.visual]]]
-#puts "anima_aggiorna 1: cancello pisqu_tid=$pisqu_tid"
-		$c dtag $pisqu_tid.visual
-		}
+# reset: via i tag dei campi creati prima (anim_togli_campi_vecchi)
+anim_togli_campi_vecchi $c
 
         set nelem 0
         foreach item  [$c find withtag module] {
@@ -358,13 +566,12 @@ foreach item [$c find withtag module] {
 
 		        set rect [$c create rectangle $x1 $y1 $x2 $y2 \
                               -fill yellow -outline yellow -tags {infoitemname}]
-                # Binding doppio-click per remap: solo blocchi normali (non remark)
-                # e solo se anim_field_select è disponibile (draw2gr.tcl, non legopc.tix)
+                # Doppio clic = scelta della variabile da mostrare (remap nel
+                # .remap), solo per i blocchi normali (non i remark): vedi
+                # anim_field_remap
                 if { $is_remark == 0 } {
-                    $c bind $rect <Double-1> \
-                        "if {\[info procs anim_field_select\] != {}} { anim_field_select $c $item $rect {$tags_curr} }"
-                    $c bind $tid  <Double-1> \
-                        "if {\[info procs anim_field_select\] != {}} { anim_field_select $c $item $rect {$tags_curr} }"
+                    $c bind $rect <Double-1> [list anim_field_remap $c $item $rect $tags_curr]
+                    $c bind $tid  <Double-1> [list anim_field_remap $c $item $rect $tags_curr]
                 }
                 # Balloon help (tasto destro): mostra il nome della variabile
                 $c bind $rect <ButtonPress-3> \
@@ -432,6 +639,8 @@ set ::indicatore_after [after $refr_anim_ms anima_aggiorna $c 2]
 if { $mod == 3 } {
 # Carica il file .remap anche per la modalità f14 statica (legopc.tix)
 anim_load_remap
+# reset: via i tag dei campi creati prima, come nel modo 1
+anim_togli_campi_vecchi $c
 # inizializzazione dei campi delle variabili da visualizzare per il modo F14
         set nelem 0
         foreach item  [$c find withtag module] {
@@ -491,13 +700,10 @@ anim_load_remap
 		   set y2 [lindex $lc 3]
 		   set rect [$c create rectangle $x1 $y1 $x2 $y2 \
                          -fill cyan -outline yellow -tags {infoitemname}]
-           # Binding doppio-click per remap: solo blocchi normali (non remark)
-           # e solo se anim_field_select è disponibile (draw2gr.tcl, non legopc.tix)
+           # Doppio clic = scelta della variabile da mostrare (anim_field_remap)
            if { $is_remark == 0 } {
-               $c bind $rect <Double-1> \
-                   "if {\[info procs anim_field_select\] != {}} { anim_field_select $c $item $rect {$tags_curr} }"
-               $c bind $tid  <Double-1> \
-                   "if {\[info procs anim_field_select\] != {}} { anim_field_select $c $item $rect {$tags_curr} }"
+               $c bind $rect <Double-1> [list anim_field_remap $c $item $rect $tags_curr]
+               $c bind $tid  <Double-1> [list anim_field_remap $c $item $rect $tags_curr]
            }
            # Balloon help (tasto destro): mostra il nome della variabile
            $c bind $rect <ButtonPress-3> \

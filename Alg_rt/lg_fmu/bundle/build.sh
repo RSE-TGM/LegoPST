@@ -237,9 +237,13 @@ if [[ $BUNDLE -eq 1 ]]; then
     #     draw2gr lo legge solo con -edit, che nel bundle ignora comunque.
     #     lgstaz.tcl (faceplate) serve a lghmi e a hmielem.tcl; hmielem.tcl
     #     (bottoni faceplate e invio valori delle pagine) lo sorgia animate.tcl.
+    #     esporta.tcl: File -> Export as (PDF/PNG) di draw2gr; senza, la voce
+    #     non compare. Ghostscript non e' nel bundle: sulla macchina target,
+    #     se manca, valgono i ripieghi (PostScript, o fotografia della finestra).
     for s in draw2gr.tcl checkopen.tcl balloon.tcl read_con.tcl read_f01.tcl \
              fileio.tcl itemjoin.tcl read_f14.tcl viewmgr.tcl animate.tcl \
-             bgelement.tcl lghmi.tcl lgedit.tcl lgstaz.tcl hmielem.tcl; do
+             bgelement.tcl lghmi.tcl lgedit.tcl lgstaz.tcl hmielem.tcl \
+             esporta.tcl; do
         cp -p "$LEGOROOT_ABS/Alg_legopc/bin/$s" "$BD/Alg_legopc/bin/" \
             || { echo "ERR: script tix $s non trovato in $LEGOROOT_ABS/Alg_legopc/bin" >&2; exit 4; }
     done
