@@ -2637,7 +2637,7 @@ proc documenti_aiuto {} {
     return {
         {"LegoPST - project overview (README)"     README.md  rilievo}
         --
-        {"Annotated documentation index"           INDICE_DOCUMENTAZIONE.html}
+        {"Annotated documentation index"           DOCUMENTATION_INDEX.html}
         {"kbin commands (the 192 kprocedure)"      kbin/kbin-riferimento-comandi-LegoPST.html}
         MODULI
         --

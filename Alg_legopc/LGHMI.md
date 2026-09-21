@@ -1060,7 +1060,7 @@ quel file c'è.
   ──────────────────────────────────────────
   LegoPST - project overview (README)         README.md          ← in grassetto
   ──────────────────────────────────────────
-  Annotated documentation index               INDICE_DOCUMENTAZIONE.html
+  Annotated documentation index               DOCUMENTATION_INDEX.html
   kbin commands (the 192 kprocedure)          kbin/kbin-riferimento-comandi-LegoPST.html
   Modules help (legacy manual)                $LG_HTML/index.htm, via open_hlp
   ──────────────────────────────────────────

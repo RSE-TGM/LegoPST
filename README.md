@@ -15,8 +15,6 @@ LegoPST provides a robust, modular framework for modeling the complex interactio
 2.  **Control System Design & Validation:** Designing control strategy, prototyping, testing, and verifying industrial control logic, also in real time,  within a realistic virtual environment before live deployment.
 3.  **Digital Twin Development:** Building the "simulation core" of a digital twin for a complete power plant or its key subsystems. These  models can run in real-time and can be connected to live plant data for performance monitoring, predictive maintenance, and operational optimization.
 
-
-
 ## ✨ Key Features
 
 - **Multi-Physics Static and Dynamic Simulation**: Supports thermal, hydraulic, nuclear, RES and electrical processes
@@ -28,81 +26,6 @@ LegoPST provides a robust, modular framework for modeling the complex interactio
 - **Runtime HMI**: Live supervision on the model drawing (`lghmi`, `draw2gr`) with values, engineering units, command mode and operator faceplates
 - **FMI 2.0 Export**: Any task can be exported as an FMU - a light variant for machines running LegoPST, or a self-contained bundle that runs on a bare Linux box - for co-simulation with third-party tools
 
-## 🏗️ Architecture
-
-### Main Components
-
-```
-LegoPST/
-├── AlgLib/           # Core algorithm libraries
-├── Alg_mmi/          # Man-Machine Interface
-├── Alg_rt/           # Runtime System (simulation engine, HMI, FMU export)
-├── Alg_legopc/       # Models Building Tools (legopc, draw2gr, lghmi)
-├── legocad/          # Sources of the process and control modules
-├── lego_big/         # Component libraries (linked as legocad/lego_big)
-├── kprocedure/       # Administrative scripts (sources)
-├── kbin/             # Administrative scripts (installed commands)
-├── kutil/            # Administrative utilities
-├── docker/           # Docker build and install scripts
-├── demo/             # Demo work area (tarball)
-├── docs/             # Guides: build, commands, configuration files
-├── util97/           # Legacy utilities
-├── util2007/         # Other legacy utilities
-├── util2025/         # Modern utilities
-└── VERSION           # Project version (used by build and installer)
-```
-
-### Core Components
-
-**AlgLib/** - Core algorithm libraries
-- Contains fundamental libraries (libRt.a, libcom.a, libsim.a, etc.)
-- Threading support via POSIX threads (pthreads)
-- Database support via SQLite
-- Shared memory and IPC utilities
-
-**Alg_mmi/** - Man-Machine Interface
-- MMI client/server architecture
-- Configuration tools for graphical interfaces
-- Widget libraries and drawing tools
-- Conversion utilities for legacy formats
-
-**Alg_rt/** - Runtime System
-- Real-time simulation engine
-- Process control and monitoring
-- Network simulation components
-- Session management
-
-**Alg_legopc/** - Model Building Tools
-- `legopc`: graphical editor for process models, pages and operator elements
-- `draw2gr`: runtime HMI drawn on the model itself
-- `lghmi`: task selector, HMI and simulator launcher
-- Model dialogs, module libraries, PDF/PNG export
-
-**legocad/** - Module sources and libraries
-- Fortran sources of the process modules (`libut`) and of the control modules (`libut_reg`)
-- Component libraries shared with `lego_big/`
-
-**kprocedure/** - Administrative Scripts
-- System management utilities
-- Process control scripts
-- Database maintenance tools
-- User management and configuration
-
-### Key Libraries Structure
-- **libcom.a**: Communication and event handling
-- **libsim.a**: Simulation core functions
-- **libnet.a**: Network communication
-- **libipc.a**: Inter-process communication
-- **libdispatcher.a**: Message dispatching system
-- **libmanovra.a**: Control operations
-- **libutil.a**: General utilities
-
-### Configuration System
-The system uses hierarchical configuration:
-1. Environment variables set in `.profile_legoroot`
-2. OS detection via `uname` (the supported platform is Linux x86_64)
-3. Extension-based directory structure
-4. User-specific settings in home directories
 
 ## 🚀 Install and Run
 The quickest way to run LegoPST is to [launch it in a Docker container](#option-1-quick-start---docker-container-execution), without installing the package and without having a machine running the Fedora 41 Linux distribution. In this case the host machine can be a generic Linux distribution running on a X86-64, Intel or AMD platform.
@@ -116,8 +39,8 @@ Alternatively, if you want a stable installation on your Fedora 41 machine, you 
 #### Prerequisites
 
 **Docker** is required, plus a working X11 display on the host: a native X server on
-Linux, or WSLg on Windows/WSL. `lgrun --socat` additionally needs `socat` on the host.
-Install Docker on your system:
+Linux, or WSLg on Windows/WSL.
+Detailed Docker installation instructions can be found [here](https://docs.docker.com/get-docker/) .Or if works for your working environment, try using the following quick commands:
 
 ```bash
 # Ubuntu/Debian/WSL
@@ -196,7 +119,7 @@ lgrun
 # Launch with demo model included
 lgrun --demo
 
-# If you are having trouble with the X11 display, try launching via socat (for SSH/remote connections).
+# If you are having trouble with the X11 display, try launching via socat (for SSH/remote connections). Additionally needs the package `socat` on the host.
 lgrun --socat
 
 # Combine options
@@ -373,7 +296,7 @@ make -f Makefile.mk help
 lghmi
 ```
 
-`lghmi` is the control desk of the simulator, and nearly everything is reachable from
+`lghmi` is the control desk of a LegoPST simulator, and nearly everything is reachable from
 there:
 
 - the **tasks of the current simulator**, read from its `S01`: pick one and its HMI
@@ -414,6 +337,8 @@ sked/
 ### Creating New Models
 #### Launch the Process Model Configurator
 
+Directly from lghmi, from Tools->Edit model or with the following cli commands.
+
 ```bash
 cd /home/user/legocad/pmod1
 lgpc
@@ -427,6 +352,8 @@ lgpc pmod1
 - **f14.dat**: Model data
 - **\*.a**: Object libraries
 #### Launch the Control System Model Configurator
+
+Directly from lghmi, with double click to the already installed control model task or with the  following cli commands.
 
 ```bash
 cd /home/user/legocad/reg1
@@ -455,11 +382,12 @@ they run and how they are wired to each other.
 one (`KSIM`), which is the one every `k*` command acts upon - in `lghmi` it follows the
 directory you are looking at. See [docs/BUILD.md](docs/BUILD.md).
 
+
 ## 📚 Documentation
 
 | Topic | Document |
 |---|---|
-| **Index of all the documentation** (md, html, pdf, doc, txt) | [INDICE_DOCUMENTAZIONE.html](INDICE_DOCUMENTAZIONE.html) |
+| **Index of all the documentation** (md, html, pdf, doc, txt) | [DOCUMENTATION_INDEX.html](DOCUMENTATION_INDEX.html) |
 | Build, versioning, choosing the current simulator | [docs/BUILD.md](docs/BUILD.md) |
 | Dependencies, compilers, directory conventions | [Environment_setup.md](Environment_setup.md) |
 | The `lg*` commands: `lgpc`, `lghmi`, `lgswitch`, `lgterm`, ... | [docs/COMANDI_LG.md](docs/COMANDI_LG.md) |
@@ -471,6 +399,83 @@ directory you are looking at. See [docs/BUILD.md](docs/BUILD.md).
 | Command faceplates: `compstaz`, `xstaz` | [Alg_rt/grafica/xstaz/README.md](Alg_rt/grafica/xstaz/README.md) |
 | The `kprocedure` commands | [kbin/README.md](kbin/README.md) |
 | Code conventions | [CONVENTIONS.md](CONVENTIONS.md) |
+
+
+## 🏗️ Architecture
+
+### Main Components
+
+```
+LegoPST/
+├── AlgLib/           # Core algorithm libraries
+├── Alg_mmi/          # Man-Machine Interface
+├── Alg_rt/           # Runtime System (simulation engine, HMI, FMU export)
+├── Alg_legopc/       # Models Building Tools (legopc, draw2gr, lghmi)
+├── legocad/          # Sources of the process and control modules
+├── lego_big/         # Component libraries (linked as legocad/lego_big)
+├── kprocedure/       # Administrative scripts (sources)
+├── kbin/             # Administrative scripts (installed commands)
+├── kutil/            # Administrative utilities
+├── docker/           # Docker build and install scripts
+├── demo/             # Demo work area (tarball)
+├── docs/             # Guides: build, commands, configuration files
+├── util97/           # Legacy utilities
+├── util2007/         # Other legacy utilities
+├── util2025/         # Modern utilities
+└── VERSION           # Project version (used by build and installer)
+```
+
+### Core Components
+
+**AlgLib/** - Core algorithm libraries
+- Contains fundamental libraries (libRt.a, libcom.a, libsim.a, etc.)
+- Threading support via POSIX threads (pthreads)
+- Database support via SQLite
+- Shared memory and IPC utilities
+
+**Alg_mmi/** - Man-Machine Interface
+- MMI client/server architecture
+- Configuration tools for graphical interfaces
+- Widget libraries and drawing tools
+- Conversion utilities for legacy formats
+
+**Alg_rt/** - Runtime System
+- Real-time simulation engine
+- Process control and monitoring
+- Network simulation components
+- Session management
+
+**Alg_legopc/** - Model Building Tools
+- `legopc`: graphical editor for process models, pages and operator elements
+- `draw2gr`: runtime HMI drawn on the model itself
+- `lghmi`: task selector, HMI and simulator launcher
+- Model dialogs, module libraries, PDF/PNG export
+
+**legocad/** - Module sources and libraries
+- Fortran sources of the process modules (`libut`) and of the control modules (`libut_reg`)
+- Component libraries shared with `lego_big/`
+
+**kprocedure/** - Administrative Scripts
+- System management utilities
+- Process control scripts
+- Database maintenance tools
+- User management and configuration
+
+### Key Libraries Structure
+- **libcom.a**: Communication and event handling
+- **libsim.a**: Simulation core functions
+- **libnet.a**: Network communication
+- **libipc.a**: Inter-process communication
+- **libdispatcher.a**: Message dispatching system
+- **libmanovra.a**: Control operations
+- **libutil.a**: General utilities
+
+### Configuration System
+The system uses hierarchical configuration:
+1. Environment variables set in `.profile_legoroot`
+2. OS detection via `uname` (the supported platform is Linux x86_64)
+3. Extension-based directory structure
+4. User-specific settings in home directories
 
 ## 🏭 Use Cases
 

@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LegoPST &mdash; annotated documentation index</title>
+<style>
+:root{
+  --fg:#1c1f23; --fg-soft:#5a6472; --bg:#ffffff; --bg-alt:#f5f7fa;
+  --line:#dde3ea; --accent:#12507e; --accent-soft:#e8f0f7;
+  --warn:#8a5300; --warn-bg:#fdf3e2; --ok:#2f6b3a; --ok-bg:#e9f4ec;
+  --hist:#5c4b8a; --hist-bg:#efeaf7;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --fg:#e6e9ee; --fg-soft:#a3adbb; --bg:#15181c; --bg-alt:#1c2126;
+    --line:#2c333b; --accent:#7fb8e6; --accent-soft:#1d2c38;
+    --warn:#e0b070; --warn-bg:#33280f; --ok:#8fd0a0; --ok-bg:#172a1c;
+    --hist:#b7a6e0; --hist-bg:#241d33;
+  }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);
+  font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}
+.wrap{max-width:1080px;margin:0 auto;padding:0 20px 80px}
+header{border-bottom:1px solid var(--line);background:var(--bg-alt);margin-bottom:26px}
+header .wrap{padding-top:28px;padding-bottom:22px}
+h1{margin:0 0 6px;font-size:26px;letter-spacing:-.01em}
+.sub{color:var(--fg-soft);margin:0 0 16px;max-width:70ch}
+h2{font-size:19px;margin:38px 0 4px;padding-top:14px;border-top:2px solid var(--line);
+   scroll-margin-top:16px}
+h2 .n{color:var(--fg-soft);font-weight:400;font-size:14px;margin-left:8px}
+.scope{color:var(--fg-soft);margin:2px 0 14px;max-width:78ch;font-size:14px}
+nav.toc{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 8px}
+nav.toc a{font-size:13px;text-decoration:none;color:var(--accent);
+  background:var(--accent-soft);border:1px solid var(--line);border-radius:20px;padding:3px 11px}
+nav.toc a:hover{border-color:var(--accent)}
+#filter{width:100%;max-width:420px;padding:9px 12px;font-size:14px;color:var(--fg);
+  background:var(--bg);border:1px solid var(--line);border-radius:6px}
+#filter:focus{outline:2px solid var(--accent);outline-offset:-1px}
+.count{color:var(--fg-soft);font-size:13px;margin-left:10px}
+.card{border:1px solid var(--line);border-radius:8px;padding:12px 14px;margin:0 0 10px;background:var(--bg)}
+.card:hover{border-color:var(--accent)}
+.card .row1{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px}
+.card a.tit{font-weight:600;color:var(--accent);text-decoration:none;font-size:15px}
+.card a.tit:hover{text-decoration:underline}
+.path{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px;
+  color:var(--fg-soft);word-break:break-all}
+.b{font-size:11px;font-weight:700;letter-spacing:.03em;padding:1px 7px;border-radius:4px;
+   text-transform:uppercase;white-space:nowrap}
+.b.md{background:var(--ok-bg);color:var(--ok)} .b.html{background:var(--accent-soft);color:var(--accent)}
+.b.pdf{background:var(--warn-bg);color:var(--warn)} .b.doc{background:var(--warn-bg);color:var(--warn)}
+.b.txt{background:var(--bg-alt);color:var(--fg-soft)}
+.b.legacy{background:var(--hist-bg);color:var(--hist)}
+.b.local{background:var(--warn-bg);color:var(--warn)}
+.card p{margin:7px 0 0;font-size:14px}
+.card p.use{color:var(--fg-soft)}
+.card p.use b{color:var(--fg)}
+.note{background:var(--bg-alt);border-left:3px solid var(--accent);padding:11px 14px;
+      margin:14px 0;font-size:14px;border-radius:0 6px 6px 0}
+.note.warn{border-left-color:var(--warn)}
+ul.flat{margin:8px 0 0;padding-left:20px;font-size:14px;color:var(--fg-soft)}
+ul.flat code{color:var(--fg)}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px;
+     background:var(--bg-alt);padding:1px 5px;border-radius:4px}
+footer{margin-top:44px;padding-top:16px;border-top:1px solid var(--line);
+       color:var(--fg-soft);font-size:13px}
+.empty{display:none;color:var(--fg-soft);padding:14px 0}
+</style>
+</head>
+<body>
+
+<header>
+<div class="wrap">
+  <h1>LegoPST &mdash; annotated documentation index</h1>
+  <p class="sub">LegoPST documentation has piled up over thirty years: Word manuals and hypertext
+  help from the '90s, porting notes, and the Markdown documents written recently next to the code
+  they describe. This page lines them up by <b>subject</b> and says <b>when you need</b> each one.
+  Several documents are written in Italian; the index tells you what is inside before you open
+  them.</p>
+  <input id="filter" type="search" placeholder="Filter: type xstaz, mmi, porting, fmu&hellip;"
+         autocomplete="off"><span class="count" id="count"></span>
+</div>
+</header>
+
+<div class="wrap">
+
+<nav class="toc">
+  <a href="#orient">1. Orientation</a>
+  <a href="#config">2. Configuring a simulator</a>
+  <a href="#cad">3. legopc CAD</a>
+  <a href="#runtime">4. Run time and HMI</a>
+  <a href="#mmi">5. SCADA-like MMI</a>
+  <a href="#fmu">6. FMU and co-simulation</a>
+  <a href="#help">7. Legacy hypertext help</a>
+  <a href="#storici">8. Word and PDF manuals</a>
+  <a href="#porting">9. Porting and containers</a>
+  <a href="#note">10. Working notes</a>
+  <a href="#fuori">11. Outside the repository</a>
+  <a href="#escluso">12. What is not here</a>
+</nav>
+
+<div class="note">
+  <b>How to read an entry.</b> The badges give format and status:
+  <span class="b md">md</span> Markdown text &mdash; a browser shows it as plain text, the editor
+  renders it;
+  <span class="b html">html</span> browsable hypertext;
+  <span class="b doc">doc</span> Word (needs LibreOffice);
+  <span class="b pdf">pdf</span>;
+  <span class="b txt">txt</span>;
+  <span class="b legacy">legacy</span> period material, good as a reference but not kept up to
+  date;
+  <span class="b local">working copy only</span> file in <code>.gitignore</code>: whoever clones
+  the repository does not get it.
+</div>
+
+<!-- ============================================================ -->
+<h2 id="orient">1. General orientation <span class="n">5 documents</span></h2>
+<p class="scope">To read before touching anything: what LegoPST is, how the environment is set up,
+how it is built.</p>
+
+<div class="card">
+  <div class="row1"><a class="tit" href="README.md">Project overview</a>
+    <span class="b md">md</span><span class="path">README.md</span></div>
+  <p><b>Scope:</b> architecture, core components, libraries, configuration system, glossary of the
+  pieces a simulator is made of. Also installation (Docker container or Fedora 41), creating the
+  work area from the demo, building from source and an index of the documentation.</p>
+  <p class="use"><b>When you need it:</b> it is the front door. If you do not know what a
+  <i>task</i>, a <i>model</i>, the <i>scheduler</i> or the <i>point SHM</i> are, start here; it is
+  also what you read when installing LegoPST on a new machine.</p>
+</div>
+
+<div class="card">
+  <div class="row1"><a class="tit" href="Environment_setup.md">Preparing the environment</a>
+    <span class="b md">md</span><span class="path">Environment_setup.md</span></div>
+  <p><b>Scope:</b> dependencies and compilers, directory conventions, threading and IPC.</p>
+  <p class="use"><b>When you need it:</b> installing on a new machine, or when a build fails
+  because a library is missing.</p>
+</div>
+
+<div class="card">
+  <div class="row1"><a class="tit" href="docs/BUILD.md">Building, and handling simulators</a>
+    <span class="b md">md</span><span class="path">docs/BUILD.md</span></div>
+  <p><b>Scope:</b> <code>make -f Makefile.mk</code>, the Docker image as a separate target
+  (<code>make docker</code>), versioning, the <code>ksetsim</code>/<code>ksims</code> commands that
+  pick the active simulator, <code>creasim</code>, <code>kDiffS01</code>.</p>
+  <p class="use"><b>When you need it:</b> every time you build. It also holds the most expensive
+  trap in the project: without <code>source .profile_legoroot</code> the include paths stay empty
+  and the build fails in a way that does not say why.</p>
+</div>
+
+<div class="card">
+  <div class="row1"><a class="tit" href="CONVENTIONS.md">Code conventions</a>
+    <span class="b md">md</span><span class="b local">working copy only</span>
+    <span class="path">CONVENTIONS.md</span></div>
+  <p><b>Scope:</b> the style and the conventions to follow when writing code in this
+  repository.</p>
+  <p class="use"><b>When you need it:</b> before adding code. <b>Careful:</b> it is in
+  <code>.gitignore</code> (<i>Claude debug</i> group), so it lives only in this working copy:
+  whoever clones the repository will not find it.</p>
+</div>
+
+<div class="card">
+  <div class="row1"><a class="tit" href="CLAUDE.md">Map and traps (for AI assistants)</a>
+    <span class="b md">md</span><span class="b local">working copy only</span>
+    <span class="path">CLAUDE.md</span></div>
+  <p><b>Scope:</b> index of the documents and list of the operational traps (source the profile,
+  <code>ksh88</code> in the <code>kbin</code> scripts, <code>killsim</code> instead of
+  <code>pkill</code>, the <code>test</code> alias, ASCII only in Tk scripts&hellip;).</p>
+  <p class="use"><b>When you need it:</b> it is written for Claude Code, but the traps section is
+  the densest list of things that waste time. Not tracked in git either.</p>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="config">2. Configuring and running a simulator <span class="n">4 documents</span></h2>
+<p class="scope">From how a simulator is composed to the commands that start and govern it.</p>
+
+<div class="card">
+  <div class="row1"><a class="tit" href="docs/AL_SIM_CONF.md">al_sim.conf &mdash; how it is written</a>
+    <span class="b md">md</span><span class="path">docs/AL_SIM_CONF.md</span></div>
+  <p><b>Scope:</b> the file that composes a simulator: every option with its default, the task
+  table (types <code>P</code>/<code>R</code>/<code>N</code>, directory, step) and the
+  <code>filespec</code> column, which decides what MMI pages belong to which control task.</p>
+  <p class="use"><b>When you need it:</b> creating a new simulator, adding or removing a task, or
+  when pages do not show up in the MMI. It closes with the typical mistakes and the message that
+  gives each one away.</p>
+</div>
+
+<div class="card">
+  <div class="row1"><a class="tit" href="docs/COMANDI_LG.md">The <code>lg*</code> commands &mdash; user guide</a>
+    <span class="b md">md</span><span class="path">docs/COMANDI_LG.md</span></div>
+  <p><b>Scope:</b> the commands starting with <code>lg</code>: entering the environment
+  (<code>lgini</code>, <code>lggo</code>), the container (<code>lgdock</code>), the CAD
+  (<code>lgpc</code>), the HMIs (<code>lghmi</code>), realigning the simulator
+  (<code>lgupsim</code>), the work area (<code>lgswitch</code>), the version
+  (<code>lgversion</code>), the terminal chosen by the user (<code>lgterm</code>, and how to pick
+  it), the Linux/Windows converters and FMU co-simulation.</p>
+  <p class="use"><b>When you need it:</b> it is the starting point for anyone using LegoPST. Every
+  entry has a short description and, where one exists, a pointer to the specialised document. None
+  of these commands exists without <code>source .profile_legoroot</code>.</p>
+</div>
+
+<div class="card">
+  <div class="row1"><a class="tit" href="kbin/README.md">The <code>kprocedure</code> commands</a>
+    <span class="b md">md</span><span class="path">kbin/README.md</span></div>
+  <p><b>Scope:</b> the 192 <code>k*</code> commands that run a simulator: start, stop, compile,
+  archive, connections, MMI, statistics.</p>
+  <p class="use"><b>When you need it:</b> to find out which command does what. Remember that these
+  tools do <code>cd $KSIM</code> and ignore the current directory: you pick the simulator
+  <b>first</b>, with <code>ksetsim</code>.</p>
+</div>
+
+<div class="card">
+  <div class="row1"><a class="tit" href="kbin/kbin-riferimento-comandi-LegoPST.html">kbin &mdash; command reference (hypertext)</a>
+    <span class="b html">html</span><span class="path">kbin/kbin-riferimento-comandi-LegoPST.html</span></div>
+  <p><b>Scope:</b> the same commands as a browsable page.</p>
+  <p class="use"><b>When you need it:</b> a quick look in the browser, without opening the
+  editor.</p>
+</div>
+
+<div class="card">
+  <div class="row1"><a class="tit" href="Alg_rt/net_simula/new_monit/README.md">Master Monitor (<code>new_monit</code>, the desk)</a>
+    <span class="b md">md</span><span class="path">Alg_rt/net_simula/new_monit/README.md</span></div>
+  <p><b>Scope:</b> the main monitor of a session: options persisted in <code>.bi_options</code>,
+  <i>User Programs</i> (up to 8 shell commands launchable from the menu) and how Save/Load behave
+  in the <code>optionSet</code> editor.</p>
+  <p class="use"><b>When you need it:</b> to hang your own script on the desk buttons, or when
+  session options do not get saved the way you expect.</p>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="cad">3. CAD and modelling &mdash; <code>legopc</code> <span class="n">6 documents</span></h2>
+<p class="scope">Drawing the models: diagrams, module libraries, topology, and the selector that
+opens the operating interfaces.</p>
+
+<div class="card">
+  <div class="row1"><a class="tit" href="Alg_legopc/README.md">legopc &mdash; the graphical CAD</a>
+    <span class="b md">md</span><span class="path">Alg_legopc/README.md</span></div>
+  <p><b>Scope:</b> module libraries, the <code>.i5</code>/<code>.tom</code>/<code>.remap</code>/<code>.lstyle</code>
+  formats, remark and backgrounds, the operator elements of a page (faceplate buttons and set
+  value), the variable shown under a block (double click in <i>Show Value</i>), the <i>View</i>
+  menu, the model dialogs (<i>Open</i>, <i>Save</i>, <i>Save As</i>, <i>Include</i>, <i>Delete
+  Model</i>), PDF/PNG export (in draw2gr too), Command Mode, <i>Set Sim path</i>, engineering units
+  and the external programs (editor, viewers, terminal).</p>
+  <p class="use"><b>When you need it:</b> drawing or changing a diagram, preparing a page to be
+  used as an operator panel during the simulation, and to work out which file comes out of which
+  step of the chain.</p>
+</div>
+
+<div class="card">
+  <div class="row1"><a class="tit" href="Alg_legopc/BACKGROUND_ELEMENTS.md">Background elements (<code>bgimage</code>)</a>
+    <span class="b md">md</span><span class="path">Alg_legopc/BACKGROUND_ELEMENTS.md</span></div>
+  <p><b>Scope:</b> step-by-step recipe to add background graphics to a diagram.</p>
+  <p class="use"><b>When you need it:</b> it is a procedure, not an explanation: you follow it
+  while you work.</p>
+</div>
+
+<div class="card">
+  <div class="row1"><a class="tit" href="Alg_legopc/LGHMI.md"><code>lghmi</code> &mdash; HMI and faceplate selector</a>
+    <span class="b md">md</span><span class="path">Alg_legopc/LGHMI.md</span></div>
+  <p><b>Scope:</b> the selector that opens the process pages (<code>draw2gr</code>) and the command
+  faceplates (<code>xstaz</code>), the button that starts the MMI, starting the simulation
+  (<code>net_startup</code>) and the realignments (<code>kUpSim</code>, <code>kCompile</code>),
+  opening models in the CAD (<i>Tools &rarr; Edit model</i> and the <i>Edit</i> menu of the HMIs),
+  the current simulator (<i>File &rarr; Current simulator</i>, which follows the directory you are
+  looking at), a terminal in the simulator directory (<i>Tools &rarr; Terminal</i>), switching work
+  area (<i>File &rarr; Work area</i>, through <code>lgswitch</code>) and the format of the
+  <code>S01</code> file that describes a composed simulator.</p>
+  <p class="use"><b>When you need it:</b> to open the interfaces of a simulator without
+  remembering the commands by hand, to move from one work area to another without leaving
+  processes stranded between the two, and as the reference on the <code>S01</code> format.</p>
+</div>
+
+<div class="card">
+  <div class="row1"><a class="tit" href="Alg_legopc/Readme.txt">Alg_legopc release notes</a>
+    <span class="b txt">txt</span><span class="b legacy">legacy</span>
+    <span class="path">Alg_legopc/Readme.txt</span></div>
+  <p><b>Scope:</b> notes on the <code>Alg_legopc-2006ASP1_RHE4</code> release.</p>
+  <p class="use"><b>When you need it:</b> archaeology on what changed in that version.</p>
+</div>
+
+<div class="card">
+  <div class="row1"><a class="tit" href="Alg_legopc/install/relnotes.txt">LegoPc 5.0 release notes</a>
+    <span class="b txt">txt</span><span class="b legacy">legacy</span>
+    <span class="path">Alg_legopc/install/relnotes.txt</span></div>
+  <p><b>Scope:</b> release notes of version 5.0 of the CAD.</p>
+  <p class="use"><b>When you need it:</b> historical reference on the features introduced
+  then.</p>
+</div>
+
+<div class="card">
+  <div class="row1"><a class="tit" href="Alg_legopc/install/vardef.txt">Installation environment variables</a>
+    <span class="b txt">txt</span><span class="path">Alg_legopc/install/vardef.txt</span></div>
+  <p><b>Scope:</b> an example of how the variables are defined (<code>LG_BASE</code> and the
+  rest).</p>
+  <p class="use"><b>When you need it:</b> as a comparison, when the CAD environment does not
+  behave as expected.</p>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="runtime">4. Run time: trends, values, faceplates <span class="n">7 documents</span></h2>
+<p class="scope">What you use with the simulator running: watching the curves, reading and writing
+the points, commanding the actuators.</p>
+
+<div class="card">
+  <div class="row1"><a class="tit" href="Alg_rt/grafica/graphics/README.md"><code>graphics</code> &mdash; trend viewer</a>
+    <span class="b md">md</span><span class="path">Alg_rt/grafica/graphics/README.md</span></div>
+  <p><b>Scope:</b> the program that draws the curves reading the circular file <code>f22</code>.</p>
+  <p class="use"><b>When you need it:</b> to watch how the recorded variables move. Mind the
+  near-homonym: <code>graphics</code> (circular f22) and <code>grafics</code> without the h
+  (sequential f22, used by drift/crealg5) are two binaries with incompatible formats.</p>
+</div>
+
+<div class="card">
+  <div class="row1"><a class="tit" href="Alg_rt/grafica/graphics/f22circ_format.md">Binary format of <code>f22circ.dat</code></a>
+    <span class="b md">md</span><span class="path">Alg_rt/grafica/graphics/f22circ_format.md</span></div>
+  <p><b>Scope:</b> the layout of the circular file: header, records, indexes.</p>
+  <p class="use"><b>When you need it:</b> writing a program that reads or produces that data, or
+  when the plots come out at zero and you have to look inside the file.</p>
+</div>
+
+<div class="card">
+  <div class="row1"><a class="tit" href="doc/struttura_f22_fortran.txt">Structure of <code>f22.dat</code>, the Fortran side</a>
+    <span class="b txt">txt</span><span class="path">doc/struttura_f22_fortran.txt</span></div>
+  <p><b>Scope:</b> how the Fortran (<code>proc/lg5</code>) writes the samples file.</p>
+  <p class="use"><b>When you need it:</b> the counterpart of the document above, from the side of
+  whoever produces the data rather than whoever reads it.</p>
+</div>
+
+<div class="card">
+  <div class="row1"><a class="tit" href="Alg_rt/net_simula/viewval/README.md"><code>viewval</code> &mdash; reading and writing points</a>
+    <span class="b md">md</span><span class="path">Alg_rt/net_simula/viewval/README.md</span></div>
+  <p><b>Scope:</b> inspecting shared memory: picking variables, interactive mode with value
+  editing, a log of what was written. It is also the engine behind the <i>set value</i> elements
+  of a page (<code>viewval -f</code>).</p>
+  <p class="use"><b>When you need it:</b> quick diagnosis &mdash; see what a variable is worth, or
+  force it by hand without going through a graphical interface.</p>
+</div>
+
+<div class="card">
+  <div class="row1"><a class="tit" href="Alg_rt/grafica/xstaz/README.md">Command faceplates: <code>compstaz</code> and <code>xstaz</code></a>
+    <span class="b md">md</span><span class="path">Alg_rt/grafica/xstaz/README.md</span></div>
+  <p><b>Scope:</b> the faceplate chain: <code>r01.dat</code> (source) compiled by
+  <code>compstaz</code> into <code>r02.dat</code>, displayed by <code>xstaz</code>; how a page gets
+  opened (<code>net_monit</code>, <code>lghmi</code>, <code>stazpag</code>, the faceplate buttons
+  on a diagram).</p>
+  <p class="use"><b>When you need it:</b> to understand the architecture before touching the
+  files.</p>
+</div>
+
+<div class="card">
+  <div class="row1"><a class="tit" href="Alg_rt/grafica/xstaz/HOWTO_faceplate.md">Faceplate HOWTO &mdash; the working manual</a>
+    <span class="b md">md</span><span class="path">Alg_rt/grafica/xstaz/HOWTO_faceplate.md</span></div>
+  <p><b>Scope:</b> the longest document in the project (over 2000 lines): the format of
+  <code>r01.dat</code> line by line, a catalogue of all 54 stations with their code, the full life
+  cycle and a checklist.</p>
+  <p class="use"><b>When you need it:</b> every time you configure a faceplate. It is written to
+  be used while working, with examples you can copy.</p>
+</div>
+
+<div class="card">
+  <div class="row1"><a class="tit" href="Alg_rt/grafica/xstaz/catalogo/README.md">Visual catalogue of the station types</a>
+    <span class="b md">md</span><span class="path">Alg_rt/grafica/xstaz/catalogo/README.md</span></div>
+  <p><b>Scope:</b> a picture of every faceplate type with its name underneath, plus the
+  <code>r01.dat</code> that generates them.</p>
+  <p class="use"><b>When you need it:</b> to pick a station type by looking at it, instead of
+  guessing from the name. The same pictures are embedded in the HOWTO.</p>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="mmi">5. MMI &mdash; the SCADA-like interface <span class="n">3 documents</span></h2>
+<p class="scope">The animated mimic pages: a world with files, directories and conventions of its
+own, separate from the CAD and from the process pages.</p>
+
+<div class="card">
+  <div class="row1"><a class="tit" href="Alg_mmi/README.md">Alg_mmi &mdash; Context, pages, generation chain</a>
+    <span class="b md">md</span><span class="path">Alg_mmi/README.md</span></div>
+  <p><b>Scope:</b> the <code>Context.ctx</code> file as the single source of truth, how
+  <code>mmi</code> finds the pages at run time and how the configurator finds them (differently),
+  the <code>.pag</code> &rarr; <code>.rtf</code>/<code>.bkg</code> life cycle, the <b>three page
+  generators</b> (<code>config</code>, <code>convstaz</code>, <code>mkstaz</code>/<code>kcreastaz</code>)
+  and the <code>kMakeGlobpages</code>/<code>kGlobContext</code>/<code>kMmiConfig</code>/<code>kMmi</code>
+  chain.</p>
+  <p class="use"><b>When you need it:</b> when a page does not show up, when the MMI does not
+  start, or when a simulator is moved to another machine. It explains the nastiest block of all:
+  on a single machine <code>kMmi</code> configures the client/SCADA route and the MMI waits in
+  timeout for a server that does not exist.</p>
+</div>
+
+<div class="card">
+  <div class="row1"><a class="tit" href="Alg_mmi/config/CONNESSIONI.md">Connecting ports and variables in <code>config</code></a>
+    <span class="b md">md</span><span class="path">Alg_mmi/config/CONNESSIONI.md</span></div>
+  <p><b>Scope:</b> how diagrams are wired to each other in the page editor. In Italian.</p>
+  <p class="use"><b>When you need it:</b> while drawing or fixing a control page.</p>
+</div>
+
+<div class="card">
+  <div class="row1"><a class="tit" href="Alg_mmi/config/COPIA_INCOLLA.md">Copy and paste in the text fields of <code>config</code></a>
+    <span class="b md">md</span><span class="path">Alg_mmi/config/COPIA_INCOLLA.md</span></div>
+  <p><b>Scope:</b> the (not obvious, Motif) behaviour of copy and paste in the editor. In
+  Italian.</p>
+  <p class="use"><b>When you need it:</b> a short, practical note, to be read once.</p>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="fmu">6. FMU and co-simulation <span class="n">2 documents</span></h2>
+<p class="scope">Exporting a LegoPST task as a standard FMU and running it together with other
+simulators.</p>
+
+<div class="card">
+  <div class="row1"><a class="tit" href="Alg_rt/lg_fmu/USAGE.md">lg_fmu &mdash; build, bundle, HMI, diagnostics</a>
+    <span class="b md">md</span><span class="path">Alg_rt/lg_fmu/USAGE.md</span></div>
+  <p><b>Scope:</b> the complete guide (over 900 lines): how an FMU is built from a task, how a
+  self-contained bundle is packed, how the HMI is attached (with the faceplate buttons and the
+  <code>r02.dat</code> compiled for the task), how to diagnose it.</p>
+  <p class="use"><b>When you need it:</b> for anything about FMUs. One working note: testing a
+  bundle from a shell with the LegoPST profile sourced <b>proves nothing</b>, because the
+  <code>LG_*</code> variables leak in and hide what the bundle is missing; use <code>env -i</code>.</p>
+</div>
+
+<div class="card">
+  <div class="row1"><a class="tit" href="Alg_rt/lg_fmu/lg_cosim/lg_cosim_manual.md">Manual of the <code>lg_cosim</code> master</a>
+    <span class="b md">md</span><span class="path">Alg_rt/lg_fmu/lg_cosim/lg_cosim_manual.md</span></div>
+  <p><b>Scope:</b> the co-simulation master: configuration file, use of third-party standard FMUs,
+  known limits.</p>
+  <p class="use"><b>When you need it:</b> when several FMUs are made to talk to each other, each
+  with its own key and its own step.</p>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="help">7. Legacy hypertext help <span class="n">2 trees, ~330 pages</span></h2>
+<p class="scope">Two HTML trees from the '90s and 2000s, produced from Word documents and still
+browsable. They are the most complete source on the <b>theory</b> and on the <b>module
+library</b>, areas the recent documentation does not cover.</p>
+
+<div class="card">
+  <div class="row1"><a class="tit" href="Alg_help/html/alterlego.htm">Alg_help &mdash; general simulator manual</a>
+    <span class="b html">html</span><span class="b legacy">legacy</span>
+    <span class="path">Alg_help/html/alterlego.htm</span></div>
+  <p><b>Scope:</b> the general index (titled <i>Puertollano Dynamic Simulator Project</i>) leading
+  to six areas: Legocad, Regommi, Executive, MMI, Scada, AlgDB.</p>
+  <p class="use"><b>When you need it:</b> this is the entry point to open in a browser.
+  Sub-trees:</p>
+  <ul class="flat">
+    <li><code>legocad/</code> &mdash; 9 pages: documentation, elementary data, glossary, graphics,
+        libraries, simulation, steady state, <b>topology</b></li>
+    <li><code>legocad/lib_proc/</code> &mdash; <b>53 pages: the process module library</b>
+        (<code>adiv</code>, <code>aext</code>, <code>amme</code>, <code>attu</code>&hellip;), one
+        sheet per module</li>
+    <li><code>legocad/models/</code> &mdash; 16 pages on the models</li>
+    <li><code>legocad/lpteoria/</code> &mdash; 16 pages of <b>theory</b> (thermal hydraulics,
+        methods)</li>
+    <li><code>istr_sta/</code> &mdash; 11 pages on the instructor station</li>
+    <li><code>legommi/</code> 6, <code>regommi/</code> 7, <code>scada/</code> 1</li>
+    <li><code>Alg_help/rtf/</code> &mdash; the 20 RTF sources of those same pages</li>
+  </ul>
+</div>
+
+<div class="card">
+  <div class="row1"><a class="tit" href="Alg_legopc/Alg_legopc_help/index.htm">Online help of the legopc CAD</a>
+    <span class="b html">html</span><span class="b legacy">legacy</span>
+    <span class="path">Alg_legopc/Alg_legopc_help/index.htm</span></div>
+  <p><b>Scope:</b> 218 pages of CAD guide: activities, introduction, main features, library
+  handling, modules, <code>legosim</code>.</p>
+  <p class="use"><b>When you need it:</b> it is the help called by <b>? &rarr; Help</b> inside
+  <code>legopc.tix</code>, but it also opens straight in a browser. The 33 original Java applets
+  were replaced by links, so today it works without plugins.</p>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="storici">8. Word and PDF manuals <span class="n">~40 documents</span></h2>
+<p class="scope">Period material in closed formats: they open with LibreOffice. They are still the
+only source on some <code>util97</code> tools and on the underlying theory. Mostly in Italian.</p>
+
+<div class="card">
+  <div class="row1"><a class="tit" href="util97/doc_user/">Manuals of the util97 tools</a>
+    <span class="b doc">doc</span><span class="b legacy">legacy</span>
+    <span class="path">util97/doc_user/ &mdash; 13 files</span></div>
+  <p><b>Scope:</b> one manual per tool: <code>CAP</code>, <code>COLLECT2</code>,
+  <code>CONNEX</code> and <code>CONNEX2</code>, <code>DFD_SKL</code>, <code>ELENCO</code>,
+  <code>F01</code>, <code>PAGMOD</code>, <code>S01</code>, <code>S01TOF01</code>. Word 6.0,
+  1997.</p>
+  <p class="use"><b>When you need it:</b> these are the programs that build the <code>S01</code>
+  and handle the interface files. For <code>connex2</code> and the <code>S01</code> format the
+  current, verified description is in <a href="docs/AL_SIM_CONF.md">docs/AL_SIM_CONF.md</a>; these
+  stay useful for the tools that have not been re-documented yet.</p>
+</div>
+
+<div class="card">
+  <div class="row1"><a class="tit" href="lego_big/doclego/">Theory and courses</a>
+    <span class="b pdf">pdf</span><span class="b legacy">legacy</span>
+    <span class="path">lego_big/doclego/ &mdash; 4 files</span></div>
+  <p><b>Scope:</b> <code>LegoTeoriaPrincipiGenerali.pdf</code> (general principles),
+  <code>ALG_rev16.pdf</code>, <code>Corso REGO_3.pdf</code> (course material on control),
+  <code>GrigliaTestNuovaVersioneALTERLEGO.pdf</code>.</p>
+  <p class="use"><b>When you need it:</b> for the <i>why</i> rather than the <i>how</i>: the
+  principles the simulation engine is built on. The REGO course is the reference on control.</p>
+</div>
+
+<div class="card">
+  <div class="row1"><a class="tit" href="Alg_legopc/etc/articoli/">Articles on LegoPC and LegoSim</a>
+    <span class="b doc">doc</span><span class="b legacy">legacy</span>
+    <span class="path">Alg_legopc/etc/articoli/ &mdash; 5 files</span></div>
+  <p><b>Scope:</b> <i>Il Model Builder LegoPC</i>, <code>LegoPC.en</code>, <code>legosim_en</code>
+  and other outreach or commercial articles.</p>
+  <p class="use"><b>When you need it:</b> for a narrative description of the product, useful when
+  presenting it to someone who does not know it.</p>
+</div>
+
+<div class="card">
+  <div class="row1"><a class="tit" href="scada/docs/">SCADA integration</a>
+    <span class="b doc">doc</span><span class="b legacy">legacy</span>
+    <span class="path">scada/docs/ &mdash; 5 files</span></div>
+  <p><b>Scope:</b> <code>integr.doc</code>, <code>modscada.doc</code>, <code>tagcons.doc</code> and
+  others: the SCADA data model and tag consistency.</p>
+  <p class="use"><b>When you need it:</b> working on the link between the simulator and a SCADA
+  system.</p>
+</div>
+
+<div class="card">
+  <div class="row1"><a class="tit" href="Alg_rt/net_simula/doc_devel/">net_simula development notes</a>
+    <span class="b doc">doc</span><span class="b legacy">legacy</span>
+    <span class="path">Alg_rt/net_simula/doc_devel/ &mdash; 3 files</span></div>
+  <p><b>Scope:</b> instructor/state (<code>ist_stat_fd</code>, <code>ist_stat_fs</code>) and
+  malfunctions (<code>malf_fs</code>): functional and detailed specifications.</p>
+  <p class="use"><b>When you need it:</b> changing how malfunctions and instructor states are
+  handled.</p>
+</div>
+
+<div class="card">
+  <div class="row1"><a class="tit" href="util97/doc_devel/">util97 development notes</a>
+    <span class="b doc">doc</span><span class="b txt">txt</span><span class="b legacy">legacy</span>
+    <span class="path">util97/doc_devel/</span></div>
+  <p><b>Scope:</b> mixed development material: <code>name_rules.doc</code> (naming rules), the
+  <code>EXTERNALREF*</code> files (external X11/Motif references), <code>rgb.txt</code>.</p>
+  <p class="use"><b>When you need it:</b> rarely; <code>name_rules.doc</code> is the only one still
+  worth something, on naming conventions.</p>
+</div>
+
+<div class="card">
+  <div class="row1"><a class="tit" href="doc/legopst_overview.doc">LegoPST overview (Word)</a>
+    <span class="b doc">doc</span><span class="path">doc/legopst_overview.doc</span></div>
+  <p><b>Scope:</b> an overall description of the system in Word format.</p>
+  <p class="use"><b>When you need it:</b> largely overlapping with
+  <a href="README.md">README.md</a>, which is more current; useful when a document has to be handed
+  out.</p>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="porting">9. Porting, platforms, containers <span class="n">7 documents</span></h2>
+<p class="scope">How LegoPST was carried from the original machines to modern Linux, and how it is
+run in a container.</p>
+
+<div class="card">
+  <div class="row1"><a class="tit" href="doc/portingWSL_Ubuntu_Debian.txt">Porting to WSL / Ubuntu / Debian</a>
+    <span class="b txt">txt</span><span class="path">doc/portingWSL_Ubuntu_Debian.txt</span></div>
+  <p><b>Scope:</b> steps and fixes to carry <code>legoroot</code> onto Ubuntu and WSL.</p>
+  <p class="use"><b>When you need it:</b> that is the current reference platform: read it before
+  installing on a new machine.</p>
+</div>
+
+<div class="card">
+  <div class="row1"><a class="tit" href="portingFedora41.txt">Porting to Fedora 41 (WSL)</a>
+    <span class="b txt">txt</span><span class="path">portingFedora41.txt</span></div>
+  <p><b>Scope:</b> notes specific to Fedora 41 under WSL.</p>
+  <p class="use"><b>When you need it:</b> this is the platform used today. It includes the X11
+  font problems and the libraries to add.</p>
+</div>
+
+<div class="card">
+  <div class="row1"><a class="tit" href="doc/porting64bit.txt">Moving to 64 bit</a>
+    <span class="b txt">txt</span><span class="path">doc/porting64bit.txt</span></div>
+  <p><b>Scope:</b> how the 64-bit version is handled through the <code>PLATFORM</code>
+  variable.</p>
+  <p class="use"><b>When you need it:</b> building on a different architecture, or when something
+  behaves differently between 32 and 64 bit.</p>
+</div>
+
+<div class="card">
+  <div class="row1"><a class="tit" href="doc/README_RHE6.txt">Installing on Red Hat Enterprise</a>
+    <span class="b txt">txt</span><span class="b legacy">legacy</span>
+    <span class="path">doc/README_RHE6.txt</span></div>
+  <p><b>Scope:</b> installation instructions for RHEL 4 and similar.</p>
+  <p class="use"><b>When you need it:</b> legacy systems; superseded by the two porting documents
+  above.</p>
+</div>
+
+<div class="card">
+  <div class="row1"><a class="tit" href="docker/README_INSTALLER.md">Installing through Docker</a>
+    <span class="b md">md</span><span class="path">docker/README_INSTALLER.md</span></div>
+  <p><b>Scope:</b> the containerised installer: image, volumes, startup.</p>
+  <p class="use"><b>When you need it:</b> to run LegoPST without installing it on the host
+  machine.</p>
+</div>
+
+<div class="card">
+  <div class="row1"><a class="tit" href="docker/lancio_lgdock_noinst.md">Running with no installation (<code>lgdock.sh</code>)</a>
+    <span class="b md">md</span><span class="path">docker/lancio_lgdock_noinst.md</span></div>
+  <p><b>Scope:</b> the container startup script, option by option.</p>
+  <p class="use"><b>When you need it:</b> day-to-day use of the container, after reading the
+  installer document.</p>
+</div>
+
+<div class="card">
+  <div class="row1"><a class="tit" href="docker/simple_inst_lgdock/readme.md">Simplified container installation</a>
+    <span class="b md">md</span><span class="path">docker/simple_inst_lgdock/readme.md</span></div>
+  <p><b>Scope:</b> a minimal variant of the Docker procedure.</p>
+  <p class="use"><b>When you need it:</b> a quick trial, or a machine where nothing may be
+  installed.</p>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="note">10. Working notes and maintenance tools <span class="n">6 documents</span></h2>
+<p class="scope">Notes written during specific jobs. They are not manuals: they are the record of
+what was done and why.</p>
+
+<div class="card">
+  <div class="row1"><a class="tit" href="docs/KR_PROTOTYPE_AUDIT.md">K&amp;R prototype audit</a>
+    <span class="b md">md</span><span class="path">docs/KR_PROTOTYPE_AUDIT.md</span></div>
+  <p><b>Scope:</b> the hunt for <code>float</code> parameters clashing with the prototype, a silent
+  defect typical of K&amp;R C; it includes the scanner that finds them.</p>
+  <p class="use"><b>When you need it:</b> touching old functions with no prototype, or when a value
+  arrives wrong for no apparent reason.</p>
+</div>
+
+<div class="card">
+  <div class="row1"><a class="tit" href="util2025/lglinux2win.md">Converting sources Linux &rarr; Windows</a>
+    <span class="b md">md</span><span class="path">util2025/lglinux2win.md</span></div>
+  <p><b>Scope:</b> the <code>lglinux2win.py</code> script: what it converts and with what
+  limits.</p>
+  <p class="use"><b>When you need it:</b> keeping the Windows branch of the code aligned.</p>
+</div>
+
+<div class="card">
+  <div class="row1"><a class="tit" href="util2025/lgwin2linux.md">Converting sources Windows &rarr; Linux</a>
+    <span class="b md">md</span><span class="path">util2025/lgwin2linux.md</span></div>
+  <p><b>Scope:</b> the opposite script, <code>lgwin2linux.py</code>.</p>
+  <p class="use"><b>When you need it:</b> bringing back to Linux the changes made on the Windows
+  branch.</p>
+</div>
+
+<div class="card">
+  <div class="row1"><a class="tit" href="util2025/add_cast_v6_readme.md">Adding the casts to <code>set_something</code></a>
+    <span class="b md">md</span><span class="path">util2025/add_cast_v6_readme.md &mdash; and add_cast.md</span></div>
+  <p><b>Scope:</b> the awk scripts that add explicit casts to the variadic calls.
+  <code>add_cast.md</code> is the raw transcript of the working session; the
+  <code>_v6_readme</code> is the tidy version.</p>
+  <p class="use"><b>When you need it:</b> re-running or adapting that mass transformation. Start
+  from the <code>_v6_readme</code>.</p>
+</div>
+
+<div class="card">
+  <div class="row1"><a class="tit" href="AlgLib/libutilx/usare_get_set_something_val.md">Using <code>get/set_something_val</code></a>
+    <span class="b md">md</span><span class="path">AlgLib/libutilx/usare_get_set_something_val.md</span></div>
+  <p><b>Scope:</b> notes on the variants that handle the types correctly. In Italian.</p>
+  <p class="use"><b>When you need it:</b> a working note in narrative form, to be read with the
+  header at hand.</p>
+</div>
+
+<div class="card">
+  <div class="row1"><a class="tit" href="util2025/risorse/Readme.md">X resources example</a>
+    <span class="b md">md</span><span class="path">util2025/risorse/Readme.md</span></div>
+  <p><b>Scope:</b> a sample X resources file and the role of <code>XAPPLRESDIR</code>.</p>
+  <p class="use"><b>When you need it:</b> when a Motif application does not pick up the colours or
+  the fonts you expect.</p>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="fuori">11. Documentation outside the repository <span class="n">7 documents</span></h2>
+<p class="scope">These live next to the Fortran sources of the modules, in
+<code>~/legocad/libut_reg/libreg/</code>: they are not in the LegoPST repository but they are very
+much part of the documentation you work with. In Italian.</p>
+
+<div class="card">
+  <div class="row1"><a class="tit" href="/home/antonio/legocad/libut_reg/libreg/programmatori_setpoint.md">Set point programmers &mdash; comparison guide</a>
+    <span class="b md">md</span><span class="path">~/legocad/libut_reg/libreg/programmatori_setpoint.md</span></div>
+  <p><b>Scope:</b> a comparison table of the <code>past</code>, <code>pmsp</code>,
+  <code>pmss</code>, <code>pmst</code>, <code>pmia</code> modules: inputs, outputs, operating
+  modes.</p>
+  <p class="use"><b>When you need it:</b> to <b>choose</b> which module to use in a control
+  scheme. It is the first of the seven to read.</p>
+</div>
+
+<div class="card">
+  <div class="row1"><a class="tit" href="/home/antonio/legocad/libut_reg/libreg/past.md">Sheets of the individual modules</a>
+    <span class="b md">md</span><span class="path">~/legocad/libut_reg/libreg/{past,pmsp,pmss,pmst,pmia}.md</span></div>
+  <p><b>Scope:</b> one sheet per module, all following the same ten-section pattern: variables,
+  parameters, internal logic, flow chart, tuning examples.</p>
+  <p class="use"><b>When you need it:</b> configuring that module in a scheme, to know exactly what
+  each input does.</p>
+</div>
+
+<div class="card">
+  <div class="row1"><a class="tit" href="/home/antonio/legocad/libut_reg/libreg/migrazione_past_pmss.md">Migrating from <code>past</code> to <code>pmss</code></a>
+    <span class="b md">md</span><span class="path">~/legocad/libut_reg/libreg/migrazione_past_pmss.md</span></div>
+  <p><b>Scope:</b> a map of the correspondences between the two modules, input by input.</p>
+  <p class="use"><b>When you need it:</b> replacing an existing <code>past</code> in a scheme that
+  already works, without losing pieces along the way.</p>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="escluso">12. What is not indexed here</h2>
+<p class="scope">For completeness, the files that look like documentation but are not, or that have
+nothing to do with LegoPST.</p>
+<ul class="flat">
+  <li><code>.aider/*.md</code> and <code>.aider.chat.history.md</code> &mdash; the memory of an AI
+      assistant, not project documentation</li>
+  <li><code>Alg_legopc/Alg_legopc_help/_vti_*</code> &mdash; 218 FrontPage metadata files, service
+      copies of the help pages</li>
+  <li><code>AlgLib/dcethreads_lib_no/**/readme</code> &mdash; third-party READMEs (DCE RPC)</li>
+  <li><code>kdefaults/scada/start_txt/*.txt</code> &mdash; SCADA startup data, not text</li>
+  <li>the FMU bundles under <code>Alg_rt/lg_fmu/lg_cosim/example/*_bundle/</code> &mdash; they hold
+      copies of documentation already indexed here</li>
+</ul>
+
+<div class="note warn">
+  <b>Where to put a new document.</b> The rule followed so far: documentation lives <b>next to the
+  code it describes</b> (<code>Alg_mmi/README.md</code>,
+  <code>Alg_rt/grafica/xstaz/HOWTO_faceplate.md</code>), and goes in <code>docs/</code> only when it
+  concerns the whole project (<code>BUILD.md</code>, <code>AL_SIM_CONF.md</code>). When you add
+  one, add a row to the table in <code>CLAUDE.md</code> and an entry here.
+</div>
+
+<footer>
+  A static page: double click opens it, no server needed. The links are relative to the root of the
+  repository, so follow them with the file kept where it is
+  (<code>LegoPST/DOCUMENTATION_INDEX.html</code>). In a browser <code>.md</code> files show up as
+  plain text; for the rendered version open them in the editor.
+</footer>
+
+</div>
+
+<script>
+(function(){
+  var box = document.getElementById('filter');
+  var count = document.getElementById('count');
+  var cards = Array.prototype.slice.call(document.querySelectorAll('.card'));
+  var sections = Array.prototype.slice.call(document.querySelectorAll('h2'));
+  var total = cards.length;
+
+  function text(el){ return (el.textContent || '').toLowerCase(); }
+  cards.forEach(function(c){ c.dataset.text = text(c); });
+
+  function filter(){
+    var q = box.value.trim().toLowerCase();
+    var seen = 0;
+    cards.forEach(function(c){
+      var ok = (q === '' || c.dataset.text.indexOf(q) !== -1);
+      c.style.display = ok ? '' : 'none';
+      if (ok) seen++;
+    });
+    // hides the sections left with no cards
+    sections.forEach(function(h){
+      var n = 0, el = h.nextElementSibling;
+      while (el && el.tagName !== 'H2') {
+        if (el.classList.contains('card') && el.style.display !== 'none') n++;
+        el = el.nextElementSibling;
+      }
+      var empty = (q !== '' && n === 0);
+      h.style.display = empty ? 'none' : '';
+      el = h.nextElementSibling;
+      while (el && el.tagName !== 'H2') {
+        if (!el.classList.contains('card')) el.style.display = empty ? 'none' : '';
+        el = el.nextElementSibling;
+      }
+    });
+    count.textContent = (q === '') ? (total + ' documents') : (seen + ' of ' + total);
+  }
+  box.addEventListener('input', filter);
+  filter();
+})();
+</script>
+
+</body>
+</html>
