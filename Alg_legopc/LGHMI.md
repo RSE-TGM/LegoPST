@@ -81,7 +81,9 @@ Nella finestra:
   `~/sked`) con `lgswitch`, dopo aver controllato che niente ci lavori ancora:
   [vedi sotto](#cambiare-area-di-lavoro-menu-file-work-area).
 - **File → Current simulator ▸** → sceglie il **simulatore corrente** (`$KSIM`)
-  fra quelli dell'area; l'elenco si legge all'apertura del sottomenu: [vedi
+  fra quelli dell'area e ci porta `lghmi`; l'elenco si legge all'apertura del
+  sottomenu. Vale anche il contrario: entrare con *Open Simulator path* nella
+  directory di un simulatore dell'area ne fa il simulatore corrente. [Vedi
   sotto](#file--current-simulator-e-la-variabile-ksim).
 - **File → Open Simulator path…** → cambia la **directory di lavoro** del selettore,
   e sotto la voce ci sono le ultime directory usate nell'area corrente: vedi
@@ -1008,6 +1010,25 @@ già.
 > **Quello che una GUI non può fare**: cambiare l'ambiente della *shell che l'ha
 > lanciata*. La `$KSIM` del tuo terminale resta quella di prima; per allinearla
 > basta un `ksetsim <nome>`, oppure una shell nuova, che rilegge `~/.legosim`.
+
+**Il simulatore che si guarda è quello su cui si lavora.** La directory
+mostrata (task, `S01`, `net_startup`, dati dal vivo delle HMI) e il simulatore
+corrente (`KSIM`: bersaglio di `kUpSim`, `kCompile`, dei `k*` dal terminale,
+delle pagine MMI via `KPAGES`) prima andavano ognuno per conto suo: si potevano
+guardare le task di un simulatore mentre `kUpSim` ne riallineava un altro. Ora
+si allineano:
+
+| quando | cosa succede |
+|---|---|
+| *File → Current simulator* | oltre ai quattro punti sopra, `lghmi` **entra nella directory** del simulatore scelto, come con *Open Simulator path* (e la aggiunge alle recenti) |
+| *File → Open Simulator path* o una recente | se la directory è un simulatore di `$KSKED`, **diventa il simulatore corrente**, come scelto dal menu: `~/.legosim` e `~/.lghmi_areas` compresi. Una directory che non è un simulatore dell'area (un modello, la home) lo lascia com'è |
+| avvio di `lghmi` dalla directory di un simulatore dell'area | diventa il simulatore corrente **solo in memoria**: aprire il selettore non è una scelta, e `~/.legosim` non cambia |
+| *File → Work area* | come prima: `lghmi` resta nell'elenco dell'area (dir-scan) con l'ultimo simulatore usato in quell'area |
+
+Il confronto fra directory è per identità (`stessa_directory`): `~/sked` è un
+link. Con **`-insim`** la directory è quella della simulazione in corso, fissa, e
+*Current simulator* è spento come *Work area* e *Open Simulator path*; il
+simulatore corrente è quello della simulazione, per l'allineamento all'avvio.
 
 ## Menù `?` — versione e documentazione
 

@@ -382,7 +382,7 @@ proc refresh_list {} {
     #  Perche' le voci di Tools sono come sono: senza questa riga un menu tutto
     #  spento non dice niente, e sembra un guasto.
     if {[simulatore_corrente] eq ""} {
-        lappend msg "no current simulator: pick one from Tools -> Current simulator"
+        lappend msg "no current simulator: pick one from File -> Current simulator"
     } elseif {[info exists ::RIPIEGO] && $::RIPIEGO ne ""} {
         lappend msg "simulator '$::RIPIEGO' (KSIM was not in the environment)"
         set ::RIPIEGO ""
@@ -792,12 +792,14 @@ proc aggiorna_menu_file {} {
     .mb.file add cascade -label "Work area" -menu .mb.file.aree -state $stato
     #  Il simulatore corrente: prima l'area, poi il simulatore di quell'area.
     #  Anche questo si elenca all'apertura (riempi_menu_simulatori), cosi' un
-    #  simulatore creato fuori da lghmi compare senza Refresh. Sempre attivo,
-    #  come quando stava nel menu Tools.
+    #  simulatore creato fuori da lghmi compare senza Refresh. Scegliere un
+    #  simulatore porta lghmi nella sua directory: con -insim la directory e'
+    #  quella della simulazione in corso, fissa, e la voce e' spenta come Work
+    #  area e Open Simulator path.
     if {![winfo exists .mb.file.sim]} {
         menu .mb.file.sim -tearoff 0 -postcommand riempi_menu_simulatori
     }
-    .mb.file add cascade -label "Current simulator" -menu .mb.file.sim
+    .mb.file add cascade -label "Current simulator" -menu .mb.file.sim -state $stato
     .mb.file add command -label "Open Simulator path..." -command apri_loc_path -state $stato
     set visibili {}
     foreach d $RECENTI {
@@ -894,9 +896,14 @@ proc vai_a_loc {dir} {
         return
     }
     ricorda_recente [pwd]
+    #  una directory di simulatore dell'area ne fa il simulatore corrente,
+    #  come se lo si fosse scelto da File -> Current simulator
+    set s [allinea_simulatore 1]
     # refresh_list ha gia' scritto i conteggi: la directory si aggiunge davanti,
     # non li sostituisce
-    .status configure -text "Directory: [pwd]   |   [.status cget -text]"
+    set testa "Directory: [pwd]"
+    if {$s ne ""} { append testa "   |   current simulator: $s" }
+    .status configure -text "$testa   |   [.status cget -text]"
 }
 
 #  Voce di menu: scegli la directory e vacci.
@@ -2051,6 +2058,9 @@ proc kpages_di {dir} {
 #
 #  KPAGES si aggiorna qui perche' la usa il pulsante mmi: prima restava quella
 #  del simulatore con cui lghmi era partito, e mmi apriva le pagine sbagliate.
+#  <scrivi> = 1: una scelta dell'utente, che va anche in ~/.legosim (le shell
+#  future) e in ~/.lghmi_areas (l'ultimo simulatore dell'area). 0: solo in
+#  memoria, per questa sessione - l'avvio di lghmi, che non e' una scelta.
 proc imposta_simulatore {nome scrivi} {
     global env
     set dir [file join $env(KSKED) $nome]
@@ -2065,9 +2075,36 @@ proc imposta_simulatore {nome scrivi} {
     set env(KSIMNAME) $nome
     set env(KPAGES)   [kpages_di $dir]
     set ::KSIMSCELTO  $nome
-    catch {ricorda_sim_area $nome}
-    aggiorna_menu_tools
+    if {$scrivi} { catch {ricorda_sim_area $nome} }
+    catch {aggiorna_menu_tools}
     return $scritto
+}
+
+#  Il simulatore dell'area che sta nella directory <dir>: il nome, se <dir> e'
+#  una delle directory di $KSKED, altrimenti "". Confronto per identita'
+#  (stessa_directory, lgedit.tcl): ~/sked e' un link, e la stessa directory
+#  arriva con grafie diverse (recenti, dialogo, directory di lancio).
+proc simulatore_della_dir {dir} {
+    global env
+    if {![info exists env(KSKED)] || $env(KSKED) eq ""} { return "" }
+    foreach s [lista_simulatori] {
+        if {[stessa_directory [file join $env(KSKED) $s] $dir]} { return $s }
+    }
+    return ""
+}
+
+#  Il simulatore che si guarda e' quello su cui si lavora: se la directory
+#  corrente e' un simulatore dell'area diverso da quello corrente, diventa
+#  quello corrente. Senza questo le due scelte andavano ognuna per conto suo,
+#  e si potevano guardare le task di un simulatore mentre kUpSim ne
+#  riallineava un altro. Una directory che non e' un simulatore dell'area
+#  (un modello, la home) lascia il simulatore com'e'. <scrivi> come in
+#  imposta_simulatore. Ritorna il nome se l'ha cambiato, "" altrimenti.
+proc allinea_simulatore {scrivi} {
+    set s [simulatore_della_dir [pwd]]
+    if {$s eq "" || $s eq [simulatore_corrente]} { return "" }
+    imposta_simulatore $s $scrivi
+    return $s
 }
 
 #  I simulatori disponibili: le sottodirectory di $KSKED, come la funzione
@@ -2113,13 +2150,13 @@ proc scegli_simulatore {nome} {
         return
     }
     set scritto [imposta_simulatore $nome 1]
-    if {$scritto} {
-        .status configure -text \
-            "Current simulator: $nome   |   written to ~/.legosim: applies to future shells too"
-    } else {
-        .status configure -text \
-            "Current simulator: $nome   |   ~/.legosim not writable: applies to this session only"
-    }
+    #  e lghmi si sposta nella sua directory, come con Open Simulator path: il
+    #  simulatore scelto e' anche quello che si guarda (con -insim la
+    #  directory e' fissa, ma allora la voce e' spenta)
+    if {![stessa_directory [pwd] $dir]} { vai_a_loc $dir }
+    set dove [expr {$scritto ? "written to ~/.legosim: applies to future shells too" \
+                             : "~/.legosim not writable: applies to this session only"}]
+    .status configure -text "Current simulator: $nome   |   directory: [pwd]   |   $dove"
 }
 
 # --- Tools: modifica del modello con legopc ------------------------------
@@ -2937,6 +2974,10 @@ proc simulatore_di_ripiego {} {
 # (ksetsim_default: ~/.legosim, poi cassano0, poi il primo di ksims). La
 # variabile tiene il radiobutton del sottomenu allineato.
 set ::RIPIEGO [simulatore_di_ripiego]
+# Lanciato dalla directory di un simulatore dell'area, lghmi lavora su quello:
+# diventa il simulatore corrente, solo in memoria (l'avvio non e' una scelta
+# e non cambia ~/.legosim). Il ripiego, se c'era, non conta piu'.
+if {[allinea_simulatore 0] ne ""} { set ::RIPIEGO "" }
 set ::KSIMSCELTO [simulatore_corrente]
 
 # Il titolo impostato sopra e' la base: aggiorna_area ci aggiunge l'area di

@@ -148,10 +148,19 @@ Opzioni principali:
 | `-insim` | dichiara che il selettore è lanciato **da dentro** una simulazione in corso. Lo passa il banco (`new_monit`). Disabilita *File → Open Simulator path* e il pulsante *net_startup*, che con `killsim` ammazzerebbe proprio la simulazione che ha aperto il selettore, e *File → Work area*; lancia le HMI senza menu *Edit* |
 | `-noedit` | le HMI `draw2gr` lanciate non hanno il menu *Edit*, che apre il modello della task in `legopc`. Senza, il menu c'è per le task dell'area corrente (mai per quelle dei bundle FMU) |
 
-Dal menu `Tools` si riallinea la configurazione del simulatore (`kUpSim`, cioè
-`lgupsim`), si cambia simulatore corrente, e con **`Edit model (legopc)`** si apre
-il CAD sul modello della task selezionata — rifiutando se una simulazione è in
-corso o se la task appartiene a un'altra area di lavoro.
+Dal menu `Tools` si apre con **`Edit model (legopc)`** il CAD sul modello della
+task selezionata — rifiutando se una simulazione è in corso o se la task
+appartiene a un'altra area di lavoro —, si riallinea la configurazione del
+simulatore (sottomenu **`kUpSim`**, cioè `lgupsim`, con le sue tre varianti), si
+compilano le regolazioni (sottomenu **`kCompile`**) e si apre un **terminale**
+nella directory corrente, con il terminale scelto in legopc (`lgterm`).
+
+Il **simulatore corrente** (`$KSIM`, quello su cui agiscono `kUpSim`, `kCompile`
+e i `k*`) si sceglie da `File → Current simulator`, e segue la directory che si
+guarda: scegliere un simulatore porta `lghmi` nella sua directory, ed entrare
+con *Open Simulator path* nella directory di un simulatore dell'area ne fa il
+simulatore corrente. Lanciato dalla directory di un simulatore, `lghmi` lavora
+su quello.
 
 Dal menu `File → Work area` si **cambia area di lavoro** senza uscire: è
 `lgswitch` (sezione 5), con in più il rifiuto finché qualcosa lavora sull'area
@@ -160,7 +169,7 @@ L'area corrente sta nel titolo della finestra e nella prima riga in alto.
 
 Un terzo riquadro elenca le **task di regolazione** (`r_*`), che prima non
 comparivano affatto perché non hanno un `.tom`: da lì si apre **`config`**,
-l'editor della regolazione, e da `Tools` si lanciano i tre passi
+l'editor della regolazione, e da `Tools → kCompile` si lanciano i tre passi
 di costruzione — `kCompile Regolation`, `Task`, `Page` — sulla sola task
 selezionata e in quest'ordine. Si nasconde con `-noreg`.
 L'output delle compilazioni — comprese quelle di `kUpSim` — finisce nel visore
@@ -183,6 +192,9 @@ Riferimento completo, formato `S01` e finestra di log: [../Alg_legopc/LGHMI.md](
 > Il simulatore su cui agiscono è quello **corrente**, scelto con `ksetsim <nome>`
 > (`ksims` li elenca). I tool `k*` fanno `cd $KSIM` e ignorano la directory da cui
 > li lanci: sceglilo **prima**, o lavorerai su quello sbagliato senza accorgertene.
+> Da `lghmi` il problema non si pone: lì il simulatore corrente è quello di cui
+> si guardano le task (`File → Current simulator`, o *Open Simulator path* sulla
+> sua directory), e la conferma di `kUpSim` ne mostra nome e path.
 
 Dettaglio dei singoli passi: [../kbin/README.md](../kbin/README.md).
 

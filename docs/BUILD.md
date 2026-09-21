@@ -51,7 +51,7 @@ ksetsim <TAB>          # completion bash sui nomi disponibili
 
 Dettagli:
 - **`KSKED`** = root dei simulatori (default `$HOME/sked`), variabile *generale*.
-- **Scelta "sticky"**: `ksetsim` scrive il nome in **`~/.legosim`**; una nuova shell riparte sull'ultimo scelto. Lo scrive anche `lghmi`, da *File → Current simulator* e dopo *File → Work area* (vedi [LGHMI.md](../Alg_legopc/LGHMI.md#file--current-simulator-e-la-variabile-ksim)).
+- **Scelta "sticky"**: `ksetsim` scrive il nome in **`~/.legosim`**; una nuova shell riparte sull'ultimo scelto. Lo scrive anche `lghmi`, da *File → Current simulator*, entrando con *File → Open Simulator path* (o una recente) nella directory di un simulatore dell'area, e dopo *File → Work area*: in `lghmi` il simulatore corrente segue la directory che si guarda. Lanciato dalla directory di un simulatore, `lghmi` lo prende come corrente solo in memoria, senza scrivere `~/.legosim` (vedi [LGHMI.md](../Alg_legopc/LGHMI.md#file--current-simulator-e-la-variabile-ksim)).
 - **All'avvio** il profilo chiama `ksetsim_default`, che sceglie in cascata: `~/.legosim` → `cassano0` → **primo simulatore disponibile** (`ksims`); solo se `$KSKED` è vuoto stampa un avviso e lascia `KSIM` non impostata (nessun crash).
 - `ksetsim` crea le dir minime mancanti (`status/`, `log/`) e stampa `Simulatore corrente: <nome>`.
 - **Override per-simulatore**: un file **`$KSIM/ksim.conf`** (sorgiato da `ksetsim`) tiene le variabili specifiche di quel simulatore, che così **vivono col simulatore** e non nel profilo generale. Es. per `cassano0` (nome cassaforte irregolare):

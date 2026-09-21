@@ -152,7 +152,7 @@ kDiffS01               # ora cd $KSIM trova l'S01
 | `kCheckDirect` | main | Verifica i collegamenti diretti (direct links). |
 | `kModRtf` | main | Modifica i file RTF (tabelle operatore). |
 | `kmodrtf` | bg | Avvia kModRtf in background. |
-| `kLeeF22` | main | Legge/verifica il file grafico F22 (variabili di grafica). |
+| `kLeeF22` | main | Legge/verifica il file grafico F22 (variabili di grafica), in una finestra di terminale aperta con `lgterm` (il terminale scelto dall'utente). |
 | `kLeeF22Slave1` | slave | Verifica (sotto-passo di kLeeF22). |
 | `kMalfunctionGroupWindow` | main | Costruisce la finestra dei gruppi di malfunzioni. |
 | `kMalfunctionGroupWindowSlave2` | slave | Aggiorna l'altezza della finestra. |
@@ -251,7 +251,7 @@ kDiffS01               # ora cd $KSIM trova l'S01
 | `kAddInfo` | helper | Registra informazioni di stato/uso. |
 | `kSpace` | helper | Ritorna l'indentazione (spazi) per la formattazione. |
 | `kOk` | util | Resetta/imposta gli stati degli step (`kAddStatus … Reset/OK`). |
-| `kStat` | main | Statistiche d'uso dei comandi. |
+| `kStat` | main | Statistiche d'uso dei comandi, in una finestra di terminale aperta con `lgterm` (il terminale scelto dall'utente). |
 | `kStatSlave1` | slave | Sotto-passo di kStat. |
 | `astat` | deprecato | Rimanda a kStat. |
 | `kCheckAlarm` | main | Verifica la configurazione allarmi (7 controlli via Slave0..7). |
