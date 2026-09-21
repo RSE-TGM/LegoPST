@@ -313,6 +313,7 @@ if [[ $BUNDLE -eq 1 ]]; then
     # fmpy precedenti: vanno escluse sennò il bundle si include ricorsivamente.
     rsync -a \
         --exclude='*.fmu' \
+        --exclude='*:Zone.Identifier' \
         --exclude='legoclix_*_bundle' \
         --exclude='legoclix_*_bundle/' \
         --exclude='*.log' \
@@ -690,6 +691,24 @@ Manual mode (legacy):
 EOF
 
 # ---- 4. zip --------------------------------------------------------------
+# I due punti nel nome di un file dentro lo zip fanno fallire fmpy.extract
+# ("Illegal path ... must not contain a drive or device letter"): per fmpy un
+# ':' e' l'unita' di Windows. Sotto WSL li porta NTFS: ogni file scaricato da
+# Windows si tira dietro il flusso "<nome>:Zone.Identifier" (25 byte,
+# "[ZoneTransfer]"), e se la libgraph viene da li' finiscono nel bundle. Sono
+# metadati Windows, non servono a niente: si buttano. Gli altri nomi con ':'
+# si segnalano soltanto, perche' potrebbero essere file veri.
+mapfile -t ZONE_ID < <(find "$STAGING" -name '*:Zone.Identifier' -type f)
+if [[ ${#ZONE_ID[@]} -gt 0 ]]; then
+    echo "      scartati ${#ZONE_ID[@]} file :Zone.Identifier (metadati Windows)"
+    rm -f "${ZONE_ID[@]}"
+fi
+mapfile -t DUEPUNTI < <(find "$STAGING" -name '*:*' -type f)
+if [[ ${#DUEPUNTI[@]} -gt 0 ]]; then
+    echo "AVVISO: nomi con ':' nel bundle: fmpy.extract li rifiutera'." >&2
+    printf '  %s\n' "${DUEPUNTI[@]#$STAGING/}" >&2
+fi
+
 echo "[4/4] zip -> $OUTPUT"
 rm -f "$OUTPUT"
 ( cd "$STAGING" && zip -r -q "$OUTPUT" . )
