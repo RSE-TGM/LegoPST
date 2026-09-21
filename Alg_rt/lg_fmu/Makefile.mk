@@ -22,6 +22,7 @@ all: $(LEGORT_BIN)/dolgfmu \
      $(LEGORT_BIN)/run_fmu \
      $(LEGORT_BIN)/net_startup_headless \
      $(LEGORT_BIN)/test_fmu_docker \
+     $(LEGORT_BIN)/test_selfcontained_docker \
      src/LegoCliSINC.so
 
 $(LEGORT_BIN)/dolgfmu: scripts/dolgfmu.sh
@@ -40,6 +41,10 @@ $(LEGORT_BIN)/test_fmu_docker: scripts/test_fmu_docker.sh
 	cp $? $@
 	chmod 755 $@
 
+$(LEGORT_BIN)/test_selfcontained_docker: scripts/test_selfcontained_docker.sh
+	cp $? $@
+	chmod 755 $@
+
 src/LegoCliSINC.so:
 	$(MAKE) -C src -f Makefile.mk so
 
@@ -47,7 +52,8 @@ clean:
 	rm -f $(LEGORT_BIN)/dolgfmu \
 	      $(LEGORT_BIN)/run_fmu \
 	      $(LEGORT_BIN)/net_startup_headless \
-	      $(LEGORT_BIN)/test_fmu_docker
+	      $(LEGORT_BIN)/test_fmu_docker \
+	      $(LEGORT_BIN)/test_selfcontained_docker
 	$(MAKE) -C src -f Makefile.mk clean
 
 .PHONY: all clean src/LegoCliSINC.so
