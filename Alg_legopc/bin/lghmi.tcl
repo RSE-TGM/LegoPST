@@ -2410,11 +2410,11 @@ proc aggiorna_menu_tools {} {
     set stato [expr {$nome ne "" ? "normal" : "disabled"}]
     set quale [expr {$nome ne "" ? $nome : "no simulator"}]
 
-    #  Ordine: Edit model, kUpSim, kCompile, Terminal. Le varianti di kUpSim e
-    #  di kCompile stanno in un sottomenu ciascuno: il menu resta corto e le
-    #  varianti restano vicine. Il simulatore corrente si sceglie dal menu File
-    #  (Current simulator, riempi_menu_simulatori): qui si ricostruisce il menu
-    #  perche' la prima voce di kUpSim porta il suo nome.
+    #  Ordine: Edit model, kUpSim, kCompile, lgmkstaz, Terminal. Le varianti di
+    #  kUpSim e di kCompile stanno in un sottomenu ciascuno: il menu resta
+    #  corto e le varianti restano vicine. Il simulatore corrente si sceglie
+    #  dal menu File (Current simulator, riempi_menu_simulatori): qui si
+    #  ricostruisce il menu perche' la prima voce di kUpSim porta il suo nome.
     .mb.tools delete 0 end
 
     #  Sempre attiva, anche senza simulatore corrente e con una simulazione in
@@ -2455,9 +2455,36 @@ proc aggiorna_menu_tools {} {
     .mb.tools add cascade -label "kCompile" -menu .mb.tools.kcompile -state $sreg
     .mb.tools add separator
 
+    #  Sempre attiva, come Edit model: costruisce/modifica pagine di
+    #  faceplate anche senza simulatore corrente (basta un r01.dat).
+    .mb.tools add command -command lancia_lgmkstaz \
+        -label "lgmkstaz - build/edit faceplate pages (r01.dat)"
+    .mb.tools add separator
+
     #  Sempre attiva: un terminale serve anche senza simulatore corrente.
     .mb.tools add command -command apri_terminale \
         -label "Terminal - shell in the current directory"
+}
+
+#  Tools -> lgmkstaz: builder grafico delle pagine di faceplate xstaz
+#  (r01.dat), nella directory corrente del selettore (di solito quella del
+#  simulatore/task: imposta_loc ci fa cd). Senza argomenti lgmkstaz cerca
+#  r01.dat li' da se', come compstaz. Processo indipendente, come il
+#  terminale: chiuderlo non deve chiudere lghmi, e non c'e' bisogno di
+#  seguirlo (a differenza di mmi, che si conta con conta_mmi per la sua voce
+#  in Logs).
+proc lancia_lgmkstaz {} {
+    if {[auto_execok lgmkstaz] eq ""} {
+        tk_messageBox -icon error -title "lgmkstaz" -parent . -message \
+            "Executable 'lgmkstaz' not found in PATH.\nStart lghmi from a LegoPST environment (profile sourced)."
+        return
+    }
+    if {[catch {exec lgmkstaz &} err]} {
+        tk_messageBox -icon error -title "lgmkstaz" -parent . \
+            -message "Cannot open lgmkstaz:\n$err"
+        return
+    }
+    .status configure -text "lgmkstaz opened in [pwd]"
 }
 
 #  Tools -> Terminal: un terminale nella directory corrente del selettore,
