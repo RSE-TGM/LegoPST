@@ -154,7 +154,8 @@ Colore acceso del LED/lampada/pulsante. Ammessi: `NERO`, `BIANCO`, `GIALLO`,
 
 ### `ETICHETTA <testo>`
 
-Testo mostrato. Prende **tutto il resto della riga**, spazi inclusi.
+Testo mostrato. Prende **tutto il resto della riga**, spazi inclusi, troncato
+in silenzio a **31 caratteri** (`LUNG_ETICHETTA` in `xstaz.h`).
 
 ### `INPUT <variabile> <modello>`
 
@@ -171,7 +172,7 @@ sovrapposizione dagli indicatori a doppio indice; `INPUT_BLINK` è la condizione
 che fa **lampeggiare** la segnalazione. Si lasciano **senza argomenti** quando non
 servono — la riga però deve esserci.
 
-### `OUTPUT <variabile> <modello> <modo>`
+### `OUTPUT <variabile> <modello> <modo> [<valore>]`
 
 È la riga che rende il faceplate **di comando**: dice cosa scrive nel simulatore.
 Il `<modo>` è la modalità di perturbazione:
@@ -182,6 +183,10 @@ Il `<modo>` è la modalità di perturbazione:
 | `IMPULSO` | manda un impulso: la variabile torna da sola allo stato di riposo |
 | `NEGAZIONE` | commuta lo stato logico (tipico dei pulsanti on/off) |
 | `UP_DOWN` | incrementa/decrementa in modo continuo finché il comando è premuto |
+
+Il quarto campo, `<valore>`, è **facoltativo**: l'ampiezza del gradino/impulso
+(`get_valore()` in `cnewstaz.c`). Assente o non numerico vale **1.0** di
+default, senza errore.
 
 `OUTPUT` **senza argomenti** lascia il comando scollegato: l'oggetto si vede ma
 non agisce (utile per abbozzare una pagina prima di avere le variabili).
@@ -2193,6 +2198,25 @@ Note di lettura:
 | Stazioni per file | 2000 (`MAX_STAZ`) |
 | Stazioni per pagina | 200 (`MAX_OGG`) |
 | Pagine aperte insieme in `xstaz` | 20 (`MAX3_PAG`) |
+| Nome pagina (`NOME`) | 8 caratteri (`LUN_NOM_PAG`) |
+| Descrizione pagina (`DESCRIZIONE` della `PAGINA`) | 49 caratteri utili (`LUN_DES_PAG` = 50, un byte di margine) |
+| Etichetta (`ETICHETTA`) | 31 caratteri (`LUNG_ETICHETTA`) |
+
+> **Il `NUMERO` di una `PAGINA` fuori 1..500 non dà un errore pulito.**
+> `compstaz` controlla che il numero non sia già usato, ma non che stia dentro
+> `MAX_PAG`: un `NUMERO` troppo grande (o 0/negativo) indicizza fuori dalla
+> tabella interna — comportamento indefinito, non un messaggio chiaro. Tenerlo
+> sempre in 1..500.
+
+> **Tre regole del formato che `compstaz` non segnala se le rompi:**
+> - una riga che comincia con uno spazio è **fine file**: `compstaz` la tratta
+>   come se il file finisse lì (il messaggio nomina per un refuso storico
+>   "S01", ma è `r01.dat` quello letto);
+> - le righe si leggono con un buffer da 80 byte: oltre **78 caratteri
+>   utili** il resto sparisce **in silenzio**, senza errore;
+> - fine riga deve essere **LF**, non CRLF: un file salvato con terminatori
+>   Windows lascia un `\r` appiccicato all'ultimo campo di ogni riga —
+>   invisibile finché non spacca un confronto o un numero.
 
 ## 11. Diagnostica
 

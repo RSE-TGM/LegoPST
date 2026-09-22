@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+#
+# lgmkstaz - visualizzatore/builder di pagine faceplate xstaz (r01.dat).
+#
+# FASE 1 del piano: sola lettura. Apre una finestra che disegna le pagine di
+# un r01.dat su una griglia, una stazione alla volta, nel posto e con la
+# dimensione che avrebbe davvero (una cella = 62 pixel, come xstaz). Le fasi
+# successive (piazzare/spostare stazioni, il collegamento alle variabili,
+# "Compila e verifica" con compstaz vero) si aggiungono su questa stessa
+# vista. Vedi Alg_legopc/src/tix/lgmkstaz.tcl e la memoria di progetto
+# project_lgmkstaz.md.
+#
+# Uso:
+#   lgmkstaz [<r01.dat> | <directory>]
+#   (senza argomenti, cerca r01.dat nella directory corrente - come compstaz)
+#
+# Variabili d'ambiente:
+#   LG_TIX   dir di lgmkstaz.tcl (dal profilo LegoPST)
+#
+set -u
+
+case "${1:-}" in
+    -h|--help) sed -n '3,/^[^#]/p' "$0" | sed -n 's/^# \{0,1\}//p'; exit 0 ;;
+esac
+
+# Sorgia il profilo LegoPST se l'ambiente non e' gia' impostato (LG_TIX),
+# come Alg_rt/bin/lghmi.
+if [ -z "${LG_TIX:-}" ]; then
+    SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"          # .../Alg_rt/bin
+    : "${LEGOROOT:=$(cd "$SCRIPT_DIR/../.." && pwd)}"    # -> LEGOROOT
+    export LEGOROOT
+    set +u
+    # "$LEGOROOT" come $1: senza, il profilo erediterebbe i parametri
+    # posizionali di questo script (es. un r01.dat passato come argomento) e
+    # farebbe export LEGOROOT=<quel path>, rompendo tutti gli altri path.
+    . "$LEGOROOT/.profile_legoroot" "$LEGOROOT" >/dev/null 2>&1 || true
+    set -u
+fi
+
+if [ -z "${LG_TIX:-}" ] || [ ! -f "$LG_TIX/lgmkstaz.tcl" ]; then
+    echo "lgmkstaz: LG_TIX non definito o lgmkstaz.tcl assente (profilo LegoPST non sorgiato?)." >&2
+    echo "          LG_TIX='${LG_TIX:-}'" >&2
+    exit 1
+fi
+
+if ! command -v wish >/dev/null 2>&1; then
+    echo "lgmkstaz: 'wish' (Tcl/Tk) non trovato nel PATH." >&2
+    exit 1
+fi
+
+exec wish "$LG_TIX/lgmkstaz.tcl" "$@"
