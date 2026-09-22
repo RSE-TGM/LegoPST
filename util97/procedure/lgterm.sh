@@ -10,10 +10,11 @@
 #
 # Quale terminale, in quest'ordine:
 #   1. LGTERM, se esportata: per forzarne uno in una shell;
-#   2. la preferenza di legopc (File -> Settings -> Terminal), riletta A OGNI
-#      LANCIO da $LG_ENTRY/legopc_prefs.tcl: una scelta fatta in legopc vale
-#      subito anche nelle shell e nei programmi (lghmi) gia' aperti, che hanno
-#      in LG_XTERM il valore di quando e' stato sorgiato il profilo;
+#   2. la preferenza scelta in File -> Settings -> Terminal (di legopc o di
+#      lghmi: e' lo stesso dialogo), riletta A OGNI LANCIO da
+#      $LG_ENTRY/legopc_prefs.tcl: una scelta appena fatta vale subito anche
+#      nelle shell e nei programmi gia' aperti, che hanno in LG_XTERM il
+#      valore di quando e' stato sorgiato il profilo;
 #   3. LG_XTERM;
 #   4. il primo terminale noto installato.
 # Un terminale non installato si salta.
@@ -93,13 +94,13 @@ elenco() {
     echo
     case $o in
         LGTERM)     echo "Si usa $t: lo forza LGTERM." ;;
-        preferenza) echo "Si usa $t: la preferenza di legopc (File -> Settings -> Terminal)." ;;
+        preferenza) echo "Si usa $t: la preferenza scelta in File -> Settings -> Terminal." ;;
         LG_XTERM)   echo "Si usa $t: da LG_XTERM (nessuna preferenza installata)." ;;
         primo)      echo "Si usa $t: il primo installato." ;;
         *)          echo "Nessun terminale installato." ;;
     esac
-    echo "Per sceglierlo: legopc, File -> Settings, campo Terminal: vale subito"
-    echo "ovunque. Per forzarne uno in una shell: export LGTERM=<terminale>."
+    echo "Per sceglierlo: legopc o lghmi, File -> Settings, campo Terminal:"
+    echo "vale subito ovunque. Per forzarne uno: export LGTERM=<terminale>."
 }
 
 TITOLO="" GEOM="" SFONDO="" TIENI=0 RIGA="" HA_RIGA=0

@@ -294,7 +294,8 @@ come processo nuovo (`--disable-server`, `--new-process`): per default aprirebbe
 la finestra in un'istanza già attiva, con l'**ambiente di quella** — e i comandi
 di LegoPST vogliono `SHR_USR_KEY`, `KSIM`, `LG_*` di chi li lancia.
 
-**Come si sceglie il terminale.** In legopc, *File → Settings*, campo *Terminal*:
+**Come si sceglie il terminale.** In legopc **o in `lghmi`** (stessa voce,
+*File → Settings*), campo *Terminal*:
 il menu *Installed* accanto elenca i terminali che `lgterm` sa usare, fra quelli
 presenti. La scelta va in `$LG_ENTRY/legopc_prefs.tcl` e **vale subito ovunque**:
 `lgterm` la rilegge a ogni lancio, quindi la seguono anche le shell e i `lghmi`
@@ -379,7 +380,7 @@ Due nomi che si incontrano leggendo il codice e che è facile scambiare per coma
 | ricompilare tutto dopo una modifica | `lgupsim` (`lgupsimx` senza MMI) |
 | cambiare area di lavoro | `lgswitch`, oppure `lghmi` → *File → Work area* |
 | sapere che versione sto usando | `lgversion` |
-| usare un terminale diverso da xterm | legopc → *File → Settings* → *Terminal* (`lgterm --list` per vedere quale si usa) |
+| usare un terminale diverso da xterm | legopc o `lghmi` → *File → Settings* → *Terminal* (`lgterm --list` per vedere quale si usa) |
 | portare un'applicazione su Windows | `python3 util2025/lglinux2win.py` |
 | far dialogare più modelli come FMU | `python3 .../lg_cosim.py` |
 

@@ -92,6 +92,9 @@ Nella finestra:
   altrimenti la X chiude per sempre: vedi sotto.
 - **File → Logs ▸** → gli **altri log** che `lghmi` scrive in `/tmp`: uno per ogni
   HMI lanciata, più `mmi` e `xstaz`: vedi sotto.
+- **File → Settings…** → le **applicazioni di base** (editor, browser, editor di
+  icone, viewer PDF, terminale): è lo stesso dialogo di `legopc`, sulle stesse
+  preferenze: [vedi sotto](#file--settings--le-applicazioni-di-base).
 - **Tools** → aggiorna la configurazione del **simulatore corrente** con
   `kUpSim`, compila le regolazioni (`kCompile`), apre il modello della task
   selezionata nel CAD (`legopc`) e apre un **terminale** nella directory
@@ -636,6 +639,49 @@ così più log restano aperti insieme senza pestarsi i piedi.
   è larga apposta (i log veri stanno sotto i 100 KB): serve come protezione, non
   come politica.
 
+## `File → Settings` — le applicazioni di base
+
+Editor di testo, browser, editor di icone, viewer PDF e terminale: i programmi
+che `lghmi` non fa da sé e che lancia quando serve. È **lo stesso dialogo di
+`legopc`** (`settings.tcl`, la stessa voce nella stessa posizione del menu
+*File*) perché sono gli stessi programmi per tutto LegoPST: quello che si
+sceglie qui vale in `legopc`, e viceversa.
+
+| Campo | Variabile | Chi la usa in `lghmi` |
+|---|---|---|
+| Text editor | `LG_TEXTEDITOR` | l'apertura dei file di testo |
+| HTML browser | `LG_BROWSER` | il menu *?*, che apre la documentazione |
+| Icon editor | `LG_ICOEDITOR` | — (la usa `legopc`) |
+| PDF viewer | `LG_PDFVIEWER` | — (la usa `legopc`) |
+| Terminal | `LG_XTERM` | *Tools → Terminal* e ogni finestra aperta da `lgterm` |
+
+Accanto al campo *Terminal* il menu **Installed** elenca i terminali che
+`lgterm` sa guidare, fra quelli davvero installati: si sceglie dall'elenco
+invece di scrivere un nome e sperare.
+
+**Le preferenze stanno in un file solo**, `legopc_prefs.tcl` nell'area utente
+(`$LG_ENTRY`), quindi valgono per tutti i programmi e sopravvivono
+all'installer, che quella directory non la tocca.
+
+> **Salvando da `lghmi` non si perde il resto del file.** In quel file `legopc`
+> tiene anche i colori dei canvas e i colori usati di recente, che ha in memoria
+> e riscrive interi quando salva. `lghmi` quei valori non li ha: se riscrivesse
+> il file da zero li cancellerebbe. Per questo `settings_salva_prefs` sostituisce
+> **solo** le cinque righe `set ::pref_*` e ricopia tutte le altre come stanno.
+
+All'avvio `lghmi` **legge** quel file e ne applica le cinque variabili al
+proprio ambiente. Serve perché il profilo, delle cinque, rilegge a ogni avvio
+solo il terminale: senza, una scelta fatta in `legopc` non varrebbe per le
+finestre aperte da `lghmi`, e il dialogo mostrerebbe i default invece di quanto
+scelto l'ultima volta. Il file si legge riga per riga, non si sorgia: sorgiarlo
+eseguirebbe Tcl qualunque e porterebbe dentro `lghmi` i globali dei colori di
+`legopc`, che lì non servono.
+
+La voce è **sempre attiva**, anche con `-insim`: scegliere l'editor o il
+terminale non tocca la simulazione in corso. Se `settings.tcl` non si trova — è
+facoltativo, come `balloon.tcl` — la voce semplicemente non compare e valgono le
+variabili d'ambiente.
+
 ## Menù `Tools` — configurazione del simulatore, e modifica dei modelli
 
 Le voci, in quest'ordine:
@@ -939,8 +985,9 @@ scelta con *File → Open Simulator path* o fra le recenti (`imposta_loc` ci fa
 del simulatore corrente e `LG_SIM_PATH`. La voce è sempre attiva, anche senza
 simulatore corrente.
 
-Il terminale è quello scelto dall'utente, aperto da **`lgterm`** (in legopc,
-*File → Settings → Terminal*; vedi [docs/COMANDI_LG.md](../docs/COMANDI_LG.md),
+Il terminale è quello scelto dall'utente, aperto da **`lgterm`**
+([*File → Settings → Terminal*](#file--settings--le-applicazioni-di-base), qui o
+in `legopc`; vedi anche [docs/COMANDI_LG.md](../docs/COMANDI_LG.md),
 *Il terminale*). `lgterm` lancia xfce4-terminal e tilix come processo nuovo:
 lanciati normalmente aprirebbero la finestra in un'istanza già attiva, **con
 l'ambiente di quella** e non di `lghmi`. Senza `lgterm` — nel bundle FMU non c'è

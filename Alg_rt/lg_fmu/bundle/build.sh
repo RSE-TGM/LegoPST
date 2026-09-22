@@ -240,10 +240,13 @@ if [[ $BUNDLE -eq 1 ]]; then
     #     esporta.tcl: File -> Export as (PDF/PNG) di draw2gr; senza, la voce
     #     non compare. Ghostscript non e' nel bundle: sulla macchina target,
     #     se manca, valgono i ripieghi (PostScript, o fotografia della finestra).
+    #     settings.tcl: File -> Settings di lghmi (editor, browser, viewer,
+    #     terminale). Senza, la voce non compare e lghmi usa quello che trova
+    #     nell'ambiente.
     for s in draw2gr.tcl checkopen.tcl balloon.tcl read_con.tcl read_f01.tcl \
              fileio.tcl itemjoin.tcl read_f14.tcl viewmgr.tcl animate.tcl \
              bgelement.tcl lghmi.tcl lgedit.tcl lgstaz.tcl hmielem.tcl \
-             esporta.tcl; do
+             esporta.tcl settings.tcl; do
         cp -p "$LEGOROOT_ABS/Alg_legopc/bin/$s" "$BD/Alg_legopc/bin/" \
             || { echo "ERR: script tix $s non trovato in $LEGOROOT_ABS/Alg_legopc/bin" >&2; exit 4; }
     done

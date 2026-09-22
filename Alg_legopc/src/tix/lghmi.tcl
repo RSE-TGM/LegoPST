@@ -72,6 +72,20 @@ catch {source [file join $env(LG_TIX) md2html.tcl]}
 # perdono solo i suggerimenti (vedi aiuto_a_comparsa).
 catch {source [file join $env(LG_TIX) balloon.tcl]}
 
+# settings.tcl porta File -> Settings: lo stesso dialogo di legopc, sulle
+# stesse preferenze (editor, browser, editor di icone, viewer PDF, terminale).
+# Le applicazioni di base sono quelle di tutto LegoPST, e il file dove stanno
+# e' uno solo: quello che si sceglie qui vale in legopc, e viceversa.
+#
+# Le preferenze si applicano SUBITO all'ambiente di lghmi: il profilo, delle
+# cinque, rilegge solo il terminale, quindi senza questa chiamata una scelta
+# fatta in legopc (per esempio l'editor) non varrebbe per le finestre che
+# lghmi apre, e il dialogo mostrerebbe i default invece di quanto scelto.
+# Se il file non c'e' si perde solo la voce di menu.
+if {![catch {source [file join $env(LG_TIX) settings.tcl]}]} {
+    catch {settings_carica_prefs}
+}
+
 # lgedit.tcl porta la modifica del modello con legopc (Tools -> Edit model) e i
 # controlli che il selettore usa anche altrove (sim_attiva, stessa_directory,
 # area_della_task). Non e' facoltativo come i precedenti: senza, mezzo
@@ -832,6 +846,13 @@ proc aggiorna_menu_file {} {
     .mb.file add cascade -label "Logs" -menu .mb.file.logs
     .mb.file add separator
     .mb.file add command -label "Refresh" -command refresh_list
+    #  Le applicazioni di base: stesso dialogo e stessa posizione che in
+    #  legopc (in fondo al menu File, prima dell'uscita). Non si spegne con
+    #  -insim: scegliere l'editor o il terminale non tocca la simulazione.
+    if {[llength [info procs lancia_settings]] > 0} {
+        .mb.file add separator
+        .mb.file add command -label "Settings..." -command lancia_settings
+    }
     .mb.file add separator
     .mb.file add command -label "Quit" -command exit
     aggiorna_voci_log
@@ -2456,7 +2477,7 @@ proc apri_terminale {} {
         set t [expr {[info exists env(LG_XTERM)] && $env(LG_XTERM) ne "" ? $env(LG_XTERM) : "xterm"}]
         if {[auto_execok $t] eq ""} {
             tk_messageBox -icon error -title "Terminal" -parent . -message \
-                "No terminal found ('$t' is not installed).\nInstall one (sudo dnf install xfce4-terminal) and choose it in legopc,\nFile -> Settings, or set LG_XTERM."
+                "No terminal found ('$t' is not installed).\nInstall one (sudo dnf install xfce4-terminal) and choose it in\nFile -> Settings, or set LG_XTERM."
             return
         }
         set cmd [list $t]

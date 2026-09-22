@@ -203,7 +203,8 @@ sudo dnf clean all
 
 > **Choosing a terminal.** LegoPST opens terminal windows through `lgterm`, which
 > defaults to the spartan `xterm`. To use a better one, install it (`xfce4-terminal`
-> is in the list above) and pick it in `legopc` under *File -> Settings -> Terminal*.
+> is in the list above) and pick it in `legopc` or `lghmi` under
+> *File -> Settings -> Terminal*.
 > The choice is read at every launch, so it applies to programs that are already
 > running. `lgterm --list` shows which terminals are installed and which one wins.
 

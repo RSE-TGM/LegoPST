@@ -1,5 +1,10 @@
 # ==============================================================================
-# settings.tcl  —  Dialog "File -> Settings" di LegoPC (versione Linux)
+# settings.tcl  —  Dialog "File -> Settings" (versione Linux)
+#
+# Lo aprono legopc (File -> Settings...) e lghmi (stessa voce, stesso menu):
+# le applicazioni di base sono le stesse per tutto LegoPST, e la scelta fatta
+# in un programma deve valere anche nell'altro. Per questo il file delle
+# preferenze e' uno solo, legopc_prefs.tcl nell'area utente.
 #
 # Permette all'utente di modificare:
 #   LG_TEXTEDITOR  editor di testo  (default: gedit o quello da .profile_legoroot)
@@ -12,7 +17,8 @@
 #
 # Le modifiche vengono applicate immediatamente all'env del processo corrente
 # e salvate in legopc_prefs.tcl (in LG_ENTRY = dir utente, non sovrascritta
-# dall'installer) tramite savePrefs/loadPrefs di legopc.tix.
+# dall'installer): con savePrefs, dove c'e' (legopc), altrimenti riscrivendo
+# solo le righe delle applicazioni (settings_salva_prefs).
 # ==============================================================================
 
 proc lancia_settings {} {
@@ -22,7 +28,7 @@ proc lancia_settings {} {
     if {[winfo exists $w]} { raise $w; return }
 
     toplevel $w
-    wm title $w "LegoPC Settings"
+    wm title $w "LegoPST Settings"
     wm resizable $w 0 0
 
     # Valori correnti: usa la variabile d'env se definita, altrimenti default Linux
@@ -110,6 +116,87 @@ proc lancia_settings {} {
     bind $w <Escape> [list destroy $w]
 }
 
+#  Il file delle preferenze: quello di legopc se la sua proc c'e', altrimenti
+#  lo stesso path calcolato a mano. E' uno solo apposta - una scelta fatta in
+#  legopc deve valere in lghmi e viceversa.
+proc settings_prefs_file {} {
+    global env
+    if {[llength [info procs prefsFile]] > 0} { return [prefsFile] }
+    set dir [expr {[info exists env(LG_ENTRY)] && $env(LG_ENTRY) ne "" \
+                   ? $env(LG_ENTRY) : [file join $env(HOME) legocad]}]
+    return [file join $dir legopc_prefs.tcl]
+}
+
+#  Scrive le cinque preferenze LASCIANDO STARE tutto il resto del file.
+#  Serve perche' il file e' condiviso: legopc ci tiene anche i colori dei
+#  canvas e i colori recenti, che tiene in memoria e riscrive interi con
+#  savePrefs. Chi quei valori non li ha (lghmi) non puo' riscrivere il file da
+#  zero senza cancellarli, quindi qui si sostituiscono riga per riga solo le
+#  "set ::pref_<nome>" e le altre si ricopiano come stanno.
+proc settings_salva_prefs {} {
+    global env
+    set f [settings_prefs_file]
+
+    set tenute {}
+    if {[file exists $f]} {
+        set ch [open $f r]
+        fconfigure $ch -translation binary
+        set testo [read $ch]
+        close $ch
+        foreach r [split [string trimright $testo "\n"] "\n"] {
+            #  le righe che stiamo per riscrivere: si saltano
+            if {[regexp {^\s*set\s+::(pref_texteditor|pref_browser|pref_icoeditor|pref_pdfviewer|pref_xterm)\s} $r]} {
+                continue
+            }
+            lappend tenute $r
+        }
+    } else {
+        lappend tenute "# LegoPST user preferences - saved automatically"
+    }
+
+    foreach {nome var} {pref_texteditor LG_TEXTEDITOR \
+                        pref_browser    LG_BROWSER    \
+                        pref_icoeditor  LG_ICOEDITOR  \
+                        pref_pdfviewer  LG_PDFVIEWER  \
+                        pref_xterm      LG_XTERM} {
+        if {[info exists env($var)] && $env($var) ne ""} {
+            lappend tenute "set ::$nome {$env($var)}"
+        }
+    }
+
+    set ch [open $f w]
+    fconfigure $ch -translation binary
+    puts -nonewline $ch "[join $tenute \n]\n"
+    close $ch
+}
+
+#  Porta nell'ambiente le preferenze salvate. La usa chi non ha la loadPrefs
+#  di legopc (lghmi), all'avvio: senza, il dialogo mostrerebbe i default del
+#  profilo invece di quello che l'utente ha scelto l'ultima volta.
+#
+#  Il file si LEGGE, non si sorgia: sorgiarlo eseguirebbe Tcl qualunque e
+#  definirebbe qui dentro i globali dei colori di legopc, che qui non
+#  servono a niente.
+proc settings_carica_prefs {} {
+    global env
+    set f [settings_prefs_file]
+    if {![file exists $f]} return
+    set ch [open $f r]
+    fconfigure $ch -translation binary
+    set testo [read $ch]
+    close $ch
+    foreach {nome var} {pref_texteditor LG_TEXTEDITOR \
+                        pref_browser    LG_BROWSER    \
+                        pref_icoeditor  LG_ICOEDITOR  \
+                        pref_pdfviewer  LG_PDFVIEWER  \
+                        pref_xterm      LG_XTERM} {
+        if {[regexp -line "^\\s*set\\s+::$nome\\s+\\{(\[^\}\]*)\\}" $testo -> valore]} {
+            set valore [string trim $valore]
+            if {$valore ne ""} { set env($var) $valore }
+        }
+    }
+}
+
 proc settings_browse {entry var} {
     # Su Linux naviga nella directory dei programmi comuni
     set initdir "/usr/bin"
@@ -129,6 +216,20 @@ proc settings_apply {w} {
     set env(LG_ICOEDITOR)  $::settings_ie
     set env(LG_PDFVIEWER)  $::settings_pv
     set env(LG_XTERM)      $::settings_xt
-    savePrefs
+
+    #  In legopc si usa la sua savePrefs, che salva anche i colori dei canvas.
+    #  Altrove si riscrivono le sole righe delle applicazioni.
+    if {[llength [info procs savePrefs]] > 0} {
+        set esito [catch {savePrefs} err]
+    } else {
+        set esito [catch {settings_salva_prefs} err]
+    }
+    #  Se il file non si e' potuto scrivere la finestra resta aperta: la scelta
+    #  vale per questo processo ma non sopravvive, e l'utente deve saperlo.
+    if {$esito} {
+        tk_messageBox -icon error -title "Settings" -parent $w \
+            -message "Settings not saved:\n$err"
+        return
+    }
     destroy $w
 }

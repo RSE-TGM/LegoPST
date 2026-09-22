@@ -459,7 +459,8 @@ lg_pick LG_BROWSER    firefox falkon chromium chromium-browser google-chrome epi
 lg_pick LG_TEXTEDITOR mousepad gedit kate kwrite xed pluma leafpad gvim xdg-open
 lg_pick LG_ICOEDITOR  gimp krita drawing kolourpaint pinta mtpaint xdg-open
 lg_pick LG_PDFVIEWER  evince atril okular qpdfview zathura xpdf xdg-open
-#  Il terminale scelto in legopc (File -> Settings, menu "Installed"; salvato
+#  Il terminale scelto in legopc o in lghmi (File -> Settings, menu
+#  "Installed"; salvato
 #  in $LG_ENTRY/legopc_prefs.tcl) vale anche per le shell: si rilegge a OGNI
 #  sorgiata, anche se LG_XTERM c'e' gia' (una sorgiata precedente l'aveva
 #  fissata al default, e risorgiare non cambiava niente). Come in legopc, la

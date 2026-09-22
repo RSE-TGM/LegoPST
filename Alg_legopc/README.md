@@ -86,6 +86,13 @@ Cinque variabili dicono a legopc quali programmi lanciare. Ordine di precedenza:
    che finisce quello che si imposta da *File → Settings*, ed è lì che va
    cambiata la preferenza di un utente.
 
+**Lo stesso dialogo è nel menu *File* di `lghmi`** (`settings.tcl` lo sorgiano
+entrambi): i programmi di base sono quelli di tutto LegoPST, e il file delle
+preferenze è uno solo, quindi la scelta fatta in un programma vale nell'altro.
+Salvando da `lghmi` si riscrivono **solo** le cinque righe `set ::pref_*`: i
+colori dei canvas, che legopc tiene in memoria e `lghmi` non ha, restano dove
+sono. Vedi [LGHMI.md](LGHMI.md#file--settings--le-applicazioni-di-base).
+
 **Il terminale** fa un passo in più: *File → Settings* ha accanto al campo
 *Terminal* il menu *Installed* (i terminali che `lgterm` sa usare, fra quelli
 presenti), e la scelta vale subito ovunque: `lgterm` rilegge `::pref_xterm` da
