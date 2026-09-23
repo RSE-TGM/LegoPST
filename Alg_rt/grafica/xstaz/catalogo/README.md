@@ -30,6 +30,32 @@ compila in qualsiasi task.
 
 Le immagini sono catture reali di `xstaz`, non disegni.
 
+## Gli sprite dei tipi (`staz/`)
+
+`staz/<TIPO>.png` contiene, per ciascuno dei 54 tipi, **l'immagine reale della
+stazione** ritagliata dalle catture qui sopra. Li usa `lgmkstaz` per disegnare
+le stazioni come appaiono davvero in `xstaz`, invece dei segnaposto
+rettangolari. Ogni sprite misura esattamente `larg * 62` x `altezza * 62`
+pixel, cioè occupa le stesse celle della stazione vera.
+
+```sh
+wish ritaglia_sprite.tcl            # -> staz/<TIPO>.png
+wish ritaglia_sprite.tcl -prova     # dice cosa farebbe, senza scrivere
+```
+
+Lo sprite mostra il **campione del catalogo**, quindi con i contenuti generici
+di questo `r01.dat`: etichette `-`, colori tutti gialli, scale degli
+indicatori `0`/`50`/`100`. Le parti che nella pagina vera dipendono
+dall'istanza (etichette, colori, `MINMAX`) non ci sono: vanno sovrapposte da
+chi disegna, non cercate nell'immagine.
+
+`ritaglia_sprite.tcl` non dà per buono nessun offset: ricava il bordo della
+cattura dalla differenza fra le dimensioni del PNG e quelle del contenuto
+descritto da `r01.dat`, e si ferma con un errore se i due assi non concordano
+— cioè se la cattura non corrisponde più a questo `r01.dat`. Riusa il parser e
+il catalogo dei tipi di `lgmkstaz` invece di rifarli, e non ha bisogno di
+ImageMagick né di Pillow: Tk 8.6 legge e scrive PNG da solo.
+
 ## Rigenerarlo
 
 `genera_catalogo.py` legge la tabella `new_staz[]` di
@@ -49,3 +75,16 @@ ritocca la disposizione:
 - **l'asse Y è invertito** nel disegno (`cnewstaz.c`: `ydraw = height - ydraw -
   htot`): per far comparire il nome *sotto* al widget, l'etichetta va messa alla
   cella di y **minore**.
+
+Se si rigenera `r01.dat` la catena va percorsa tutta, perché le immagini
+restano indietro:
+
+1. `python3 genera_catalogo.py > r01.dat`
+2. **ricatturare** le pagine (`pag_*.png`): aprirle con `xstaz` e fotografare
+   la finestra di ciascuna. Serve uno strumento di cattura (`import` di
+   ImageMagick, come fa l'export PNG di `legopc`); su un display virtuale
+   `Xvfb` le finestre non compaiono sullo schermo e la cattura è ripetibile.
+3. `wish ritaglia_sprite.tcl` per rifare gli sprite.
+
+Il passo 3 si accorge da solo se si è saltato il 2: il controllo sul bordo
+fallisce, oppure un tipo nuovo resta senza sprite e viene elencato.

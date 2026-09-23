@@ -55,6 +55,11 @@ catch {source [file join $::lgmkstaz::_qui lgstaz.tcl]}
 # balloon.tcl (il tooltip gia' usato da draw2gr/lghmi): facoltativo, non
 # ancora usato qui - sourciato per coerenza con gli altri strumenti.
 catch {source [file join $::lgmkstaz::_qui balloon.tcl]}
+# openhelp.tcl (browser + conversione .md -> HTML) e md2html.tcl: servono al
+# menu "?", le stesse di lghmi. Facoltativi: senza, le voci del menu restano
+# spente invece di far fallire l'avvio.
+catch {source [file join $::lgmkstaz::_qui openhelp.tcl]}
+catch {source [file join $::lgmkstaz::_qui md2html.tcl]}
 
 namespace eval ::lgmkstaz {
     variable modello ""          ;# il file letto (dict pagine/stazioni); "" = niente aperto
@@ -69,6 +74,17 @@ namespace eval ::lgmkstaz {
     variable drag_dy 0
     variable drag_partito 0           ;# 1 se durante il trascinamento c'e' stato un vero movimento
     variable prossimo_id 0            ;# per le stazioni create durante l'editing
+    variable appunti ""               ;# la stazione copiata con Ctrl+C, o ""
+
+    # Disegno delle stazioni con le immagini vere di xstaz (sprite) invece che
+    # con lo schema a forme semplici. Vedi sprite_per_tipo.
+    variable usa_sprite 1
+    variable sprite         ;# tipo -> nome dell'immagine Tk, o "" se non c'e'
+    array set sprite {}
+    variable miniatura      ;# tipo -> sprite rimpicciolito per la riga di stato
+    variable spaziatore     ;# immagine trasparente: tiene ferma l'altezza della riga di stato
+    array set miniatura {}
+    variable dir_sprite ""  ;# "" = non ancora cercata, "-" = cercata e assente
 
     # Colori LEGO -> colori Tk. Non i colori X11 puri (yellow/green/red/blue):
     # su uno sfondo bianco sono poco leggibili o troppo accesi; queste
@@ -206,6 +222,146 @@ proc ::lgmkstaz::disegna_pagina {numero} {
 #  la posizione nella lista): stazione_sotto lo rilegge per ritrovare la
 #  stazione vera a ogni clic, anche dopo che altre sono state aggiunte o
 #  tolte.
+#  La directory degli sprite: le immagini vere delle stazioni, ritagliate
+#  dalle catture di xstaz (Alg_rt/grafica/xstaz/catalogo/staz, generate da
+#  ritaglia_sprite.tcl - vedi il README li' accanto). Si cerca come compstaz:
+#  prima LEGOROOT, poi risalendo da questo script, cosi' vale sia per il
+#  sorgente sia per la copia distribuita in Alg_legopc/bin. Non si duplicano
+#  i file: sono gia' nel repo accanto a xstaz, che e' chi li produce.
+#  Lo sprite rimpicciolito per la riga di stato. Tk sa ridurre una photo solo
+#  per fattori INTERI (-subsample), ma qui va benissimo: le stazioni sono alte
+#  un numero intero di celle da 62 px, quindi un fattore pari a altezza/31
+#  rende tutte le miniature alte 31 px esatti, con le proporzioni giuste
+#  (subsample agisce uguale sui due assi) e larghezza che segue la forma della
+#  stazione - una 2x1 viene 62x31, una 12x4 viene 93x31.
+proc ::lgmkstaz::miniatura_per_tipo {tipo} {
+    variable miniatura
+    if {[info exists miniatura($tipo)]} { return $miniatura($tipo) }
+    set miniatura($tipo) ""
+    set img [sprite_per_tipo $tipo]
+    if {$img eq ""} { return "" }
+    set fattore [expr {max(1, int(round([image height $img] / 31.0)))}]
+    if {[catch {image create photo} mini]} { return "" }
+    $mini copy $img -subsample $fattore
+    set miniatura($tipo) $mini
+    return $mini
+}
+
+#  Tutto quello che finisce nella riga di stato passa di qui, cosi' la
+#  miniatura del tipo armato compare e sparisce da sola insieme all'armamento,
+#  qualunque sia il messaggio mostrato in quel momento (dopo aver piazzato una
+#  stazione il tipo resta armato: la miniatura deve restare).
+proc ::lgmkstaz::stato {testo} {
+    variable tipo_armato
+    set img ""
+    if {$tipo_armato ne ""} { set img [miniatura_per_tipo $tipo_armato] }
+    #  Senza miniatura si mette al suo posto un'immagine trasparente della
+    #  stessa altezza: la riga di stato resta alta uguale, invece di saltare
+    #  ogni volta che si arma o si disarma un tipo.
+    if {$img eq ""} { set img [::lgmkstaz::spaziatore_stato] }
+    .status configure -text $testo -image $img -compound left
+}
+
+proc ::lgmkstaz::spaziatore_stato {} {
+    variable spaziatore
+    if {![info exists spaziatore]} {
+        set spaziatore [image create photo -width 1 -height 31]
+    }
+    return $spaziatore
+}
+
+# ---------------------------------------------------------------------------
+# Menu "?" - la documentazione.
+#
+# Stesso meccanismo del "?" di lghmi (openhelp.tcl: converte il .md in HTML e
+# lo apre nel browser), ma puntato a questo strumento: in cima la guida di
+# lgmkstaz, poi i documenti che servono mentre si costruisce una pagina.
+# ---------------------------------------------------------------------------
+
+proc ::lgmkstaz::documenti_aiuto {} {
+    return {
+        {"lgmkstaz: how to use it"                 Alg_legopc/LGMKSTAZ.md  rilievo}
+        --
+        {"Command faceplates: the r01.dat format"  Alg_rt/grafica/xstaz/HOWTO_faceplate.md}
+        {"Station catalogue and sprites"           Alg_rt/grafica/xstaz/catalogo/README.md}
+        {"xstaz and compstaz"                      Alg_rt/grafica/xstaz/README.md}
+        --
+        {"LegoPST - project overview (README)"     README.md}
+        {"Annotated documentation index"           DOCUMENTATION_INDEX.html}
+    }
+}
+
+proc ::lgmkstaz::apri_documento {relativo} {
+    if {[llength [info procs aiuto_apri_documento]] == 0} {
+        tk_messageBox -icon error -title lgmkstaz -parent . -message \
+            "openhelp.tcl non caricato: non posso aprire la documentazione."
+        return
+    }
+    set messaggio [aiuto_apri_documento $relativo]
+    if {$messaggio ne ""} { stato $messaggio }
+}
+
+#  Una voce che punta a un file assente nasce SPENTA invece di sparire: si
+#  vede che il documento e' previsto e che manca (stessa scelta di lghmi).
+proc ::lgmkstaz::costruisci_menu_aiuto {m} {
+    foreach voce [documenti_aiuto] {
+        if {$voce eq "--"} { $m add separator; continue }
+        lassign $voce etichetta relativo rilievo
+        set c_e [expr {[info exists ::env(LEGOROOT)] && $::env(LEGOROOT) ne "" \
+                       && [file exists [file join $::env(LEGOROOT) $relativo]]}]
+        $m add command -label $etichetta -state [expr {$c_e ? "normal" : "disabled"}] \
+            -command [list ::lgmkstaz::apri_documento $relativo]
+        if {$rilievo ne ""} { $m entryconfigure end -font fontMenuRilievo }
+    }
+}
+
+#  Ridisegna la pagina che si sta guardando, senza toccare il modello: serve
+#  a chi cambia solo il MODO di disegnare (menu Visualizza).
+proc ::lgmkstaz::ridisegna {} {
+    variable pagina_disegnata
+    if {$pagina_disegnata eq ""} { return }
+    disegna_pagina $pagina_disegnata
+    disegna_selezione
+}
+
+proc ::lgmkstaz::trova_dir_sprite {} {
+    variable dir_sprite
+    if {$dir_sprite ne ""} { return [expr {$dir_sprite eq "-" ? "" : $dir_sprite}] }
+    set sotto [list Alg_rt grafica xstaz catalogo staz]
+    if {[info exists ::env(LEGOROOT)] && $::env(LEGOROOT) ne ""} {
+        set c [file join $::env(LEGOROOT) {*}$sotto]
+        if {[file isdirectory $c]} { set dir_sprite $c; return $c }
+    }
+    set dir $::lgmkstaz::_qui
+    for {set i 0} {$i < 6} {incr i} {
+        set c [file join $dir {*}$sotto]
+        if {[file isdirectory $c]} { set dir_sprite $c; return $c }
+        set su [file dirname $dir]
+        if {$su eq $dir} break
+        set dir $su
+    }
+    set dir_sprite "-"
+    return ""
+}
+
+#  L'immagine di un tipo di stazione, caricata la prima volta che serve e poi
+#  tenuta (una pagina ripete gli stessi tipi, e cambiare pagina non deve
+#  rileggere i PNG). Ritorna "" se lo sprite non c'e': le 13 stazioni storiche
+#  non ne hanno uno, e nemmeno un tipo che fosse stato aggiunto a newstaz.h
+#  senza rigenerare il catalogo. Chi disegna ripiega sullo schema.
+proc ::lgmkstaz::sprite_per_tipo {tipo} {
+    variable sprite
+    if {[info exists sprite($tipo)]} { return $sprite($tipo) }
+    set sprite($tipo) ""
+    set dir [trova_dir_sprite]
+    if {$dir eq ""} { return "" }
+    set f [file join $dir "$tipo.png"]
+    if {![file readable $f]} { return "" }
+    if {[catch {image create photo -file $f} img]} { return "" }
+    set sprite($tipo) $img
+    return $img
+}
+
 proc ::lgmkstaz::disegna_stazione {c stazione} {
     variable altezza_pagina_celle
 
@@ -223,9 +379,22 @@ proc ::lgmkstaz::disegna_stazione {c stazione} {
             -text [dict get $stazione tipo] -fill #555555 \
             -font {Helvetica 8} -tags [list stazione $tag]
     } else {
-        $c create rectangle $x0 $y0 $x1 $y1 -fill white -outline #bbbbbb \
-            -tags [list stazione $tag]
-        disegna_oggetti $c $x0 $y0 $x1 $y1 [dict get $stazione oggetti] $tag
+        #  Con lo sprite si vede la stazione com'e' davvero in xstaz; le parti
+        #  che dipendono dall'istanza (etichette, colori, scale) restano quelle
+        #  generiche del catalogo, percio' lo schema a forme semplici resta
+        #  disponibile dal menu Visualizza: e' l'unico che mostra le ETICHETTA
+        #  vere di questa stazione.
+        variable usa_sprite
+        set img ""
+        if {$usa_sprite} { set img [sprite_per_tipo [dict get $stazione tipo]] }
+        if {$img ne ""} {
+            $c create image $x0 $y0 -anchor nw -image $img \
+                -tags [list stazione $tag]
+        } else {
+            $c create rectangle $x0 $y0 $x1 $y1 -fill white -outline #bbbbbb \
+                -tags [list stazione $tag]
+            disegna_oggetti $c $x0 $y0 $x1 $y1 [dict get $stazione oggetti] $tag
+        }
     }
 }
 
@@ -378,6 +547,15 @@ proc ::lgmkstaz::stazione_sotto {x_widget y_widget} {
 # Libreria: piazzare una stazione nuova.
 # ---------------------------------------------------------------------------
 
+#  L'ingombro di un tipo in celle, "largXaltezza" (es. 2x1): e' quanto spazio
+#  occupera' la stazione nella pagina, l'unita' e' la cella da 62 px.
+proc ::lgmkstaz::misura_tipo {tipo} {
+    variable catalogo
+    if {![info exists catalogo($tipo)]} { return "" }
+    lassign $catalogo($tipo) larg altezza sequenza
+    return "${larg}x${altezza}"
+}
+
 proc ::lgmkstaz::libreria_seleziona {} {
     set sel [.corpo.sinistra.libreria.lista curselection]
     if {[llength $sel] == 0} {
@@ -392,10 +570,10 @@ proc ::lgmkstaz::aggiorna_cursore {} {
     variable tipo_armato
     .corpo.destra.canvas configure -cursor [expr {$tipo_armato ne "" ? "crosshair" : ""}]
     if {$tipo_armato ne ""} {
-        .status configure -text \
-            "Libreria: $tipo_armato - clic sul canvas per piazzare, Esc per smettere"
+        stato "Libreria: $tipo_armato [misura_tipo $tipo_armato] -\
+               clic sul canvas per piazzare, Esc per smettere"
     } else {
-        .status configure -text ""
+        stato ""
     }
 }
 
@@ -459,7 +637,7 @@ proc ::lgmkstaz::piazza_stazione {tipo x_widget y_widget} {
     set stazione_selezionata [dict get $nuova id]
     set ::lgmkstaz::stazione_selezionata $stazione_selezionata
     disegna_pagina $pagina_disegnata
-    .status configure -text "Piazzata $tipo in $posx,$posy$avviso"
+    stato "Piazzata $tipo in $posx,$posy$avviso"
 }
 
 # ---------------------------------------------------------------------------
@@ -565,14 +743,14 @@ proc ::lgmkstaz::canvas_release {x y} {
     imposta_modificato 1
     set ::lgmkstaz::stazione_selezionata $id
     disegna_pagina $pagina_disegnata
-    .status configure -text "Spostata in $posx,$posy$avviso"
+    stato "Spostata in $posx,$posy$avviso"
 }
 
 proc ::lgmkstaz::canvas_hover {x y} {
     variable tipo_armato
     if {$tipo_armato ne ""} { return }
     set s [stazione_sotto $x $y]
-    if {$s eq ""} { .status configure -text ""; return }
+    if {$s eq ""} { stato ""; return }
     mostra_info $s
 }
 
@@ -586,6 +764,112 @@ proc ::lgmkstaz::canvas_double {x y} {
         return
     }
     apri_proprieta [dict get $s id]
+}
+
+# ---------------------------------------------------------------------------
+# Copia e incolla di una stazione.
+#
+# Si copia la stazione INTERA, com'e' nel modello: tipo, descrizione e tutti i
+# valori degli oggetti (colori, riferimenti alle variabili, scalamenti). E'
+# questo che serve davvero - rifare a mano le stesse connessioni su una
+# stazione gemella e' il lavoro che si vuole evitare.
+#
+# Quello che NON si copia e' cio' che identifica la stazione nella pagina:
+# l'id (ne serve uno nuovo), la pagina e la posizione (le decide l'incolla) e
+# il NUMERO, che si azzera. Un numero duplicato nel file sarebbe un errore
+# vero per compstaz; lasciandolo vuoto la stazione incollata si comporta come
+# una appena piazzata (scrivi_stazione scrive "NUMERO" nudo).
+#
+# Gli appunti sono interni a lgmkstaz, non la selezione X11: si incolla in
+# questa finestra, anche fra pagine diverse dello stesso file.
+# ---------------------------------------------------------------------------
+
+proc ::lgmkstaz::copia_selezionata {} {
+    variable stazione_selezionata
+    variable modello
+    variable appunti
+
+    if {$stazione_selezionata eq ""} {
+        stato "Niente da copiare: nessuna stazione selezionata."
+        return
+    }
+    set i [modello_indice_stazione $modello $stazione_selezionata]
+    if {$i < 0} { return }
+    set appunti [lindex [dict get $modello stazioni] $i]
+    stato "Copiata [dict get $appunti tipo] - Ctrl+V per incollarla"
+}
+
+#  Dove finisce la stazione incollata: sotto il puntatore, se e' sul canvas
+#  (come il piazzamento dalla libreria, riquadro CENTRATO sul punto); se il
+#  puntatore e' altrove - per esempio si e' appena usato un menu - una cella
+#  in diagonale rispetto all'originale, cosi' la copia non finisce esattamente
+#  sopra di esso e si vede che ce ne sono due.
+proc ::lgmkstaz::posizione_incolla {larg altezza} {
+    variable appunti
+    variable altezza_pagina_celle
+    variable dim_cella_px
+
+    set c .corpo.destra.canvas
+    lassign [winfo pointerxy $c] sx sy
+    set wx [expr {$sx - [winfo rootx $c]}]
+    set wy [expr {$sy - [winfo rooty $c]}]
+    if {$wx >= 0 && $wy >= 0 && $wx < [winfo width $c] && $wy < [winfo height $c]} {
+        set cx [expr {[$c canvasx $wx] - ($larg * $dim_cella_px) / 2.0}]
+        set cy [expr {[$c canvasy $wy] - ($altezza * $dim_cella_px) / 2.0}]
+        lassign [cella_da_pixel $cx $cy $larg $altezza $altezza_pagina_celle] posx posy
+    } else {
+        set posx [expr {[dict get $appunti posx] + 1}]
+        set posy [expr {[dict get $appunti posy] + 1}]
+    }
+    if {$posx < 0} { set posx 0 }
+    if {$posy < 0} { set posy 0 }
+    return [list $posx $posy]
+}
+
+proc ::lgmkstaz::incolla {} {
+    variable appunti
+    variable modello
+    variable pagina_disegnata
+    variable prossimo_id
+    variable stazione_selezionata
+
+    if {$appunti eq ""} {
+        stato "Niente da incollare: copia prima una stazione con Ctrl+C."
+        return
+    }
+    if {$pagina_disegnata eq ""} {
+        tk_messageBox -icon warning -title lgmkstaz \
+            -message "Apri o crea prima una pagina (File -> Nuova pagina...)."
+        return
+    }
+
+    set larg [dict get $appunti larg]
+    set altezza [dict get $appunti altezza]
+    lassign [posizione_incolla $larg $altezza] posx posy
+
+    set stazioni_pagina {}
+    foreach st [dict get $modello stazioni] {
+        if {[dict get $st pagina] == $pagina_disegnata} { lappend stazioni_pagina $st }
+    }
+    set avviso ""
+    if {[stazioni_sovrapposte $stazioni_pagina $posx $posy $larg $altezza -1]} {
+        set avviso "  (si sovrappone a un'altra stazione)"
+    }
+
+    set nuova $appunti
+    dict set nuova id $prossimo_id
+    dict set nuova pagina $pagina_disegnata
+    dict set nuova posx $posx
+    dict set nuova posy $posy
+    dict set nuova numero ""
+    incr prossimo_id
+
+    set modello [modello_aggiungi_stazione $modello $nuova]
+    imposta_modificato 1
+    set stazione_selezionata [dict get $nuova id]
+    disegna_pagina $pagina_disegnata
+    disegna_selezione
+    stato "Incollata [dict get $nuova tipo] in $posx,$posy$avviso"
 }
 
 proc ::lgmkstaz::elimina_selezionata {} {
@@ -610,7 +894,7 @@ proc ::lgmkstaz::mostra_info {stazione} {
     if {[dict get $stazione grezzo]} {
         append testo "  -  [dict get $stazione nota]"
     }
-    .status configure -text $testo
+    stato $testo
 }
 
 # ---------------------------------------------------------------------------
@@ -1169,9 +1453,9 @@ proc ::lgmkstaz::apri_file {percorso} {
     if {$edf ne ""} {
         if {[catch {topo_carica $edf} n]} {
             topo_reset
-            .status configure -text "variabili.edf trovato ma non leggibile: $n"
+            stato "variabili.edf trovato ma non leggibile: $n"
         } else {
-            .status configure -text "Topologia caricata: $n modelli ($edf)"
+            stato "Topologia caricata: $n modelli ($edf)"
         }
     } else {
         topo_reset
@@ -1223,7 +1507,7 @@ proc ::lgmkstaz::salva_su_file {percorso} {
     }
     set percorso_corrente $percorso
     imposta_modificato 0
-    .status configure -text "Salvato: $percorso"
+    stato "Salvato: $percorso"
 }
 
 proc ::lgmkstaz::esci {} {
@@ -1491,9 +1775,23 @@ menu .mb.file -tearoff 0
 .mb.file add separator
 .mb.file add command -label Esci -command ::lgmkstaz::esci
 
+menu .mb.visualizza -tearoff 0
+.mb add cascade -label Visualizza -menu .mb.visualizza
+.mb.visualizza add checkbutton -label "Immagini reali di xstaz" \
+    -variable ::lgmkstaz::usa_sprite -command ::lgmkstaz::ridisegna
+
 menu .mb.verifica -tearoff 0
 .mb add cascade -label Verifica -menu .mb.verifica
 .mb.verifica add command -label "Compila e verifica..." -command ::lgmkstaz::compila_e_verifica
+
+#  Il font in grassetto della voce principale del menu "?", come in lghmi.
+if {[lsearch -exact [font names] fontMenuRilievo] < 0} {
+    font create fontMenuRilievo {*}[font actual TkMenuFont]
+    font configure fontMenuRilievo -weight bold
+}
+menu .mb.aiuto -tearoff 0
+.mb add cascade -label "?" -menu .mb.aiuto
+::lgmkstaz::costruisci_menu_aiuto .mb.aiuto
 
 frame .corpo
 pack .corpo -fill both -expand 1
@@ -1544,6 +1842,13 @@ bind .corpo.destra.canvas <ButtonRelease-1> {::lgmkstaz::canvas_release %x %y}
 bind .corpo.destra.canvas <Motion>          {::lgmkstaz::canvas_hover %x %y}
 bind .corpo.destra.canvas <Double-1>        {::lgmkstaz::canvas_double %x %y}
 bind .corpo.destra.canvas <Delete>          ::lgmkstaz::elimina_selezionata
+bind .corpo.destra.canvas <BackSpace>       ::lgmkstaz::elimina_selezionata
+#  Copia/incolla sul CANVAS, non sulla finestra: sulla finestra scatterebbero
+#  anche mentre si scrive in una casella (il pannello proprieta', la ricerca
+#  della libreria), dove Ctrl+C e Ctrl+V devono restare copia e incolla del
+#  TESTO. Il canvas prende il fuoco al primo clic (canvas_press).
+bind .corpo.destra.canvas <Control-c>       ::lgmkstaz::copia_selezionata
+bind .corpo.destra.canvas <Control-v>       ::lgmkstaz::incolla
 bind . <Escape>                             ::lgmkstaz::annulla_armato
 wm protocol . WM_DELETE_WINDOW              ::lgmkstaz::esci
 

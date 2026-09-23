@@ -178,6 +178,58 @@ if { $::tcl_platform(os) != "Linux" } {
 > 17 righe di differenza. Se in una `libut` esistono entrambi i file, **quello
 > buono è `lista_moduli.dat`** e l'altro è un residuo da ignorare.
 
+## Copie locali dei moduli nella directory del modello — priorità sulla `libut`
+
+Quando si costruiscono `lg1`/`lg3`/`lg5` (`cad_crealg*` → `cad_maketask`), la
+lista degli oggetti da linkare la produce
+[lego_big/bin/cad_f012lis](../lego_big/bin/cad_f012lis): legge i primi quattro
+caratteri di ogni riga del `f01.dat` locale (i tipi dei moduli usati dal
+modello) e per ciascuno sceglie **l'oggetto locale se nella directory del
+modello esiste `<modulo>.f`**, altrimenti `../libut/<modulo>.o`:
+
+```sh
+if [ -r ${base}.f ]        ; then OBJECTS="$OBJECTS ${base}.o"
+elif [ -r ../libut/${base}.f ] ; then OBJECTS="$OBJECTS ../libut/${base}.o"
+```
+
+È il meccanismo con cui si prova una modifica a un modulo su un solo modello
+senza toccare la libreria. Il rovescio è che **una copia lasciata lì per sbaglio
+congela quel modulo alla versione del giorno in cui è stata fatta**, e da quel
+momento il modello non vede più gli aggiornamenti della `libut`, senza che
+niente lo segnali. Peggio: il `.o` locale resta anche più recente del suo `.f`,
+quindi `make` non lo ricompila nemmeno.
+
+Il sintomo tipico è un **errore di link a valle di un aggiornamento della
+libreria**, ad esempio:
+
+```
+exch.o: in function `exchres_': .../AS30_0/exch.f:704:
+        undefined reference to `exchgamut_'
+```
+
+Qui `libut/exch.f` era stato aggiornato portando la routine utente `EXCHGAMUT`
+**dentro** il sorgente del modulo, e di conseguenza lo stub in
+`libut/forausbase.f` era stato disattivato (marcatore `CC~FORAUS_EXCH~C`, corpo
+commentato) per non avere il simbolo duplicato — vedi `aggforaus`, che fonde
+`foraus.for` in `forausbase.f` saltando i blocchi `C~FORAUS_XXXX~C` che l'utente
+ridefinisce. La copia locale `exch.f`, più vecchia, `CALL EXCHGAMUT` ma non la
+definisce: nessuno dei due la fornisce più.
+
+**Diagnosi e rimedio**: confrontare l'oggetto locale con quello di libreria e,
+se la copia non contiene modifiche volute, toglierla di mezzo (basta rinominare
+`.f` e `.o`: `cad_f012lis` cerca esattamente `<modulo>.f`) e rifare il build.
+
+```sh
+nm AS30_0/exch.o   | grep -i exchgamut     #  U exchgamut_   ← solo riferita
+nm libut/exch.o    | grep -i exchgamut     #  T exchgamut_   ← definita
+diff AS30_0/exch.f libut/exch.f            # la copia locale ha modifiche vere?
+```
+
+Un indizio che l'oggetto locale è un residuo e non una modifica in corso: il
+path del sorgente stampato dal linker viene dal debug info del `.o` e può
+puntare a una directory che su questa macchina non esiste (`/home/antonio/tgm/…`),
+cioè a un'area di lavoro precedente.
+
 ## File `.i5` — interfaccia compilata del modulo
 
 Il file `.i5` è generato automaticamente dal tool `i32i5` a partire dal `.pi4` ogni volta che si salva un modulo (`presave.tcl`). Descrive le porte, le variabili matematiche e le configurazioni possibili del tipo di modulo. Viene letto da `pag2f01` nella Phase II per costruire il file `f01.dat`.
@@ -358,6 +410,10 @@ legopc e HMI draw2gr) non si limitano a mostrare valori, ma aprono faceplate e
 mandano valori alla simulazione in corso. Codice in
 [src/tix/hmielem.tcl](src/tix/hmielem.tcl) (sorgiato da `animate.tcl`), elementi
 [@stz_0.tcl](src/tix/remark/@stz_0.tcl) e [@set_0.tcl](src/tix/remark/@set_0.tcl).
+
+> La **pagina** che il bottone `@stz_0` apre si costruisce con
+> [`lgmkstaz`](LGMKSTAZ.md), il builder grafico del `r01.dat` — a video, invece
+> di scrivere il file a mano.
 
 | | Faceplate (`@stz_0`, tag `hmistaz`) | Set value (`@set_0`, tag `hmiset`) |
 |---|---|---|

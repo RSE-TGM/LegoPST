@@ -2410,7 +2410,8 @@ proc aggiorna_menu_tools {} {
     set stato [expr {$nome ne "" ? "normal" : "disabled"}]
     set quale [expr {$nome ne "" ? $nome : "no simulator"}]
 
-    #  Ordine: Edit model, kUpSim, kCompile, lgmkstaz, Terminal. Le varianti di
+    #  Ordine: Edit model, lgmkstaz, kUpSim, kCompile, Terminal. I due editor
+    #  stanno in cima e accanto. Le varianti di
     #  kUpSim e di kCompile stanno in un sottomenu ciascuno: il menu resta
     #  corto e le varianti restano vicine. Il simulatore corrente si sceglie
     #  dal menu File (Current simulator, riempi_menu_simulatori): qui si
@@ -2423,6 +2424,12 @@ proc aggiorna_menu_tools {} {
     #  spenta no.
     .mb.tools add command -command lancia_legopc \
         -label "Edit model (legopc) - on the selected task, or empty"
+
+    #  Accanto a Edit model perche' e' l'altro editor: legopc disegna il
+    #  modello, lgmkstaz le pagine di faceplate. Sempre attiva anche senza
+    #  simulatore corrente: gli basta un r01.dat.
+    .mb.tools add command -command lancia_lgmkstaz \
+        -label "lgmkstaz - build/edit faceplate pages (r01.dat)"
     .mb.tools add separator
 
     #  kUpSim sul simulatore corrente: il nome sta nella prima voce, cosi' si sa
@@ -2453,12 +2460,6 @@ proc aggiorna_menu_tools {} {
     .mb.tools.kcompile add command -state $sreg -command [list lancia_kcompile Page] \
         -label "3. kCompile Page - compile the pages mmi animates"
     .mb.tools add cascade -label "kCompile" -menu .mb.tools.kcompile -state $sreg
-    .mb.tools add separator
-
-    #  Sempre attiva, come Edit model: costruisce/modifica pagine di
-    #  faceplate anche senza simulatore corrente (basta un r01.dat).
-    .mb.tools add command -command lancia_lgmkstaz \
-        -label "lgmkstaz - build/edit faceplate pages (r01.dat)"
     .mb.tools add separator
 
     #  Sempre attiva: un terminale serve anche senza simulatore corrente.
@@ -2695,118 +2696,18 @@ proc documenti_aiuto {} {
     }
 }
 
-#  Converte un .md in HTML dentro una directory temporanea e ne ritorna il
-#  path, oppure "" se non c'e' un convertitore.
-#
-#  Serve perche' i browser NON sanno rendere il Markdown: il sistema classifica
-#  i .md come text/plain, quindi Firefox mostra il sorgente. Con un
-#  convertitore, tabelle, blocchi di codice e citazioni si vedono per quello che
-#  sono.
-#
-#  Il convertitore e' quello di LegoPST (md2html.tcl, Tcl puro): niente da
-#  installare, e la resa e' la stessa su ogni installazione. Se quel file
-#  mancasse si prova un convertitore esterno, e solo se non c'e' nemmeno quello
-#  si apre il .md grezzo.
-#
-#  Il <base href> punta alla directory del documento ORIGINALE: senza quello i
-#  rimandi relativi agli altri documenti - che i nostri .md usano molto - si
-#  romperebbero, risolvendosi dentro la directory temporanea.
-proc md_in_html {doc} {
-    global env
-
-    set tmp [expr {[info exists env(TMPDIR)] && $env(TMPDIR) ne "" ? $env(TMPDIR) : "/tmp"}]
-    if {![file isdirectory $tmp] && [catch {file mkdir $tmp}]} { set tmp "/tmp" }
-    set out [file join $tmp "lghmi_doc_[file rootname [file tail $doc]].html"]
-
-    #  1. Il convertitore di LegoPST (md2html.tcl): in Tcl puro, quindi
-    #     disponibile su ogni installazione senza installare niente. E' il
-    #     primario, non il ripiego, per due ragioni: la resa e' identica
-    #     dappertutto, e sui nostri documenti e' piu' fedele di markdown_py, che
-    #     sbaglia i recinti di codice rientrati dentro una voce di elenco (li
-    #     trasforma in un <code> malformato).
-    if {[llength [info procs ::md2html::documento]] > 0} {
-        if {![catch {md2html::documento $doc} pagina] && $pagina ne ""} {
-            if {![catch {open $out w} fd]} {
-                #  documento restituisce testo gia' decodificato da UTF-8
-                #  (vedi md2html.tcl, CODIFICA): con la codifica di sistema,
-                #  sotto LANG=POSIX, frecce e lineette diventerebbero "?"
-                fconfigure $fd -encoding utf-8
-                puts $fd $pagina
-                close $fd
-                return $out
-            }
-        }
-    }
-
-    #  2. Ripiego, se md2html.tcl non c'e' (deploy parziale, una bin vecchia):
-    #     un convertitore esterno, se c'e'.
-    set conv ""
-    foreach c {markdown_py pandoc cmark-gfm cmark} {
-        if {[auto_execok $c] ne ""} { set conv $c; break }
-    }
-    if {$conv eq ""} { return "" }
-    set corpo ""
-    switch -- $conv {
-        markdown_py { set rc [catch {exec markdown_py -x tables -x fenced_code -x toc $doc} corpo] }
-        pandoc      { set rc [catch {exec pandoc -f gfm -t html $doc} corpo] }
-        default     { set rc [catch {exec $conv $doc} corpo] }
-    }
-    if {$rc || $corpo eq ""} { return "" }
-    if {[catch {open $out w} fd]} { return "" }
-    puts $fd "<!DOCTYPE html>\n<html><head><meta charset=\"utf-8\">"
-    puts $fd "<title>[file tail $doc]</title>"
-    puts $fd "<base href=\"file://[file dirname $doc]/\">"
-    if {[llength [info procs ::md2html::stile]] > 0} {
-        puts $fd "<style>[md2html::stile]</style>"
-    }
-    puts $fd "</head><body>"
-    puts $fd $corpo
-    puts $fd "</body></html>"
-    close $fd
-    return $out
-}
-
-#  Apre un documento del repository nel browser. Il browser lo sceglie
-#  browser_disponibile di openhelp.tcl, la stessa di legopc, che scorre una
-#  lista di candidati partendo da $LG_BROWSER.
+#  La conversione .md -> HTML e l'apertura nel browser stanno in openhelp.tcl,
+#  condivise con lgmkstaz. Qui resta solo il raccordo con la riga di stato.
 proc apri_documento {relativo} {
-    global env
-    if {![info exists env(LEGOROOT)] || $env(LEGOROOT) eq ""} {
+    if {[llength [info procs aiuto_apri_documento]] == 0} {
         tk_messageBox -icon error -title "Documentation" -parent . -message \
-            "LEGOROOT not defined: cannot find the documentation."
+            "openhelp.tcl non caricato: non posso aprire la documentazione."
         return
     }
-    set doc [file join $env(LEGOROOT) $relativo]
-    if {![file exists $doc]} {
-        tk_messageBox -icon error -title "Documentation" -parent . -message \
-            "Document not found:\n$doc"
-        return
-    }
-    set preferito [expr {[info exists env(LG_BROWSER)] ? $env(LG_BROWSER) : ""}]
-    set browser ""
-    catch {set browser [browser_disponibile $preferito]}
-    if {$browser eq ""} {
-        tk_messageBox -icon error -title "Documentation" -parent . -message \
-            "No browser available.\nCheck LG_BROWSER (currently: '$preferito')."
-        return
-    }
-    # I .md passano per il convertitore, se c'e' uno.
-    set nota ""
-    if {[string tolower [file extension $doc]] eq ".md"} {
-        set html [md_in_html $doc]
-        if {$html ne ""} {
-            set doc $html
-        } else {
-            set nota "  (md2html.tcl not found: unformatted text)"
-        }
-    }
-    if {[catch {exec $browser $doc &} err]} {
-        tk_messageBox -icon error -title "Documentation" -parent . -message \
-            "Cannot start the browser:\n$browser $doc\n\n$err"
-        return
-    }
-    .status configure -text "Opened in the browser: $relativo$nota"
+    set messaggio [aiuto_apri_documento $relativo]
+    if {$messaggio ne ""} { .status configure -text $messaggio }
 }
+
 
 # --- Menu "?" : versione dell'ambiente -----------------------------------
 

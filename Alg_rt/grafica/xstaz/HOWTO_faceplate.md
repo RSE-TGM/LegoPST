@@ -21,6 +21,14 @@ simulatore LegoPST: si scrive un file di testo `r01.dat`, lo si compila con
 > in *View → Show Value* (legopc o draw2gr) la apre con un clic. Vedi
 > [Alg_legopc/README.md](../../../Alg_legopc/README.md#elementi-operatore-delle-pagine-faceplate-e-set-value).
 
+> **Il `r01.dat` non si è obbligati a scriverlo a mano.**
+> [`lgmkstaz`](../../../Alg_legopc/LGMKSTAZ.md) lo costruisce a video: si
+> piazzano le stazioni col mouse su una griglia, si scelgono le variabili da
+> un elenco del modello vero, e da lì si compila con `compstaz` e si guarda il
+> risultato nel vero `xstaz`. Questo documento resta il riferimento del
+> **formato** — utile per capire cosa scrive l'editor, per rileggere un file
+> esistente e per i casi che l'editor non copre (le 13 stazioni storiche).
+
 ## 1. I tre concetti
 
 | Concetto | Cos'è |

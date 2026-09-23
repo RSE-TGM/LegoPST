@@ -298,7 +298,7 @@ opens the operating interfaces.</p>
 </div>
 
 <!-- ============================================================ -->
-<h2 id="runtime">4. Run time: trends, values, faceplates <span class="n">7 documents</span></h2>
+<h2 id="runtime">4. Run time: trends, values, faceplates <span class="n">9 documents</span></h2>
 <p class="scope">What you use with the simulator running: watching the curves, reading and writing
 the points, commanding the actuators.</p>
 
@@ -346,6 +346,27 @@ the points, commanding the actuators.</p>
   on a diagram).</p>
   <p class="use"><b>When you need it:</b> to understand the architecture before touching the
   files.</p>
+</div>
+
+<div class="card">
+  <div class="row1"><a class="tit" href="Alg_legopc/LGMKSTAZ.md">lgmkstaz &mdash; the graphical faceplate builder</a>
+    <span class="b md">md</span><span class="path">Alg_legopc/LGMKSTAZ.md</span></div>
+  <p><b>Scope:</b> building <code>r01.dat</code> on screen instead of by hand: the grid with the
+  origin at the bottom left, the library of the 54 station types, drag, copy and paste, the
+  property panel wired to the model's real variables, "compile and check" with the real
+  <code>compstaz</code> on a scratch copy, and the preview in the real <code>xstaz</code>.</p>
+  <p class="use"><b>When you need it:</b> whenever you build or change a faceplate page. Read the
+  HOWTO below for the file format the builder writes.</p>
+</div>
+
+<div class="card">
+  <div class="row1"><a class="tit" href="Alg_rt/grafica/xstaz/catalogo/README.md">Station catalogue and sprites</a>
+    <span class="b md">md</span><span class="path">Alg_rt/grafica/xstaz/catalogo/README.md</span></div>
+  <p><b>Scope:</b> the read-only <code>r01.dat</code> holding all 54 station types with their names,
+  real screen captures of its pages, and the per-type PNG sprites that <code>lgmkstaz</code> draws
+  with &mdash; plus how to regenerate the whole chain.</p>
+  <p class="use"><b>When you need it:</b> to see what a station type looks like before using it, or
+  after changing <code>new_staz[]</code> in <code>newstaz.h</code>.</p>
 </div>
 
 <div class="card">

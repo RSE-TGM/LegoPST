@@ -9,6 +9,7 @@ sono raggruppate in **pagine**. Due programmi:
 | **`compstaz`** | `Alg_rt/bin` ([sorgente](../compstaz/compstaz.c) in `Alg_rt/grafica/compstaz/`) | compila il file di configurazione `r01.dat` e produce `r02.dat` |
 | **`xstaz`** | `Alg_rt/bin` ([xstaz.c](xstaz.c)) | applicazione Motif che legge `r02.dat` e disegna le pagine di stazioni |
 | **`stazpag`** | `Alg_rt/bin` ([stazpag.c](stazpag.c)) | elenca le pagine di `r02.dat` e ne chiede la visualizzazione a `xstaz` |
+| **`lgmkstaz`** | `Alg_rt/bin` ([guida](../../../Alg_legopc/LGMKSTAZ.md)) | builder grafico del `r01.dat`: lo costruisce a video invece che a mano, e da lì compila con `compstaz` e apre l'anteprima in `xstaz` |
 
 Il nome del compilatore è **`compstaz`** (non *xcompstz*). Esiste anche
 `Alg_mmi/bin/convstaz`: stesso `r01.dat` in ingresso, ma genera le pagine per

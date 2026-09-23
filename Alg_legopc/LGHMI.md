@@ -688,12 +688,19 @@ Le voci, in quest'ordine:
 
 ```
 Edit model (legopc) - on the selected task, or empty
+lgmkstaz - build/edit faceplate pages (r01.dat)
 --------
 kUpSim                 >   le tre varianti di kUpSim
 kCompile               >   le tre compilazioni della regolazione
 --------
 Terminal - shell in the current directory
 ```
+
+I **due editor** stanno in cima e accanto: `legopc` disegna il modello,
+[`lgmkstaz`](LGMKSTAZ.md) le pagine di faceplate (`r01.dat`). Entrambi sono
+sempre attivi, anche senza simulatore corrente — a `lgmkstaz` basta un
+`r01.dat`, che cerca nella directory corrente del selettore. Si aprono come
+processi indipendenti: chiuderli non chiude `lghmi`, e viceversa.
 
 Le varianti di `kUpSim` e di `kCompile` stanno in un **sottomenu** ciascuna: il
 menu resta corto e le varianti restano vicine. Un sottomenu spento spegne tutte
