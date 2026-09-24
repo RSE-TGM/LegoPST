@@ -125,6 +125,9 @@ lgrun --socat
 # Combine options
 lgrun --demo --socat
 
+# Use the slim image instead of the full one (same environment, about half the size)
+lgrun --slim
+
 # Check for updates and pull new Docker image if available
 lgrun --pull
 

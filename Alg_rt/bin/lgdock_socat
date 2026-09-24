@@ -30,6 +30,7 @@ show_help() {
     echo "  -h, --help          Mostra questo help"
     echo "  -v, --version       Mostra versione"
     echo "  -d, --demo          Installa una demo di legpst e lancia il container con essa"
+    echo "  -l, --slim          Usa l'immagine SNELLA (leggera) invece di quella completa"
     echo
     echo "Esempi:"
     echo "  $0                  # lancio container LegoPST"
@@ -66,7 +67,7 @@ RUN_DEMO=false
                 RUN_DEMO=true
                 shift
                 ;;
-            -S|--slim)
+            -l|--slim)
                 IMAGE_NAME="aguagliardi/legopst_slim:2.0"
                 shift
                 ;;
@@ -75,6 +76,7 @@ RUN_DEMO=false
         esac
     done
 echo "=== Avvio LegoPST Docker con socat per X11 forwarding === RUN_DEMO=$RUN_DEMO"
+echo "=== Immagine: $IMAGE_NAME"
 # Ottieni le informazioni dell'utente host
 HOST_USERNAME=$(whoami)
 HOST_USER_ID=$(id -u)

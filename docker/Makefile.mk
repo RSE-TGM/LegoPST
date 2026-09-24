@@ -10,9 +10,13 @@ BUILD_SCRIPT := ./BuildImage
 VERSION_FILE := ../VERSION
 PROJECT_VERSION := $(shell cat $(VERSION_FILE) 2>/dev/null | tr -d '[:space:]')
 
-# Dipendenze per la regola di build dell'immagine
-#BUILD_DEPENDENCIES := $(DOCKERFILE) lgdock lgdock startDock
-BUILD_DEPENDENCIES := $(DOCKERFILE) lgdock lgdock_socat lgdock_multi
+# Dipendenze per la regola di build dell'immagine.
+#  Sono i SORGENTI .sh: accanto a loro sono vissute a lungo tre copie senza
+#  estensione (lgdock, lgdock_socat, lgdock_multi) che stavano qui solo per
+#  soddisfare questa riga. Nessuno le leggeva - il makefile installa dai .sh e
+#  l'installer scarica il .sh - e intanto invecchiavano: quella di lgdock era
+#  ferma a settembre e non conosceva --slim. Tolte.
+BUILD_DEPENDENCIES := $(DOCKERFILE) lgdock.sh lgdock_socat.sh lgdock_multi.sh
 
 # Target principale, spesso chiamato 'all' o il nome dell'eseguibile/immagine principale
 # In questo caso, potremmo considerare il risultato di BuildImage come un file "segnaposto"

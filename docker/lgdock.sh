@@ -33,7 +33,7 @@ Opzioni:
   -d, --demo          Installa una demo di legopst e lancia il container con essa
   -s, --socat         Usa socat per X11 forwarding (utile per SSH con MobaXterm)
   -p, --pull          Esegue docker pull dell'immagine prima di avviare il container
-  -S, --slim          Usa l'immagine SNELLA (aguagliardi/legopst_slim:2.0)
+  -l, --slim          Usa l'immagine SNELLA, leggera (aguagliardi/legopst_slim:2.0)
                       invece di quella completa: stesso ambiente, meta' del peso
 
 Esempi:
@@ -119,7 +119,7 @@ while [[ $# -gt 0 ]]; do
             DO_PULL=true
             shift
             ;;
-        -S|--slim)
+        -l|--slim)
             IMAGE_NAME="aguagliardi/legopst_slim:2.0"
             shift
         ;;
@@ -146,6 +146,7 @@ MODE="standard"
 echo "======================================================================="
 echo "  Avvio LegoPST Docker - Modalità: $MODE"
 echo "======================================================================="
+echo "Immagine: $IMAGE_NAME"
 echo "Demo mode: $RUN_DEMO"
 echo "Utente: $HOST_USERNAME (UID: $HOST_USER_ID, GID: $HOST_GROUP_ID)"
 echo "Home directory: $HOST_USER_HOME"

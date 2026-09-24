@@ -46,7 +46,7 @@ la demo o per socat:
 ```sh
 lgdock              # immagine completa (come sempre)
 lgdock --slim       # immagine snella
-lgdock -S -d        # snella, con la demo
+lgdock -l -d        # snella, con la demo
 ```
 
 Vale per `lgdock`, `lgdock_multi` e `lgdock_socat`. Per un'immagine diversa da
@@ -119,6 +119,9 @@ lgrun --socat
 
 # Combina opzioni
 lgrun --demo --socat
+
+# Usa l'immagine snella invece della completa (-l, non -s: quella e' socat)
+lgrun --slim
 
 # Mostra help
 lgrun --help
