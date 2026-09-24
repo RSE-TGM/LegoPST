@@ -50,8 +50,8 @@ Il file `.fmu` è uno standard FMI 2.0 e può essere caricato da qualunque maste
 
 | Metodo | Variante FMU | Setup richiesto | Use case | Stato |
 |--------|--------------|-----------------|----------|-------|
-| `run_fmu.sh` (wrapper bash su fmpy) | base, bundle | `source .profile_legoroot` + `/home/antonio/fmpy_venv` | smoke test rapido in CLI con CSV out | ✅ supportato |
-| `lg_cosim.py` (co-simulazione N FMU) | bundle | `/home/antonio/fmpy_venv`; `lg_cosim.json` con fmus/connections | co-simulazione Gauss-Seidel di più FMU con scambio variabili, log CSV, sync RT; vedi `lg_cosim/lg_cosim_manual.md` | ✅ validato 2026-05-11 (collet + ctrcoll) |
+| `run_fmu.sh` (wrapper bash su fmpy) | base, bundle | `source .profile_legoroot` + un venv con `fmpy` (per convenzione `~/fmpy_venv`) | smoke test rapido in CLI con CSV out | ✅ supportato |
+| `lg_cosim.py` (co-simulazione N FMU) | bundle | un venv con `fmpy` (`~/fmpy_venv`); `lg_cosim.json` con fmus/connections | co-simulazione Gauss-Seidel di più FMU con scambio variabili, log CSV, sync RT; vedi `lg_cosim/lg_cosim_manual.md` | ✅ validato 2026-05-11 (collet + ctrcoll) |
 | `fmpy.simulate_fmu` (Python diretto) | base, bundle | `pip install fmpy` (Python ≥ 3.8) | scripting, integrazione test, debug fine-grained con `LG_FMU_DEBUG=1` | ✅ supportato |
 | Container Linux pulito (`docker run python:3.11-slim` + fmpy) | **solo bundle** | `pip install fmpy` nel container | deployment, CI esterna, demo | ✅ validato 2026-05-02 |
 | `test_fmu_docker` (wrapper bash su docker + fmpy) | **solo bundle** | Docker installato e avviato; `DISPLAY` per grafica post-sim | smoke test parallelo di più FMU in container isolato ed effimero | ✅ supportato |

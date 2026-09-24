@@ -29,6 +29,7 @@ RUN dnf update -y && \
         cpio \
         xdg-utils \
         ghostscript \
+        ImageMagick \
         gimp \
         evince \
         unix2dos \

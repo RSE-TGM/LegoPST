@@ -37,25 +37,27 @@ lg_cosim/
 
 ## Avvio rapido
 
-`lg_cosim.py` richiede `fmpy` — usare il venv già configurato per `run_fmu.sh`:
+`lg_cosim.py` richiede `fmpy` — si usa lo stesso venv di `run_fmu.sh`, che per
+convenzione sta in `~/fmpy_venv`:
 
 ```bash
-cd /home/antonio/LegoPST/Alg_rt/lg_fmu/lg_cosim
+FMPY=~/fmpy_venv/bin/python3          # il venv con fmpy installato
+cd $LEGOROOT/Alg_rt/lg_fmu/lg_cosim
 
 # run base (massima velocità)
-/home/antonio/fmpy_venv/bin/python3 lg_cosim.py lg_cosim.json
+$FMPY lg_cosim.py lg_cosim.json
 
 # con output diagnostico FMU (LG_FMU_DEBUG=1)
-/home/antonio/fmpy_venv/bin/python3 lg_cosim.py lg_cosim.json --debug
+$FMPY lg_cosim.py lg_cosim.json --debug
 
 # real-time
-/home/antonio/fmpy_venv/bin/python3 lg_cosim.py lg_cosim.json --speedup 1.0
+$FMPY lg_cosim.py lg_cosim.json --speedup 1.0
 
 # tempo accelerato 5×
-/home/antonio/fmpy_venv/bin/python3 lg_cosim.py lg_cosim.json --speedup 5.0
+$FMPY lg_cosim.py lg_cosim.json --speedup 5.0
 
 # override parametri al volo
-/home/antonio/fmpy_venv/bin/python3 lg_cosim.py lg_cosim.json --stop-time 120 --step-size 0.5 --speedup 2.0
+$FMPY lg_cosim.py lg_cosim.json --stop-time 120 --step-size 0.5 --speedup 2.0
 ```
 
 In alternativa, attivare il venv prima:
@@ -174,7 +176,7 @@ Connessione 1-a-molti: ripetere il campo `from` in entry separate.
 Usare `run_fmu.sh --info` (già presente in `Alg_rt/lg_fmu/scripts/`):
 
 ```bash
-source ~/.profile_legoroot /home/antonio/LegoPST
+source ~/.profile_legoroot $LEGOROOT
 run_fmu.sh --info example/legoclix_collet_bundle.fmu
 ```
 

@@ -10,7 +10,15 @@ sudo apt install libxmu-dev freeglut3-dev libxext-dev libxi-dev
 
 # Other essentials
 sudo apt install libbsd-dev libsqlite3-dev libgdbm-compat-dev
+
+# Only to REGENERATE the station images of the faceplate builder
+# (they are committed, so normal use does not need these)
+sudo apt install imagemagick xvfb
 ```
+
+The Fedora/WSL list, which is the one kept up to date, is in
+[README.md](README.md); `imagemagick` also gives `legopc` and
+`draw2gr` their PNG export.
 
 ## Compiler Configuration
 - **C Compiler**: gcc with `-fcommon` flag for multiple definitions

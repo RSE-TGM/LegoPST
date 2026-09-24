@@ -203,10 +203,12 @@ sudo dnf clean all
 
 ```
 
-> **`ImageMagick` and `Xvfb`** are needed only to *regenerate* the station
-> images used by the faceplate builder: `cattura_pagine.tcl` opens the catalogue
-> pages with the real `xstaz` on a virtual display and photographs them. Nothing
-> at run time needs them, and the images are committed — see
+> **`ImageMagick`** gives `legopc` and `draw2gr` their **PNG export** (they look
+> for `import`/`magick`; without it only PostScript is offered). Together with
+> **`Xvfb`** it also lets you *regenerate* the station images used by the
+> faceplate builder: `cattura_pagine.tcl` opens the catalogue pages with the real
+> `xstaz` on a virtual display and photographs them. That regeneration is rarely
+> needed — the images are committed — see
 > [the station development notes](Alg_rt/grafica/xstaz/README.md#se-modifichi-il-codice-delle-stazioni).
 
 > **Choosing a terminal.** LegoPST opens terminal windows through `lgterm`, which
@@ -406,6 +408,7 @@ directory you are looking at. See [docs/BUILD.md](docs/BUILD.md).
 | MMI pages and configuration | [Alg_mmi/README.md](Alg_mmi/README.md) |
 | FMU export and co-simulation (FMI 2.0) | [Alg_rt/lg_fmu/USAGE.md](Alg_rt/lg_fmu/USAGE.md) |
 | Command faceplates: `compstaz`, `xstaz` | [Alg_rt/grafica/xstaz/README.md](Alg_rt/grafica/xstaz/README.md) |
+| `lgmkstaz`: building faceplate pages on screen | [Alg_legopc/LGMKSTAZ.md](Alg_legopc/LGMKSTAZ.md) |
 | The `kprocedure` commands | [kbin/README.md](kbin/README.md) |
 | Code conventions | [CONVENTIONS.md](CONVENTIONS.md) |
 
