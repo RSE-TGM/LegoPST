@@ -187,6 +187,8 @@ sudo dnf install -y --setopt=install_weak_deps=False \
     rsync \
     xdg-utils \
     ghostscript \
+    ImageMagick \
+    xorg-x11-server-Xvfb \
     drawing \
     evince \
     falkon \
@@ -200,6 +202,12 @@ sudo dnf clean all
 
 
 ```
+
+> **`ImageMagick` and `Xvfb`** are needed only to *regenerate* the station
+> images used by the faceplate builder: `cattura_pagine.tcl` opens the catalogue
+> pages with the real `xstaz` on a virtual display and photographs them. Nothing
+> at run time needs them, and the images are committed — see
+> [the station development notes](Alg_rt/grafica/xstaz/README.md#se-modifichi-il-codice-delle-stazioni).
 
 > **Choosing a terminal.** LegoPST opens terminal windows through `lgterm`, which
 > defaults to the spartan `xterm`. To use a better one, install it (`xfce4-terminal`

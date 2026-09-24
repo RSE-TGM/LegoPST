@@ -80,11 +80,23 @@ Se si rigenera `r01.dat` la catena va percorsa tutta, perché le immagini
 restano indietro:
 
 1. `python3 genera_catalogo.py > r01.dat`
-2. **ricatturare** le pagine (`pag_*.png`): aprirle con `xstaz` e fotografare
-   la finestra di ciascuna. Serve uno strumento di cattura (`import` di
-   ImageMagick, come fa l'export PNG di `legopc`); su un display virtuale
-   `Xvfb` le finestre non compaiono sullo schermo e la cattura è ripetibile.
-3. `wish ritaglia_sprite.tcl` per rifare gli sprite.
+2. `wish cattura_pagine.tcl` — fa **tutto il resto**: compila il catalogo con
+   `compstaz` in una directory scratch, apre ogni pagina con `xstaz` su un
+   display virtuale `Xvfb` (niente finestre sullo schermo, risultato
+   ripetibile), la fotografa con `import`, e alla fine rilancia
+   `ritaglia_sprite.tcl`. Usa una chiave SHM/IPC isolata e rimuove solo
+   quella. Opzioni: `-schermo` per usare il display vero, `-rtf <file>` per
+   indicare quale `variabili.rtf` usare, `-no-ritaglia` per fermarsi alle
+   catture.
 
-Il passo 3 si accorge da solo se si è saltato il 2: il controllo sul bordo
-fallisce, oppure un tipo nuovo resta senza sprite e viene elencato.
+   Servono `ImageMagick` e `xorg-x11-server-Xvfb`.
+3. `wish ritaglia_sprite.tcl` solo se al passo 2 hai usato `-no-ritaglia`.
+
+Il ritaglio si accorge da solo se si è saltata la ricattura: il controllo sul
+bordo fallisce, oppure un tipo nuovo resta senza sprite e viene elencato.
+
+Le catture **non sono riproducibili al bit**: display e indicatori mostrano il
+valore che leggono dalla memoria condivisa, e senza una simulazione attaccata
+un `DISPLAY` scrive `----` invece di `0.00` e un indicatore non ha l'indice.
+L'inquadratura invece è sempre la stessa. Vedi
+[le note sullo sviluppo delle stazioni](../README.md#se-modifichi-il-codice-delle-stazioni).

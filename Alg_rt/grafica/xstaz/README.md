@@ -327,6 +327,69 @@ Il `NOME` di una pagina piu' lungo di 8 caratteri sforava nel campo descrizione
 che segue nella struttura; da settembre 2026 `compstaz` e `convstaz` lo rifiutano
 con un messaggio.
 
+## Se modifichi il codice delle stazioni
+
+Il disegno delle stazioni non finisce in `xstaz`: le **immagini** che
+[`lgmkstaz`](../../../Alg_legopc/LGMKSTAZ.md) mostra nell'editor sono
+*fotografie* di questo codice, ritagliate dalle catture del catalogo. Se cambi
+come una stazione appare e non le rifai, l'editor continua a mostrare quella
+vecchia **senza che niente protesti**.
+
+La catena si percorre con un comando solo:
+
+```sh
+source .profile_legoroot
+cd Alg_rt/grafica/xstaz && make -f Makefile.mk      # libstaz_r.a, xstaz, stazpag
+cd catalogo && wish cattura_pagine.tcl             # ricattura + rifa' gli sprite
+```
+
+`cattura_pagine.tcl` compila il catalogo con `compstaz` in una directory
+scratch, apre ogni pagina con `xstaz` su un **display virtuale** `Xvfb` (niente
+finestre sullo schermo, e il risultato e' ripetibile), la fotografa, e alla
+fine rilancia `ritaglia_sprite.tcl`. Usa una chiave SHM/IPC **isolata**
+(`50000000 + pid`) e rimuove solo quella: mai `killsim`, che su Linux
+cancellerebbe tutte le SHM dell'utente. Con `-schermo` usa il display vero, con
+`-rtf <file>` gli indichi quale `variabili.rtf` usare (`compstaz` ne vuole uno
+anche se il catalogo non cita variabili).
+
+Servono `ImageMagick` e `xorg-x11-server-Xvfb`; lo script te lo dice se
+mancano.
+
+### Cosa serve rifare, secondo cosa hai toccato
+
+| Hai cambiato | Cosa rifare |
+|---|---|
+| un disegnatore (`g*.c`) o un widget di `AlgLib/libwidget` | `make` di xstaz, poi `cattura_pagine.tcl`. Se hai spostato dei **testi** dentro l'oggetto, anche la sovrapposizione di lgmkstaz (`disegna_parametri`, che ricalca `gstringa.c`/`gled.c`/`gselet.c`/`gsetval.c`) |
+| la tabella `new_staz[]` in `newstaz.h` | `make` di xstaz, `compstaz` e `Alg_mmi/conv_staz` (usa la stessa tabella); `python3 genera_catalogo.py > r01.dat`; `cattura_pagine.tcl`; `tclsh genera_geometria.tcl > lgmkstaz_geometria.tcl` in `Alg_legopc/src/tix`; l'array `catalogo` di `lgmkstaz_dati.tcl` **a mano** |
+| un lettore del formato (`compstaz/c_*.c`) | `make` di compstaz; l'array `grammatica` di `lgmkstaz_dati.tcl` **a mano**; aggiornare [HOWTO_faceplate.md](HOWTO_faceplate.md); ricompilare i `r01.dat` esistenti (`kCompStaz`, o `kUpSim`) |
+| una stazione **storica** (`am3_r.c`, `sa1_r.c`, …) | solo `make` di xstaz: lgmkstaz non le modella (blocchi opachi, niente sprite). Solo se cambia l'ingombro in celle, `dimensioni_storiche` di `lgmkstaz_dati.tcl` |
+
+Le due cose **a mano** non devi ricordartele: `lgmkstaz_test.tcl` confronta il
+catalogo scritto a mano con la geometria generata da `newstaz.h` e ti dice
+quale tipo non torna, e `ritaglia_sprite.tcl` si rifiuta di ritagliare se le
+catture non corrispondono piu' al `r01.dat` (controlla il bordo e l'occupazione
+cella per cella).
+
+### Due cose da sapere prima di guardare i pixel
+
+**La finestra di una pagina e' il contenuto piu' 5 px per lato**
+(`xstaz.c`: `lform = posmx*62 + 10`), ed e' anche l'inquadratura che gli
+sprite si aspettano: per questo la cattura non ritaglia niente.
+
+**`compstaz` normalizza le posizioni della pagina.** Prima di scrivere
+`r02.dat` trova il minimo `posix0`/`posiy0` fra le stazioni della pagina e lo
+**sottrae a tutte** (`compstaz.c`), e solo dopo calcola `posmx`/`posmy`. Quindi
+una pagina le cui stazioni cominciano alla cella 5 viene disegnata come se
+cominciassero a 0: **contano solo le posizioni relative** fra le stazioni, non
+quelle assolute.
+
+**Le catture non sono riproducibili al bit** se cambia lo stato della memoria
+condivisa: display e indicatori mostrano il valore che leggono. Con una chiave
+isolata e nessuna simulazione attaccata un `DISPLAY` scrive `----` e un
+indicatore non ha indice; con dei valori a disposizione scrive `0.00` e
+disegna l'indice a fondo scala. E' una differenza di contenuto, non di
+inquadratura: le altre pagine tornano identiche al pixel.
+
 ## Trappole
 
 - **`compstaz` restituisce 24 anche quando va bene.** Termina con

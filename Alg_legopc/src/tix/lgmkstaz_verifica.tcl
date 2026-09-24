@@ -91,11 +91,25 @@ proc ::lgmkstaz::verifica_chiave_isolata {} {
 #  solo la SHM di compstaz, le altre non sono mai state create: ipcrm su una
 #  chiave inesistente fallisce in silenzio, va bene cosi').
 proc ::lgmkstaz::verifica_pulisci_chiave {chiave} {
-    catch { exec ipcrm -M [expr {$chiave + 5}] }   ;# ID_SHM_VAR
-    foreach offset {3 4 5 6 7 8 9 10 11 12 13 60} { ;# msg_create_fam (ID_MSG_*)
-        catch { exec ipcrm -Q [expr {$chiave + $offset}] }
+    #  Si rimuove tutto cio' che sta nella fascia di questa esecuzione: la
+    #  chiave e i 100 numeri che la seguono. Una lista fissa di offset non
+    #  basta - oltre alla SHM di compstaz (ID_SHM_VAR = +5) e alla famiglia di
+    #  code di msg_create_fam, xstaz ne crea altre (vista una a +8) e
+    #  restavano in giro. La fascia e' nostra per costruzione (50000000 + pid,
+    #  con pid < 100000), quindi spazzarla non puo' toccare ne' il banco
+    #  dell'utente (uid*10000) ne' la tavola acqua/vapore (999). Mai killsim,
+    #  che su Linux non filtra per chiave e cancellerebbe tutto.
+    foreach {opzione elenco} {-M m -Q q -S s} {
+        if {[catch {exec ipcs -$elenco} righe]} continue
+        foreach riga [split $righe \n] {
+            set k [lindex $riga 0]
+            if {![string match "0x*" $k]} continue
+            if {[catch {expr {$k + 0}} n]} continue
+            if {$n >= $chiave && $n <= $chiave + 100} {
+                catch { exec ipcrm $opzione $n }
+            }
+        }
     }
-    catch { exec ipcrm -S [expr {$chiave + 10}] }  ;# ID_SEM_MSG
 }
 
 #  Prepara una directory scratch nuova con r01.dat (dal modello ATTUALE, non
