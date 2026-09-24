@@ -51,6 +51,12 @@ rendere visibile il confine invece di lasciare un'area bianca ambigua. La
 vista si apre sempre sull'origine, con un margine di crescita verso l'alto e
 verso destra.
 
+Quelle caselle grigie fanno anche da **righelli**: portano scritto il numero
+della colonna (sotto) e della riga (a sinistra), così la `POSIZIONE` di una
+cella si legge invece di contarla. L'angolo in cui le due strisce si
+incrociano non ha numero, perché non è né una colonna né una riga valida. Si
+spengono da `Visualizza → Numeri di riga e colonna`, acceso all'avvio.
+
 ## Vedere le stazioni
 
 Di default ogni stazione è disegnata con la **sua immagine reale**, ritagliata
@@ -92,18 +98,32 @@ miniatura dell'elemento. Un clic sul canvas piazza la stazione *centrata sul
 punto*. Il tipo resta armato — si piazzano più copie di seguito — finché non
 si preme **`Esc`** o non si sceglie un altro tipo.
 
-**Spostare.** Si trascina. Al rilascio la stazione si aggancia alla griglia. Se
-finisce sopra un'altra la riga di stato lo **segnala**, ma non lo impedisce:
-`compstaz` non sembra vietarlo, e un divieto inventato qui sarebbe un vincolo
-in più rispetto al formato vero.
+**Selezionare.** Un clic su una stazione la seleziona. Premendo e trascinando
+**sullo sfondo** del canvas si traccia un rettangolo e si selezionano tutte le
+stazioni che tocca, come in `legopc`. `Ctrl+A` seleziona l'intera pagina, `Esc`
+deseleziona. Ogni stazione selezionata è cerchiata da un riquadro tratteggiato.
 
-**Cancellare.** `Canc` o `BackSpace` sulla stazione selezionata.
+Tutto quello che segue vale per **una stazione o per molte**: la selezione si
+sposta, si copia, si incolla e si cancella come un blocco solo.
+
+**Spostare.** Si trascina. Al rilascio le stazioni si agganciano alla griglia.
+Trascinando una stazione che fa parte della selezione si muove **tutto il
+gruppo**, dello stesso scostamento, quindi le posizioni relative si
+conservano; nessuna può finire a coordinate negative (il limite si applica allo
+scostamento, non alla singola stazione, altrimenti il gruppo si deformerebbe).
+Se qualcosa finisce sopra un'altra stazione la riga di stato lo **segnala**, ma
+non lo impedisce: `compstaz` non sembra vietarlo, e un divieto inventato qui
+sarebbe un vincolo in più rispetto al formato vero.
+
+**Cancellare.** `Canc` o `BackSpace`.
 
 **Copiare e incollare.** `Ctrl+C` e `Ctrl+V` **sul canvas** (che prende il
 fuoco al primo clic; nelle caselle di testo `Ctrl+C`/`Ctrl+V` restano copia e
 incolla del testo). Si copia la stazione intera — tipo, descrizione e *tutti i
 valori degli oggetti*: colori, riferimenti alle variabili, scalamenti — che è
 poi il lavoro che si vuole evitare di rifare a mano su una stazione gemella.
+Con più stazioni selezionate si copia il gruppo, e incollandolo le posizioni
+relative restano quelle.
 
 Della copia cambia solo ciò che la identifica nella pagina: id nuovo, e
 **`NUMERO` azzerato** (un numero duplicato sarebbe un errore vero per
@@ -111,6 +131,9 @@ Della copia cambia solo ciò che la identifica nella pagina: id nuovo, e
 piazzata). Si incolla sotto il puntatore se è sul canvas, altrimenti una cella
 in diagonale rispetto all'originale. Gli appunti restano: si incolla più
 volte, anche **in un'altra pagina** del file.
+
+Le stesse azioni stanno nel menu **`Edit`**, con la scorciatoia scritta
+accanto, per non doverle ricordare a memoria.
 
 **Nuova pagina.** `File → Nuova pagina...` chiede numero, nome e descrizione,
 con le stesse convalide del parser.

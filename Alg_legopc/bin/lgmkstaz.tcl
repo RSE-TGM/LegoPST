@@ -68,18 +68,26 @@ namespace eval ::lgmkstaz {
     variable pagina_disegnata ""
     variable altezza_pagina_celle 1  ;# posmy della pagina disegnata ora (vedi disegna_pagina)
     variable modificato 0
-    variable stazione_selezionata ""  ;# id, o "" se niente selezionato
+    #  La selezione e' una LISTA di id: si seleziona una stazione col clic,
+    #  o piu' d'una col rettangolo tracciato sullo sfondo del canvas. Tutto
+    #  cio' che agisce "sulla selezione" (sposta, copia, incolla, cancella)
+    #  agisce sull'intera lista.
+    variable selezione {}
+    variable banda_x0 ""              ;# angolo del rettangolo di selezione in corso
+    variable banda_y0 ""
     variable tipo_armato ""           ;# tipo scelto in libreria (modo "piazza"), o ""
     variable drag_id ""               ;# id della stazione in trascinamento, o ""
     variable drag_dx 0
     variable drag_dy 0
     variable drag_partito 0           ;# 1 se durante il trascinamento c'e' stato un vero movimento
     variable prossimo_id 0            ;# per le stazioni create durante l'editing
-    variable appunti ""               ;# la stazione copiata con Ctrl+C, o ""
+    variable appunti {}               ;# le stazioni copiate con Ctrl+C (lista)
 
     # Disegno delle stazioni con le immagini vere di xstaz (sprite) invece che
     # con lo schema a forme semplici. Vedi sprite_per_tipo.
     variable usa_sprite 1
+    #  i numeri di riga e colonna nelle caselle grigie degli assi
+    variable mostra_assi 1
     variable sprite         ;# tipo -> nome dell'immagine Tk, o "" se non c'e'
     array set sprite {}
     variable miniatura      ;# tipo -> sprite rimpicciolito per la riga di stato
@@ -180,13 +188,33 @@ proc ::lgmkstaz::disegna_pagina {numero} {
     #  griglia. La riga sotto e la colonna a sinistra si intersecano
     #  nell'angolo (-1,-1 del file): disegnata due volte, stesso aspetto,
     #  non fa differenza.
+    #  Nelle caselle grigie ci sta anche il numero della colonna (sotto) e
+    #  della riga (a sinistra): sono gli assi della pagina, e leggere li' la
+    #  POSIZIONE di una cella evita di contarla a mano. Il numero di riga si
+    #  ricava capovolgendo la Y, come ovunque qui: la cella che comincia a
+    #  $gy sul canvas e' la riga (altezza_pagina - 1 - gy/62) del file.
+    #  L'angolo in cui le due strisce si incrociano non ha numero: non e' ne'
+    #  una colonna ne' una riga valida.
+    variable mostra_assi
     for {set gx $x0} {$gx < $x1} {incr gx $dim_cella_px} {
         $c create rectangle $gx $y_origine [expr {$gx + $dim_cella_px}] $y1 \
             -fill #e2e2e2 -outline #cfcfcf -tags proibito
+        set colonna [expr {$gx / $dim_cella_px}]
+        if {$mostra_assi && $colonna >= 0} {
+            $c create text [expr {$gx + $dim_cella_px / 2}] \
+                [expr {$y_origine + $dim_cella_px / 2}] \
+                -text $colonna -fill #444444 -font {Helvetica 9} -tags proibito
+        }
     }
     for {set gy $y0} {$gy < $y1} {incr gy $dim_cella_px} {
         $c create rectangle $x0 $gy [expr {$x0 + $dim_cella_px}] [expr {$gy + $dim_cella_px}] \
             -fill #e2e2e2 -outline #cfcfcf -tags proibito
+        set riga [expr {$altezza_pagina_celle - 1 - $gy / $dim_cella_px}]
+        if {$mostra_assi && $riga >= 0} {
+            $c create text [expr {$x0 + $dim_cella_px / 2}] \
+                [expr {$gy + $dim_cella_px / 2}] \
+                -text $riga -fill #444444 -font {Helvetica 9} -tags proibito
+        }
     }
 
     #  griglia leggera della zona VALIDA soltanto (0..larg_valida in X,
@@ -699,22 +727,44 @@ proc ::lgmkstaz::disegna_icona_oggetto {c cx cy lato oggetto tag} {
     }
 }
 
-#  Il riquadro tratteggiato attorno alla stazione selezionata, se c'e'.
-proc ::lgmkstaz::disegna_selezione {} {
-    variable stazione_selezionata
+#  --- la selezione ---------------------------------------------------------
+
+proc ::lgmkstaz::selezione_imposta {ids} {
+    variable selezione
+    set selezione $ids
+    disegna_selezione
+}
+
+proc ::lgmkstaz::selezione_contiene {id} {
+    variable selezione
+    return [expr {[lsearch -exact $selezione $id] >= 0}]
+}
+
+#  Le stazioni selezionate, come dict, saltando quelle sparite dal modello
+#  (una cancellazione lascia l'id nella lista finche' non si ripassa di qui).
+proc ::lgmkstaz::selezione_stazioni {} {
+    variable selezione
     variable modello
+    set esito {}
+    foreach id $selezione {
+        set i [modello_indice_stazione $modello $id]
+        if {$i >= 0} { lappend esito [lindex [dict get $modello stazioni] $i] }
+    }
+    return $esito
+}
+
+#  Il riquadro tratteggiato attorno a ogni stazione selezionata.
+proc ::lgmkstaz::disegna_selezione {} {
     variable altezza_pagina_celle
 
     set c .corpo.destra.canvas
     $c delete selezione
-    if {$stazione_selezionata eq ""} { return }
-    set i [modello_indice_stazione $modello $stazione_selezionata]
-    if {$i < 0} { set stazione_selezionata ""; return }
-    set s [lindex [dict get $modello stazioni] $i]
-    lassign [riquadro_celle [dict get $s posx] [dict get $s posy] \
-                 [dict get $s larg] [dict get $s altezza] $altezza_pagina_celle] x0 y0 x1 y1
-    $c create rectangle [expr {$x0 - 2}] [expr {$y0 - 2}] [expr {$x1 + 2}] [expr {$y1 + 2}] \
-        -outline #1450a3 -width 2 -dash {4 2} -tags selezione
+    foreach s [selezione_stazioni] {
+        lassign [riquadro_celle [dict get $s posx] [dict get $s posy] \
+                     [dict get $s larg] [dict get $s altezza] $altezza_pagina_celle] x0 y0 x1 y1
+        $c create rectangle [expr {$x0 - 2}] [expr {$y0 - 2}] [expr {$x1 + 2}] [expr {$y1 + 2}] \
+            -outline #1450a3 -width 2 -dash {4 2} -tags selezione
+    }
 }
 
 # ---------------------------------------------------------------------------
@@ -777,7 +827,23 @@ proc ::lgmkstaz::aggiorna_cursore {} {
 proc ::lgmkstaz::annulla_armato {} {
     set ::lgmkstaz::tipo_armato ""
     .corpo.sinistra.libreria.lista selection clear 0 end
+    selezione_imposta {}
     aggiorna_cursore
+}
+
+#  Tutte le stazioni della pagina che si sta guardando (non dell'intero file:
+#  la selezione vive sul canvas, e cio' che non si vede non si puo' spostare
+#  ne' vedere selezionato).
+proc ::lgmkstaz::seleziona_tutto {} {
+    variable modello
+    variable pagina_disegnata
+    if {$modello eq "" || $pagina_disegnata eq ""} { return }
+    set ids {}
+    foreach s [dict get $modello stazioni] {
+        if {[dict get $s pagina] == $pagina_disegnata} { lappend ids [dict get $s id] }
+    }
+    selezione_imposta $ids
+    stato "[llength $ids] stazioni selezionate"
 }
 
 #  Filtra la libreria mentre si scrive nel campo di ricerca: un elenco di 54
@@ -831,9 +897,8 @@ proc ::lgmkstaz::piazza_stazione {tipo x_widget y_widget} {
     incr prossimo_id
     set modello [modello_aggiungi_stazione $modello $nuova]
     imposta_modificato 1
-    set stazione_selezionata [dict get $nuova id]
-    set ::lgmkstaz::stazione_selezionata $stazione_selezionata
     disegna_pagina $pagina_disegnata
+    selezione_imposta [list [dict get $nuova id]]
     stato "Piazzata $tipo in $posx,$posy$avviso"
 }
 
@@ -844,33 +909,43 @@ proc ::lgmkstaz::piazza_stazione {tipo x_widget y_widget} {
 
 proc ::lgmkstaz::canvas_press {x y} {
     variable tipo_armato
-    variable stazione_selezionata
     variable altezza_pagina_celle
     variable drag_id
     variable drag_dx
     variable drag_dy
     variable drag_partito
+    variable banda_x0
+    variable banda_y0
 
     focus .corpo.destra.canvas
     set drag_partito 0
+    set banda_x0 ""
+    set banda_y0 ""
 
     if {$tipo_armato ne ""} {
         piazza_stazione $tipo_armato $x $y
         return
     }
 
+    set c .corpo.destra.canvas
     set s [stazione_sotto $x $y]
     if {$s eq ""} {
-        set stazione_selezionata ""
+        #  sullo sfondo: comincia il rettangolo di selezione (come in legopc).
+        #  La selezione precedente si azzera solo se il rettangolo non prende
+        #  niente, cosi' un clic a vuoto deseleziona e un trascinamento
+        #  seleziona - senza due gesti diversi da ricordare.
         set drag_id ""
-        disegna_selezione
+        set banda_x0 [$c canvasx $x]
+        set banda_y0 [$c canvasy $y]
         return
     }
 
-    set stazione_selezionata [dict get $s id]
-    disegna_selezione
+    #  su una stazione gia' selezionata si trascina TUTTO il gruppo; su una
+    #  fuori dalla selezione, quella diventa l'unica selezionata
+    if {![selezione_contiene [dict get $s id]]} {
+        selezione_imposta [list [dict get $s id]]
+    }
 
-    set c .corpo.destra.canvas
     lassign [riquadro_celle [dict get $s posx] [dict get $s posy] \
                  [dict get $s larg] [dict get $s altezza] $altezza_pagina_celle] x0 y0 x1 y1
     set drag_id [dict get $s id]
@@ -880,23 +955,34 @@ proc ::lgmkstaz::canvas_press {x y} {
 
 #  Durante il trascinamento sposta solo gli ITEM sul canvas (feedback
 #  visivo): il modello non cambia finche' non si rilascia il pulsante, dove
-#  la posizione si aggancia alla griglia (canvas_release).
+#  la posizione si aggancia alla griglia (canvas_release). Con piu' stazioni
+#  selezionate si muovono tutte insieme, dello stesso scostamento.
 proc ::lgmkstaz::canvas_motion {x y} {
     variable drag_id
     variable drag_dx
     variable drag_dy
     variable drag_partito
+    variable banda_x0
+    variable banda_y0
+    variable selezione
+
+    set c .corpo.destra.canvas
+
+    if {$banda_x0 ne ""} {
+        $c delete banda
+        $c create rectangle $banda_x0 $banda_y0 [$c canvasx $x] [$c canvasy $y] \
+            -outline #1450a3 -dash {2 2} -tags banda
+        return
+    }
 
     if {$drag_id eq ""} { return }
-    set c .corpo.destra.canvas
-    set tag "staz$drag_id"
-    set bbox [$c bbox $tag]
+    set bbox [$c bbox "staz$drag_id"]
     if {$bbox eq ""} { return }
     set nuovo_x0 [expr {[$c canvasx $x] - $drag_dx}]
     set nuovo_y0 [expr {[$c canvasy $y] - $drag_dy}]
     set dx [expr {$nuovo_x0 - [lindex $bbox 0]}]
     set dy [expr {$nuovo_y0 - [lindex $bbox 1]}]
-    $c move $tag $dx $dy
+    foreach id $selezione { $c move "staz$id" $dx $dy }
     $c move selezione $dx $dy
     set drag_partito 1
 }
@@ -909,6 +995,37 @@ proc ::lgmkstaz::canvas_release {x y} {
     variable modello
     variable altezza_pagina_celle
     variable pagina_disegnata
+    variable banda_x0
+    variable banda_y0
+    variable selezione
+
+    set c .corpo.destra.canvas
+
+    #  fine del rettangolo di selezione
+    if {$banda_x0 ne ""} {
+        set x1 [$c canvasx $x]
+        set y1 [$c canvasy $y]
+        $c delete banda
+        set presi {}
+        foreach item [$c find overlapping \
+                          [expr {min($banda_x0,$x1)}] [expr {min($banda_y0,$y1)}] \
+                          [expr {max($banda_x0,$x1)}] [expr {max($banda_y0,$y1)}]] {
+            foreach tag [$c gettags $item] {
+                if {[regexp {^staz(\d+)$} $tag -> id] && [lsearch -exact $presi $id] < 0} {
+                    lappend presi $id
+                }
+            }
+        }
+        set banda_x0 ""
+        set banda_y0 ""
+        selezione_imposta $presi
+        if {[llength $presi] == 0} {
+            stato ""
+        } else {
+            stato "[llength $presi] stazioni selezionate"
+        }
+        return
+    }
 
     if {$drag_id eq "" || !$drag_partito} { set drag_id ""; return }
     set id $drag_id
@@ -920,27 +1037,54 @@ proc ::lgmkstaz::canvas_release {x y} {
     set larg [dict get $s larg]
     set altezza [dict get $s altezza]
 
-    set c .corpo.destra.canvas
+    #  Dove finisce la stazione su cui si e' premuto: da li' si ricava lo
+    #  SCOSTAMENTO in celle, che vale per tutte le altre selezionate. Cosi'
+    #  il gruppo mantiene le sue posizioni relative.
     set nuovo_x0 [expr {[$c canvasx $x] - $drag_dx}]
     set nuovo_y0 [expr {[$c canvasy $y] - $drag_dy}]
     lassign [cella_da_pixel $nuovo_x0 $nuovo_y0 $larg $altezza $altezza_pagina_celle] posx posy
-    if {$posx < 0} { set posx 0 }
-    if {$posy < 0} { set posy 0 }
+    set dcx [expr {$posx - [dict get $s posx]}]
+    set dcy [expr {$posy - [dict get $s posy]}]
 
+    #  nessuna stazione del gruppo puo' finire a coordinate negative: si
+    #  limita lo scostamento, non le singole stazioni, altrimenti il gruppo
+    #  si deformerebbe
+    foreach st [selezione_stazioni] {
+        if {[dict get $st posx] + $dcx < 0} { set dcx [expr {-[dict get $st posx]}] }
+        if {[dict get $st posy] + $dcy < 0} { set dcy [expr {-[dict get $st posy]}] }
+    }
+    if {$dcx == 0 && $dcy == 0} { disegna_pagina $pagina_disegnata; disegna_selezione; return }
+
+    set quante 0
+    foreach st [selezione_stazioni] {
+        set modello [modello_sposta_stazione $modello [dict get $st id] \
+                         [expr {[dict get $st posx] + $dcx}] \
+                         [expr {[dict get $st posy] + $dcy}]]
+        incr quante
+    }
+    imposta_modificato 1
+    disegna_pagina $pagina_disegnata
+    disegna_selezione
+
+    set avviso ""
     set stazioni_pagina {}
     foreach st [dict get $modello stazioni] {
         if {[dict get $st pagina] == [dict get $s pagina]} { lappend stazioni_pagina $st }
     }
-    set avviso ""
-    if {[stazioni_sovrapposte $stazioni_pagina $posx $posy $larg $altezza $id]} {
-        set avviso "  (si sovrappone a un'altra stazione)"
+    foreach st [selezione_stazioni] {
+        if {[stazioni_sovrapposte $stazioni_pagina [dict get $st posx] [dict get $st posy] \
+                 [dict get $st larg] [dict get $st altezza] [dict get $st id]]} {
+            set avviso "  (qualcosa si sovrappone)"
+            break
+        }
     }
-
-    set modello [modello_sposta_stazione $modello $id $posx $posy]
-    imposta_modificato 1
-    set ::lgmkstaz::stazione_selezionata $id
-    disegna_pagina $pagina_disegnata
-    stato "Spostata in $posx,$posy$avviso"
+    if {$quante == 1} {
+        set i [modello_indice_stazione $modello $id]
+        set s [lindex [dict get $modello stazioni] $i]
+        stato "Spostata in [dict get $s posx],[dict get $s posy]$avviso"
+    } else {
+        stato "Spostate $quante stazioni$avviso"
+    }
 }
 
 proc ::lgmkstaz::canvas_hover {x y} {
@@ -982,27 +1126,27 @@ proc ::lgmkstaz::canvas_double {x y} {
 # ---------------------------------------------------------------------------
 
 proc ::lgmkstaz::copia_selezionata {} {
-    variable stazione_selezionata
-    variable modello
     variable appunti
 
-    if {$stazione_selezionata eq ""} {
+    set staz [selezione_stazioni]
+    if {[llength $staz] == 0} {
         stato "Niente da copiare: nessuna stazione selezionata."
         return
     }
-    set i [modello_indice_stazione $modello $stazione_selezionata]
-    if {$i < 0} { return }
-    set appunti [lindex [dict get $modello stazioni] $i]
-    stato "Copiata [dict get $appunti tipo] - Ctrl+V per incollarla"
+    set appunti $staz
+    if {[llength $staz] == 1} {
+        stato "Copiata [dict get [lindex $staz 0] tipo] - Ctrl+V per incollarla"
+    } else {
+        stato "Copiate [llength $staz] stazioni - Ctrl+V per incollarle"
+    }
 }
 
-#  Dove finisce la stazione incollata: sotto il puntatore, se e' sul canvas
-#  (come il piazzamento dalla libreria, riquadro CENTRATO sul punto); se il
-#  puntatore e' altrove - per esempio si e' appena usato un menu - una cella
-#  in diagonale rispetto all'originale, cosi' la copia non finisce esattamente
-#  sopra di esso e si vede che ce ne sono due.
-proc ::lgmkstaz::posizione_incolla {larg altezza} {
-    variable appunti
+#  Dove finisce il gruppo incollato: l'angolo (posx,posy) minimo del gruppo
+#  va sotto il puntatore, se e' sul canvas (come il piazzamento dalla
+#  libreria, con il riquadro CENTRATO sul punto); se il puntatore e' altrove -
+#  per esempio si e' appena usato un menu - una cella in diagonale rispetto
+#  all'originale, cosi' la copia non finisce esattamente sopra di esso.
+proc ::lgmkstaz::posizione_incolla {larg altezza ancora_x ancora_y} {
     variable altezza_pagina_celle
     variable dim_cella_px
 
@@ -1015,8 +1159,8 @@ proc ::lgmkstaz::posizione_incolla {larg altezza} {
         set cy [expr {[$c canvasy $wy] - ($altezza * $dim_cella_px) / 2.0}]
         lassign [cella_da_pixel $cx $cy $larg $altezza $altezza_pagina_celle] posx posy
     } else {
-        set posx [expr {[dict get $appunti posx] + 1}]
-        set posy [expr {[dict get $appunti posy] + 1}]
+        set posx [expr {$ancora_x + 1}]
+        set posy [expr {$ancora_y + 1}]
     }
     if {$posx < 0} { set posx 0 }
     if {$posy < 0} { set posy 0 }
@@ -1028,9 +1172,8 @@ proc ::lgmkstaz::incolla {} {
     variable modello
     variable pagina_disegnata
     variable prossimo_id
-    variable stazione_selezionata
 
-    if {$appunti eq ""} {
+    if {[llength $appunti] == 0} {
         stato "Niente da incollare: copia prima una stazione con Ctrl+C."
         return
     }
@@ -1040,45 +1183,70 @@ proc ::lgmkstaz::incolla {} {
         return
     }
 
-    set larg [dict get $appunti larg]
-    set altezza [dict get $appunti altezza]
-    lassign [posizione_incolla $larg $altezza] posx posy
+    #  l'ingombro del GRUPPO e il suo angolo, per conservare le posizioni
+    #  relative fra le stazioni copiate
+    set ax ""; set ay ""; set bx 0; set by 0
+    foreach st $appunti {
+        set px [dict get $st posx]; set py [dict get $st posy]
+        if {$ax eq "" || $px < $ax} { set ax $px }
+        if {$ay eq "" || $py < $ay} { set ay $py }
+        if {$px + [dict get $st larg] > $bx}    { set bx [expr {$px + [dict get $st larg]}] }
+        if {$py + [dict get $st altezza] > $by} { set by [expr {$py + [dict get $st altezza]}] }
+    }
+    lassign [posizione_incolla [expr {$bx - $ax}] [expr {$by - $ay}] $ax $ay] posx posy
 
     set stazioni_pagina {}
     foreach st [dict get $modello stazioni] {
         if {[dict get $st pagina] == $pagina_disegnata} { lappend stazioni_pagina $st }
     }
+
+    set nuovi {}
     set avviso ""
-    if {[stazioni_sovrapposte $stazioni_pagina $posx $posy $larg $altezza -1]} {
-        set avviso "  (si sovrappone a un'altra stazione)"
+    foreach st $appunti {
+        set nx [expr {$posx + [dict get $st posx] - $ax}]
+        set ny [expr {$posy + [dict get $st posy] - $ay}]
+        if {[stazioni_sovrapposte $stazioni_pagina $nx $ny \
+                 [dict get $st larg] [dict get $st altezza] -1]} {
+            set avviso "  (si sovrappone a un'altra stazione)"
+        }
+        set nuova $st
+        dict set nuova id $prossimo_id
+        dict set nuova pagina $pagina_disegnata
+        dict set nuova posx $nx
+        dict set nuova posy $ny
+        dict set nuova numero ""
+        incr prossimo_id
+        set modello [modello_aggiungi_stazione $modello $nuova]
+        lappend nuovi [dict get $nuova id]
     }
 
-    set nuova $appunti
-    dict set nuova id $prossimo_id
-    dict set nuova pagina $pagina_disegnata
-    dict set nuova posx $posx
-    dict set nuova posy $posy
-    dict set nuova numero ""
-    incr prossimo_id
-
-    set modello [modello_aggiungi_stazione $modello $nuova]
     imposta_modificato 1
-    set stazione_selezionata [dict get $nuova id]
     disegna_pagina $pagina_disegnata
-    disegna_selezione
-    stato "Incollata [dict get $nuova tipo] in $posx,$posy$avviso"
+    selezione_imposta $nuovi
+    if {[llength $nuovi] == 1} {
+        stato "Incollata [dict get [lindex $appunti 0] tipo] in $posx,$posy$avviso"
+    } else {
+        stato "Incollate [llength $nuovi] stazioni da $posx,$posy$avviso"
+    }
 }
 
 proc ::lgmkstaz::elimina_selezionata {} {
-    variable stazione_selezionata
     variable modello
     variable pagina_disegnata
 
-    if {$stazione_selezionata eq ""} { return }
-    set modello [modello_elimina_stazione $modello $stazione_selezionata]
-    set stazione_selezionata ""
+    set staz [selezione_stazioni]
+    if {[llength $staz] == 0} { return }
+    foreach st $staz {
+        set modello [modello_elimina_stazione $modello [dict get $st id]]
+    }
+    selezione_imposta {}
     imposta_modificato 1
     disegna_pagina $pagina_disegnata
+    if {[llength $staz] == 1} {
+        stato "Cancellata [dict get [lindex $staz 0] tipo]"
+    } else {
+        stato "Cancellate [llength $staz] stazioni"
+    }
 }
 
 proc ::lgmkstaz::mostra_info {stazione} {
@@ -1612,9 +1780,9 @@ proc ::lgmkstaz::conferma_scarto_modifiche {} {
 
 proc ::lgmkstaz::apri_file {percorso} {
     variable modello
+    variable selezione
     variable percorso_corrente
     variable prossimo_id
-    variable stazione_selezionata
     variable tipo_armato
 
     if {![conferma_scarto_modifiche]} { return 0 }
@@ -1635,7 +1803,7 @@ proc ::lgmkstaz::apri_file {percorso} {
 
     set modello $risultato
     set percorso_corrente $percorso
-    set stazione_selezionata ""
+    set selezione {}
     set tipo_armato ""
     .corpo.sinistra.libreria.lista selection clear 0 end
 
@@ -1975,10 +2143,28 @@ menu .mb.file -tearoff 0
 .mb.file add separator
 .mb.file add command -label Esci -command ::lgmkstaz::esci
 
+#  Le stesse azioni delle scorciatoie sul canvas: chi non le ricorda le
+#  trova qui, con la scorciatoia scritta accanto.
+menu .mb.edit -tearoff 0
+.mb add cascade -label Edit -menu .mb.edit
+.mb.edit add command -label "Copia" -accelerator "Ctrl+C" \
+    -command ::lgmkstaz::copia_selezionata
+.mb.edit add command -label "Incolla" -accelerator "Ctrl+V" \
+    -command ::lgmkstaz::incolla
+.mb.edit add command -label "Elimina" -accelerator "Canc" \
+    -command ::lgmkstaz::elimina_selezionata
+.mb.edit add separator
+.mb.edit add command -label "Seleziona tutto" -accelerator "Ctrl+A" \
+    -command ::lgmkstaz::seleziona_tutto
+.mb.edit add command -label "Deseleziona" -accelerator "Esc" \
+    -command {::lgmkstaz::selezione_imposta {}}
+
 menu .mb.visualizza -tearoff 0
 .mb add cascade -label Visualizza -menu .mb.visualizza
 .mb.visualizza add checkbutton -label "Immagini reali di xstaz" \
     -variable ::lgmkstaz::usa_sprite -command ::lgmkstaz::ridisegna
+.mb.visualizza add checkbutton -label "Numeri di riga e colonna" \
+    -variable ::lgmkstaz::mostra_assi -command ::lgmkstaz::ridisegna
 
 menu .mb.verifica -tearoff 0
 .mb add cascade -label Verifica -menu .mb.verifica
@@ -2049,6 +2235,7 @@ bind .corpo.destra.canvas <BackSpace>       ::lgmkstaz::elimina_selezionata
 #  TESTO. Il canvas prende il fuoco al primo clic (canvas_press).
 bind .corpo.destra.canvas <Control-c>       ::lgmkstaz::copia_selezionata
 bind .corpo.destra.canvas <Control-v>       ::lgmkstaz::incolla
+bind .corpo.destra.canvas <Control-a>       ::lgmkstaz::seleziona_tutto
 bind . <Escape>                             ::lgmkstaz::annulla_armato
 wm protocol . WM_DELETE_WINDOW              ::lgmkstaz::esci
 
