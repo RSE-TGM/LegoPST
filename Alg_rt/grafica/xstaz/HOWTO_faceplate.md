@@ -173,6 +173,13 @@ parola letterale `modello` vale come "nessun modello specifico". Variabile o
 modello inesistenti fermano la compilazione con
 `IL MODELLO xxx CITATO ALLA RIGA n NON ESISTE`.
 
+> **Qui va bene una variabile di qualunque tipo.** Il controllo si chiama
+> `check_output` (`checkvar.c`), ma dispetto al nome **non guarda il tipo**:
+> scorre le variabili del modello e si accontenta del nome. Un `INPUT` che cita
+> un **ingresso** compila e funziona — è normale, per esempio, far cambiare
+> colore a un led in base a un ingresso del modello. La regola stretta vale
+> solo nell'altro verso, su `OUTPUT`.
+
 ### `INPUT_ERR`, `INPUT_BLINK`
 
 Stessa sintassi di `INPUT`. `INPUT_ERR` è il valore "di errore" mostrato in
@@ -198,6 +205,13 @@ default, senza errore.
 
 `OUTPUT` **senza argomenti** lascia il comando scollegato: l'oggetto si vede ma
 non agisce (utile per abbozzare una pagina prima di avere le variabili).
+
+> **Qui invece il tipo conta.** `check_input` pretende che la variabile sia un
+> **ingresso non connesso** (`INGRESSO_NC`): un ingresso già collegato a
+> un'uscita dentro il modello non si può perturbare da fuori, e citarlo ferma
+> la compilazione con `LA VARIABILE x NON E' UN INGRESSO DEL MODELLO y`. È
+> l'asimmetria da ricordare: `INPUT` accetta qualunque variabile del modello,
+> `OUTPUT` solo un ingresso libero.
 
 ### `SCALAMENTO <a>` e `OFFSET <b>`
 

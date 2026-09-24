@@ -38,8 +38,9 @@ package require Tk
 namespace eval ::lgmkstaz {}
 
 set ::lgmkstaz::_qui [file dirname [file normalize [info script]]]
-foreach ::lgmkstaz::_lib {lgmkstaz_dati.tcl lgmkstaz_leggi.tcl lgmkstaz_scrivi.tcl \
-                          lgmkstaz_modifica.tcl lgmkstaz_topologia.tcl lgmkstaz_verifica.tcl} {
+foreach ::lgmkstaz::_lib {lgmkstaz_dati.tcl lgmkstaz_geometria.tcl lgmkstaz_leggi.tcl \
+                          lgmkstaz_scrivi.tcl lgmkstaz_modifica.tcl lgmkstaz_topologia.tcl \
+                          lgmkstaz_verifica.tcl} {
     if {[catch {source [file join $::lgmkstaz::_qui $::lgmkstaz::_lib]} _err]} {
         tk_messageBox -icon error -title lgmkstaz \
             -message "Impossibile caricare $::lgmkstaz::_lib:\n$_err"
@@ -228,6 +229,200 @@ proc ::lgmkstaz::disegna_pagina {numero} {
 #  prima LEGOROOT, poi risalendo da questo script, cosi' vale sia per il
 #  sorgente sia per la copia distribuita in Alg_legopc/bin. Non si duplicano
 #  i file: sono gia' nel repo accanto a xstaz, che e' chi li produce.
+# ---------------------------------------------------------------------------
+# I parametri della singola stazione, scritti SOPRA lo sprite.
+#
+# Lo sprite e' il campione del catalogo: mostra la forma vera del tipo ma con
+# i contenuti generici (etichette "-"). Qui ci si scrive sopra cio' che
+# dipende da QUESTA stazione e non dalla simulazione in corso - oggi i testi,
+# cioe' i soli parametri che si vedono senza leggere la shared memory.
+#
+# Le posizioni vengono da lgmkstaz_geometria.tcl (generato da newstaz.h): per
+# ogni oggetto la x/y dentro la stazione, il sottotipo e il flag, gli stessi
+# che xstaz passa ai suoi disegnatori in cnewstaz.c.
+#
+# --- Dove cade la linea di base del testo ---
+#
+# xstaz mette i testi in XmLabel, che dal proprio y scende di marginHeight (2)
+# piu' l'ascent del font prima di appoggiarci la linea di base. L'ascent e'
+# quello dei font X VERI di xstaz (xstaz.c): "fixed" per i testi normali,
+# -adobe-times-bold...25 per quelli grandi. Non si possono chiedere a Tk, che
+# per quei nomi sostituisce font propri: sono stati misurati sulla cattura del
+# catalogo (la stazione TESTO ha l'oggetto a y=25 e l'inchiostro fra 29 e 45,
+# quindi base a 46 = 25 + 2 + 19).
+#
+# Tk poi disegna il testo ancorandolo in alto: per far cadere la base dove
+# vogliamo si parte da base - [font metrics -ascent] del font di Tk. Cosi' i
+# testi stanno al posto giusto anche se il font sostituito e' un po' piu'
+# grande dell'originale.
+# ---------------------------------------------------------------------------
+
+#  I colori di sfondo delle label, da xstaz.c: sfondo_label per le STRINGA
+#  generiche, sfondo_staz per tutto il resto (compreso lo sfondo della
+#  stazione).
+set ::lgmkstaz::sfondo_label "#cce5cb"
+set ::lgmkstaz::sfondo_staz  "#d5e5d5"
+set ::lgmkstaz::ascent_reale_piccolo 11   ;# "fixed" 6x13
+set ::lgmkstaz::ascent_reale_grande  19   ;# -adobe-times-bold-r-normal--25-...
+set ::lgmkstaz::margine_label        2    ;# XmNmarginHeight di XmLabel
+
+#  I font con cui lgmkstaz scrive i parametri. Per quello grande si chiede
+#  esattamente l'XLFD di xstaz: se il server ce l'ha si ottiene lo stesso
+#  disegno, altrimenti Tk sostituisce qualcosa di simile.
+proc ::lgmkstaz::font_parametri {quale} {
+    variable font_par
+    if {[info exists font_par($quale)]} { return $font_par($quale) }
+    if {$quale eq "grande"} {
+        set f "-adobe-times-bold-r-normal--25-180-100-100-p-132-iso8859-1"
+        set ripiego [list Times -19 bold]
+    } else {
+        set f "-misc-fixed-medium-r-normal--13-120-75-75-c-60-iso8859-1"
+        set ripiego [list Courier -13]
+    }
+    if {[catch {font measure $f M}]} { set f $ripiego }
+    set font_par($quale) $f
+    return $f
+}
+
+#  I valori di tutti i campi con un dato nome, nell'ordine: SELETTORE ha DUE
+#  campi "etichetta" e oggetto_campo tornerebbe sempre il primo.
+proc ::lgmkstaz::oggetto_campi {oggetto nome} {
+    set valori {}
+    foreach campo [dict get $oggetto campi] {
+        if {[dict get $campo nome] eq $nome} { lappend valori [dict get $campo valore] }
+    }
+    return $valori
+}
+
+#  Il testo accorciato a quanto ci sta in $larghezza pixel: xstaz lo taglia
+#  perche' la label ha una larghezza fissa, qui altrimenti sborderebbe sulle
+#  stazioni vicine.
+proc ::lgmkstaz::testo_che_ci_sta {testo carattere larghezza} {
+    if {$testo eq "" || $larghezza <= 0} { return "" }
+    if {[font measure $carattere $testo] <= $larghezza} { return $testo }
+    for {set n [string length $testo]} {$n > 0} {incr n -1} {
+        set t [string range $testo 0 [expr {$n - 1}]]
+        if {[font measure $carattere $t] <= $larghezza} { return $t }
+    }
+    return ""
+}
+
+#  Scrive un testo con la linea di base dove la metterebbe xstaz.
+#  $ancora vale w (allineato a sinistra su $px) oppure center (centrato).
+#
+#  Prima del testo si stende un rettangolo del colore di sfondo della label:
+#  non e' un trucco per "cancellare", e' quello che fa xstaz, dove ogni testo
+#  sta in una XmLabel con il proprio background. Senza, resterebbe in vista il
+#  contenuto generico dello sprite (nel catalogo le etichette sono tutte "-")
+#  sotto e intorno al testo vero.
+proc ::lgmkstaz::scrivi_parametro {c px base testo carattere ancora larghezza tag
+                                   {sfondo ""} {alto_reale 13}} {
+    variable ascent_reale_piccolo
+    variable ascent_reale_grande
+    variable margine_label
+    set testo [string trim $testo]
+    if {$testo eq ""} return
+    set testo [testo_che_ci_sta $testo $carattere $larghezza]
+    if {$testo eq ""} return
+
+    if {$sfondo ne ""} {
+        set ascent [expr {$alto_reale >= 20 ? $ascent_reale_grande : $ascent_reale_piccolo}]
+        set cima [expr {$base - $ascent - $margine_label}]
+        set fondo [expr {$cima + $alto_reale + 2 * $margine_label}]
+        set sx [expr {$ancora eq "center" ? $px - $larghezza / 2 : $px}]
+        $c create rectangle $sx $cima [expr {$sx + $larghezza}] $fondo \
+            -fill $sfondo -outline "" -tags [list stazione $tag]
+    }
+    set y [expr {$base - [font metrics $carattere -ascent]}]
+    $c create text $px $y -anchor [expr {$ancora eq "center" ? "n" : "nw"}] \
+        -text $testo -font $carattere -fill black -tags [list stazione $tag]
+}
+
+proc ::lgmkstaz::disegna_parametri {c x0 y0 stazione tag} {
+    variable geometria
+    variable margine_label
+    variable ascent_reale_piccolo
+    variable ascent_reale_grande
+    variable dim_cella_px
+    variable sfondo_label
+    variable sfondo_staz
+
+    set tipo [dict get $stazione tipo]
+    if {![info exists geometria($tipo)]} return
+    set oggetti [dict get $stazione oggetti]
+    set larghezza [expr {[dict get $stazione larg] * $dim_cella_px}]
+    set piccolo [font_parametri piccolo]
+    set grande  [font_parametri grande]
+
+    set i -1
+    foreach g $geometria($tipo) {
+        incr i
+        set oggetto [lindex $oggetti $i]
+        if {$oggetto eq ""} continue
+        lassign $g gtipo sottotipo gx gy flag
+        set bp [expr {$y0 + $gy + $margine_label + $ascent_reale_piccolo}]
+        set bg [expr {$y0 + $gy + $margine_label + $ascent_reale_grande}]
+
+        switch -- $gtipo {
+            STRINGA {
+                set testo [oggetto_campo $oggetto etichetta]
+                switch -- $sottotipo {
+                    STRINGA_TESTO {
+                        scrivi_parametro $c [expr {$x0 + $larghezza / 2}] $bg \
+                            $testo $grande center $larghezza $tag $sfondo_staz 25
+                    }
+                    STRINGA_ETIC_BIG {
+                        scrivi_parametro $c [expr {$x0 + $gx}] $bg \
+                            $testo $grande w [expr {$larghezza - $gx}] $tag $sfondo_staz 25
+                    }
+                    STRINGA_ETIC {
+                        scrivi_parametro $c [expr {$x0 + $gx}] $bp \
+                            $testo $piccolo w [expr {$larghezza - $gx}] $tag $sfondo_staz 13
+                    }
+                    default {
+                        scrivi_parametro $c [expr {$x0 + $gx}] $bp \
+                            $testo $piccolo w [expr {$larghezza - $gx}] $tag $sfondo_label 13
+                    }
+                }
+            }
+            LED {
+                set testo [oggetto_campo $oggetto etichetta]
+                #  gled.c: sotto al led e centrato, oppure a destra; la label e'
+                #  larga 6 caratteri, 20 con ETIC_MAX
+                set lung [expr {$flag eq "ETIC_MAX" ? 20 : 6}]
+                set w [font measure $piccolo [string repeat 0 $lung]]
+                if {$sottotipo eq "ETIC_SOTTO"} {
+                    scrivi_parametro $c [expr {$x0 + $gx - 5 + $w / 2}] \
+                        [expr {$y0 + $gy + 5 + 2 + $margine_label + $ascent_reale_piccolo}] \
+                        $testo $piccolo center $w $tag $sfondo_staz 13
+                } else {
+                    scrivi_parametro $c [expr {$x0 + $gx + 15 + 4}] \
+                        [expr {$y0 + $gy - 2 + $margine_label + $ascent_reale_piccolo}] \
+                        $testo $piccolo w $w $tag $sfondo_staz 13
+                }
+            }
+            SELETTORE {
+                #  gselet.c: due etichette, meta' stazione ciascuna, 20 px sopra
+                set etichette [oggetto_campi $oggetto etichetta]
+                set meta [expr {($larghezza - 10) / 2}]
+                set base [expr {$y0 + $gy - 20 + $margine_label + $ascent_reale_piccolo}]
+                scrivi_parametro $c [expr {$x0 + 5}] $base \
+                    [lindex $etichette 0] $piccolo w $meta $tag $sfondo_staz 13
+                scrivi_parametro $c [expr {$x0 + 5 + $meta}] $base \
+                    [lindex $etichette 1] $piccolo w $meta $tag $sfondo_staz 13
+            }
+            SET_VALORE {
+                #  gsetval.c: l'etichetta sta a (75,2) dentro il riquadro del
+                #  set value, che a sua volta sta in (gx,gy)
+                scrivi_parametro $c [expr {$x0 + $gx + 75}] \
+                    [expr {$y0 + $gy + 2 + $margine_label + $ascent_reale_piccolo}] \
+                    [oggetto_campo $oggetto etichetta] $piccolo w \
+                    [expr {$larghezza - $gx - 75}] $tag $sfondo_staz 13
+            }
+        }
+    }
+}
+
 #  Lo sprite rimpicciolito per la riga di stato. Tk sa ridurre una photo solo
 #  per fattori INTERI (-subsample), ma qui va benissimo: le stazioni sono alte
 #  un numero intero di celle da 62 px, quindi un fattore pari a altezza/31
@@ -390,6 +585,8 @@ proc ::lgmkstaz::disegna_stazione {c stazione} {
         if {$img ne ""} {
             $c create image $x0 $y0 -anchor nw -image $img \
                 -tags [list stazione $tag]
+            #  sopra l'immagine generica, i parametri di QUESTA stazione
+            disegna_parametri $c $x0 $y0 $stazione $tag
         } else {
             $c create rectangle $x0 $y0 $x1 $y1 -fill white -outline #bbbbbb \
                 -tags [list stazione $tag]
@@ -1049,7 +1246,7 @@ proc ::lgmkstaz::scegli_variabile {parent genere} {
 
     set _scelta_nomi {}
     foreach mod $topo_modelli {
-        set lista [expr {$genere eq "uscita" ? [topo_variabili_uscita $mod] \
+        set lista [expr {$genere eq "uscita" ? [topo_variabili_citabili $mod] \
                                               : [topo_variabili_ingresso $mod]}]
         foreach var $lista { lappend _scelta_nomi "$var@$mod" }
     }
@@ -1281,9 +1478,12 @@ proc ::lgmkstaz::salva_proprieta {w id} {
         foreach campo [dict get $oggetto campi] {
             set nome [dict get $campo nome]
             set chiave "$indice_oggetto,$indice_campo"
-            if {[catch {leggi_valore_campo $nome $chiave} nuovo_valore err]} {
+            #  Con due argomenti il secondo e' il MESSAGGIO d'errore; con tre,
+            #  il terzo e' il dizionario delle opzioni (-code, -errorstack...)
+            #  e finirebbe in faccia all'utente al posto del messaggio.
+            if {[catch {leggi_valore_campo $nome $chiave} nuovo_valore]} {
                 tk_messageBox -icon error -title lgmkstaz -parent $w \
-                    -message "[dict get $oggetto tipo], campo $nome:\n$err"
+                    -message "[dict get $oggetto tipo], campo $nome:\n$nuovo_valore"
                 return
             }
             lappend nuovi_campi [dict create nome $nome valore $nuovo_valore]

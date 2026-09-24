@@ -13,7 +13,7 @@ checkopen.tcl animate.tcl balloon.tcl sincviewGui.tcl settings.tcl muovi.tcl tix
 md2html.tcl \
 vorwahl1.for vorwahl2.for migrate_i5.tcl gen_missing_i5.sh bgelement.tcl linkstyle.tcl \
 lghmi.tcl lgedit.tcl lgstaz.tcl hmielem.tcl modelli.tcl esporta.tcl \
-lgmkstaz_dati.tcl lgmkstaz_leggi.tcl lgmkstaz_scrivi.tcl lgmkstaz_modifica.tcl \
+lgmkstaz_dati.tcl lgmkstaz_geometria.tcl lgmkstaz_leggi.tcl lgmkstaz_scrivi.tcl lgmkstaz_modifica.tcl \
 lgmkstaz_topologia.tcl lgmkstaz_verifica.tcl lgmkstaz.tcl
 
 # 2. Lista dei file destinati alla cartella preinst/

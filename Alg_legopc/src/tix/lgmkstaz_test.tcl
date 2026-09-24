@@ -19,6 +19,7 @@
 
 set qui [file dirname [file normalize [info script]]]
 source [file join $qui lgmkstaz_dati.tcl]
+source [file join $qui lgmkstaz_geometria.tcl]
 source [file join $qui lgmkstaz_leggi.tcl]
 source [file join $qui lgmkstaz_scrivi.tcl]
 
@@ -94,6 +95,39 @@ foreach percorso $corpus {
     }
 }
 
+#  --- geometria contro catalogo ------------------------------------------
+#  lgmkstaz_geometria.tcl e' GENERATO da newstaz.h, il catalogo di
+#  lgmkstaz_dati.tcl e' scritto a mano: devono elencare gli stessi tipi con
+#  gli stessi oggetti nello stesso ordine, altrimenti i parametri finirebbero
+#  disegnati sull'oggetto sbagliato. E' anche il controllo che si accorge se
+#  newstaz.h e' cambiato e la geometria non e' stata rigenerata.
+set geo_falliti 0
+foreach tipo [lsort [array names ::lgmkstaz::catalogo]] {
+    if {![info exists ::lgmkstaz::geometria($tipo)]} {
+        puts "GEOMETRIA  $tipo: manca in lgmkstaz_geometria.tcl"
+        incr geo_falliti
+        continue
+    }
+    lassign $::lgmkstaz::catalogo($tipo) larg altezza sequenza
+    set daGeo {}
+    foreach g $::lgmkstaz::geometria($tipo) { lappend daGeo [lindex $g 0] }
+    if {$daGeo ne $sequenza} {
+        puts "GEOMETRIA  $tipo: oggetti diversi dal catalogo"
+        puts "    catalogo:  $sequenza"
+        puts "    geometria: $daGeo"
+        incr geo_falliti
+    }
+}
+foreach tipo [lsort [array names ::lgmkstaz::geometria]] {
+    if {![info exists ::lgmkstaz::catalogo($tipo)]} {
+        puts "GEOMETRIA  $tipo: in geometria ma non nel catalogo"
+        incr geo_falliti
+    }
+}
+if {$geo_falliti == 0} {
+    puts "OK       geometria e catalogo concordano su [array size ::lgmkstaz::catalogo] tipi"
+}
+
 puts ""
 puts "== $ok riusciti, $falliti falliti, su [llength $corpus] file =="
-exit [expr {$falliti > 0 ? 1 : 0}]
+exit [expr {($falliti > 0 || $geo_falliti > 0) ? 1 : 0}]

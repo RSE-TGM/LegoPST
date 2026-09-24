@@ -57,14 +57,28 @@ Di default ogni stazione è disegnata con la **sua immagine reale**, ritagliata
 da catture di `xstaz` (vedi *Le immagini* più sotto): la pagina in costruzione
 somiglia a quella che vedrà l'operatore.
 
-L'immagine è però il *campione del catalogo*: mostra la forma vera del tipo,
-non i contenuti di quella stazione. Etichette, colori e scale degli indicatori
-restano quelli generici (`-`, giallo, `0`/`50`/`100`).
+L'immagine è il *campione del catalogo* — mostra la forma vera del tipo, non i
+contenuti di quella stazione — e sopra ci vengono scritti i **parametri di
+questa stazione**: tutte le `ETICHETTA`, cioè il titolo della pagina, le
+descrizioni delle stazioni e le scritte dei pulsanti, dei selettori e degli
+impostatori. Si vedono man mano che si configurano: cambiata una stringa nel
+pannello delle proprietà, compare nel disegno.
 
-Per questo il menu **`Visualizza → Immagini reali di xstaz`** permette di
-spegnerle e tornare allo **schema** a forme semplici, che invece scrive le
-`ETICHETTA` vere della stazione. I due modi sono complementari: l'immagine per
-la forma e l'ingombro, lo schema per il contenuto.
+Le posizioni non sono stimate: vengono dalla stessa tabella `new_staz[]` che
+usa `xstaz` (vedi *Da dove vengono le posizioni*), e i testi sono scritti con
+gli stessi font X. Confrontando con le catture reali, i 54 testi del catalogo
+cadono entro **2 pixel** in orizzontale e **4** sulla linea di base.
+
+Restano generici i parametri che l'immagine porta con sé e che non sono testo:
+i **colori** dei LED e delle spie e le **scale** degli indicatori (`0`/`50`/
+`100`, che nella pagina vera vengono dal `MINMAX` della stazione). Quelli che
+dipendono dalla simulazione in corso — valori, stati accesi/spenti, posizione
+dell'indice — non ci sono per definizione: quelli si vedono solo in `xstaz`
+con una simulazione viva.
+
+Il menu **`Visualizza → Immagini reali di xstaz`** spegne le immagini e torna
+allo **schema** a forme semplici, utile per vedere a colpo d'occhio quali
+oggetti compongono una stazione.
 
 Le 13 stazioni **storiche** (`SA1`, `SP1`, `AM1`, …) non hanno immagine e
 compaiono come blocchi opachi: si possono spostare e cancellare, non
@@ -118,15 +132,25 @@ pulsante **`...`** che apre l'elenco filtrabile delle variabili vere del
 modello (`VAR MODELLO descrizione`; si scrive per filtrare, doppio clic per
 confermare).
 
-L'elenco rispetta le regole di `checkvar.c`: per un `INPUT` si offrono le
-**uscite** (tipo 0), per un `OUTPUT` gli **ingressi liberi** (tipo 1) — un
-ingresso già connesso non si può perturbare da fuori.
+L'elenco rispetta le regole di `checkvar.c`, che **non sono simmetriche**:
+
+- per un `OUTPUT` si offrono i soli **ingressi liberi** (`INGRESSO_NC`), perché
+  un ingresso già connesso dentro il modello non si può perturbare da fuori:
+  `check_input` lo rifiuta e ferma la compilazione;
+- per un `INPUT` si offre **tutto il modello**, con le uscite per prime. Il
+  controllo di compstaz si chiama `check_output` ma non guarda il tipo: un
+  `INPUT` che cita un ingresso compila e funziona — è normale, per esempio,
+  far cambiare colore a un led in base a un ingresso.
 
 Anche un nome scritto a mano viene verificato al salvataggio, con le stesse
 regole: vuoto+vuoto va sempre bene (scollegato), un nome che comincia per
 **`#`** pure (scollegato ma leggibile, per prepararlo prima che la variabile
 esista), e `variabil` resta il segnaposto storico. Senza `variabili.edf` non
 si verifica niente e si accetta tutto.
+
+Il controllo è tarato su quello che compstaz accetta davvero, non su quello
+che sembrerebbe sensato: rifiutare qui una pagina che compila e gira sarebbe
+il difetto peggiore.
 
 ## `Verifica → Compila e verifica...`
 
@@ -175,6 +199,31 @@ solo se cambia la tabella `new_staz[]` di `newstaz.h`; il README lì accanto
 spiega la catena completa (rigenerare il `r01.dat` di catalogo, ricatturare le
 pagine, ritagliare).
 
+## Da dove vengono le posizioni dei parametri
+
+`lgmkstaz_geometria.tcl` contiene, per ciascuno dei 54 tipi, la posizione in
+pixel di ogni oggetto dentro la stazione, con il suo sottotipo e flag: sono le
+stesse che `xstaz` passa ai propri disegnatori. È **generato** da
+`new_staz[]`, non trascritto:
+
+```sh
+cd Alg_legopc/src/tix
+tclsh genera_geometria.tcl > lgmkstaz_geometria.tcl
+```
+
+La generazione non è un vezzo: la tabella è lunga 888 righe, e la
+trascrizione a mano del solo elenco dei tipi in `lgmkstaz_dati.tcl` aveva già
+prodotto un errore (un `INDICATORE` di troppo in `SINCRONO`). Il test
+`lgmkstaz_test.tcl` verifica che geometria e catalogo elenchino gli stessi
+oggetti nello stesso ordine — è anche il controllo che segnala una geometria
+non rigenerata dopo un cambio di `newstaz.h`.
+
+Sulla verticale, `xstaz` mette i testi in `XmLabel`, che dal proprio `y`
+scende di `marginHeight` (2) più l'*ascent* del font prima di appoggiarci la
+linea di base. Gli ascent sono quelli dei font X veri di `xstaz` (`fixed` e
+`-adobe-times-bold…25`), misurati sulle catture del catalogo: Tk non li può
+dire, perché per quei nomi sostituisce font propri.
+
 ## Salvare
 
 `File → Salva` e `Salva con nome...` riscrivono il `r01.dat` con lo stesso
@@ -215,8 +264,8 @@ vede che il documento è previsto e che manca.
 
 ## Limiti noti
 
-- Le immagini mostrano il campione del catalogo: etichette, colori e scale
-  della singola stazione non ci sono (c'è lo schema per quelli).
+- Dei parametri della singola stazione si vedono i **testi**; colori e scale
+  degli indicatori restano quelli generici dell'immagine.
 - Le 13 stazioni storiche non sono modificabili.
 - La sovrapposizione fra stazioni è segnalata, non impedita.
 - Lo zoom non c'è: la vista è sempre a 62 pixel per cella.

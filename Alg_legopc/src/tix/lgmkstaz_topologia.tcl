@@ -134,6 +134,18 @@ proc ::lgmkstaz::topo_variabili_uscita {modello} {
     return [topo_variabili_tipo $modello 0]
 }
 
+#  Quelle che un campo INPUT puo' citare: tutte quelle del modello, perche'
+#  tanto accetta compstaz (vedi topo_esiste_nel_modello). Le uscite vengono
+#  per prime: sono il caso normale, e chi cerca trova subito quelle.
+proc ::lgmkstaz::topo_variabili_citabili {modello} {
+    set uscite [topo_variabili_tipo $modello 0]
+    set altre {}
+    foreach t {1 2} {
+        foreach v [topo_variabili_tipo $modello $t] { lappend altre $v }
+    }
+    return [concat $uscite [lsort $altre]]
+}
+
 proc ::lgmkstaz::topo_variabili_ingresso {modello} {
     return [topo_variabili_tipo $modello 1]
 }
@@ -144,6 +156,23 @@ proc ::lgmkstaz::topo_descrizione {modello nome} {
         return [lindex $topo_var($modello,$nome) 1]
     }
     return ""
+}
+
+#  ATTENZIONE al nome: compstaz chiama check_output il controllo dei campi
+#  INPUT/INPUT_BLINK/INPUT_ERR/INIBIZIONE, ma quella funzione NON guarda il
+#  tipo della variabile - scorre le variabili del modello e si ferma alla
+#  prima col nome giusto, qualunque tipo abbia (checkvar.c, check_output:
+#  l'unico filtro e' "variabili[i].mod != imu"). Un INPUT che cita un
+#  INGRESSO del modello quindi compila, e in esecuzione funziona: xstaz legge
+#  quell'indirizzo come qualunque altro.
+#
+#  Serve saperlo perche' il contrario - rifiutarlo qui - vorrebbe dire dare
+#  errore su pagine che compilano e girano da anni. Il tipo si usa solo per
+#  ORDINARE le proposte del selettore (prima le uscite, che sono il caso
+#  normale), non per vietare.
+proc ::lgmkstaz::topo_esiste_nel_modello {modello nome} {
+    variable topo_var
+    return [info exists topo_var($modello,$nome)]
 }
 
 proc ::lgmkstaz::topo_e_uscita {modello nome} {
@@ -183,8 +212,9 @@ proc ::lgmkstaz::topo_verifica_riferimento {var mod genere} {
                ([llength $topo_modelli] modelli: [join [lsort $topo_modelli] {, }])"
     }
     if {$genere eq "uscita"} {
-        if {![topo_e_uscita $mod $var]} {
-            error "'$var' non e' un'uscita del modello '$mod'\
+        #  come check_output: basta che la variabile esista nel modello
+        if {![topo_esiste_nel_modello $mod $var]} {
+            error "'$var' non esiste nel modello '$mod'\
                    (per scriverla prima che esista: #$var)"
         }
     } else {
