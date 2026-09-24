@@ -14,7 +14,14 @@
 # Gestione Parametri
 # =============================================================================
 VERSION="1.1"
-IMAGE_NAME = aguagliardi/legopst_multi:2.0
+#  L'immagine da lanciare. Attenzione: in bash l'assegnazione non vuole
+#  spazi attorno all'uguale - scritta "IMAGE_NAME = ..." bash la esegue come
+#  un comando ("IMAGE_NAME: command not found") e la variabile resta VUOTA,
+#  cosi' il docker run finiva senza immagine.
+#  Il default e' quella completa; con LG_DOCKER_IMAGE si sceglie un'altra,
+#  per esempio la snella di "make -f Makefile.mk docker_small":
+#      LG_DOCKER_IMAGE=aguagliardi/legopst:2.0 lgdock_multi
+IMAGE_NAME="${LG_DOCKER_IMAGE:-aguagliardi/legopst_multi:2.0}"
 
 show_help() {
     cat << EOF
@@ -25,6 +32,8 @@ Opzioni:
   -v, --version       Mostra versione
   -d, --demo          Installa una demo di legopst e lancia il container con essa
   -s, --socat         Usa socat per X11 forwarding (utile per SSH con MobaXterm)
+  -S, --small         Usa l'immagine SNELLA (aguagliardi/legopst:2.0)
+                      invece di quella completa: stesso ambiente, meta' del peso
 
 Esempi:
   $0                  # Lancia container LegoPST (modalità standard)
@@ -101,6 +110,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         -s|--socat)
             USE_SOCAT=true
+            shift
+            ;;
+        -S|--small)
+            IMAGE_NAME="aguagliardi/legopst:2.0"
             shift
             ;;
         *)

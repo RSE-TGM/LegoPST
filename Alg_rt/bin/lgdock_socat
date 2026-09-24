@@ -17,7 +17,11 @@ fi
 # Gestione Parametri
 # =============================================================================
 VERSION=1.0
-IMAGE_NAME="aguagliardi/legopst_multi:2.0"
+#  L'immagine da lanciare. Il default e' quella completa, come e' sempre
+#  stato; con LG_DOCKER_IMAGE si sceglie un'altra, per esempio la variante
+#  snella prodotta da "make -f Makefile.mk docker_small":
+#      LG_DOCKER_IMAGE=aguagliardi/legopst:2.0 lgdock
+IMAGE_NAME="${LG_DOCKER_IMAGE:-aguagliardi/legopst_multi:2.0}"
 
 show_help() {
     echo "Uso: $0 [OPZIONI]"
@@ -60,6 +64,10 @@ RUN_DEMO=false
                 ;;
             -d|--demo)
                 RUN_DEMO=true
+                shift
+                ;;
+            -S|--small)
+                IMAGE_NAME="aguagliardi/legopst:2.0"
                 shift
                 ;;
             *)

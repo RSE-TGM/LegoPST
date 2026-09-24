@@ -394,7 +394,19 @@ proc topRead {c model} {
 		if { $curFileNametemp == "" } { return 2 }
 		set curFileName $curFileNametemp
 	} else {
-		set curFileName [file join $env(LG_MODELS) $model $model.tom]
+		#  $model arriva in tre forme diverse a seconda del chiamante: il
+		#  nome nudo della task (SLB1_NI2), un percorso completo senza
+		#  estensione, oppure un percorso che il .tom ce l'ha gia' - ed e'
+		#  il caso che qui si sbagliava. topRead infatti LASCIA in
+		#  curFileName il percorso completo di estensione, e chi la
+		#  richiama passandole quel valore (draw2gr, select.tcl) le faceva
+		#  costruire <nome>.tom.tom, che ovviamente non esiste: usciva
+		#  "File ... not found" su un modello perfettamente a posto.
+		if {[file extension $model] eq ".tom"} {
+			set curFileName [file join $env(LG_MODELS) $model]
+		} else {
+			set curFileName [file join $env(LG_MODELS) $model $model.tom]
+		}
 		if {![file exists $curFileName]} {
 			tk_messageBox -message "TopRead: 1 - File $curFileName not found...curFileName=$curFileName" -type ok
 			set curFileName ""

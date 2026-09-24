@@ -58,7 +58,13 @@ echo "legoroot path is: $LEGOROOT"
 LEGOCAD_USER=~
 LEGO_BACK=/usr/users/cfb_back
 export LEGOROOT LEGOCAD_USER LEGO_BACK
+#  La directory temporanea di LegoPST. Va CREATA, non solo dichiarata: su una
+#  macchina dove esiste da sempre non si nota, ma in un ambiente nuovo - un
+#  container, un account appena fatto - TMPDIR punterebbe a una directory
+#  inesistente, e make e i compilatori lo segnalano ("TMPDIR value ...: No
+#  such file or directory") prima di ripiegare su /tmp.
 export TMPDIR=~/tmp
+[ -d "$TMPDIR" ] || mkdir -p "$TMPDIR" 2>/dev/null
 export REGO_NEW=YES
 export LEGOCAD_EMM=YES
 export LEGO_BIG=YES

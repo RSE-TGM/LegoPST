@@ -409,6 +409,7 @@ directory you are looking at. See [docs/BUILD.md](docs/BUILD.md).
 | FMU export and co-simulation (FMI 2.0) | [Alg_rt/lg_fmu/USAGE.md](Alg_rt/lg_fmu/USAGE.md) |
 | Command faceplates: `compstaz`, `xstaz` | [Alg_rt/grafica/xstaz/README.md](Alg_rt/grafica/xstaz/README.md) |
 | `lgmkstaz`: building faceplate pages on screen | [Alg_legopc/LGMKSTAZ.md](Alg_legopc/LGMKSTAZ.md) |
+| The Docker image: full and slim variants | [docker/README_INSTALLER.md](docker/README_INSTALLER.md) |
 | The `kprocedure` commands | [kbin/README.md](kbin/README.md) |
 | Code conventions | [CONVENTIONS.md](CONVENTIONS.md) |
 

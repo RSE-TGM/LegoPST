@@ -21,7 +21,37 @@ if {$::d2g_edit} {
 }
 # Il modello e' quello della directory di partenza (vedi curFileName): la si
 # fissa ora, prima che qualcuno faccia cd.
-set ::d2g_taskdir [pwd]
+#
+#  COME si chiama quella directory conta quanto quale sia. [pwd] da sola non
+#  va bene: il kernel restituisce il percorso gia' risolto, quindi il link
+#  ~/legocad sparisce e compare l'area vera (~/legopst_<nome>/legocad, e dentro
+#  un container /host_home/...). Ma il link esiste APPOSTA perche' legopc e le
+#  HMI parlino sempre e solo di ~/legocad/... e ~/sked/..., senza sapere su
+#  quale area sono appoggiati: risolverlo vanifica quello svincolo.
+#
+#  Percio' si preferisce $LG_MODELS/<task>, che il link ce l'ha dentro, e lo
+#  si accetta solo se e' DAVVERO la directory in cui ci troviamo: confronto per
+#  identita' (dev+ino), non per nome, che con i link non direbbe niente.
+#
+#  [pwd] resta il ripiego, ed e' il caso del bundle FMU: li' la cwd e'
+#  bundle/<modelname>/ (la imposta CreateProcessA), LG_MODELS non c'entra e per
+#  giunta e' globale di processo - con piu' FMU nello stesso processo
+#  (Simulink) la sovrascrive l'ultima inizializzata.
+proc draw2gr_stessa_dir {a b} {
+    if {[catch {file stat $a sa}]} { return 0 }
+    if {[catch {file stat $b sb}]} { return 0 }
+    return [expr {$sa(dev) == $sb(dev) && $sa(ino) == $sb(ino)}]
+}
+proc draw2gr_dir_task {} {
+    global env
+    set qui [pwd]
+    if {[info exists env(LG_MODELS)] && $env(LG_MODELS) ne ""} {
+        set via_link [file join $env(LG_MODELS) [file tail $qui]]
+        if {[draw2gr_stessa_dir $via_link $qui]} { return $via_link }
+    }
+    return $qui
+}
+set ::d2g_taskdir [draw2gr_dir_task]
 
 source $env(LG_TIX)/checkopen.tcl
 
@@ -569,7 +599,7 @@ global f22name envir curFileName
 		if {$selPath == ""} return
 		set f22name $selPath
 		set f22nn [file tail $f22name ]
-wm title . "$envir - $f22nn - $curFileName.tom"
+wm title . "$envir - $f22nn - $curFileName"
 		return
 
 }
@@ -626,7 +656,9 @@ if { [lindex $::argv 0] == 0 } {
   set ::grafexec $env(LEGORT_BIN)/graphics
   set seqfile 2
   }
-  set curdir [pwd]
+  #  ancorato alla directory della task COME LA CHIAMA l'utente (col link),
+  #  non al percorso risolto: vedi draw2gr_dir_task in testa al file
+  set curdir $::d2g_taskdir
   #set f22name [file join $curdir f22circ ]
   set f22name [file join $curdir [lindex $::argv 1] ]
   #puts "draw2gr: f22name=$f22name"
@@ -657,13 +689,10 @@ if { [lindex $::argv 0] == 0 } {
 
 set  ::dpimon [winfo fpixels . 1i ]
 
-set modelname [file tail [pwd]]
-# Usa [pwd] come directory del modello: funziona sia in modalità FMU bundle
-# (cwd = bundle/<modelname>/ impostato da CreateProcessA) sia in modalità
-# normale (cwd = LG_MODELS/<modelname>/ dopo apertura modello).
-# LG_MODELS è process-global: con più FMU nello stesso processo (es. Simulink)
-# viene sovrascritto dall'ultima istanza inizializzata → non affidabile.
-set curFileName [file join [pwd] $modelname]
+#  La directory della task, col link dentro: la fissa draw2gr_dir_task in testa
+#  al file, prima che qualcuno faccia cd.
+set modelname [file tail $::d2g_taskdir]
+set curFileName [file join $::d2g_taskdir $modelname]
 wm title . "Graphics Vars Selection - $curFileName.tom"
 #wm title . "HMI & Plot Plot - $f22nn - $curFileName.tom"
 
@@ -1261,7 +1290,9 @@ if { $showon == 4 } {
     catch { ShowNames $c $showon }
 }
 #wm title . "$envir - $f22name - $curFileName"
-wm title . "HMI & Plot  - $f22name - $curFileName.tom"
+#  niente ".tom" aggiunto: qui topRead e' gia' passata e curFileName e' il
+#  percorso completo del file, estensione inclusa
+wm title . "HMI & Plot  - $f22name - $curFileName"
 
 
 

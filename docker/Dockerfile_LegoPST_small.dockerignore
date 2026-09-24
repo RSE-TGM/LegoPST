@@ -1,0 +1,37 @@
+# Cosa NON entra nella copia dell'immagine snella.
+#
+# Vale SOLO per Dockerfile_LegoPST_small: BuildKit, prima del .dockerignore
+# della radice del contesto, cerca un file che si chiami come il Dockerfile
+# con l'aggiunta di ".dockerignore". E' per questo che l'immagine completa
+# (Dockerfile_LegoPST, che di suo non ne ha uno) continua a essere costruita
+# esattamente come prima: le due varianti non si disturbano.
+#
+# I percorsi sono relativi alla RADICE DEL CONTESTO, che qui e' la directory
+# che CONTIENE il repository (BuildImage fa "cd ../.." e passa "."), non il
+# repository stesso: per questo cominciano tutti con "LegoPST/".
+#
+# Le prime due righe tengono fuori tutto il resto di quella directory - che e'
+# la home di chi costruisce - e riammettono il solo repository. Senza, il
+# contesto da trasferire sarebbe l'intera home: il Dockerfile copia solo
+# /LegoPST, quindi non cambia nulla nell'immagine, ma la build non deve
+# leggere il resto.
+*
+!LegoPST
+
+# Il repository dentro l'immagine serve per compilare e lavorare, la sua
+# STORIA no: 631 MB che nessuno andra' mai a consultare la' dentro. E' la meta'
+# del peso della copia.
+LegoPST/.git
+
+#  NIENTE esclusione di *.o e *.a. Sembravano residui di compilazione da una
+#  cinquantina di MB, ma non lo sono tutti: `legocad/lego_big/lib/*.a` sono le
+#  librerie con cui `cad_crealg1` LINKA le task quando si apre una HMI, non
+#  stanno nemmeno in git, e senza di loro la compilazione si ferma con
+#  "No rule to make target .../clegolib.a" - la HMI si apre col disegno
+#  cancellato (loadF01 fa "$c delete all" quando il build fallisce). Cinquanta
+#  MB non valgono quel rischio: si toglie solo cio' che e' inequivocabilmente
+#  inutile la' dentro.
+
+# Residui di WSL: flussi NTFS che si portano dietro i file arrivati da Windows
+# (gli stessi che rompevano fmpy nei bundle FMU, vedi Alg_rt/lg_fmu/USAGE.md).
+LegoPST/**/*:Zone.Identifier

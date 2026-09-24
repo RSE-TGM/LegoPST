@@ -15,7 +15,11 @@
 # =============================================================================
 VERSION="1.1"
 
-IMAGE_NAME="aguagliardi/legopst_multi:2.0"
+#  L'immagine da lanciare. Il default e' quella completa, come e' sempre
+#  stato; con LG_DOCKER_IMAGE si sceglie un'altra, per esempio la variante
+#  snella prodotta da "make -f Makefile.mk docker_small":
+#      LG_DOCKER_IMAGE=aguagliardi/legopst:2.0 lgdock
+IMAGE_NAME="${LG_DOCKER_IMAGE:-aguagliardi/legopst_multi:2.0}"
 
 
 show_help() {
@@ -29,12 +33,15 @@ Opzioni:
   -d, --demo          Installa una demo di legopst e lancia il container con essa
   -s, --socat         Usa socat per X11 forwarding (utile per SSH con MobaXterm)
   -p, --pull          Esegue docker pull dell'immagine prima di avviare il container
+  -S, --small         Usa l'immagine SNELLA (aguagliardi/legopst:2.0)
+                      invece di quella completa: stesso ambiente, meta' del peso
 
 Esempi:
   $CMD_NAME                  # Lancia container LegoPST (modalità standard)
   $CMD_NAME --demo           # Installa modello demo (legocad e sked) e lancia container
   $CMD_NAME --socat          # Lancia container con socat per X11 (per SSH/MobaXterm)
   $CMD_NAME -d -s            # Demo + socat
+  $CMD_NAME --small          # Usa l'immagine snella
 
 Modalità X11:
   - Standard (default): X11 forwarding diretto, adatto per uso locale
@@ -112,6 +119,10 @@ while [[ $# -gt 0 ]]; do
             DO_PULL=true
             shift
             ;;
+        -S|--small)
+            IMAGE_NAME="aguagliardi/legopst:2.0"
+            shift
+        ;;
         *)
             echo "Opzione sconosciuta: $1"
             echo "Usa --help per vedere le opzioni disponibili"

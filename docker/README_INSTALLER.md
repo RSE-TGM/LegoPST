@@ -1,5 +1,63 @@
 # Installazione LegoPST via Docker
 
+## Due immagini: completa e snella
+
+Lo stesso ambiente, due pesi. Si scelgono dalla radice del repository:
+
+```sh
+make -f Makefile.mk docker         # aguagliardi/legopst_multi:2.0   (completa)
+make -f Makefile.mk docker_small   # aguagliardi/legopst:2.0         (snella)
+```
+
+| | completa | snella |
+|---|---|---|
+| contenuto | 1,52 GB | **704 MB** |
+| su disco | 4,51 GB | 2,55 GB |
+| pacchetti rpm | 657 | 447 |
+
+Dentro si compila e si lavora allo stesso modo: ci sono `gcc`, `gfortran`,
+Motif, Tcl/Tk/Tix, `ghostscript`, ImageMagick e tutti i `-devel`. Cosa cambia
+e perché è scritto in testa a
+[`Dockerfile_LegoPST_small`](Dockerfile_LegoPST_small); in due righe:
+
+- **le dipendenze deboli non si installano** (`install_weak_deps=False`);
+- **`gimp` sostituito da `mtpaint`** — `LG_ICOEDITOR` è una catena di ripieghi
+  (`Alg_env.sh`), serve *un* editor di icone e con gimp se ne andavano 50
+  pacchetti, `suitesparse` e `openblas` compresi;
+- **il `.git` del repository non entra nella copia**: 631 MB che là dentro
+  nessuno consulterebbe. Restano invece i `.o` e i `.a`: sembravano residui di
+  compilazione, ma `legocad/lego_big/lib/*.a` sono le librerie con cui
+  `cad_crealg1` linka le task quando si apre una HMI — senza, la HMI si apre
+  col disegno cancellato. Lo tiene fuori
+  [`Dockerfile_LegoPST_small.dockerignore`](Dockerfile_LegoPST_small.dockerignore),
+  che vale solo per quel Dockerfile — la completa resta identica a prima.
+
+**`evince` è rimasto** anche nella snella, benché si porti dietro
+`mesa-dri-drivers` e `llvm-libs` (285 MB): `esporta.tcl` apre con
+`LG_PDFVIEWER` sia i PDF sia i **PNG**, e un visualizzatore di soli PDF
+lascerebbe monco l'export PNG di `legopc`. Rinunciando a quella funzione si
+scenderebbe di altri ~285 MB.
+
+### Lanciare la snella
+
+`lgdock` usa la completa per default. Per la snella basta un'opzione, come per
+la demo o per socat:
+
+```sh
+lgdock              # immagine completa (come sempre)
+lgdock --small      # immagine snella
+lgdock -S -d        # snella, con la demo
+```
+
+Vale per `lgdock`, `lgdock_multi` e `lgdock_socat`. Per un'immagine diversa da
+queste due — una build di prova, un tag personale — c'è la variabile
+d'ambiente, che l'opzione sovrascrive:
+
+```sh
+LG_DOCKER_IMAGE=aguagliardi/legopst:3.0-test lgdock
+```
+
+
 Questo installer consente di eseguire LegoPST senza installare nulla localmente - tutto funziona tramite container Docker.
 
 ## Requisiti

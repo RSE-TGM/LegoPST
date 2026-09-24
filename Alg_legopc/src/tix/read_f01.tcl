@@ -45,7 +45,14 @@ proc loadF01 {c showres} {
 		if {!$lg1_error} {
 			append messaggio "Files F01 and F14 building phase done\n"
 		} else {
+			#  il motivo, non solo "aborted": senza, il log diceva soltanto
+			#  che la fase era fallita e si finiva a indovinare. Qui dentro
+			#  c'e' l'errore vero di cad_crealg1 (p.es. una libreria che
+			#  manca), e subito dopo loadF01 cancella il disegno.
 			append messaggio "Files F01 and F14 building phase aborted...\n"
+			if {[info exists result] && [string trim $result] ne ""} {
+				append messaggio "  $result\n"
+			}
 			set ok 0
 		}
 		

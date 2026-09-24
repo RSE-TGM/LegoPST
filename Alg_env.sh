@@ -300,7 +300,9 @@ export FBIN=$KSOURCE/kbin
 export TBIN=$KSOURCE/kbin
 export SBIN=$KSOURCE/kbin
 export OBIN=$KSOURCE/kbin
+#  creata, non solo dichiarata: vedi la stessa nota in .profile_legoroot
 export TMPDIR=$HOME/tmp
+[ -d "$TMPDIR" ] || mkdir -p "$TMPDIR" 2>/dev/null
 export KARCHIVE=$KSOURCE/archive
 #
 # ====================================================================

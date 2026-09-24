@@ -721,9 +721,24 @@ proc aggiorna_etichette_loc {} {
 proc imposta_loc {dir} {
     global S01FILE s01mode SIMPATH s01_name s01_desc
     if {![file isdirectory $dir]} { return "Directory not found: $dir" }
+
+    #  Si conserva il NOME con cui la directory e' stata chiesta, non quello
+    #  che [pwd] restituirebbe dopo il cd: il kernel la' risolve i link, e
+    #  ~/sked e ~/legocad spariscono lasciando il percorso dell'area vera.
+    #  Quei link esistono apposta perche' lghmi, legopc e le HMI parlino
+    #  sempre e solo di ~/sked/... e ~/legocad/..., senza sapere su quale area
+    #  sono appoggiati - e in un container il percorso risolto e' per giunta
+    #  un altro nome (/host_home/...), che non e' nemmeno sotto la home.
+    #  La cwd del processo resta quella risolta: cambia come la CHIAMIAMO, non
+    #  dove siamo.
+    set nome $dir
+    if {[file pathtype $nome] ne "absolute"} { set nome [file join [pwd] $nome] }
+    while {[string length $nome] > 1 && [string index $nome end] eq "/"} {
+        set nome [string range $nome 0 end-1]
+    }
     if {[catch {cd $dir} err]}    { return "Cannot enter $dir: $err" }
 
-    set SIMPATH [pwd]
+    set SIMPATH $nome
     set ::env(LG_SIM_PATH) $SIMPATH
     set S01FILE [file join $SIMPATH S01]
     set s01mode [expr {[file exists $S01FILE] && ![file isdirectory $S01FILE]}]
@@ -922,7 +937,8 @@ proc vai_a_loc {dir} {
     set s [allinea_simulatore 1]
     # refresh_list ha gia' scritto i conteggi: la directory si aggiunge davanti,
     # non li sostituisce
-    set testa "Directory: [pwd]"
+    #  lo stesso nome che si vede in "Set Sim path": col link, non risolto
+    set testa "Directory: [expr {$::SIMPATH ne "" ? $::SIMPATH : [pwd]}]"
     if {$s ne ""} { append testa "   |   current simulator: $s" }
     .status configure -text "$testa   |   [.status cget -text]"
 }
