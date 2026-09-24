@@ -33,7 +33,7 @@ prima di qualunque modifica.
 
 | Zona | Cosa c'è |
 |---|---|
-| In alto a sinistra | **Pagine** del file: si clicca per passare da una all'altra |
+| In alto a sinistra | **Pagine** del file: si clicca per passare da una all'altra, col tasto destro si rinomina o si elimina |
 | In basso a sinistra | **Libreria (clic per piazzare)**: i 54 tipi di stazione, con una casella di ricerca |
 | A destra | Il **canvas**: la pagina disegnata a griglia, una cella = 62 pixel come in `xstaz` |
 | In basso | La **riga di stato**: informazioni sulla stazione sotto il mouse, o sul tipo armato |
@@ -137,6 +137,27 @@ accanto, per non doverle ricordare a memoria.
 
 **Nuova pagina.** `File → Nuova pagina...` chiede numero, nome e descrizione,
 con le stesse convalide del parser.
+
+**Rinominare, duplicare ed eliminare una pagina.** Tasto destro sul suo nome
+nell'elenco:
+
+- *Rinomina* cambia **nome e descrizione**, con le stesse convalide (nome di
+  al più 8 caratteri, senza spazi, descrizione obbligatoria). Il **numero non
+  si tocca**: è quello che le stazioni citano in `PAGINA`, e cambiarlo le
+  lascerebbe orfane.
+- *Duplica* crea una pagina nuova **con tutte le sue stazioni**, nelle stesse
+  posizioni e con gli stessi valori: è il modo di partire da una pagina che
+  funziona invece che da un foglio bianco. Il numero proposto è il primo
+  libero, e il **nome dev'essere diverso** da quelli già in uso — non è
+  pignoleria: `stazpag` cerca la pagina per nome e si ferma alla **prima** che
+  combacia, quindi due omonime ne renderebbero una irraggiungibile da riga di
+  comando e dai bottoni faceplate degli schemi. Le stazioni copiate hanno id
+  nuovi e `NUMERO` azzerato, come quelle incollate.
+- *Elimina* chiede conferma, e se la pagina ha delle stazioni dice **quante ne
+  spariscono con lei**. Le due cose vanno insieme per forza: una stazione che
+  cita una pagina inesistente è un file che il parser rifiuta, quindi
+  lasciarle orfane produrrebbe un `r01.dat` che `lgmkstaz` stesso non
+  rileggerebbe. Finché non salvi, il file su disco è intatto.
 
 ## Le proprietà di una stazione
 

@@ -1676,6 +1676,241 @@ proc ::lgmkstaz::salva_proprieta {w id} {
 # Nuova pagina.
 # ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# Il menu del tasto destro sull'elenco delle pagine.
+# ---------------------------------------------------------------------------
+
+#  La pagina sotto il puntatore (non quella selezionata: col tasto destro ci
+#  si aspetta di agire su quella che si sta indicando). La si seleziona anche
+#  nell'elenco, cosi' si vede su cosa agira' la voce scelta.
+proc ::lgmkstaz::pagina_sotto_puntatore {y} {
+    variable modello
+    if {$modello eq ""} { return "" }
+    set l .corpo.sinistra.pagine.lista
+    set i [$l nearest $y]
+    if {$i < 0 || $i >= [llength [dict get $modello pagine]]} { return "" }
+    $l selection clear 0 end
+    $l selection set $i
+    cambia_pagina_da_lista
+    return [lindex [dict get $modello pagine] $i]
+}
+
+proc ::lgmkstaz::menu_pagine {x y y_lista} {
+    set p [pagina_sotto_puntatore $y_lista]
+    if {$p eq ""} { return }
+    set m .lgmkstaz_menupag
+    catch {destroy $m}
+    menu $m -tearoff 0
+    $m add command -label "Rinomina \"[dict get $p nome]\"..." \
+        -command [list ::lgmkstaz::rinomina_pagina_dialogo [dict get $p numero]]
+    $m add command -label "Duplica \"[dict get $p nome]\"..." \
+        -command [list ::lgmkstaz::duplica_pagina_dialogo [dict get $p numero]]
+    $m add separator
+    $m add command -label "Elimina \"[dict get $p nome]\"..." \
+        -command [list ::lgmkstaz::elimina_pagina [dict get $p numero]]
+    tk_popup $m $x $y
+}
+
+#  Rinominare vuol dire cambiare NOME e DESCRIZIONE: il numero no, perche' e'
+#  quello che le stazioni citano in PAGINA - cambiarlo le lascerebbe orfane.
+proc ::lgmkstaz::rinomina_pagina_dialogo {numero} {
+    variable modello
+
+    set i [modello_indice_pagina $modello $numero]
+    if {$i < 0} { return }
+    set p [lindex [dict get $modello pagine] $i]
+    set ::lgmkstaz::_pag_nome [dict get $p nome]
+    set ::lgmkstaz::_pag_descrizione [dict get $p descrizione]
+
+    set w .lgmkstaz_rinpag
+    catch {destroy $w}
+    toplevel $w
+    wm title $w "Rinomina la pagina $numero"
+    wm transient $w .
+    wm resizable $w 0 0
+
+    frame $w.f
+    pack $w.f -padx 10 -pady 8
+    label $w.f.l1 -text "Numero:" -anchor w
+    label $w.f.v1 -text $numero -anchor w
+    label $w.f.l2 -text "Nome (max 8, senza spazi):" -anchor w
+    entry $w.f.v2 -textvariable ::lgmkstaz::_pag_nome -width 12
+    label $w.f.l3 -text "Descrizione:" -anchor w
+    entry $w.f.v3 -textvariable ::lgmkstaz::_pag_descrizione -width 40
+    grid $w.f.l1 $w.f.v1 -sticky w -pady 2
+    grid $w.f.l2 $w.f.v2 -sticky w -pady 2
+    grid $w.f.l3 $w.f.v3 -sticky w -pady 2
+
+    frame $w.btns
+    pack $w.btns -pady 8
+    button $w.btns.ok -text Rinomina -width 10 -default active \
+        -command [list ::lgmkstaz::rinomina_pagina_da_dialogo $w $numero]
+    button $w.btns.cancel -text Annulla -width 10 -command [list destroy $w]
+    pack $w.btns.ok $w.btns.cancel -side left -padx 6
+    bind $w <Return> [list $w.btns.ok invoke]
+    bind $w <Escape> [list destroy $w]
+    focus $w.f.v2
+}
+
+proc ::lgmkstaz::rinomina_pagina_da_dialogo {w numero} {
+    variable modello
+
+    set nome [string trim $::lgmkstaz::_pag_nome]
+    set descrizione [string trim $::lgmkstaz::_pag_descrizione]
+    #  stesse convalide di una pagina nuova, escludendo se stessa dal
+    #  controllo sul numero gia' usato
+    if {[catch {valida_pagina $modello $numero $nome $descrizione $numero} err]} {
+        tk_messageBox -icon error -title lgmkstaz -parent $w -message $err
+        return
+    }
+    set i [modello_indice_pagina $modello $numero]
+    if {$i < 0} { destroy $w; return }
+    set p [lindex [dict get $modello pagine] $i]
+    dict set p nome $nome
+    dict set p descrizione $descrizione
+    set modello [modello_sostituisci_pagina $modello $numero $p]
+    imposta_modificato 1
+    destroy $w
+    popola_lista_pagine
+    seleziona_pagina_in_lista $numero
+    stato "Pagina $numero rinominata in '$nome'"
+}
+
+#  Duplicare: una pagina nuova con le stesse stazioni, nelle stesse posizioni.
+#  Il NOME dev'essere diverso, e non e' pignoleria: stazpag cerca la pagina
+#  per nome e si ferma alla PRIMA che combacia (stazpag.c), quindi due pagine
+#  omonime ne renderebbero una irraggiungibile da riga di comando e dai
+#  bottoni faceplate degli schemi.
+proc ::lgmkstaz::duplica_pagina_dialogo {numero} {
+    variable modello
+
+    set i [modello_indice_pagina $modello $numero]
+    if {$i < 0} { return }
+    set p [lindex [dict get $modello pagine] $i]
+
+    set numeri {}
+    foreach q [dict get $modello pagine] { lappend numeri [dict get $q numero] }
+    set n 1
+    while {$n in $numeri} { incr n }
+    set ::lgmkstaz::_pag_numero $n
+    set ::lgmkstaz::_pag_nome ""
+    set ::lgmkstaz::_pag_descrizione [dict get $p descrizione]
+    set ::lgmkstaz::_pag_sorgente $numero
+
+    set quante [modello_stazioni_pagina $modello $numero]
+
+    set w .lgmkstaz_duppag
+    catch {destroy $w}
+    toplevel $w
+    wm title $w "Duplica la pagina [dict get $p nome]"
+    wm transient $w .
+    wm resizable $w 0 0
+
+    label $w.intro -anchor w -justify left \
+        -text "Copia della pagina $numero con le sue $quante stazioni."
+    pack $w.intro -padx 10 -pady {8 0} -anchor w
+
+    frame $w.f
+    pack $w.f -padx 10 -pady 8
+    label $w.f.l1 -text "Numero:" -anchor w
+    entry $w.f.v1 -textvariable ::lgmkstaz::_pag_numero -width 8
+    label $w.f.l2 -text "Nome nuovo (max 8, senza spazi):" -anchor w
+    entry $w.f.v2 -textvariable ::lgmkstaz::_pag_nome -width 12
+    label $w.f.l3 -text "Descrizione:" -anchor w
+    entry $w.f.v3 -textvariable ::lgmkstaz::_pag_descrizione -width 40
+    grid $w.f.l1 $w.f.v1 -sticky w -pady 2
+    grid $w.f.l2 $w.f.v2 -sticky w -pady 2
+    grid $w.f.l3 $w.f.v3 -sticky w -pady 2
+
+    frame $w.btns
+    pack $w.btns -pady 8
+    button $w.btns.ok -text Duplica -width 10 -default active \
+        -command [list ::lgmkstaz::duplica_pagina_da_dialogo $w]
+    button $w.btns.cancel -text Annulla -width 10 -command [list destroy $w]
+    pack $w.btns.ok $w.btns.cancel -side left -padx 6
+    bind $w <Return> [list $w.btns.ok invoke]
+    bind $w <Escape> [list destroy $w]
+    focus $w.f.v2
+}
+
+proc ::lgmkstaz::duplica_pagina_da_dialogo {w} {
+    variable modello
+    variable prossimo_id
+
+    set numero [string trim $::lgmkstaz::_pag_numero]
+    set nome [string trim $::lgmkstaz::_pag_nome]
+    set descrizione [string trim $::lgmkstaz::_pag_descrizione]
+    set sorgente $::lgmkstaz::_pag_sorgente
+
+    if {[catch {valida_pagina $modello $numero $nome $descrizione -1} err]} {
+        tk_messageBox -icon error -title lgmkstaz -parent $w -message $err
+        return
+    }
+    foreach q [dict get $modello pagine] {
+        if {[dict get $q nome] eq $nome} {
+            tk_messageBox -icon error -title lgmkstaz -parent $w -message \
+                "Il nome '$nome' e' gia' della pagina [dict get $q numero].\
+                 Serve un nome diverso: stazpag apre una pagina per nome e si\
+                 ferma alla prima che trova, quindi una delle due resterebbe\
+                 irraggiungibile."
+            return
+        }
+    }
+
+    set modello [modello_aggiungi_pagina $modello \
+                     [dict create numero $numero nome $nome descrizione $descrizione]]
+
+    #  le stazioni, con id nuovi e NUMERO azzerato (un numero duplicato
+    #  sarebbe un errore vero per compstaz), nelle stesse posizioni
+    set quante 0
+    foreach st [dict get $modello stazioni] {
+        if {[dict get $st pagina] != $sorgente} continue
+        set nuova $st
+        dict set nuova id $prossimo_id
+        dict set nuova pagina $numero
+        dict set nuova numero ""
+        incr prossimo_id
+        set modello [modello_aggiungi_stazione $modello $nuova]
+        incr quante
+    }
+
+    imposta_modificato 1
+    destroy $w
+    popola_lista_pagine
+    seleziona_pagina_in_lista $numero
+    stato "Pagina $numero '$nome' creata come copia, con $quante stazioni"
+}
+
+proc ::lgmkstaz::elimina_pagina {numero} {
+    variable modello
+    variable pagina_disegnata
+
+    set i [modello_indice_pagina $modello $numero]
+    if {$i < 0} { return }
+    set p [lindex [dict get $modello pagine] $i]
+    set quante [modello_stazioni_pagina $modello $numero]
+
+    set msg "Eliminare la pagina $numero \"[dict get $p nome]\"?"
+    if {$quante > 0} {
+        #  le stazioni se ne vanno con lei: lasciarle orfane produrrebbe un
+        #  file che nemmeno lgmkstaz rilegge
+        append msg "\n\nCon la pagina spariscono anche le $quante stazioni\
+                    che ci stanno sopra."
+    }
+    append msg "\n\nL'operazione si annulla solo non salvando il file."
+    if {[tk_messageBox -icon warning -type yesno -default no -title "Elimina pagina" \
+             -message $msg] ne "yes"} {
+        return
+    }
+
+    set modello [modello_elimina_pagina $modello $numero]
+    selezione_imposta {}
+    imposta_modificato 1
+    if {$pagina_disegnata == $numero} { set pagina_disegnata "" }
+    popola_lista_pagine
+    stato "Pagina $numero eliminata[expr {$quante ? " con le sue $quante stazioni" : ""}]"
+}
+
 proc ::lgmkstaz::nuova_pagina_dialogo {} {
     variable modello
     if {$modello eq ""} {
@@ -2193,6 +2428,7 @@ pack .corpo.sinistra.pagine -fill both -expand 1 -padx 4 -pady {0 4}
 listbox .corpo.sinistra.pagine.lista -exportselection 0 -height 8
 pack .corpo.sinistra.pagine.lista -fill both -expand 1
 bind .corpo.sinistra.pagine.lista <<ListboxSelect>> ::lgmkstaz::cambia_pagina_da_lista
+bind .corpo.sinistra.pagine.lista <Button-3> {::lgmkstaz::menu_pagine %X %Y %y}
 
 label .corpo.sinistra.etic2 -text "Libreria (clic per piazzare)" -anchor w
 pack .corpo.sinistra.etic2 -fill x -padx 4 -pady {4 0}

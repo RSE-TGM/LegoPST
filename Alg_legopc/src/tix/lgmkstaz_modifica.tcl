@@ -245,6 +245,34 @@ proc ::lgmkstaz::modello_sostituisci_pagina {modello numero nuova} {
 # DESCRIZIONE dati dall'utente invece che letti da un file. $numero_da_escludere
 # e' il numero della pagina che si sta modificando (per non rifiutarla perche'
 # "gia' usata" da se stessa); "" per una pagina nuova.
+#  Toglie una pagina E le stazioni che ci stanno sopra. Le due cose vanno
+#  insieme: una stazione che cita una pagina inesistente e' un file che il
+#  parser rifiuta ("la stazione N cita la pagina P, mai dichiarata"), quindi
+#  lasciarle orfane produrrebbe un r01.dat che lgmkstaz stesso non rilegge.
+proc ::lgmkstaz::modello_elimina_pagina {modello numero} {
+    set pagine {}
+    foreach p [dict get $modello pagine] {
+        if {[dict get $p numero] != $numero} { lappend pagine $p }
+    }
+    set stazioni {}
+    foreach s [dict get $modello stazioni] {
+        if {[dict get $s pagina] != $numero} { lappend stazioni $s }
+    }
+    dict set modello pagine $pagine
+    dict set modello stazioni $stazioni
+    return $modello
+}
+
+#  Quante stazioni stanno su una pagina: serve a dire all'utente cosa sta per
+#  perdere prima di cancellarla.
+proc ::lgmkstaz::modello_stazioni_pagina {modello numero} {
+    set n 0
+    foreach s [dict get $modello stazioni] {
+        if {[dict get $s pagina] == $numero} { incr n }
+    }
+    return $n
+}
+
 proc ::lgmkstaz::valida_pagina {modello numero nome descrizione numero_da_escludere} {
     variable max_pagine
     variable lun_nome_pagina
