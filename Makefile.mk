@@ -2,7 +2,7 @@
 # ... (i tuoi commenti iniziali rimangono invariati) ...
 
 # Aggiunto .PHONY per i target che non rappresentano file reali.
-.PHONY: all clean force_version_h docker docker_small docker-push docker_small-push help
+.PHONY: all clean force_version_h docker docker_slim docker-push docker_slim-push help
 
 # Il target 'all' è il primo, quindi è il default.
 all: version.h # Assicuriamoci che version.h sia controllato/generato prima di compilare
@@ -65,19 +65,19 @@ clean:
 # --- Target Docker ---
 #  Due immagini con lo stesso ambiente dentro: la completa, come e' sempre
 #  stata, e la snella. Si scelgono con due target distinti perche' non sono
-#  l'una il rimpiazzo dell'altra - vedi docker/Dockerfile_LegoPST_small per
+#  l'una il rimpiazzo dell'altra - vedi docker/Dockerfile_LegoPST_slim per
 #  cosa cambia e perche'.
 docker:
 	cd ./docker && ./BuildImage -y
 
-docker_small:
-	cd ./docker && ./BuildImage -y --small
+docker_slim:
+	cd ./docker && ./BuildImage -y --slim
 
 docker-push:
 	cd ./docker && ./BuildImage -y --push
 
-docker_small-push:
-	cd ./docker && ./BuildImage -y --small --push
+docker_slim-push:
+	cd ./docker && ./BuildImage -y --slim --push
 
 # --- Help ---
 help:
@@ -105,15 +105,15 @@ help:
 	@echo "  docker           Costruisce l'immagine Docker COMPLETA"
 	@echo "                   aguagliardi/legopst_multi:2.0 (BuildImage -y)"
 	@echo ""
-	@echo "  docker_small     Costruisce la variante SNELLA, stesso ambiente"
-	@echo "                   aguagliardi/legopst:2.0 (BuildImage -y --small)"
+	@echo "  docker_slim      Costruisce la variante SNELLA, stesso ambiente"
+	@echo "                   aguagliardi/legopst_slim:2.0 (BuildImage -y --slim)"
 	@echo "                   Senza le dipendenze deboli, senza gimp e senza il"
-	@echo "                   .git del repository. Vedi docker/Dockerfile_LegoPST_small"
+	@echo "                   .git del repository. Vedi docker/Dockerfile_LegoPST_slim"
 	@echo ""
 	@echo "  docker-push      Costruisce e pubblica la COMPLETA su Docker Hub"
 	@echo "                   (esegue docker/BuildImage -y --push)"
 	@echo ""
-	@echo "  docker_small-push  Come sopra, ma la variante snella"
+	@echo "  docker_slim-push Come sopra, ma la variante snella"
 	@echo ""
 	@echo "  help             Mostra questo messaggio"
 	@echo ""

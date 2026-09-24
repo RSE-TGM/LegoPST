@@ -6,7 +6,7 @@ Lo stesso ambiente, due pesi. Si scelgono dalla radice del repository:
 
 ```sh
 make -f Makefile.mk docker         # aguagliardi/legopst_multi:2.0   (completa)
-make -f Makefile.mk docker_small   # aguagliardi/legopst:2.0         (snella)
+make -f Makefile.mk docker_slim    # aguagliardi/legopst_slim:2.0    (snella)
 ```
 
 | | completa | snella |
@@ -18,7 +18,7 @@ make -f Makefile.mk docker_small   # aguagliardi/legopst:2.0         (snella)
 Dentro si compila e si lavora allo stesso modo: ci sono `gcc`, `gfortran`,
 Motif, Tcl/Tk/Tix, `ghostscript`, ImageMagick e tutti i `-devel`. Cosa cambia
 e perché è scritto in testa a
-[`Dockerfile_LegoPST_small`](Dockerfile_LegoPST_small); in due righe:
+[`Dockerfile_LegoPST_slim`](Dockerfile_LegoPST_slim); in due righe:
 
 - **le dipendenze deboli non si installano** (`install_weak_deps=False`);
 - **`gimp` sostituito da `mtpaint`** — `LG_ICOEDITOR` è una catena di ripieghi
@@ -29,7 +29,7 @@ e perché è scritto in testa a
   compilazione, ma `legocad/lego_big/lib/*.a` sono le librerie con cui
   `cad_crealg1` linka le task quando si apre una HMI — senza, la HMI si apre
   col disegno cancellato. Lo tiene fuori
-  [`Dockerfile_LegoPST_small.dockerignore`](Dockerfile_LegoPST_small.dockerignore),
+  [`Dockerfile_LegoPST_slim.dockerignore`](Dockerfile_LegoPST_slim.dockerignore),
   che vale solo per quel Dockerfile — la completa resta identica a prima.
 
 **`evince` è rimasto** anche nella snella, benché si porti dietro
@@ -45,7 +45,7 @@ la demo o per socat:
 
 ```sh
 lgdock              # immagine completa (come sempre)
-lgdock --small      # immagine snella
+lgdock --slim       # immagine snella
 lgdock -S -d        # snella, con la demo
 ```
 

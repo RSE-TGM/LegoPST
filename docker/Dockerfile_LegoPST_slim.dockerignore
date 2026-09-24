@@ -1,6 +1,6 @@
 # Cosa NON entra nella copia dell'immagine snella.
 #
-# Vale SOLO per Dockerfile_LegoPST_small: BuildKit, prima del .dockerignore
+# Vale SOLO per Dockerfile_LegoPST_slim: BuildKit, prima del .dockerignore
 # della radice del contesto, cerca un file che si chiami come il Dockerfile
 # con l'aggiunta di ".dockerignore". E' per questo che l'immagine completa
 # (Dockerfile_LegoPST, che di suo non ne ha uno) continua a essere costruita

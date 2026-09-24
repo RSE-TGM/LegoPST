@@ -283,10 +283,13 @@ make -f Makefile.mk clean
 # It does NOT build the Docker image, so it needs no Docker on the machine.
 make -f Makefile.mk
 
-# Build the Docker image (optional, ~4.5 GB, needs Docker installed and running)
+# Build the Docker image (optional, ~4.5 GB on disk, needs Docker installed and running)
 make -f Makefile.mk docker
 
-# Build the Docker image and push it to the registry
+# Same environment, about half the size (aguagliardi/legopst_slim:2.0)
+make -f Makefile.mk docker_slim
+
+# Build the Docker image and push it to the registry (docker_slim-push for the slim one)
 make -f Makefile.mk docker-push
 
 # List every target

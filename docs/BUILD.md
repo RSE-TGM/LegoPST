@@ -17,14 +17,18 @@ This builds all subprojects in sequence:
 It does **not** build the Docker image, so it runs on a machine without Docker.
 
 ## Docker Image
+Two images, the same environment inside, two weights:
 ```bash
-make -f Makefile.mk docker        # builds aguagliardi/legopst_multi:2.0 (~4.5 GB)
-make -f Makefile.mk docker-push   # builds it and pushes it to the registry
+make -f Makefile.mk docker             # aguagliardi/legopst_multi:2.0 (~4.5 GB on disk)
+make -f Makefile.mk docker_slim        # aguagliardi/legopst_slim:2.0  (~2.5 GB on disk)
+make -f Makefile.mk docker-push        # builds the full one and pushes it to the registry
+make -f Makefile.mk docker_slim-push   # the same for the slim one
 ```
 
-Both run `docker/BuildImage -y`, which needs Docker installed and running. Rebuild the
-image whenever something that ends up inside it changes - the whole repository is
-copied in, the demo tarball included.
+They all run `docker/BuildImage -y` (with `--slim` for the slim variant), which needs
+Docker installed and running. Rebuild the image whenever something that ends up inside
+it changes - the whole repository is copied in, the demo tarball included. What the slim
+one leaves out, and why, is in [docker/README_INSTALLER.md](../docker/README_INSTALLER.md).
 
 ## Clean Build
 ```bash

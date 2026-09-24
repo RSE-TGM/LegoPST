@@ -142,8 +142,9 @@ how it is built.</p>
   <div class="row1"><a class="tit" href="docs/BUILD.md">Building, and handling simulators</a>
     <span class="b md">md</span><span class="path">docs/BUILD.md</span></div>
   <p><b>Scope:</b> <code>make -f Makefile.mk</code>, the Docker image as a separate target
-  (<code>make docker</code>), versioning, the <code>ksetsim</code>/<code>ksims</code> commands that
-  pick the active simulator, <code>creasim</code>, <code>kDiffS01</code>.</p>
+  (<code>docker</code> for the full one, <code>docker_slim</code> for the slim one), versioning,
+  the <code>ksetsim</code>/<code>ksims</code> commands that pick the active simulator,
+  <code>creasim</code>, <code>kDiffS01</code>.</p>
   <p class="use"><b>When you need it:</b> every time you build. It also holds the most expensive
   trap in the project: without <code>source .profile_legoroot</code> the include paths stay empty
   and the build fails in a way that does not say why.</p>
@@ -611,7 +612,9 @@ run in a container.</p>
 <div class="card">
   <div class="row1"><a class="tit" href="docker/README_INSTALLER.md">Installing through Docker</a>
     <span class="b md">md</span><span class="path">docker/README_INSTALLER.md</span></div>
-  <p><b>Scope:</b> the containerised installer: image, volumes, startup.</p>
+  <p><b>Scope:</b> the containerised installer: the two images (full
+  <code>legopst_multi:2.0</code> and slim <code>legopst_slim:2.0</code>, same environment inside),
+  what the slim one leaves out and why, volumes, startup, <code>lgdock --slim</code>.</p>
   <p class="use"><b>When you need it:</b> to run LegoPST without installing it on the host
   machine.</p>
 </div>
