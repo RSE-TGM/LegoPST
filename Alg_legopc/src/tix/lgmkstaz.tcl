@@ -82,6 +82,13 @@ namespace eval ::lgmkstaz {
     variable drag_partito 0           ;# 1 se durante il trascinamento c'e' stato un vero movimento
     variable prossimo_id 0            ;# per le stazioni create durante l'editing
     variable appunti {}               ;# le stazioni copiate con Ctrl+C (lista)
+    #  Annulla/ripeti. Si registrano OPERAZIONI INVERSE, non istantanee del
+    #  modello: un'istantanea, ripristinando tutto, annullerebbe anche le
+    #  modifiche ai parametri fatte nel frattempo, che qui non si toccano.
+    #  Coperte: aggiunta (libreria e incolla) e spostamento. Vedi registra_*.
+    variable undo_pila {}
+    variable redo_pila {}
+    variable max_undo 50
 
     # Disegno delle stazioni con le immagini vere di xstaz (sprite) invece che
     # con lo schema a forme semplici. Vedi sprite_per_tipo.
@@ -803,6 +810,56 @@ proc ::lgmkstaz::misura_tipo {tipo} {
     return "${larg}x${altezza}"
 }
 
+#  Tasto destro tenuto premuto su un tipo nella libreria: se ne vede lo sprite
+#  a grandezza naturale, cioe' quanto occupera' davvero sulla pagina. La
+#  miniatura della riga di stato sta in 31 pixel di altezza e serve a
+#  riconoscere il tipo, non a guardarlo.
+#
+#  La finestrella e' senza bordo di window manager (overrideredirect) e sparisce
+#  al rilascio del tasto: si sbircia, non si apre e chiude.
+proc ::lgmkstaz::anteprima_libreria {x_root y_root y_lista} {
+    variable catalogo
+
+    set l .corpo.sinistra.libreria.lista
+    set i [$l nearest $y_lista]
+    if {$i < 0 || $i >= [$l size]} { return }
+    set tipo [$l get $i]
+    set img [sprite_per_tipo $tipo]
+    if {$img eq ""} { return }
+
+    set w .lgmkstaz_anteprima
+    catch {destroy $w}
+    toplevel $w -borderwidth 1 -relief solid -background #808080
+    wm overrideredirect $w 1
+    label $w.img -image $img -borderwidth 0
+    pack $w.img
+    set testo $tipo
+    if {[info exists catalogo($tipo)]} {
+        lassign $catalogo($tipo) larg altezza sequenza
+        append testo "   ${larg}x${altezza} celle"
+    }
+    label $w.nome -text $testo -anchor w -background #ffffe0 -borderwidth 0
+    pack $w.nome -fill x
+
+    #  accanto al puntatore, ma dentro lo schermo: SINCRONO e' largo 744 px e
+    #  fuori dal bordo destro non si vedrebbe
+    update idletasks
+    set lw [winfo reqwidth $w]; set lh [winfo reqheight $w]
+    set sw [winfo screenwidth $w]; set sh [winfo screenheight $w]
+    set px [expr {$x_root + 16}]
+    set py [expr {$y_root + 8}]
+    if {$px + $lw > $sw} { set px [expr {$sw - $lw - 4}] }
+    if {$py + $lh > $sh} { set py [expr {$sh - $lh - 4}] }
+    if {$px < 0} { set px 0 }
+    if {$py < 0} { set py 0 }
+    wm geometry $w "+$px+$py"
+    raise $w
+}
+
+proc ::lgmkstaz::chiudi_anteprima_libreria {} {
+    catch {destroy .lgmkstaz_anteprima}
+}
+
 proc ::lgmkstaz::libreria_seleziona {} {
     set sel [.corpo.sinistra.libreria.lista curselection]
     if {[llength $sel] == 0} {
@@ -834,6 +891,229 @@ proc ::lgmkstaz::annulla_armato {} {
 #  Tutte le stazioni della pagina che si sta guardando (non dell'intero file:
 #  la selezione vive sul canvas, e cio' che non si vede non si puo' spostare
 #  ne' vedere selezionato).
+# ---------------------------------------------------------------------------
+# Le azioni di Edit, definite una volta sola: le usano sia la voce di menu in
+# alto sia il popup del tasto destro sul canvas. Tenerle in due posti diversi
+# vorrebbe dire vederle divergere alla prima aggiunta.
+#
+# Ogni riga e' {etichetta acceleratore comando quando-e-attiva}, dove
+# quando-e-attiva vale "sempre", "selezione" (serve almeno una stazione
+# selezionata) o "appunti" (serve qualcosa da incollare).
+# ---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
+# Annulla e ripeti.
+#
+# Non si salvano istantanee del modello ma l'operazione INVERSA di quelle
+# poche che si possono annullare: aggiungere una stazione (dalla libreria o
+# incollandola), spostarla e cancellarla. Le modifiche ai parametri di una
+# stazione NON
+# entrano nella pila - e con le istantanee ci finirebbero per forza, perche'
+# ripristinare il modello intero riporterebbe indietro anche quelle.
+#
+# Un'azione e' un dict:
+#   tipo aggiunta      stazioni <lista di dict di stazione, com'erano>
+#   tipo cancellazione stazioni <come sopra: e' l'aggiunta a versi invertiti>
+#   tipo spostamento   voci <lista di {id vecchia_x vecchia_y nuova_x nuova_y}>
+# piu' una descrizione da mostrare nella riga di stato.
+# ---------------------------------------------------------------------------
+
+proc ::lgmkstaz::registra_azione {azione} {
+    variable undo_pila
+    variable redo_pila
+    variable max_undo
+
+    lappend undo_pila $azione
+    if {[llength $undo_pila] > $max_undo} {
+        set undo_pila [lrange $undo_pila end-[expr {$max_undo - 1}] end]
+    }
+    #  una nuova operazione chiude la strada al "ripeti": da qui in avanti la
+    #  storia e' un'altra
+    set redo_pila {}
+}
+
+proc ::lgmkstaz::registra_aggiunta {stazioni descrizione} {
+    registra_azione [dict create tipo aggiunta stazioni $stazioni \
+                         descrizione $descrizione]
+}
+
+proc ::lgmkstaz::registra_cancellazione {stazioni descrizione} {
+    registra_azione [dict create tipo cancellazione stazioni $stazioni \
+                         descrizione $descrizione]
+}
+
+proc ::lgmkstaz::registra_spostamento {voci descrizione} {
+    if {[llength $voci] == 0} return
+    registra_azione [dict create tipo spostamento voci $voci \
+                         descrizione $descrizione]
+}
+
+#  Applica un'azione in un verso o nell'altro. Ritorna gli id toccati, per
+#  selezionarli e per capire quale pagina mostrare.
+proc ::lgmkstaz::applica_azione {azione verso} {
+    variable modello
+
+    set toccati {}
+    #  una cancellazione e' un'aggiunta al contrario: stesso codice, versi
+    #  scambiati, invece di due blocchi quasi uguali
+    set tipo [dict get $azione tipo]
+    if {$tipo eq "cancellazione"} {
+        set tipo aggiunta
+        set verso [expr {$verso eq "annulla" ? "ripeti" : "annulla"}]
+    }
+    switch -- $tipo {
+        aggiunta {
+            foreach st [dict get $azione stazioni] {
+                set id [dict get $st id]
+                if {$verso eq "annulla"} {
+                    if {[modello_indice_stazione $modello $id] >= 0} {
+                        set modello [modello_elimina_stazione $modello $id]
+                    }
+                } else {
+                    #  si rimette con lo STESSO id: le azioni piu' vecchie
+                    #  nella pila lo citano, e prossimo_id e' gia' andato
+                    #  avanti, quindi non puo' collidere
+                    if {[modello_indice_stazione $modello $id] < 0} {
+                        set modello [modello_aggiungi_stazione $modello $st]
+                    }
+                    lappend toccati $id
+                }
+            }
+        }
+        spostamento {
+            foreach voce [dict get $azione voci] {
+                lassign $voce id vx vy nx ny
+                if {[modello_indice_stazione $modello $id] < 0} continue
+                if {$verso eq "annulla"} {
+                    set modello [modello_sposta_stazione $modello $id $vx $vy]
+                } else {
+                    set modello [modello_sposta_stazione $modello $id $nx $ny]
+                }
+                lappend toccati $id
+            }
+        }
+    }
+    return $toccati
+}
+
+#  La pagina su cui mostrare il risultato: quella delle stazioni toccate, se
+#  non e' gia' quella che si sta guardando. Annullare qualcosa che e' successo
+#  altrove senza farlo vedere sarebbe peggio che non annullarlo.
+proc ::lgmkstaz::pagina_delle {ids} {
+    variable modello
+    foreach id $ids {
+        set i [modello_indice_stazione $modello $id]
+        if {$i >= 0} { return [dict get [lindex [dict get $modello stazioni] $i] pagina] }
+    }
+    return ""
+}
+
+proc ::lgmkstaz::annulla {} {
+    variable undo_pila
+    variable redo_pila
+    variable pagina_disegnata
+
+    if {[llength $undo_pila] == 0} {
+        stato "Niente da annullare."
+        return
+    }
+    set azione [lindex $undo_pila end]
+    set undo_pila [lrange $undo_pila 0 end-1]
+    set toccati [applica_azione $azione annulla]
+    lappend redo_pila $azione
+
+    imposta_modificato 1
+    #  per un'aggiunta annullata le stazioni non ci sono piu': si resta dove
+    #  si e', per uno spostamento si va a vedere dove sono tornate
+    set pag [pagina_delle $toccati]
+    if {$pag ne "" && $pag != $pagina_disegnata} {
+        seleziona_pagina_in_lista $pag
+    } else {
+        disegna_pagina $pagina_disegnata
+    }
+    selezione_imposta $toccati
+    stato "Annullato: [dict get $azione descrizione]"
+}
+
+proc ::lgmkstaz::ripeti {} {
+    variable undo_pila
+    variable redo_pila
+    variable pagina_disegnata
+
+    if {[llength $redo_pila] == 0} {
+        stato "Niente da ripetere."
+        return
+    }
+    set azione [lindex $redo_pila end]
+    set redo_pila [lrange $redo_pila 0 end-1]
+    set toccati [applica_azione $azione ripeti]
+    lappend undo_pila $azione
+
+    imposta_modificato 1
+    set pag [pagina_delle $toccati]
+    if {$pag ne "" && $pag != $pagina_disegnata} {
+        seleziona_pagina_in_lista $pag
+    } else {
+        disegna_pagina $pagina_disegnata
+    }
+    selezione_imposta $toccati
+    stato "Rifatto: [dict get $azione descrizione]"
+}
+
+proc ::lgmkstaz::azioni_edit {} {
+    return {
+        {"Annulla"         "Ctrl+Z" ::lgmkstaz::annulla              undo}
+        {"Ripeti"          "Ctrl+Y" ::lgmkstaz::ripeti               redo}
+        --
+        {"Copia"           "Ctrl+C" ::lgmkstaz::copia_selezionata    selezione}
+        {"Incolla"         "Ctrl+V" ::lgmkstaz::incolla              appunti}
+        {"Elimina"         "Canc"   ::lgmkstaz::elimina_selezionata  selezione}
+        --
+        {"Seleziona tutto" "Ctrl+A" ::lgmkstaz::seleziona_tutto      sempre}
+        {"Deseleziona"     "Esc"    {::lgmkstaz::selezione_imposta {}} selezione}
+    }
+}
+
+#  Riempie un menu con le azioni di Edit. Le voci che in questo momento non
+#  avrebbero effetto nascono SPENTE invece di sparire: il menu non cambia
+#  forma sotto le dita, e si vede perche' non si puo' fare.
+proc ::lgmkstaz::riempi_menu_edit {m} {
+    variable selezione
+    variable appunti
+
+    $m delete 0 end
+    foreach voce [azioni_edit] {
+        if {$voce eq "--"} { $m add separator; continue }
+        lassign $voce etichetta acceleratore comando quando
+        switch -- $quando {
+            selezione { set attiva [expr {[llength $selezione] > 0}] }
+            appunti   { set attiva [expr {[llength $appunti] > 0}] }
+            undo      { set attiva [expr {[llength $::lgmkstaz::undo_pila] > 0}] }
+            redo      { set attiva [expr {[llength $::lgmkstaz::redo_pila] > 0}] }
+            default   { set attiva 1 }
+        }
+        $m add command -label $etichetta -accelerator $acceleratore \
+            -command $comando -state [expr {$attiva ? "normal" : "disabled"}]
+    }
+}
+
+#  Il popup del tasto destro sul canvas, come in legopc. Se si preme su una
+#  stazione che NON e' nella selezione, quella diventa la selezione: col tasto
+#  destro ci si aspetta di agire su cio' che si sta indicando. Su una gia'
+#  selezionata (o sullo sfondo) la selezione non si tocca, cosi' il menu agisce
+#  sul gruppo che si era appena messo insieme.
+proc ::lgmkstaz::menu_canvas {x_root y_root x y} {
+    focus .corpo.destra.canvas
+    set s [stazione_sotto $x $y]
+    if {$s ne "" && ![selezione_contiene [dict get $s id]]} {
+        selezione_imposta [list [dict get $s id]]
+    }
+    set m .lgmkstaz_menucanvas
+    if {![winfo exists $m]} { menu $m -tearoff 0 }
+    riempi_menu_edit $m
+    tk_popup $m $x_root $y_root
+}
+
 proc ::lgmkstaz::seleziona_tutto {} {
     variable modello
     variable pagina_disegnata
@@ -896,6 +1176,7 @@ proc ::lgmkstaz::piazza_stazione {tipo x_widget y_widget} {
     set nuova [crea_stazione_vuota $prossimo_id $tipo $pagina_disegnata $posx $posy]
     incr prossimo_id
     set modello [modello_aggiungi_stazione $modello $nuova]
+    registra_aggiunta [list $nuova] "piazzata $tipo"
     imposta_modificato 1
     disegna_pagina $pagina_disegnata
     selezione_imposta [list [dict get $nuova id]]
@@ -1056,12 +1337,16 @@ proc ::lgmkstaz::canvas_release {x y} {
     if {$dcx == 0 && $dcy == 0} { disegna_pagina $pagina_disegnata; disegna_selezione; return }
 
     set quante 0
+    set voci {}
     foreach st [selezione_stazioni] {
-        set modello [modello_sposta_stazione $modello [dict get $st id] \
-                         [expr {[dict get $st posx] + $dcx}] \
-                         [expr {[dict get $st posy] + $dcy}]]
+        set vx [dict get $st posx]; set vy [dict get $st posy]
+        set nx [expr {$vx + $dcx}]; set ny [expr {$vy + $dcy}]
+        lappend voci [list [dict get $st id] $vx $vy $nx $ny]
+        set modello [modello_sposta_stazione $modello [dict get $st id] $nx $ny]
         incr quante
     }
+    registra_spostamento $voci \
+        [expr {$quante == 1 ? "spostata una stazione" : "spostate $quante stazioni"}]
     imposta_modificato 1
     disegna_pagina $pagina_disegnata
     disegna_selezione
@@ -1201,6 +1486,7 @@ proc ::lgmkstaz::incolla {} {
     }
 
     set nuovi {}
+    set aggiunte {}
     set avviso ""
     foreach st $appunti {
         set nx [expr {$posx + [dict get $st posx] - $ax}]
@@ -1218,8 +1504,12 @@ proc ::lgmkstaz::incolla {} {
         incr prossimo_id
         set modello [modello_aggiungi_stazione $modello $nuova]
         lappend nuovi [dict get $nuova id]
+        lappend aggiunte $nuova
     }
 
+    registra_aggiunta $aggiunte \
+        [expr {[llength $aggiunte] == 1 ? "incollata una stazione" \
+                                        : "incollate [llength $aggiunte] stazioni"}]
     imposta_modificato 1
     disegna_pagina $pagina_disegnata
     selezione_imposta $nuovi
@@ -1239,6 +1529,9 @@ proc ::lgmkstaz::elimina_selezionata {} {
     foreach st $staz {
         set modello [modello_elimina_stazione $modello [dict get $st id]]
     }
+    registra_cancellazione $staz \
+        [expr {[llength $staz] == 1 ? "cancellata una stazione" \
+                                    : "cancellate [llength $staz] stazioni"}]
     selezione_imposta {}
     imposta_modificato 1
     disegna_pagina $pagina_disegnata
@@ -2016,6 +2309,8 @@ proc ::lgmkstaz::conferma_scarto_modifiche {} {
 proc ::lgmkstaz::apri_file {percorso} {
     variable modello
     variable selezione
+    variable undo_pila
+    variable redo_pila
     variable percorso_corrente
     variable prossimo_id
     variable tipo_armato
@@ -2039,6 +2334,10 @@ proc ::lgmkstaz::apri_file {percorso} {
     set modello $risultato
     set percorso_corrente $percorso
     set selezione {}
+    #  la storia e' di QUEL file: tenerla vorrebbe dire poter "annullare" su
+    #  un modello che non la conosce
+    set undo_pila {}
+    set redo_pila {}
     set tipo_armato ""
     .corpo.sinistra.libreria.lista selection clear 0 end
 
@@ -2122,6 +2421,23 @@ proc ::lgmkstaz::esci {} {
 # Elenco delle pagine.
 # ---------------------------------------------------------------------------
 
+#  Mostra o nasconde la barra delle pagine secondo che la lista ci stia tutta
+#  o no. Non puo' innescare un ciclo: la barra toglie larghezza, non righe,
+#  quindi quante pagine si vedono non cambia e la decisione resta la stessa.
+proc ::lgmkstaz::aggiorna_scroll_pagine {} {
+    set l .corpo.sinistra.pagine.lista
+    set b .corpo.sinistra.pagine.scroll
+    if {![winfo exists $b]} return
+    lassign [$l yview] p0 p1
+    set serve [expr {$p0 > 0.0 || $p1 < 1.0}]
+    set c_e [expr {[winfo manager $b] ne ""}]
+    if {$serve && !$c_e} {
+        pack $b -side right -fill y -before $l
+    } elseif {!$serve && $c_e} {
+        pack forget $b
+    }
+}
+
 proc ::lgmkstaz::popola_lista_pagine {} {
     variable modello
 
@@ -2138,6 +2454,7 @@ proc ::lgmkstaz::popola_lista_pagine {} {
     } else {
         disegna_pagina ""
     }
+    aggiorna_scroll_pagine
 }
 
 proc ::lgmkstaz::cambia_pagina_da_lista {} {
@@ -2380,19 +2697,11 @@ menu .mb.file -tearoff 0
 
 #  Le stesse azioni delle scorciatoie sul canvas: chi non le ricorda le
 #  trova qui, con la scorciatoia scritta accanto.
-menu .mb.edit -tearoff 0
+#  Le stesse azioni del popup sul canvas (azioni_edit): si riempie a ogni
+#  apertura, cosi' le voci che non avrebbero effetto risultano spente.
+menu .mb.edit -tearoff 0 -postcommand {::lgmkstaz::riempi_menu_edit .mb.edit}
 .mb add cascade -label Edit -menu .mb.edit
-.mb.edit add command -label "Copia" -accelerator "Ctrl+C" \
-    -command ::lgmkstaz::copia_selezionata
-.mb.edit add command -label "Incolla" -accelerator "Ctrl+V" \
-    -command ::lgmkstaz::incolla
-.mb.edit add command -label "Elimina" -accelerator "Canc" \
-    -command ::lgmkstaz::elimina_selezionata
-.mb.edit add separator
-.mb.edit add command -label "Seleziona tutto" -accelerator "Ctrl+A" \
-    -command ::lgmkstaz::seleziona_tutto
-.mb.edit add command -label "Deseleziona" -accelerator "Esc" \
-    -command {::lgmkstaz::selezione_imposta {}}
+::lgmkstaz::riempi_menu_edit .mb.edit
 
 menu .mb.visualizza -tearoff 0
 .mb add cascade -label Visualizza -menu .mb.visualizza
@@ -2425,8 +2734,16 @@ label .corpo.sinistra.etic1 -text Pagine -anchor w
 pack .corpo.sinistra.etic1 -fill x -padx 4 -pady {4 0}
 frame .corpo.sinistra.pagine
 pack .corpo.sinistra.pagine -fill both -expand 1 -padx 4 -pady {0 4}
-listbox .corpo.sinistra.pagine.lista -exportselection 0 -height 8
-pack .corpo.sinistra.pagine.lista -fill both -expand 1
+#  La barra delle pagine compare SOLO quando servono: un file con tre pagine
+#  non ha bisogno di una barra, e toglierla di mezzo lascia piu' spazio ai
+#  nomi. Ci pensa aggiorna_scroll_pagine, richiamata anche dal <Configure>
+#  della lista, cioe' a ogni ridimensionamento della finestra.
+listbox .corpo.sinistra.pagine.lista -exportselection 0 -height 8 \
+    -yscrollcommand {.corpo.sinistra.pagine.scroll set}
+scrollbar .corpo.sinistra.pagine.scroll -orient vertical \
+    -command {.corpo.sinistra.pagine.lista yview}
+pack .corpo.sinistra.pagine.lista -side left -fill both -expand 1
+bind .corpo.sinistra.pagine.lista <Configure> {+::lgmkstaz::aggiorna_scroll_pagine}
 bind .corpo.sinistra.pagine.lista <<ListboxSelect>> ::lgmkstaz::cambia_pagina_da_lista
 bind .corpo.sinistra.pagine.lista <Button-3> {::lgmkstaz::menu_pagine %X %Y %y}
 
@@ -2438,9 +2755,21 @@ set ::lgmkstaz::_cerca_libreria ""
 entry .corpo.sinistra.libreria.cerca -textvariable ::lgmkstaz::_cerca_libreria
 pack .corpo.sinistra.libreria.cerca -fill x -pady {0 2}
 bind .corpo.sinistra.libreria.cerca <KeyRelease> ::lgmkstaz::libreria_filtra
-listbox .corpo.sinistra.libreria.lista -exportselection 0
-pack .corpo.sinistra.libreria.lista -fill both -expand 1
+#  I 54 tipi non ci stanno mai tutti: la barra di scorrimento serve davvero, e
+#  si impacchetta PRIMA della lista, altrimenti la lista si prende tutta la
+#  larghezza e la barra resta schiacciata fuori.
+listbox .corpo.sinistra.libreria.lista -exportselection 0 \
+    -yscrollcommand {.corpo.sinistra.libreria.scroll set}
+scrollbar .corpo.sinistra.libreria.scroll -orient vertical \
+    -command {.corpo.sinistra.libreria.lista yview}
+pack .corpo.sinistra.libreria.scroll -side right -fill y
+pack .corpo.sinistra.libreria.lista -side left -fill both -expand 1
 bind .corpo.sinistra.libreria.lista <<ListboxSelect>> ::lgmkstaz::libreria_seleziona
+#  premuto: si vede lo sprite a grandezza naturale; rilasciato: sparisce
+bind .corpo.sinistra.libreria.lista <Button-3> \
+    {::lgmkstaz::anteprima_libreria %X %Y %y}
+bind .corpo.sinistra.libreria.lista <ButtonRelease-3> \
+    {::lgmkstaz::chiudi_anteprima_libreria}
 ::lgmkstaz::libreria_filtra
 
 frame .corpo.destra
@@ -2463,6 +2792,7 @@ bind .corpo.destra.canvas <B1-Motion>       {::lgmkstaz::canvas_motion %x %y}
 bind .corpo.destra.canvas <ButtonRelease-1> {::lgmkstaz::canvas_release %x %y}
 bind .corpo.destra.canvas <Motion>          {::lgmkstaz::canvas_hover %x %y}
 bind .corpo.destra.canvas <Double-1>        {::lgmkstaz::canvas_double %x %y}
+bind .corpo.destra.canvas <Button-3>       {::lgmkstaz::menu_canvas %X %Y %x %y}
 bind .corpo.destra.canvas <Delete>          ::lgmkstaz::elimina_selezionata
 bind .corpo.destra.canvas <BackSpace>       ::lgmkstaz::elimina_selezionata
 #  Copia/incolla sul CANVAS, non sulla finestra: sulla finestra scatterebbero
@@ -2472,6 +2802,8 @@ bind .corpo.destra.canvas <BackSpace>       ::lgmkstaz::elimina_selezionata
 bind .corpo.destra.canvas <Control-c>       ::lgmkstaz::copia_selezionata
 bind .corpo.destra.canvas <Control-v>       ::lgmkstaz::incolla
 bind .corpo.destra.canvas <Control-a>       ::lgmkstaz::seleziona_tutto
+bind .corpo.destra.canvas <Control-z>       ::lgmkstaz::annulla
+bind .corpo.destra.canvas <Control-y>       ::lgmkstaz::ripeti
 bind . <Escape>                             ::lgmkstaz::annulla_armato
 wm protocol . WM_DELETE_WINDOW              ::lgmkstaz::esci
 

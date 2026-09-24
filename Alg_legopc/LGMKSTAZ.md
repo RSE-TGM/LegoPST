@@ -98,6 +98,13 @@ miniatura dell'elemento. Un clic sul canvas piazza la stazione *centrata sul
 punto*. Il tipo resta armato — si piazzano più copie di seguito — finché non
 si preme **`Esc`** o non si sceglie un altro tipo.
 
+**Vedere un tipo prima di usarlo.** La miniatura della riga di stato è alta 31
+pixel e serve a riconoscere il tipo, non a guardarlo. Tenendo premuto il
+**tasto destro** su un nome nella libreria compare lo sprite a **grandezza
+naturale** — quanto occuperà davvero sulla pagina — con nome e ingombro sotto;
+si richiude appena si rilascia il tasto. La finestrella resta dentro lo
+schermo anche per i tipi larghi (`SINCRONO` è 744 pixel).
+
 **Selezionare.** Un clic su una stazione la seleziona. Premendo e trascinando
 **sullo sfondo** del canvas si traccia un rettangolo e si selezionano tutte le
 stazioni che tocca, come in `legopc`. `Ctrl+A` seleziona l'intera pagina, `Esc`
@@ -132,8 +139,29 @@ piazzata). Si incolla sotto il puntatore se è sul canvas, altrimenti una cella
 in diagonale rispetto all'originale. Gli appunti restano: si incolla più
 volte, anche **in un'altra pagina** del file.
 
-Le stesse azioni stanno nel menu **`Edit`**, con la scorciatoia scritta
-accanto, per non doverle ricordare a memoria.
+**Annullare e rifare.** `Ctrl+Z` annulla l'ultima operazione, `Ctrl+Y` la
+rifà. Sono coperte solo le operazioni **sulle stazioni**: piazzare, spostare,
+incollare e cancellare — anche di gruppo, che si annullano in un colpo solo.
+
+Le modifiche ai **parametri** di una stazione restano fuori, e non per
+semplificare: la storia registra le *operazioni inverse*, non istantanee del
+modello. Se salvasse istantanee, annullare uno spostamento riporterebbe
+indietro anche i colori e le variabili cambiati nel frattempo — che è
+esattamente ciò che non deve succedere. Per la stessa ragione, annullare una
+cancellazione restituisce la stazione **con i suoi parametri** come erano.
+
+Aprendo un altro file la storia si azzera: è la storia di *quel* modello.
+
+Le stesse azioni stanno nel menu **`Edit`** e nel **popup del tasto destro**
+sul canvas, con la scorciatoia scritta accanto, per non doverle ricordare a
+memoria. Le due liste sono la stessa cosa: sono costruite da un unico elenco,
+così non possono divergere.
+
+Le voci che in quel momento non avrebbero effetto nascono **spente** invece di
+sparire — *Copia* ed *Elimina* senza selezione, *Incolla* senza appunti — così
+il menu non cambia forma sotto le dita. Il tasto destro su una stazione che
+non è nella selezione la seleziona (si agisce su ciò che si indica); su una
+già selezionata la selezione di gruppo resta intatta.
 
 **Nuova pagina.** `File → Nuova pagina...` chiede numero, nome e descrizione,
 con le stesse convalide del parser.
