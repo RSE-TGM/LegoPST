@@ -2,14 +2,6 @@
 #
 # lgmkstaz - visualizzatore/builder di pagine faceplate xstaz (r01.dat).
 #
-# FASE 1 del piano: sola lettura. Apre una finestra che disegna le pagine di
-# un r01.dat su una griglia, una stazione alla volta, nel posto e con la
-# dimensione che avrebbe davvero (una cella = 62 pixel, come xstaz). Le fasi
-# successive (piazzare/spostare stazioni, il collegamento alle variabili,
-# "Compila e verifica" con compstaz vero) si aggiungono su questa stessa
-# vista. Vedi Alg_legopc/src/tix/lgmkstaz.tcl e la memoria di progetto
-# project_lgmkstaz.md.
-#
 # Uso:
 #   lgmkstaz [<r01.dat> | <directory>]
 #   (senza argomenti, cerca r01.dat nella directory corrente - come compstaz)

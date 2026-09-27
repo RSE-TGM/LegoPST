@@ -163,6 +163,20 @@ il menu non cambia forma sotto le dita. Il tasto destro su una stazione che
 non è nella selezione la seleziona (si agisce su ciò che si indica); su una
 già selezionata la selezione di gruppo resta intatta.
 
+**Un `r01.dat` nuovo.** `File → Nuovo r01.dat` ne crea uno **vuoto nella
+directory corrente** — quella da cui hai lanciato `lgmkstaz`, la stessa dove
+cerca `r01.dat` all'avvio e dove lo cerca `compstaz` — e lo apre, così si può
+cominciare una pagina di comando dove non ce n'era nessuna. Non chiede dove:
+un `r01.dat` vale solo accanto alla task a cui appartiene.
+
+Se in quella directory ce n'è già uno **non fa niente** e lo dice nella riga di
+stato. Non è prudenza di maniera: la directory corrente è spesso quella di una
+task vera, e un «nuovo» che sovrascrive sarebbe il modo più rapido di perdere
+una pagina di comando. Per lavorare su quello che c'è si usa `File → Apri...`.
+
+Il file appena creato ha zero pagine (`****` e `END_OF_FILE`, nient'altro): la
+prima si fa subito dopo, con `File → Nuova pagina...`.
+
 **Nuova pagina.** `File → Nuova pagina...` chiede numero, nome e descrizione,
 con le stesse convalide del parser.
 
@@ -240,7 +254,13 @@ Come lo fa, e perché così:
 - all'uscita rimuove **solo** quella chiave (shared memory, le 11 code di
   messaggi e il semaforo che `msg_create_fam` crea), con `ipcrm` mirato. Mai
   `killsim`, che su Linux cancellerebbe tutte le SHM dell'utente;
-- **chiede conferma ogni volta**, non solo la prima;
+- **non chiede conferma**: quello che sta facendo lo scrive nella riga di
+  stato in fondo alla finestra (`compstaz su una copia del modello, shared
+  memory isolata (chiave ...)`), poi apre la finestra con l'esito. Fino al
+  2026-09-27 chiedeva conferma a ogni compilazione: visto che non tocca né il
+  file salvato né la SHM di un banco operatore, non c'era nulla da confermare,
+  e una domanda la cui risposta è sempre «ok» si impara a schiacciare senza
+  leggerla;
 - se la compilazione fallisce la directory scratch **non** viene cancellata e
   il suo percorso è scritto in finestra, così si può guardarci dentro.
 
@@ -252,8 +272,22 @@ pagina e il pulsante **`Anteprima con xstaz`**: apre la pagina scelta nel vero
 esatto, immagini dell'editor comprese.
 
 Il pulsante **`Chiudi`** è consapevole dell'anteprima: se `xstaz` è ancora
-aperto su quella directory si rifiuta di chiudere e ripulire, per non
-cancellare i file sotto una finestra che li sta ancora leggendo.
+aperto su quella copia **lo chiude lui**, senza chiedere, e solo dopo che è
+finito davvero cancella la directory e l'IPC — quella finestra l'ha aperta
+`lgmkstaz` per mostrare questa compilazione, non è una pagina di lavoro. La
+riga di stato lo dice (`Chiudo l'anteprima: xstaz (pid ...)`, poi `Anteprima
+chiusa, copia di lavoro rimossa`). Prima si rifiutava di chiudersi e chiedeva
+di chiudere `xstaz` a mano; era un giro in più per arrivare allo stesso punto.
+
+Due cose a cui sta attento:
+
+- **chiude solo il suo `xstaz`**: confronta la directory di lavoro del
+  processo con la copia scratch (`verifica_anteprima_pid`), quindi un `xstaz`
+  che l'utente ha aperto su una pagina vera non viene toccato;
+- **prima `TERM`, poi `KILL`**, e in ogni caso *aspetta* che il processo sia
+  finito: la copia e l'IPC si possono togliere solo quando nessuno li sta più
+  leggendo. Se sopravvivesse anche al `KILL` la copia resta, e la riga di
+  stato dice dove.
 
 ## Le immagini delle stazioni
 

@@ -2368,6 +2368,40 @@ proc ::lgmkstaz::apri_file {percorso} {
     return 1
 }
 
+#  File > "Nuovo r01.dat": crea un r01.dat VUOTO nella directory corrente e lo
+#  apre, cosi' si puo' cominciare una pagina di comando dove non ce n'era
+#  nessuna. La directory e' quella di lancio, come per compstaz e come per
+#  l'apertura automatica all'avvio - non si chiede dove, perche' un r01.dat
+#  vale solo accanto alla task a cui appartiene.
+#
+#  Se c'e' gia' non fa NIENTE e lo dice nella riga di stato (decisione
+#  dell'utente): un "nuovo" che sovrascrive e' il modo piu' rapido di perdere
+#  una pagina di comando, e qui la directory corrente e' spesso quella di una
+#  task vera. Per lavorare su quello che c'e' si usa File > Apri...
+proc ::lgmkstaz::nuovo_r01 {} {
+    set percorso [file join [pwd] r01.dat]
+
+    if {[file exists $percorso]} {
+        stato "Esiste gia': $percorso - non lo tocco (File > Apri... per aprirlo)."
+        return
+    }
+    if {![conferma_scarto_modifiche]} { return }
+
+    if {[catch {::lgmkstaz::scrivi_file $percorso [dict create pagine {} stazioni {}]} err]} {
+        tk_messageBox -icon error -title "lgmkstaz - errore di scrittura" \
+            -message "$percorso:\n\n$err"
+        return
+    }
+
+    #  La domanda sulle modifiche l'ha appena fatta conferma_scarto_modifiche:
+    #  senza azzerare il flag, apri_file (che la rifa') la porrebbe due volte
+    #  a chi ha risposto "no, non salvare".
+    imposta_modificato 0
+    if {[apri_file $percorso]} {
+        stato "Creato $percorso, vuoto: la prima pagina si fa con File > Nuova pagina..."
+    }
+}
+
 proc ::lgmkstaz::apri_dialogo {} {
     if {![conferma_scarto_modifiche]} { return }
     set iniziale [pwd]
@@ -2500,8 +2534,15 @@ proc ::lgmkstaz::aggiorna_titolo {} {
 # ---------------------------------------------------------------------------
 # "Compila e verifica" (Fase 4): lgmkstaz_verifica.tcl fa il lavoro vero
 # (scratch, chiave SHM isolata, exec di compstaz, pulizia); qui c'e' solo
-# l'interazione con l'utente - la conferma prima (decisione dell'utente,
-# 2026-09-22: sempre, non solo la prima volta) e la finestra col risultato.
+# l'interazione con l'utente - la riga di stato mentre lavora, e la finestra
+# col risultato.
+#
+# Niente conferma prima (decisione dell'utente, 2026-09-27; fino a ieri la si
+# chiedeva a ogni compilazione): compilare non tocca il file salvato, non
+# tocca l'originale e non tocca la SHM di un banco operatore - non c'e' nulla
+# da confermare, e una domanda la cui risposta e' sempre "ok" si impara a
+# schiacciare senza leggerla. Quello che sta accadendo si legge nella riga di
+# stato in fondo alla finestra; l'esito arriva comunque nella finestra dopo.
 # ---------------------------------------------------------------------------
 
 proc ::lgmkstaz::compila_e_verifica {} {
@@ -2513,27 +2554,27 @@ proc ::lgmkstaz::compila_e_verifica {} {
     }
 
     set chiave [verifica_chiave_isolata]
-    set risposta [tk_messageBox -icon question -type okcancel -default ok \
-        -title "Compila e verifica" -message \
-        "Lancia compstaz per davvero, su una COPIA del modello ATTUALE (anche\
-se non salvato) in una directory temporanea nuova - mai il file salvato su\
-disco, mai l'originale.\n\n\
-Usa una shared memory ISOLATA (chiave $chiave), mai quella di un banco\
-operatore vero, e la rimuove appena finito.\n\n\
-Procedere?"]
-    if {$risposta ne "ok"} { return }
+    #  update idletasks e non un semplice configure: senza, il messaggio
+    #  comparirebbe solo dopo compstaz, cioe' quando non serve piu'.
+    stato "compstaz su una copia del modello, shared memory isolata (chiave $chiave)..."
+    update idletasks
 
     if {[catch {verifica_prepara_scratch} scratch]} {
+        stato "Compilazione non avviata."
         tk_messageBox -icon error -title "Compila e verifica" -message $scratch
         return
     }
     if {[catch {verifica_esegui_compstaz $scratch} esito]} {
+        stato "Compilazione non avviata."
         tk_messageBox -icon error -title "Compila e verifica" \
             -message "Errore preparando l'esecuzione:\n$esito"
         catch { file delete -force $scratch }
         return
     }
 
+    stato [expr {[dict get $esito esito] eq "ok"
+                 ? "Compilazione riuscita."
+                 : "Compilazione fallita: l'errore e' nella finestra."}]
     mostra_esito_verifica $scratch $esito $chiave
 }
 
@@ -2622,9 +2663,9 @@ proc ::lgmkstaz::mostra_esito_verifica {scratch esito chiave} {
 
 #  "Anteprima con xstaz": apre per davvero la pagina scelta, con la stessa
 #  chiave isolata della compilazione appena fatta (verifica_apri_anteprima,
-#  lgmkstaz_verifica.tcl). Da questo momento la copia scratch NON si cancella
-#  piu' chiudendo la finestra finche' xstaz non e' chiuso a sua volta - vedi
-#  chiudi_esito_verifica.
+#  lgmkstaz_verifica.tcl). Da questo momento la copia scratch serve a
+#  quell'xstaz: la chiusura della finestra di esito chiude prima lui, poi
+#  cancella - vedi chiudi_esito_verifica.
 proc ::lgmkstaz::avvia_anteprima {w scratch chiave} {
     set nome_pagina $::lgmkstaz::_esito_pagina_scelta
     if {$nome_pagina eq ""} { return }
@@ -2635,8 +2676,8 @@ proc ::lgmkstaz::avvia_anteprima {w scratch chiave} {
             set ::lgmkstaz::_anteprima_lanciata($w) 1
             set testo "xstaz aperto sulla pagina '$nome_pagina'."
             if {$messaggio ne ""} { append testo "  $messaggio" }
-            append testo "\nChiudi la finestra di xstaz quando hai finito, POI premi\
-                          Chiudi qui sotto: solo cosi' si pulisce la copia scratch."
+            append testo "\nPremendo Chiudi qui sotto si chiude anche xstaz e si\
+                          pulisce la copia di lavoro."
             $w.anteprima.stato configure -text $testo -fg "#1a7a1a"
         }
         altrove {
@@ -2651,15 +2692,29 @@ proc ::lgmkstaz::avvia_anteprima {w scratch chiave} {
 
 proc ::lgmkstaz::chiudi_esito_verifica {w scratch chiave ok} {
     if {[info exists ::lgmkstaz::_anteprima_lanciata($w)]} {
-        #  e' stata aperta un'anteprima da questa finestra: se xstaz e'
-        #  ancora su quella copia scratch, non si tocca ne' la directory
-        #  (r02.dat, che sta ancora leggendo) ne' l'IPC che sta ancora
-        #  usando - si chiede di chiudere xstaz prima.
-        if {[verifica_anteprima_attiva $scratch]} {
-            tk_messageBox -icon warning -title lgmkstaz -parent $w -message \
-                "xstaz e' ancora aperto su questa anteprima: chiudilo prima,\
-                 poi premi di nuovo Chiudi."
-            return
+        #  E' stata aperta un'anteprima da questa finestra. Se quell'xstaz e'
+        #  ancora sulla copia scratch lo si chiude QUI, senza chiedere
+        #  (decisione dell'utente, 2026-09-27; prima la finestra si rifiutava
+        #  di chiudersi): quella finestra l'ha aperta lgmkstaz per mostrare
+        #  questa compilazione, non e' una pagina di lavoro dell'utente, e
+        #  chiedere di chiuderla a mano per poi ripremere Chiudi era un giro
+        #  in piu' per arrivare allo stesso punto. Un xstaz aperto altrove
+        #  non viene toccato: verifica_anteprima_pid confronta la cwd.
+        set pid [verifica_anteprima_pid $scratch]
+        if {$pid ne ""} {
+            stato "Chiudo l'anteprima: xstaz (pid $pid)..."
+            update idletasks
+            if {![verifica_chiudi_anteprima $pid]} {
+                #  Sopravvissuto anche al KILL: la copia e la chiave restano,
+                #  le sta ancora usando. Cancellarle vorrebbe dire togliere i
+                #  file sotto una finestra viva.
+                stato "xstaz (pid $pid) non si e' chiuso: copia di lavoro e\
+                       chiave $chiave lasciate in $scratch"
+                unset ::lgmkstaz::_anteprima_lanciata($w)
+                destroy $w
+                return
+            }
+            stato "Anteprima chiusa, copia di lavoro rimossa."
         }
         verifica_pulisci_chiave $chiave
         catch { file delete -force $scratch }
@@ -2685,6 +2740,7 @@ menu .mb -tearoff 0
 . configure -menu .mb
 menu .mb.file -tearoff 0
 .mb add cascade -label File -menu .mb.file
+.mb.file add command -label "Nuovo r01.dat" -command ::lgmkstaz::nuovo_r01
 .mb.file add command -label "Apri..." -command ::lgmkstaz::apri_dialogo
 .mb.file add command -label "Aggiorna" -command ::lgmkstaz::ricarica
 .mb.file add separator

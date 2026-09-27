@@ -237,12 +237,58 @@ proc ::lgmkstaz::verifica_apri_anteprima {scratch nome_pagina chiave} {
     return $risultato
 }
 
-#  Vero se l'xstaz aperto da verifica_apri_anteprima e' ANCORA su questa
-#  directory scratch - serve a non cancellarla (e a non togliere l'IPC che
-#  sta ancora usando) mentre la sta mostrando davvero.
-proc ::lgmkstaz::verifica_anteprima_attiva {scratch} {
+#  Il pid dell'xstaz aperto da verifica_apri_anteprima, se e' ANCORA su questa
+#  directory scratch; "" se non c'e'. Il confronto sulla cwd serve a due cose:
+#  sapere che la scratch (e l'IPC) e' ancora in uso, e avere il pid di QUELL'
+#  xstaz e di nessun altro - l'utente puo' averne aperto uno per conto suo su
+#  una pagina vera, e quello non si tocca.
+proc ::lgmkstaz::verifica_anteprima_pid {scratch} {
     set attivo [xstaz_attivo]
-    if {![llength $attivo]} { return 0 }
+    if {![llength $attivo]} { return "" }
     lassign $attivo pid cwd
-    return [expr {$cwd ne "" && [staz_stessa_dir $cwd $scratch]}]
+    if {$cwd eq "" || ![staz_stessa_dir $cwd $scratch]} { return "" }
+    return $pid
+}
+
+#  Chiude l'xstaz dell'anteprima e ASPETTA che sia finito davvero: la copia
+#  scratch e l'IPC si possono togliere solo quando nessuno li sta piu'
+#  leggendo, altrimenti si cancellano i file sotto una finestra aperta.
+#  Prima TERM (un client X che esce da se' chiude la finestra e stacca la
+#  connessione), poi KILL a chi non risponde. Ritorna 1 se il processo e'
+#  finito, 0 se e' sopravvissuto anche al KILL - il chiamante allora lascia
+#  stare la scratch.
+proc ::lgmkstaz::verifica_chiudi_anteprima {pid} {
+    catch { exec kill -TERM $pid }
+    if {[verifica_attendi_fine $pid 3000]} { return 1 }
+    catch { exec kill -KILL $pid }
+    return [verifica_attendi_fine $pid 1000]
+}
+
+#  Vero se $pid e' finito entro $ms. Attesa bloccante a passi brevi: si fa
+#  solo alla chiusura della finestra di esito, e chi la chiude si aspetta che
+#  dopo sia tutto pulito - non un lavoro che continua per conto suo.
+proc ::lgmkstaz::verifica_attendi_fine {pid ms} {
+    set scaduto [expr {[clock milliseconds] + $ms}]
+    while {1} {
+        if {![verifica_pid_vivo $pid]} { return 1 }
+        if {[clock milliseconds] >= $scaduto} { return 0 }
+        after 50
+    }
+}
+
+#  Vero se il processo esiste e non e' uno zombie. Lo zombie va contato per
+#  morto: xstaz l'ha lanciato questo processo in background, quindi resta nel
+#  /proc finche' Tcl non lo raccoglie (lo fa al prossimo exec), ma non sta
+#  piu' leggendo niente. Senza questo controllo l'attesa scadrebbe sempre.
+proc ::lgmkstaz::verifica_pid_vivo {pid} {
+    if {![file exists /proc/$pid]} { return 0 }
+    if {[catch {open /proc/$pid/stat r} f]} { return 0 }
+    set riga [read $f]
+    close $f
+    #  "pid (comm) S ...": comm puo' contenere spazi e parentesi, quindi lo
+    #  stato si prende dopo l'ULTIMA ')'.
+    set chiusa [string last ")" $riga]
+    if {$chiusa < 0} { return 1 }
+    set stato [lindex [split [string range $riga [expr {$chiusa + 2}] end]] 0]
+    return [expr {$stato ne "Z"}]
 }
