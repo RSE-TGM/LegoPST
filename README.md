@@ -98,10 +98,16 @@ bash -c "$(curl -fsSL https://raw.githubusercontent.com/RSE-TGM/LegoPST/master/d
 ```
 
 This installer:
-- ✅ Downloads the LegoPST Docker launcher
+- ✅ Downloads the LegoPST Docker launcher **from the branch**, so re-running it
+  is how you pick up fixes
 - ✅ Creates the `lgrun` command in `~/.local/bin/`
 - ✅ Configures your PATH automatically
 - ✅ No need to install LegoPST locally!
+
+It explains itself with `install_legopst_dock.sh -h`, and undoes itself with
+`install_legopst_dock.sh -u`: that removes the two commands it installed (and
+only those), leaves your data alone, and prints the `docker rmi` command in case
+you want the image gone too.
 
 After installation, **restart your terminal** or run:
 ```bash
@@ -124,9 +130,6 @@ lgrun --socat
 
 # Combine options
 lgrun --demo --socat
-
-# Use the slim image instead of the full one (same environment, about half the size)
-lgrun --slim
 
 # Check for updates and pull new Docker image if available
 lgrun --pull
@@ -286,13 +289,10 @@ make -f Makefile.mk clean
 # It does NOT build the Docker image, so it needs no Docker on the machine.
 make -f Makefile.mk
 
-# Build the Docker image (optional, ~4.5 GB on disk, needs Docker installed and running)
+# Build the Docker image (optional, ~2.9 GB on disk, needs Docker installed and running)
 make -f Makefile.mk docker
 
-# Same environment, about half the size (aguagliardi/legopst_slim:2.0)
-make -f Makefile.mk docker_slim
-
-# Build the Docker image and push it to the registry (docker_slim-push for the slim one)
+# Build the Docker image and push it to the registry
 make -f Makefile.mk docker-push
 
 # List every target

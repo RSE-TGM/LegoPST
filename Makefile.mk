@@ -2,7 +2,7 @@
 # ... (i tuoi commenti iniziali rimangono invariati) ...
 
 # Aggiunto .PHONY per i target che non rappresentano file reali.
-.PHONY: all clean force_version_h docker docker_slim docker-push docker_slim-push help
+.PHONY: all clean force_version_h docker docker-push help
 
 # Il target 'all' è il primo, quindi è il default.
 all: version.h # Assicuriamoci che version.h sia controllato/generato prima di compilare
@@ -30,23 +30,39 @@ VERSION_H_TMP = $(VERSION_H).tmp
 GIT_VERSION := $(shell git describe --tags --always --long --dirty)
 GIT_COMMIT_COUNT := $(shell git rev-list --count HEAD)
 BUILD_DATE := $(shell date +%Y%m%d)
+#  Il numero di versione del progetto, versionato nel file VERSION: e' il
+#  ripiego quando git non c'e' (vedi la nota sulla regola version.h).
+PROJECT_VERSION := $(shell cat VERSION 2>/dev/null | tr -d '[:space:]')
 
 # Regola per generare version.h.
 # Questa regola dipende da 'force_version_h', che è un target .PHONY.
 # Questo forza l'esecuzione dei comandi *sempre*.
 # Tuttavia, il file version.h verrà aggiornato solo se il suo contenuto cambia.
+#  Dove git non c'e' - dentro un'immagine Docker, che non si porta il .git, in
+#  un bundle FMU, in un tarball dei sorgenti - le due variabili qui sopra
+#  escono VUOTE, e la regola scriveva "#define BUILD_NUMBER" senza valore, con
+#  GIT_VERSION_STRING a stringa vuota. Non e' un dettaglio di forma: quel file
+#  lo leggono lghmi e legopc per mostrare la versione di LegoPST, e legopc lo
+#  RIGENERA da se' con make se manca. Il risultato era una versione in bianco.
+#  Quindi: se git non ha detto niente e un version.h c'e' gia', si tiene quello
+#  (l'ha scritto chi ha costruito l'immagine, ed e' l'unica fonte di verita'
+#  rimasta la' dentro). Se non c'e' nemmeno quello si scrive la versione del
+#  file VERSION, che e' versionato, con BUILD_NUMBER 0.
 version.h: force_version_h
 	@echo "--- Checking/Generating $(VERSION_H) ---"
-	@echo "#define GIT_VERSION_STRING \"$(GIT_VERSION)\"" > $(VERSION_H_TMP)
-	@echo "#define BUILD_NUMBER $(GIT_COMMIT_COUNT)" >> $(VERSION_H_TMP)
-	@echo "#define BUILD_DATE_STRING \"$(BUILD_DATE)\"" >> $(VERSION_H_TMP)
-	# Confronta il nuovo file con quello vecchio. Aggiorna solo se sono diversi.
-	@if ! cmp -s $(VERSION_H_TMP) $(VERSION_H); then \
-		echo "Generated $(VERSION_H) with version $(GIT_VERSION)"; \
-		mv $(VERSION_H_TMP) $(VERSION_H); \
+	@if [ -z "$(GIT_COMMIT_COUNT)" ] && [ -f $(VERSION_H) ]; then \
+		echo "$(VERSION_H): git non disponibile qui, tengo quello che c'e'."; \
 	else \
-		echo "$(VERSION_H) is already up to date."; \
-		rm $(VERSION_H_TMP); \
+		echo "#define GIT_VERSION_STRING \"$(if $(GIT_VERSION),$(GIT_VERSION),v$(PROJECT_VERSION)-nogit)\"" > $(VERSION_H_TMP); \
+		echo "#define BUILD_NUMBER $(if $(GIT_COMMIT_COUNT),$(GIT_COMMIT_COUNT),0)" >> $(VERSION_H_TMP); \
+		echo "#define BUILD_DATE_STRING \"$(BUILD_DATE)\"" >> $(VERSION_H_TMP); \
+		if ! cmp -s $(VERSION_H_TMP) $(VERSION_H); then \
+			echo "Generated $(VERSION_H) with version $(if $(GIT_VERSION),$(GIT_VERSION),v$(PROJECT_VERSION)-nogit)"; \
+			mv $(VERSION_H_TMP) $(VERSION_H); \
+		else \
+			echo "$(VERSION_H) is already up to date."; \
+			rm $(VERSION_H_TMP); \
+		fi; \
 	fi
 
 # Target PHONY per forzare l'esecuzione della regola di version.h
@@ -63,21 +79,15 @@ clean:
 	@echo "--- Clean finished ---"
 
 # --- Target Docker ---
-#  Due immagini con lo stesso ambiente dentro: la completa, come e' sempre
-#  stata, e la snella. Si scelgono con due target distinti perche' non sono
-#  l'una il rimpiazzo dell'altra - vedi docker/Dockerfile_LegoPST_slim per
-#  cosa cambia e perche'.
+#  Una sola immagine, aguagliardi/legopst:2.0. Fino al 2026-09-27 erano due
+#  (legopst_multi e legopst_slim): vedi l'intestazione di
+#  docker/Dockerfile_LegoPST per cosa le distingueva e perche' non valeva la
+#  pena tenerle separate.
 docker:
 	cd ./docker && ./BuildImage -y
 
-docker_slim:
-	cd ./docker && ./BuildImage -y --slim
-
 docker-push:
 	cd ./docker && ./BuildImage -y --push
-
-docker_slim-push:
-	cd ./docker && ./BuildImage -y --slim --push
 
 # --- Help ---
 help:
@@ -102,18 +112,13 @@ help:
 	@echo ""
 	@echo "  force_version_h  Forza il ricalcolo di version.h alla prossima build"
 	@echo ""
-	@echo "  docker           Costruisce l'immagine Docker COMPLETA"
-	@echo "                   aguagliardi/legopst_multi:2.0 (BuildImage -y)"
+	@echo "  docker           Costruisce l'immagine Docker aguagliardi/legopst:2.0"
+	@echo "                   (esegue docker/BuildImage -y). Senza le dipendenze"
+	@echo "                   deboli, senza gimp e senza il .git del repository:"
+	@echo "                   vedi docker/Dockerfile_LegoPST"
 	@echo ""
-	@echo "  docker_slim      Costruisce la variante SNELLA, stesso ambiente"
-	@echo "                   aguagliardi/legopst_slim:2.0 (BuildImage -y --slim)"
-	@echo "                   Senza le dipendenze deboli, senza gimp e senza il"
-	@echo "                   .git del repository. Vedi docker/Dockerfile_LegoPST_slim"
-	@echo ""
-	@echo "  docker-push      Costruisce e pubblica la COMPLETA su Docker Hub"
+	@echo "  docker-push      Costruisce e pubblica l'immagine su Docker Hub"
 	@echo "                   (esegue docker/BuildImage -y --push)"
-	@echo ""
-	@echo "  docker_slim-push Come sopra, ma la variante snella"
 	@echo ""
 	@echo "  help             Mostra questo messaggio"
 	@echo ""

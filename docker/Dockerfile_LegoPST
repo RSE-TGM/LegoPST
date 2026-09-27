@@ -1,9 +1,66 @@
+# L'immagine Docker di LegoPST.
+#
+#     make -f Makefile.mk docker        -> aguagliardi/legopst:2.0
+#     make -f Makefile.mk docker-push   -> e la pubblica
+#
+# Fino al 2026-09-27 ce n'erano DUE, legopst_multi (tutti i pacchetti) e
+# legopst_slim (questa ricetta). Unificate su questa, per decisione
+# dell'utente, dopo aver misurato che cosa le distingueva davvero: gimp, le
+# dipendenze deboli e git contro git-core - 213 pacchetti e 529 MB, nessuno
+# dei quali qualcosa in LegoPST richieda. Due immagini erano due cose da
+# tenere allineate, e una volta non lo erano: una correzione provata sulla
+# snella non c'era nella completa, che era quella che l'utente lanciava.
+#
+# Cosa NON si installa, e perche' (numeri misurati con "dnf install
+# --assumeno" su fedora:41 e con "dnf remove --assumeno" dentro l'immagine):
+#
+#  1. --setopt=install_weak_deps=False
+#     Le "Recommends" di dnf tiravano dentro un desktop intero: systemd-udev,
+#     NetworkManager-libnm, pipewire e pulseaudio, tracker-miners, appstream,
+#     la catena di perl. Circa 120 pacchetti in un container che fa X11 e
+#     Motif. ATTENZIONE: mesa-dri-drivers (161 MB) e llvm-libs (124 MB)
+#     restano, li vuole evince (punto 3) - "rpm -q --whatrequires" diceva il
+#     contrario, ma guarda solo i nomi dei pacchetti, non i file che
+#     forniscono.
+#
+#  2. gimp -> mtpaint
+#     gimp e' solo il PRIMO di una catena di ripieghi:
+#     "lg_pick LG_ICOEDITOR gimp krita drawing kolourpaint pinta mtpaint"
+#     (Alg_env.sh). Serve UN editor di icone, non quello: misurato con
+#     "dnf remove --assumeno gimp", con lui se ne vanno 32 pacchetti e
+#     355 MB - suitesparse (140 MB) e openblas-openmp (39 MB) compresi.
+#
+#  3. evince RESTA, anche se zathura costerebbe 87 MiB di meno.
+#     esporta.tcl apre con LG_PDFVIEWER sia i PDF sia i PNG (_openFile), e
+#     zathura apre solo PDF: l'export PNG di legopc non si aprirebbe piu'.
+#     mupdf, che aprirebbe entrambi, in Fedora costa addirittura piu' di
+#     evince (300 MiB). Meglio 87 MiB che una funzione monca.
+#
+#  4. git -> git-core
+#     Nel container git serve a generare version.h, non a lavorare sul
+#     repository (che dentro l'immagine non ha nemmeno il .git): bastano i
+#     comandi. Il metapacchetto "git" si porta dietro 70 pacchetti per 73 MB,
+#     git-core-doc da solo 18 MB. Si perdono i sottocomandi in perl
+#     (git send-email, git svn), che qui non servono a nessuno.
+#
+#     tsflags=nodocs e' RIDONDANTE: fedora:41 ce l'ha gia' nel proprio
+#     /etc/dnf/dnf.conf, e infatti nell'immagine non c'e' nessuna pagina di
+#     manuale nemmeno senza questa riga (verificato). Si lascia perche' non
+#     costa niente e perche' un'immagine base futura potrebbe non averlo.
+#
+# L'altra meta' del guadagno non e' qui ma in Dockerfile_LegoPST.dockerignore,
+# che tiene fuori dalla copia il .git del repository (631 MB), la cache di
+# aider (41 MB) e i bundle FMU di esempio (155 MB): un layer da 462 MB invece
+# di 1,33 GB, che e' quello che viaggia a ogni push e a ogni "lgdock --pull".
+
 FROM fedora:41
 
 # Raggruppa le installazioni
 RUN dnf update -y && \
     dnf install -y \
-        git \
+        --setopt=install_weak_deps=False \
+        --setopt=tsflags=nodocs \
+        git-core \
         gcc \
         gfortran \
         fastfetch \
@@ -30,10 +87,10 @@ RUN dnf update -y && \
         xdg-utils \
         ghostscript \
         ImageMagick \
-        gimp \
+        mtpaint \
         evince \
         unix2dos \
-        xorg-x11-fonts-misc xorg-x11-fonts-100dpi xorg-x11-fonts-75dpi libXcursor \ 
+        xorg-x11-fonts-misc xorg-x11-fonts-100dpi xorg-x11-fonts-75dpi libXcursor \
         adwaita-cursor-theme \
         shadow-utils && \
     dnf clean all
@@ -58,4 +115,3 @@ WORKDIR /root
 
 # Comando di default
 CMD ["tail","-f","/dev/null"]
-

@@ -321,7 +321,7 @@ print(f\"OK {len(result)} sample\")"'
 | Debian 13 (trixie) | 2.41 | ✅ sì |
 | Fedora 39+ | 2.38+ | ✅ sì |
 
-Per target con glibc < 2.38 servirebbe rebuild dei binari LegoPST in un container con baseline più bassa (es. `aguagliardi/legopst_multi:2.0` su Ubuntu 20.04 = glibc 2.31).
+Per target con glibc < 2.38 servirebbe rebuild dei binari LegoPST in un container con baseline più bassa (es. `aguagliardi/legopst:2.0` su Ubuntu 20.04 = glibc 2.31).
 
 **Note di implementazione (non rilevanti per l'utente, lette dalla FMU automaticamente):**
 - fmpy estrae lo zip via Python `zipfile` che NON preserva il bit `+x` → la FMU invoca `bash restore_perms.sh` (generato da `bundle/build.sh`) in `attach_or_launch`, prima **sia** dell'attach **sia** del launch (la HMI serve anche in attach mode). Anche i master lato Python lo invocano subito dopo `extract()` (`run_fmu.sh`, `lg_cosim.py`): serve per i bundle il cui `.so` è anteriore al fix, ed è idempotente.

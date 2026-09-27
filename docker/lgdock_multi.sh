@@ -18,10 +18,11 @@ VERSION="1.1"
 #  spazi attorno all'uguale - scritta "IMAGE_NAME = ..." bash la esegue come
 #  un comando ("IMAGE_NAME: command not found") e la variabile resta VUOTA,
 #  cosi' il docker run finiva senza immagine.
-#  Il default e' quella completa; con LG_DOCKER_IMAGE si sceglie un'altra,
-#  per esempio la snella di "make -f Makefile.mk docker_slim":
-#      LG_DOCKER_IMAGE=aguagliardi/legopst_slim:2.0 lgdock_multi
-IMAGE_NAME="${LG_DOCKER_IMAGE:-aguagliardi/legopst_multi:2.0}"
+#  C'e' una sola immagine (fino al 2026-09-27 erano due, legopst_multi e
+#  legopst_slim); con LG_DOCKER_IMAGE si punta a un'altra, per esempio una
+#  build di prova:
+#      LG_DOCKER_IMAGE=aguagliardi/legopst:2.1-prova lgdock_multi
+IMAGE_NAME="${LG_DOCKER_IMAGE:-aguagliardi/legopst:2.0}"
 
 show_help() {
     cat << EOF
@@ -32,8 +33,6 @@ Opzioni:
   -v, --version       Mostra versione
   -d, --demo          Installa una demo di legopst e lancia il container con essa
   -s, --socat         Usa socat per X11 forwarding (utile per SSH con MobaXterm)
-  -l, --slim          Usa l'immagine SNELLA, leggera (aguagliardi/legopst_slim:2.0)
-                      invece di quella completa: stesso ambiente, meta' del peso
 
 Esempi:
   $0                  # Lancia container LegoPST (modalità standard)
@@ -110,10 +109,6 @@ while [[ $# -gt 0 ]]; do
             ;;
         -s|--socat)
             USE_SOCAT=true
-            shift
-            ;;
-        -l|--slim)
-            IMAGE_NAME="aguagliardi/legopst_slim:2.0"
             shift
             ;;
         *)

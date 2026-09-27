@@ -142,7 +142,7 @@ how it is built.</p>
   <div class="row1"><a class="tit" href="docs/BUILD.md">Building, and handling simulators</a>
     <span class="b md">md</span><span class="path">docs/BUILD.md</span></div>
   <p><b>Scope:</b> <code>make -f Makefile.mk</code>, the Docker image as a separate target
-  (<code>docker</code> for the full one, <code>docker_slim</code> for the slim one), versioning,
+  (<code>make docker</code>), versioning,
   the <code>ksetsim</code>/<code>ksims</code> commands that pick the active simulator,
   <code>creasim</code>, <code>kDiffS01</code>.</p>
   <p class="use"><b>When you need it:</b> every time you build. It also holds the most expensive
@@ -571,7 +571,7 @@ only source on some <code>util97</code> tools and on the underlying theory. Most
 </div>
 
 <!-- ============================================================ -->
-<h2 id="porting">9. Porting, platforms, containers <span class="n">7 documents</span></h2>
+<h2 id="porting">9. Porting, platforms, containers <span class="n">5 documents</span></h2>
 <p class="scope">How LegoPST was carried from the original machines to modern Linux, and how it is
 run in a container.</p>
 
@@ -612,28 +612,17 @@ run in a container.</p>
 <div class="card">
   <div class="row1"><a class="tit" href="docker/README_INSTALLER.md">Installing through Docker</a>
     <span class="b md">md</span><span class="path">docker/README_INSTALLER.md</span></div>
-  <p><b>Scope:</b> the containerised installer: the two images (full
-  <code>legopst_multi:2.0</code> and slim <code>legopst_slim:2.0</code>, same environment inside),
-  what the slim one leaves out and why, volumes, startup, <code>lgdock --slim</code>.</p>
+  <p><b>Scope:</b> the containerised installer: the image
+  <code>aguagliardi/legopst:2.0</code>, what it deliberately leaves out and why, volumes,
+  startup, <code>lgdock</code> and its options, and <code>install_legopst_dock.sh</code>, which
+  installs the <code>lgrun</code> command on a machine that has no LegoPST
+  (<code>install_legopst_dock.sh -h</code> explains itself).</p>
   <p class="use"><b>When you need it:</b> to run LegoPST without installing it on the host
-  machine.</p>
+  machine. It is the only route: the gist-based one (<code>lancio_lgdock_noinst.md</code>,
+  <code>simple_inst_lgdock/</code>) was retired on 2026-09-27 - it shipped a forked copy of the
+  launcher that nobody kept in step with the repository.</p>
 </div>
 
-<div class="card">
-  <div class="row1"><a class="tit" href="docker/lancio_lgdock_noinst.md">Running with no installation (<code>lgdock.sh</code>)</a>
-    <span class="b md">md</span><span class="path">docker/lancio_lgdock_noinst.md</span></div>
-  <p><b>Scope:</b> the container startup script, option by option.</p>
-  <p class="use"><b>When you need it:</b> day-to-day use of the container, after reading the
-  installer document.</p>
-</div>
-
-<div class="card">
-  <div class="row1"><a class="tit" href="docker/simple_inst_lgdock/readme.md">Simplified container installation</a>
-    <span class="b md">md</span><span class="path">docker/simple_inst_lgdock/readme.md</span></div>
-  <p><b>Scope:</b> a minimal variant of the Docker procedure.</p>
-  <p class="use"><b>When you need it:</b> a quick trial, or a machine where nothing may be
-  installed.</p>
-</div>
 
 <!-- ============================================================ -->
 <h2 id="note">10. Working notes and maintenance tools <span class="n">6 documents</span></h2>

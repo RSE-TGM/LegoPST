@@ -10,6 +10,134 @@ set -e
 
 VERSION="1.0"
 
+# ---------------------------------------------------------------------------
+#  -h prima di tutto: chi si trova davanti questo script deve poter capire
+#  cosa fa PRIMA di eseguirlo. Va sopra il rilevamento del repository, che
+#  stampa e legge file, e sopra qualunque cosa tocchi la home.
+# ---------------------------------------------------------------------------
+mostra_aiuto() {
+    cat <<'AIUTO'
+install_legopst_dock.sh - installa LegoPST come comando "lgrun", via Docker
+
+A COSA SERVE
+  A usare LegoPST su una macchina dove LegoPST NON e' installato e non verra'
+  compilato. L'ambiente completo - compilatori, Motif, Tcl/Tk/Tix, X11 - sta
+  dentro un'immagine Docker; qui si installano solo i due comandi che la
+  lanciano. I file su cui lavori restano tuoi, nella tua home: il container
+  monta la home dell'host e dentro ci crea il tuo stesso utente, cosi' quello
+  che scrive esce con il tuo UID e non di root.
+
+COSA FA, IN CONCRETO
+  1. controlla che ci siano Docker (in esecuzione) e curl;
+  2. scarica docker/lgdock.sh DAL REPOSITORY - dal branch, non da una copia -
+     e lo installa come ~/.local/bin/lgdock;
+  3. crea ~/.local/bin/lgrun, un involucro che passa tutto a lgdock;
+  4. se ~/.local/bin non e' nel PATH, aggiunge una riga al tuo .bashrc.
+  Non installa LegoPST, non compila niente, non tocca il sistema: scrive in
+  ~/.local/bin e, al piu', quella riga nel .bashrc.
+
+DOPO L'INSTALLAZIONE
+  lgrun              avvia il container e apre un terminale bash dentro
+  lgrun --demo       ci mette anche un modello di esempio (legocad e sked)
+  lgrun --socat      X11 attraverso un socket bridge, per SSH/MobaXterm
+  lgrun --pull       aggiorna l'immagine prima di partire
+  lgrun --help       tutte le opzioni
+  La prima volta Docker scarica l'immagine (qualche GB): qualche minuto, una
+  volta sola.
+
+PER AGGIORNARSI
+  Rilancia questo script: riscarica lgdock.sh dal branch e sovrascrive i due
+  comandi. E' il modo di prendere le correzioni - quelle copie non si
+  aggiornano da se'.
+
+PER DISINSTALLARE
+  install_legopst_dock.sh -u
+  Toglie da ~/.local/bin i due comandi che ha messo (e solo quelli: un file
+  omonimo di qualcun altro lo lascia dov'e'). NON cancella l'immagine Docker
+  ne' i tuoi dati - ~/legocad, ~/sked, ~/defaults sono il tuo lavoro; stampa il
+  comando per l'immagine, se la vuoi togliere anche quella. La riga del PATH
+  nel .bashrc la toglie solo se ~/.local/bin resta vuota, perche' la' dentro
+  vivono spesso altri comandi.
+
+OPZIONI
+  -h, --help         questo messaggio
+  -u, --uninstall    disinstalla (vedi sopra)
+
+DOVE VA A PESCARE
+  Host, repository e branch li legge da docker/repo_info.conf (lo genera il
+  Makefile) oppure dal git remote; si forzano con le variabili d'ambiente
+  REPO_HOST, REPO_SLUG, REPO_BRANCH. L'immagine e' quella scritta in lgdock.sh
+  (aguagliardi/legopst:2.0), sostituibile con LG_DOCKER_IMAGE.
+AIUTO
+}
+
+#  Disinstallazione: l'inverso esatto dell'installazione, e nulla di piu'.
+#  Il criterio e' "si tocca solo cio' che ha messo questo script": i due
+#  comandi in ~/.local/bin, e la riga del PATH soltanto quando non serve piu' a
+#  nessuno. L'immagine Docker e i dati dell'utente non sono roba
+#  dell'installatore: si dice come fare e si lascia decidere a lui.
+disinstalla() {
+    echo "======================================================================="
+    echo "  Disinstallazione LegoPST (i comandi lgrun e lgdock)"
+    echo "======================================================================="
+    echo ""
+
+    #  il nome dell'immagine si legge dal lanciatore PRIMA di cancellarlo:
+    #  dopo non ci sarebbe piu' modo di saperlo
+    IMMAGINE=$(grep -m1 -o 'aguagliardi/legopst[^"}[:space:]]*' "$INSTALL_DIR/lgdock" 2>/dev/null || true)
+    IMMAGINE="${IMMAGINE:-aguagliardi/legopst:2.0}"
+
+    for comando in lgrun lgdock; do
+        f="$INSTALL_DIR/$comando"
+        if [ ! -e "$f" ]; then
+            echo "- $comando: non installato in $INSTALL_DIR"
+            continue
+        fi
+        #  un file con lo stesso nome ma di qualcun altro non si tocca
+        if ! grep -q "LegoPST" "$f" 2>/dev/null; then
+            echo "⚠ $f non sembra installato da qui: lo lascio dov'e'"
+            continue
+        fi
+        rm -f "$f"
+        echo "✓ rimosso $f"
+    done
+
+    #  La riga del PATH. In ~/.local/bin ci vivono spesso altri comandi (pipx,
+    #  uv, cmake...): togliere quella riga li farebbe sparire dal PATH senza un
+    #  errore che lo spieghi. Quindi la si tocca solo a directory vuota.
+    RESTANTI=$(ls -A "$INSTALL_DIR" 2>/dev/null | wc -l)
+    for cfg in "$HOME/.bashrc" "$HOME/.bash_profile"; do
+        [ -f "$cfg" ] || continue
+        grep -q "# Added by LegoPST installer" "$cfg" 2>/dev/null || continue
+        if [ "$RESTANTI" -eq 0 ]; then
+            sed -i '/# Added by LegoPST installer/,+1d' "$cfg"
+            echo "✓ rimossa da $cfg la riga del PATH ($INSTALL_DIR e' rimasta vuota)"
+        else
+            echo ""
+            echo "- In $cfg resta la riga aggiunta dall'installazione:"
+            echo "      # Added by LegoPST installer"
+            echo "      export PATH=\"\$HOME/.local/bin:\$PATH\""
+            echo "  La lascio: in $INSTALL_DIR ci sono ancora $RESTANTI file e altri"
+            echo "  comandi possono dipendere da quella riga. Toglila a mano se sei"
+            echo "  sicuro che non serva."
+        fi
+    done
+
+    echo ""
+    echo "Non ho toccato:"
+    echo "  - l'immagine Docker. Per togliere anche quella (qualche GB):"
+    echo "        docker rmi $IMMAGINE"
+    echo "  - i tuoi dati: ~/legocad, ~/sked, ~/defaults e i modelli che"
+    echo "    contengono. Sono il tuo lavoro, non li cancella nessuno script."
+    echo ""
+    echo "Disinstallazione completata."
+}
+
+case "${1:-}" in
+    -h|--help)      mostra_aiuto; exit 0 ;;
+    -u|--uninstall) INSTALL_DIR="$HOME/.local/bin"; disinstalla; exit 0 ;;
+esac
+
 # Rileva host e owner/repo dal file repo_info.conf (generato da Makefile.mk)
 # oppure dal git remote come fallback
 DEFAULT_HOST="github.com"

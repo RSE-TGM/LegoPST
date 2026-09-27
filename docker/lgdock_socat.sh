@@ -17,11 +17,11 @@ fi
 # Gestione Parametri
 # =============================================================================
 VERSION=1.0
-#  L'immagine da lanciare. Il default e' quella completa, come e' sempre
-#  stato; con LG_DOCKER_IMAGE si sceglie un'altra, per esempio la variante
-#  snella prodotta da "make -f Makefile.mk docker_slim":
-#      LG_DOCKER_IMAGE=aguagliardi/legopst_slim:2.0 lgdock
-IMAGE_NAME="${LG_DOCKER_IMAGE:-aguagliardi/legopst_multi:2.0}"
+#  L'immagine da lanciare. Ce n'e' una sola (fino al 2026-09-27 erano due,
+#  legopst_multi e legopst_slim, con l'opzione -l per scegliere la seconda);
+#  con LG_DOCKER_IMAGE si punta a un'altra, per esempio una build di prova:
+#      LG_DOCKER_IMAGE=aguagliardi/legopst:2.1-prova lgdock
+IMAGE_NAME="${LG_DOCKER_IMAGE:-aguagliardi/legopst:2.0}"
 
 show_help() {
     echo "Uso: $0 [OPZIONI]"
@@ -30,7 +30,6 @@ show_help() {
     echo "  -h, --help          Mostra questo help"
     echo "  -v, --version       Mostra versione"
     echo "  -d, --demo          Installa una demo di legpst e lancia il container con essa"
-    echo "  -l, --slim          Usa l'immagine SNELLA (leggera) invece di quella completa"
     echo
     echo "Esempi:"
     echo "  $0                  # lancio container LegoPST"
@@ -67,10 +66,6 @@ RUN_DEMO=false
                 RUN_DEMO=true
                 shift
                 ;;
-            -l|--slim)
-                IMAGE_NAME="aguagliardi/legopst_slim:2.0"
-                shift
-                ;;
             *)
             ;;
         esac
@@ -101,13 +96,20 @@ echo "DISPLAY dell'host: $DISPLAY"
 DISPLAY_NUM=$(echo $DISPLAY | sed 's/.*:\([0-9]*\).*/\1/')
 SOCKET_PATH="/tmp/.X11-unix/X${DISPLAY_NUM}"
 
-# Crea socket bridge se non esiste
+# Crea socket bridge se non esiste. Le due variabili qui sotto dicono che cosa
+# abbiamo creato NOI, e servono alla pulizia in uscita: il socket di un server X
+# che era gia' li' non e' roba nostra.
+SOCAT_PID=""
+SOCKET_CREATED=false
 if [ ! -S "$SOCKET_PATH" ]; then
     echo "Creando socket bridge X11 su $SOCKET_PATH..."
     socat UNIX-LISTEN:$SOCKET_PATH,fork,mode=777 TCP:localhost:$((6000 + DISPLAY_NUM)) &
     SOCAT_PID=$!
+    SOCKET_CREATED=true
     sleep 1
     chmod 777 $SOCKET_PATH
+else
+    echo "Socket X11 $SOCKET_PATH esiste gia': lo uso e NON lo tocco in uscita."
 fi
 
 # Estrai cookie X11 e crea file xauth temporaneo
@@ -124,8 +126,30 @@ fi
 # Permetti connessioni locali
 xhost +local:all 2>/dev/null
 
-# Cleanup alla fine
-trap "kill $SOCAT_PID 2>/dev/null; rm -f $SOCKET_PATH $TEMP_XAUTH" EXIT
+# Cleanup alla fine - si rimuove SOLO cio' che abbiamo creato noi.
+#
+#  Il trap di prima faceva "rm -f $SOCKET_PATH" sempre, anche quando il socket
+#  non l'aveva creato lui: su una macchina con un server X locale (WSLg, un
+#  desktop normale) SOCKET_PATH e' /tmp/.X11-unix/X0, cioe' il socket della
+#  sessione grafica dell'utente - uscire da lgdock_socat gliela staccava. Qui
+#  non si notava solo perche' /tmp/.X11-unix e' read-only.
+#
+#  Era anche scritto con le doppie virgolette, quindi le variabili venivano
+#  espanse alla DEFINIZIONE del trap invece che quando scatta: funzionava per
+#  un pelo, perche' l'assegnazione viene prima, e col socket gia' esistente
+#  degenerava in un "kill" senza argomenti (errore inghiottito da 2>/dev/null).
+#  Una funzione le legge nel momento giusto.
+cleanup() {
+    if [ -n "$SOCAT_PID" ]; then
+        echo "Terminazione socat (PID: $SOCAT_PID)..."
+        kill "$SOCAT_PID" 2>/dev/null
+    fi
+    if [ "$SOCKET_CREATED" = true ]; then
+        rm -f "$SOCKET_PATH" 2>/dev/null
+    fi
+    rm -f "$TEMP_XAUTH" 2>/dev/null
+}
+trap cleanup EXIT
 
 # Definisci lo script da eseguire nel container usando un here document
 read -r -d '' CONTAINER_SCRIPT << 'SCRIPT_EOF'

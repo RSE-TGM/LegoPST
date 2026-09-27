@@ -1,62 +1,81 @@
 # Installazione LegoPST via Docker
 
-## Due immagini: completa e snella
+## L'immagine: `aguagliardi/legopst:2.0`
 
-Lo stesso ambiente, due pesi. Si scelgono dalla radice del repository:
-
-```sh
-make -f Makefile.mk docker         # aguagliardi/legopst_multi:2.0   (completa)
-make -f Makefile.mk docker_slim    # aguagliardi/legopst_slim:2.0    (snella)
-```
-
-| | completa | snella |
-|---|---|---|
-| contenuto | 1,52 GB | **704 MB** |
-| su disco | 4,51 GB | 2,55 GB |
-| pacchetti rpm | 657 | 447 |
-
-Dentro si compila e si lavora allo stesso modo: ci sono `gcc`, `gfortran`,
-Motif, Tcl/Tk/Tix, `ghostscript`, ImageMagick e tutti i `-devel`. Cosa cambia
-e perché è scritto in testa a
-[`Dockerfile_LegoPST_slim`](Dockerfile_LegoPST_slim); in due righe:
-
-- **le dipendenze deboli non si installano** (`install_weak_deps=False`);
-- **`gimp` sostituito da `mtpaint`** — `LG_ICOEDITOR` è una catena di ripieghi
-  (`Alg_env.sh`), serve *un* editor di icone e con gimp se ne andavano 50
-  pacchetti, `suitesparse` e `openblas` compresi;
-- **il `.git` del repository non entra nella copia**: 631 MB che là dentro
-  nessuno consulterebbe. Restano invece i `.o` e i `.a`: sembravano residui di
-  compilazione, ma `legocad/lego_big/lib/*.a` sono le librerie con cui
-  `cad_crealg1` linka le task quando si apre una HMI — senza, la HMI si apre
-  col disegno cancellato. Lo tiene fuori
-  [`Dockerfile_LegoPST_slim.dockerignore`](Dockerfile_LegoPST_slim.dockerignore),
-  che vale solo per quel Dockerfile — la completa resta identica a prima.
-
-**`evince` è rimasto** anche nella snella, benché si porti dietro
-`mesa-dri-drivers` e `llvm-libs` (285 MB): `esporta.tcl` apre con
-`LG_PDFVIEWER` sia i PDF sia i **PNG**, e un visualizzatore di soli PDF
-lascerebbe monco l'export PNG di `legopc`. Rinunciando a quella funzione si
-scenderebbe di altri ~285 MB.
-
-### Lanciare la snella
-
-`lgdock` usa la completa per default. Per la snella basta un'opzione, come per
-la demo o per socat:
+Si costruisce dalla radice del repository:
 
 ```sh
-lgdock              # immagine completa (come sempre)
-lgdock --slim       # immagine snella
-lgdock -l -d        # snella, con la demo
+make -f Makefile.mk docker        # la costruisce
+make -f Makefile.mk docker-push   # la costruisce e la pubblica
 ```
 
-Vale per `lgdock`, `lgdock_multi` e `lgdock_socat`. Per un'immagine diversa da
-queste due — una build di prova, un tag personale — c'è la variabile
-d'ambiente, che l'opzione sovrascrive:
+2,27 GB su disco, 447 pacchetti rpm, e un layer da 462 MB per la copia del
+repository. Dentro ci sono `gcc`, `gfortran`, Motif, Tcl/Tk/Tix,
+`ghostscript`, ImageMagick, `evince` e tutti i `-devel`: si compila e si lavora
+come sulla macchina di sviluppo.
+
+### Perché una sola
+
+Fino al **2026-09-27** ce n'erano due, `legopst_multi` (tutti i pacchetti) e
+`legopst_slim`. Misurando che cosa le distingueva davvero — 213 pacchetti e
+529 MB — è venuto fuori che non c'era niente su cui LegoPST si appoggi:
+
+| | |
+|---|---|
+| `gimp` | 32 pacchetti, **355 MB** (`suitesparse` 140, gimp 105, `openblas-openmp` 39). Sostituito con `mtpaint`: `LG_ICOEDITOR` in `Alg_env.sh` è una catena di ripieghi, serve *un* editor di icone, non quello |
+| dipendenze deboli | circa 120 pacchetti: `systemd-udev`, `NetworkManager-libnm`, `pipewire`, `pulseaudio`, `tracker-miners`, `appstream`, la catena di perl. Un desktop, in un container che fa X11 e Motif |
+| `git` → `git-core` | 70 pacchetti per 73 MB, di cui `git-core-doc` da solo 18 MB. Restano i comandi, si perdono i sottocomandi in perl (`git send-email`, `git svn`) |
+
+Tenerle separate costava due `.dockerignore` da allineare, due bersagli nel
+makefile, un'opzione in tre lanciatori — e una volta si sono disallineate per
+davvero: una correzione provata sulla snella non era nella completa, che era
+quella che si lanciava. Un'immagine sola non può avere quel problema.
+
+Prima di rinunciare alla completa si è verificato dentro la snella che
+`legopc`, `lghmi`, `xstaz` e `viewval` non abbiano **nessuna libreria
+irrisolta** (`ldd`), che `compstaz` compili un `r01.dat` vero e che `legopc`,
+`lghmi` e `xstaz` aprano davvero la finestra, in modalità standard **e** con
+`--socat`.
+
+**`evince` è rimasto**, benché si porti dietro `mesa-dri-drivers` e
+`llvm-libs` (285 MB): `esporta.tcl` apre con `LG_PDFVIEWER` sia i PDF sia i
+**PNG**, e un visualizzatore di soli PDF lascerebbe monco l'export PNG di
+`legopc`. Rinunciando a quella funzione si scenderebbe di altri ~285 MB.
+
+I `.o` e i `.a` **restano**: sembravano residui di compilazione, ma
+`legocad/lego_big/lib/*.a` sono le librerie con cui `cad_crealg1` linka le task
+quando si apre una HMI — senza, la HMI si apre col disegno cancellato.
+
+### Cosa non entra nella copia, e perché conta per il push
+
+La `COPY` del repository è **un solo layer**, e un layer è indivisibile: cambia
+un file e `docker push` lo rispedisce intero, `lgdock --pull` lo riscarica
+intero. Perciò si tiene fuori ciò che là dentro non serve a nessuno
+([`Dockerfile_LegoPST.dockerignore`](Dockerfile_LegoPST.dockerignore)):
+
+| | |
+|---|---|
+| `.git` | **631 MB** di storia che nessuno consulta dentro un container |
+| `.aider*` | **41 MB** di cache di un assistente di codice |
+| `.claude`, `.ai-docs`, `.vscode`, `.github` | strumenti dell'ambiente di sviluppo |
+| `Alg_rt/lg_fmu/lg_cosim/example` | **155 MB** di bundle FMU di esempio già costruiti: materiale di riferimento del manuale, nessun makefile li usa |
+
+Il layer della copia è passato da **1,33 GB a 462 MB**.
+
+Una conseguenza del `.git` mancante: `make` non può più ricavare la versione da
+`git describe`. Il bersaglio `version.h` del `Makefile.mk` della radice se ne
+accorge e **tiene il `version.h` che la copia si porta dietro** invece di
+riscriverlo vuoto — è quel file che `lghmi` e `legopc` leggono per mostrare la
+versione di LegoPST, e `legopc` lo rigenera da sé se manca.
+
+### Lanciare un'immagine diversa
+
+`lgdock`, `lgdock_multi` e `lgdock_socat` usano `aguagliardi/legopst:2.0`. Per
+una build di prova o un tag personale c'è la variabile d'ambiente:
 
 ```sh
-LG_DOCKER_IMAGE=aguagliardi/legopst:3.0-test lgdock
+LG_DOCKER_IMAGE=aguagliardi/legopst:2.1-prova lgdock
 ```
-
 
 Questo installer consente di eseguire LegoPST senza installare nulla localmente - tutto funziona tramite container Docker.
 
@@ -97,11 +116,44 @@ cd LegoPST2010A/docker
 
 ## Cosa fa lo script di installazione
 
+Lo spiega da sé: **`install_legopst_dock.sh -h`** dice a cosa serve, cosa
+scrive, cosa fare dopo e come disinstallare — prima di eseguirlo, non dopo.
+
 1. **Verifica i prerequisiti**: controlla che Docker e curl siano installati
-2. **Scarica lgdock.sh**: dal repository ufficiale
+2. **Scarica lgdock.sh**: dal repository ufficiale, **dal branch** — non da una
+   copia: è per questo che rilanciarlo è il modo di prendere le correzioni
 3. **Crea il comando `lgrun`**: wrapper semplice per lanciare LegoPST
 4. **Configura il PATH**: aggiunge ~/.local/bin al PATH se necessario
 5. **Verifica l'installazione**: testa che tutto funzioni
+
+Non installa LegoPST, non compila niente e non tocca il sistema: scrive in
+`~/.local/bin` e, se serve, una riga nel `.bashrc`.
+
+### Aggiornare
+
+Rilancia lo script. Riscarica `lgdock.sh` dal branch e sovrascrive i due
+comandi — quelle copie non si aggiornano da sé, e un `lgdock` vecchio continua
+a cercare l'immagine che conosceva lui.
+
+### Disinstallare
+
+```sh
+install_legopst_dock.sh -u          # oppure --uninstall
+```
+
+Fa l'inverso esatto dell'installazione, e **nulla di più**:
+
+- toglie `~/.local/bin/lgrun` e `~/.local/bin/lgdock`, e **solo quelli**: se un
+  file con quel nome non è stato messo da qui, lo lascia dov'è e lo dice;
+- la riga del `PATH` nel `.bashrc` la toglie **solo se `~/.local/bin` resta
+  vuota**. Se dentro c'è ancora qualcosa la lascia e ti dice quale riga
+  guardare: là vivono spesso altri comandi (`pipx`, `uv`, `cmake`…) e
+  togliergliela di sotto li farebbe sparire dal `PATH` senza un errore che lo
+  spieghi;
+- **non cancella l'immagine Docker** — stampa il comando, `docker rmi
+  aguagliardi/legopst:2.0`, e lascia decidere a te;
+- **non cancella i tuoi dati**: `~/legocad`, `~/sked`, `~/defaults` e i modelli
+  che contengono sono il tuo lavoro.
 
 ## Utilizzo
 
@@ -119,9 +171,6 @@ lgrun --socat
 
 # Combina opzioni
 lgrun --demo --socat
-
-# Usa l'immagine snella invece della completa (-l, non -s: quella e' socat)
-lgrun --slim
 
 # Mostra help
 lgrun --help
@@ -146,6 +195,10 @@ Attendi il download dell'immagine, poi il container si avvierà automaticamente.
 L'installer crea:
 - `~/.local/bin/lgdock` - Script principale scaricato da GitHub
 - `~/.local/bin/lgrun` - Wrapper comodo per eseguire lgdock
+
+e, se `~/.local/bin` non era nel `PATH`, una riga nel `.bashrc` marcata
+`# Added by LegoPST installer`. Sono esattamente le tre cose che
+`install_legopst_dock.sh -u` sa disfare.
 
 ## Risoluzione Problemi
 
@@ -208,7 +261,7 @@ Ma la prova che chiude la questione, senza interpretare niente, è chiedere al
 container di chi gli risulta la home montata:
 
 ```bash
-docker run --rm -v "$HOME:/host_home" aguagliardi/legopst_multi:2.0 \
+docker run --rm -v "$HOME:/host_home" aguagliardi/legopst:2.0 \
        stat -c '%u %g' /host_home
 ```
 
@@ -312,7 +365,7 @@ rm ~/.local/bin/lgdock
 rm ~/.local/bin/lgrun
 
 # Rimuovi l'immagine Docker (opzionale)
-docker rmi aguagliardi/legopst_multi:2.0
+docker rmi aguagliardi/legopst:2.0
 
 # Rimuovi i dati utente (opzionale - ATTENZIONE: cancella i tuoi modelli!)
 rm -rf ~/legopst_userstd
@@ -328,7 +381,7 @@ Per aggiornare all'ultima versione:
 curl -fsSL https://raw.githubusercontent.com/RSE-TGM/LegoPST/master/docker/install_legopst_dock.sh | bash
 
 # Oppure aggiorna l'immagine Docker
-docker pull aguagliardi/legopst_multi:2.0
+docker pull aguagliardi/legopst:2.0
 ```
 
 ## Supporto
