@@ -21,6 +21,74 @@ VERSION="1.1"
 #      LG_DOCKER_IMAGE=aguagliardi/legopst:2.1-prova lgdock
 IMAGE_NAME="${LG_DOCKER_IMAGE:-aguagliardi/legopst:2.0}"
 
+# Coordinate del repository da cui questo lanciatore e' stato installato.
+# Le stampiglia install_legopst_dock.sh al momento dell'installazione, come fa
+# gia' con VERSION: qui restano i valori di default, che valgono solo se si usa
+# questo file cosi' com'e' dal repository.
+#
+# Servono a "update": l'installer va riscaricato DALLO STESSO branch da cui e'
+# arrivata questa copia, altrimenti chi ha installato da un branch di prova si
+# ritroverebbe su master senza che nulla glielo dica.
+REPO_HOST="github.com"
+REPO_SLUG="RSE-TGM/LegoPST"
+REPO_BRANCH="master"
+
+url_installer() {
+    if [ "$REPO_HOST" = "github.com" ]; then
+        echo "https://raw.githubusercontent.com/${REPO_SLUG}/${REPO_BRANCH}/docker/install_legopst_dock.sh"
+    else
+        echo "https://${REPO_HOST}/${REPO_SLUG}/-/raw/${REPO_BRANCH}/docker/install_legopst_dock.sh"
+    fi
+}
+
+#  update e uninstall RILANCIANO L'INSTALLER, invece di rifare qui quello che
+#  lui sa gia' fare. Cosi' installazione e aggiornamento restano un solo
+#  percorso di codice, che non puo' divergere.
+#
+#  exec, e non una semplice chiamata: l'installer riscrive questo stesso file
+#  (curl -o, che TRONCA lo stesso inode invece di scrivere altrove e
+#  rinominare). Bash legge uno script a pezzi tenendo aperto il descrittore e
+#  riposizionandosi dopo ogni comando: se il contenuto cambia sotto, prosegue
+#  al vecchio offset dentro il NUOVO testo ed esegue spazzatura. Con exec il
+#  processo viene sostituito e il descrittore chiuso PRIMA che l'installer
+#  scriva, quindi non c'e' piu' nessuno a cui segare il ramo.
+#  NON sostituire questa exec con una chiamata normale.
+rilancia_installer() {
+    local modo="$1" url tmp
+    url="$(url_installer)"
+    if ! tmp="$(mktemp)"; then
+        echo "ERRORE: non riesco a creare un file temporaneo." >&2
+        exit 1
+    fi
+    echo "Scarico l'installer:"
+    echo "  $url"
+    if ! curl -fsSL "$url" -o "$tmp"; then
+        rm -f "$tmp"
+        echo "" >&2
+        echo "ERRORE: non riesco a scaricare l'installer." >&2
+        echo "        Controlla la connessione e riprova. Niente e' stato" >&2
+        echo "        modificato: il comando che hai adesso continua a funzionare." >&2
+        exit 1
+    fi
+    #  Uno scaricamento troncato, o una pagina di errore HTML, non devono
+    #  finire dentro bash: il controllo costa niente, il danno di saltarlo e'
+    #  un'installazione rotta a meta'.
+    if [ ! -s "$tmp" ] || ! head -1 "$tmp" | grep -q '^#!'; then
+        rm -f "$tmp"
+        echo "" >&2
+        echo "ERRORE: quello che e' arrivato non e' uno script (scaricamento" >&2
+        echo "        incompleto, o l'URL risponde con altro)." >&2
+        echo "        Niente e' stato modificato." >&2
+        exit 1
+    fi
+    echo ""
+    if [ -n "$modo" ]; then
+        exec bash "$tmp" "$modo"
+    else
+        exec bash "$tmp"
+    fi
+}
+
 
 show_help() {
     local CMD_NAME=$(basename "$0")
@@ -34,11 +102,20 @@ Opzioni:
   -s, --socat         Usa socat per X11 forwarding (utile per SSH con MobaXterm)
   -p, --pull          Esegue docker pull dell'immagine prima di avviare il container
 
+Manutenzione:
+  update              Reinstalla $CMD_NAME all'ultima versione e aggiorna
+                      l'immagine Docker. Riscarica ed esegue l'installer dallo
+                      stesso repository da cui e' stato installato.
+  uninstall           Disinstalla $CMD_NAME. Non tocca l'immagine Docker ne' i
+                      tuoi dati (~/legocad, ~/sked): dice come rimuoverli.
+
 Esempi:
   $CMD_NAME                  # Lancia container LegoPST (modalità standard)
   $CMD_NAME --demo           # Installa modello demo (legocad e sked) e lancia container
   $CMD_NAME --socat          # Lancia container con socat per X11 (per SSH/MobaXterm)
   $CMD_NAME -d -s            # Demo + socat
+  $CMD_NAME update           # aggiorna comando e immagine all'ultima versione
+  $CMD_NAME uninstall        # rimuove il comando
 
 Modalità X11:
   - Standard (default): X11 forwarding diretto, adatto per uso locale
@@ -115,6 +192,16 @@ while [[ $# -gt 0 ]]; do
         -p|--pull)
             DO_PULL=true
             shift
+            ;;
+        update)
+            #  --pull-image: l'immagine si scarica DOPO aver installato gli
+            #  script, non prima. Il nome dell'immagine sta dentro lgdock, e
+            #  un aggiornamento puo' cambiarlo: scaricandola prima si tirerebbe
+            #  giu' quella vecchia.
+            rilancia_installer --pull-image
+            ;;
+        uninstall)
+            rilancia_installer -u
             ;;
         *)
             echo "Opzione sconosciuta: $1"

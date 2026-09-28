@@ -121,30 +121,69 @@ scrive, cosa fare dopo e come disinstallare — prima di eseguirlo, non dopo.
 
 1. **Verifica i prerequisiti**: controlla che Docker e curl siano installati
 2. **Scarica lgdock.sh**: dal repository ufficiale, **dal branch** — non da una
-   copia: è per questo che rilanciarlo è il modo di prendere le correzioni
-3. **Crea il comando `lgrun`**: wrapper semplice per lanciare LegoPST
-4. **Configura il PATH**: aggiunge ~/.local/bin al PATH se necessario
-5. **Verifica l'installazione**: testa che tutto funzioni
+   copia: è per questo che rilanciarlo è il modo di prendere le correzioni. Lo
+   installa in `~/.local/lib/legopst/lgdock`, **fuori dal `PATH`**: è il motore,
+   non un comando da digitare
+3. **Crea il comando `lgrun`**: un **symlink** a quel `lgdock`. L'utente finale
+   ha così un solo comando nel `PATH`, e l'aiuto porta il nome giusto da sé —
+   bash mette in `$0` il percorso con cui lo script è stato invocato, quindi
+   attraverso il link `basename "$0"` vale già `lgrun`
+4. **Stampiglia dentro `lgdock`** la versione e le coordinate del repository da
+   cui l'installazione è venuta, che servono a `lgrun update`
+5. **Configura il PATH**: aggiunge ~/.local/bin al PATH se necessario
+6. **Verifica l'installazione**: testa che tutto funzioni
 
 Non installa LegoPST, non compila niente e non tocca il sistema: scrive in
-`~/.local/bin` e, se serve, una riga nel `.bashrc`.
+`~/.local/bin`, in `~/.local/lib/legopst` e, se serve, una riga nel `.bashrc`.
+
+> Prima l'installer creava `lgrun` come piccolo involucro che faceva `exec` di
+> `lgdock`, e metteva **entrambi** in `~/.local/bin`. Due comandi identici nella
+> stessa directory, e l'aiuto di `lgrun` diceva *«Uso: lgdock»*: si digitava un
+> nome e se ne leggeva un altro. Un'installazione fatta così viene ripulita al
+> primo aggiornamento — il vecchio `~/.local/bin/lgdock` viene rimosso.
 
 ### Aggiornare
 
-Rilancia lo script. Riscarica `lgdock.sh` dal branch e sovrascrive i due
-comandi — quelle copie non si aggiornano da sé, e un `lgdock` vecchio continua
-a cercare l'immagine che conosceva lui.
+```sh
+lgrun update
+```
+
+Riscarica l'installer **dallo stesso branch** da cui è venuta l'installazione e
+lo esegue, poi aggiorna l'immagine Docker. Così installazione e aggiornamento
+restano un solo percorso di codice, che non può divergere.
+
+L'ordine non è casuale: l'immagine si scarica **dopo** aver installato gli
+script, perché il nome dell'immagine sta dentro `lgdock` e un aggiornamento può
+cambiarlo — scaricandola prima si tirerebbe giù quella vecchia.
+
+Se il download dell'installer fallisce, o quel che arriva non è uno script,
+`update` **si ferma prima di toccare qualcosa**: il comando che hai continua a
+funzionare. Se fallisce solo il `docker pull`, l'installazione resta valida e lo
+dice.
+
+> **Dettaglio da non "semplificare".** `update` sostituisce il proprio processo
+> con l'installer (`exec`) invece di chiamarlo. L'installer riscrive `lgdock`
+> con `curl -o`, che **tronca lo stesso inode**; bash legge uno script a pezzi
+> tenendo aperto il descrittore, quindi se il contenuto cambia sotto prosegue al
+> vecchio offset dentro il nuovo testo ed esegue spazzatura. Con `exec` il
+> descrittore è già chiuso quando l'installer scrive.
+
+Rilanciare l'installer a mano continua a funzionare, e resta la strada per chi
+non ha ancora un `lgrun` che conosce `update`.
 
 ### Disinstallare
 
 ```sh
-install_legopst_dock.sh -u          # oppure --uninstall
+lgrun uninstall                     # oppure, a mano:
+install_legopst_dock.sh -u          # ...che e' esattamente la stessa cosa
 ```
 
 Fa l'inverso esatto dell'installazione, e **nulla di più**:
 
-- toglie `~/.local/bin/lgrun` e `~/.local/bin/lgdock`, e **solo quelli**: se un
-  file con quel nome non è stato messo da qui, lo lascia dov'è e lo dice;
+- toglie `~/.local/bin/lgrun` e `~/.local/lib/legopst/lgdock` (e la directory,
+  se resta vuota), e **solo quelli**: se un file con quel nome non è stato messo
+  da qui, lo lascia dov'è e lo dice. Ripulisce anche il vecchio
+  `~/.local/bin/lgdock`, per chi viene da un'installazione precedente;
 - la riga del `PATH` nel `.bashrc` la toglie **solo se `~/.local/bin` resta
   vuota**. Se dentro c'è ancora qualcosa la lascia e ti dice quale riga
   guardare: là vivono spesso altri comandi (`pipx`, `uv`, `cmake`…) e

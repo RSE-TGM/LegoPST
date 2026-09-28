@@ -30,8 +30,12 @@ A COSA SERVE
 COSA FA, IN CONCRETO
   1. controlla che ci siano Docker (in esecuzione) e curl;
   2. scarica docker/lgdock.sh DAL REPOSITORY - dal branch, non da una copia -
-     e lo installa come ~/.local/bin/lgdock;
-  3. crea ~/.local/bin/lgrun, un involucro che passa tutto a lgdock;
+     e lo installa come ~/.local/lib/legopst/lgdock, FUORI dal PATH: e' il
+     motore, non un comando da digitare;
+  3. crea ~/.local/bin/lgrun come SYMLINK a lgdock. L'utente finale ha cosi'
+     un solo comando nel PATH, e l'aiuto porta il nome giusto da se': bash
+     mette in $0 il percorso con cui lo script e' stato invocato, quindi
+     attraverso il link "basename $0" vale gia' "lgrun".
   4. se ~/.local/bin non e' nel PATH, aggiunge una riga al tuo .bashrc.
   Non installa LegoPST, non compila niente, non tocca il sistema: scrive in
   ~/.local/bin e, al piu', quella riga nel .bashrc.
@@ -41,6 +45,8 @@ DOPO L'INSTALLAZIONE
   lgrun --demo       ci mette anche un modello di esempio (legocad e sked)
   lgrun --socat      X11 attraverso un socket bridge, per SSH/MobaXterm
   lgrun --pull       aggiorna l'immagine prima di partire
+  lgrun update       reinstalla all'ultima versione e aggiorna l'immagine
+  lgrun uninstall    disinstalla (come "install_legopst_dock.sh -u")
   lgrun --help       tutte le opzioni
   La prima volta Docker scarica l'immagine (qualche GB): qualche minuto, una
   volta sola.
@@ -76,7 +82,24 @@ AIUTO
 #  comandi in ~/.local/bin, e la riga del PATH soltanto quando non serve piu' a
 #  nessuno. L'immagine Docker e i dati dell'utente non sono roba
 #  dell'installatore: si dice come fare e si lascia decidere a lui.
+#  Il nome dell'immagine, letto da un lgdock.
+#
+#  Solo la riga dell'ASSEGNAZIONE: appena sopra c'e' un commento che mostra
+#  un'immagine di ESEMPIO (LG_DOCKER_IMAGE=...:2.1-prova), e un grep non
+#  ancorato pesca quella. E' successo due volte - in disinstallazione e
+#  nell'aggiornamento dell'immagine - percio' la lettura sta qui, in un posto
+#  solo, e non si riscrive a mano.
+immagine_da() {
+    local f="$1" img=""
+    if [ -f "$f" ]; then
+        img=$(grep -m1 '^IMAGE_NAME=' "$f" 2>/dev/null \
+              | grep -o 'aguagliardi/legopst[^"}[:space:]]*' || true)
+    fi
+    echo "${img:-aguagliardi/legopst:2.0}"
+}
+
 disinstalla() {
+    LGRUN_LINK="$INSTALL_DIR/lgrun"
     echo "======================================================================="
     echo "  Disinstallazione LegoPST (i comandi lgrun e lgdock)"
     echo "======================================================================="
@@ -84,16 +107,34 @@ disinstalla() {
 
     #  il nome dell'immagine si legge dal lanciatore PRIMA di cancellarlo:
     #  dopo non ci sarebbe piu' modo di saperlo
-    IMMAGINE=$(grep -m1 -o 'aguagliardi/legopst[^"}[:space:]]*' "$INSTALL_DIR/lgdock" 2>/dev/null || true)
-    IMMAGINE="${IMMAGINE:-aguagliardi/legopst:2.0}"
+    #  Il nome dell'immagine si legge dal motore PRIMA di cancellarlo: dopo non
+    #  ci sarebbe piu' modo di saperlo. Si guarda nella posizione nuova e in
+    #  quella vecchia, perche' chi disinstalla puo' avere ancora l'assetto di
+    #  prima (lgdock dentro ~/.local/bin).
+    IMMAGINE=$(immagine_da "$LIB_DIR/lgdock")
+    if [ ! -f "$LIB_DIR/lgdock" ]; then
+        IMMAGINE=$(immagine_da "$INSTALL_DIR/lgdock")   # assetto precedente
+    fi
 
-    for comando in lgrun lgdock; do
-        f="$INSTALL_DIR/$comando"
-        if [ ! -e "$f" ]; then
-            echo "- $comando: non installato in $INSTALL_DIR"
-            continue
+    #  lgrun e' un symlink: -e lo segue, e su un link penzolante direbbe che non
+    #  c'e' pur essendoci. Percio' si controlla anche -L.
+    if [ -L "$LGRUN_LINK" ] || [ -e "$LGRUN_LINK" ]; then
+        #  Un omonimo di qualcun altro non si tocca: o punta al nostro motore,
+        #  o e' un file che nomina LegoPST (il vecchio involucro).
+        BERSAGLIO=$(readlink "$LGRUN_LINK" 2>/dev/null || true)
+        if [ "$BERSAGLIO" = "$LIB_DIR/lgdock" ] || grep -q "LegoPST" "$LGRUN_LINK" 2>/dev/null; then
+            rm -f "$LGRUN_LINK"
+            echo "✓ rimosso $LGRUN_LINK"
+        else
+            echo "⚠ $LGRUN_LINK non sembra installato da qui: lo lascio dov'e'"
         fi
-        #  un file con lo stesso nome ma di qualcun altro non si tocca
+    else
+        echo "- lgrun: non installato in $INSTALL_DIR"
+    fi
+
+    #  Il motore, nella posizione nuova e in quella vecchia.
+    for f in "$LIB_DIR/lgdock" "$INSTALL_DIR/lgdock"; do
+        [ -f "$f" ] || continue
         if ! grep -q "LegoPST" "$f" 2>/dev/null; then
             echo "⚠ $f non sembra installato da qui: lo lascio dov'e'"
             continue
@@ -101,6 +142,11 @@ disinstalla() {
         rm -f "$f"
         echo "✓ rimosso $f"
     done
+    #  La dir di libreria si toglie solo se e' rimasta vuota: e' nostra, ma non
+    #  e' detto che non ci abbia messo altro qualcun altro.
+    if [ -d "$LIB_DIR" ] && [ -z "$(ls -A "$LIB_DIR" 2>/dev/null)" ]; then
+        rmdir "$LIB_DIR" 2>/dev/null && echo "✓ rimossa $LIB_DIR"
+    fi
 
     #  La riga del PATH. In ~/.local/bin ci vivono spesso altri comandi (pipx,
     #  uv, cmake...): togliere quella riga li farebbe sparire dal PATH senza un
@@ -133,9 +179,17 @@ disinstalla() {
     echo "Disinstallazione completata."
 }
 
+PULL_IMAGE=false
 case "${1:-}" in
     -h|--help)      mostra_aiuto; exit 0 ;;
-    -u|--uninstall) INSTALL_DIR="$HOME/.local/bin"; disinstalla; exit 0 ;;
+    -u|--uninstall)
+        INSTALL_DIR="$HOME/.local/bin"
+        LIB_DIR="$HOME/.local/lib/legopst"
+        disinstalla; exit 0 ;;
+    #  Lo passa "lgrun update": installa e POI scarica l'immagine. L'ordine
+    #  conta - il nome dell'immagine sta dentro lgdock, e un aggiornamento puo'
+    #  cambiarlo, quindi scaricarla prima vorrebbe dire tirare giu' la vecchia.
+    --pull-image)   PULL_IMAGE=true ;;
 esac
 
 # Rileva host e owner/repo dal file repo_info.conf (generato da Makefile.mk)
@@ -175,8 +229,20 @@ if [ "$REPO_HOST" = "github.com" ]; then
 else
     LGDOCK_URL="https://${REPO_HOST}/${REPO_SLUG}/-/raw/${REPO_BRANCH}/docker/lgdock.sh"
 fi
+#  L'utente finale ha UN SOLO comando nel PATH: lgrun. lgdock e' il motore, e
+#  vive fuori dal PATH - due nomi per la stessa cosa nella stessa directory
+#  facevano scegliere a caso, e l'aiuto ne indicava uno mentre se ne digitava
+#  un altro.
+#
+#  lgrun e' un SYMLINK a lgdock, non un involucro: bash imposta $0 al percorso
+#  con cui lo script e' stato invocato, quindi attraverso il link "basename $0"
+#  vale gia' "lgrun" e l'aiuto porta il nome giusto da se'. L'involucro
+#  precedente non poteva farlo (exec -a non funziona sugli script: per uno
+#  shebang e' il kernel a passare il path all'interprete) e avrebbe richiesto a
+#  lgdock di sapere di poter essere frontato.
 INSTALL_DIR="$HOME/.local/bin"
-LGDOCK_SCRIPT="$INSTALL_DIR/lgdock"
+LIB_DIR="$HOME/.local/lib/legopst"
+LGDOCK_SCRIPT="$LIB_DIR/lgdock"
 LGRUN_SCRIPT="$INSTALL_DIR/lgrun"
 
 echo "======================================================================="
@@ -234,6 +300,7 @@ echo ""
 # =============================================================================
 echo "--- Preparazione installazione ---"
 
+mkdir -p "$LIB_DIR"
 if [ ! -d "$INSTALL_DIR" ]; then
     echo "Creazione directory $INSTALL_DIR..."
     mkdir -p "$INSTALL_DIR"
@@ -281,35 +348,38 @@ else
     echo "⚠ File VERSION non trovato, versione placeholder mantenuta"
 fi
 
+#  Da dove e' arrivata questa copia. Serve a "lgrun update", che riscarica
+#  l'installer: senza, dovrebbe cablare master e chi installa da un branch di
+#  prova ci finirebbe sopra senza accorgersene.
+sed -i -e "s|^REPO_HOST=\".*\"|REPO_HOST=\"${REPO_HOST}\"|" \
+       -e "s|^REPO_SLUG=\".*\"|REPO_SLUG=\"${REPO_SLUG}\"|" \
+       -e "s|^REPO_BRANCH=\".*\"|REPO_BRANCH=\"${REPO_BRANCH}\"|" "$LGDOCK_SCRIPT"
+echo "✓ Aggiornamenti da: $REPO_SLUG ($REPO_BRANCH)"
+
 # =============================================================================
-# Creazione comando lgrun
+# Comando lgrun (symlink a lgdock)
 # =============================================================================
 echo ""
 echo "--- Creazione comando 'lgrun' ---"
 
-cat > "$LGRUN_SCRIPT" << 'EOF'
-#!/bin/bash
-#
-# lgrun - Launcher per LegoPST via Docker
-#
-# Wrapper per lgdock che fornisce un comando semplice per eseguire LegoPST
-#
-
-SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
-LGDOCK="$SCRIPT_DIR/lgdock"
-
-if [ ! -f "$LGDOCK" ]; then
-    echo "ERRORE: lgdock non trovato in $LGDOCK"
-    echo "Esegui nuovamente lo script di installazione"
-    exit 1
+#  Installazione PRECEDENTE: lgdock stava in ~/.local/bin, accanto a lgrun.
+#  Va tolto, altrimenti resta nel PATH un secondo comando identico e ormai
+#  stantio, che nessuno aggiornera' piu'.
+VECCHIO="$INSTALL_DIR/lgdock"
+if [ -f "$VECCHIO" ] && [ ! -L "$VECCHIO" ] && grep -q "LegoPST" "$VECCHIO" 2>/dev/null; then
+    rm -f "$VECCHIO"
+    echo "✓ rimosso il vecchio $VECCHIO (ora lgdock sta in $LIB_DIR)"
 fi
 
-# Passa tutti i parametri a lgdock
-exec "$LGDOCK" "$@"
-EOF
-
-chmod +x "$LGRUN_SCRIPT"
-echo "✓ Comando 'lgrun' creato"
+#  -f: se lgrun c'e' gia' - da un'installazione precedente, involucro o link -
+#  si sostituisce. ln non tocca l'inode del target, quindi questo e' sicuro
+#  anche mentre lgrun sta girando (e' il caso di "lgrun update").
+if ln -sfn "$LGDOCK_SCRIPT" "$LGRUN_SCRIPT"; then
+    echo "✓ Comando 'lgrun' creato ($LGRUN_SCRIPT -> $LGDOCK_SCRIPT)"
+else
+    echo "ERRORE: impossibile creare $LGRUN_SCRIPT"
+    exit 1
+fi
 
 # =============================================================================
 # Verifica PATH
@@ -365,6 +435,30 @@ else
     echo "⚠ Riavvia il terminale per usare 'lgrun'"
 fi
 
+IMMAGINE_PRONTA=false
+#  Aggiornamento dell'immagine, chiesto da "lgrun update". Si fa QUI, dopo
+#  l'installazione, e leggendo il nome dall'lgdock APPENA installato: se un
+#  aggiornamento cambia immagine, e' quella nuova che va scaricata.
+if [ "$PULL_IMAGE" = true ]; then
+    IMG=$(immagine_da "$LGDOCK_SCRIPT")
+    echo "--- Aggiornamento immagine Docker ---"
+    echo "Immagine: $IMG"
+    echo "(qualche GB: puo' volerci parecchio)"
+    echo ""
+    if docker pull "$IMG"; then
+        echo "✓ Immagine aggiornata"
+        IMMAGINE_PRONTA=true
+    else
+        #  Non e' un fallimento dell'installazione: i comandi ci sono e
+        #  funzionano con l'immagine che c'e' gia'.
+        echo ""
+        echo "⚠ Non sono riuscito ad aggiornare l'immagine."
+        echo "  I comandi sono installati e funzionano con quella che hai."
+        echo "  Puoi riprovare piu' tardi con:  docker pull $IMG"
+    fi
+    echo ""
+fi
+
 # =============================================================================
 # Riepilogo finale
 # =============================================================================
@@ -381,8 +475,11 @@ echo "Uso:"
 echo "  lgrun              # Avvia LegoPST container"
 echo "  lgrun --demo       # Avvia con modello demo"
 echo "  lgrun --socat      # Avvia con X11 via socat (per SSH)"
+echo "  lgrun update       # Aggiorna comando e immagine all'ultima versione"
+echo "  lgrun uninstall    # Disinstalla"
 echo "  lgrun --help       # Mostra tutte le opzioni"
 echo ""
+
 
 if [ "$PATH_CONFIGURED" = false ]; then
     echo "⚠ AZIONE RICHIESTA:"
@@ -397,7 +494,11 @@ echo ""
 echo "Per avviare LegoPST:"
 echo "  lgrun"
 echo ""
-echo "Nota: Al primo avvio, Docker scaricherà l'immagine LegoPST"
-echo "      (circa 2-3 GB, potrebbe richiedere alcuni minuti)"
+if [ "$IMMAGINE_PRONTA" = true ]; then
+    echo "L'immagine è aggiornata: il prossimo avvio parte subito."
+else
+    echo "Nota: Al primo avvio, Docker scaricherà l'immagine LegoPST"
+    echo "      (circa 2-3 GB, potrebbe richiedere alcuni minuti)"
+fi
 echo ""
 echo "======================================================================="

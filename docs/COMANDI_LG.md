@@ -71,11 +71,38 @@ installato. Il container porta compilatori, Motif, Tcl/Tk/Tix e X11 già a posto
 |---|---|---|
 | `lgdock` | script | **Il comando da usare.** Lancia il container LegoPST e apre un terminale bash dentro, creando dinamicamente l'utente dell'host nel container così che i file scritti restino tuoi. Opzioni: `-d`/`--demo` installa la demo (legocad e sked) nella home e parte con quella; `-s`/`--socat` usa un socket bridge per l'X11, necessario via SSH/MobaXterm; `-p`/`--pull` aggiorna l'immagine prima di partire; `-h` e `-v` per aiuto e versione. Si combinano: `lgdock -d -s`. L'immagine è una sola, `aguagliardi/legopst:2.0`; per puntare a un'altra (una build di prova) c'è la variabile `LG_DOCKER_IMAGE`. |
 | `lgdock_multi` | script | Variante **multipiattaforma**: stessa interfaccia (`-h`, `-v`, `-d`, `-s`) ma senza `--pull`, e con il rilevamento dei permessi — se `/var/run/docker.sock` esiste ma non è scrivibile dall'utente, ricade su `sudo docker` (chiedendo subito la password, invece di fallire a metà). Da usare dove `lgdock` non parte per questioni di permessi. |
-| `lgrun` | script | L'involucro che l'**installer** (`docker/install_legopst_dock.sh`) crea in `~/.local/bin` su una macchina senza LegoPST: passa tutto al `lgdock` che gli sta accanto, quindi ha le stesse opzioni. Non sta nel repository, lo scrive l'installer. Quell'installer si spiega con `-h` e si disinstalla con `-u`. |
+| `lgrun` | symlink | **Il comando dell'utente finale**, su una macchina che non ha LegoPST. Lo crea l'installer (`docker/install_legopst_dock.sh`) in `~/.local/bin` come **symlink a `lgdock`**, che sta fuori dal `PATH` in `~/.local/lib/legopst/`: così il comando da digitare è uno solo. Stesse opzioni di `lgdock` — l'aiuto porta il nome giusto da sé, perché `basename "$0"` attraverso il link vale `lgrun`. In più ha **`update`** e **`uninstall`** (vedi sotto). |
 | `lgdock_socat` | script | Versione **v1.0**, solo X11 via `socat`. Superata da `lgdock --socat`, che fa lo stesso restando un comando solo. Conservata per compatibilità. |
 
 > `lgdock` e `lgdock_multi` sono alla v2.0, `lgdock_socat` alla v1.0: se ne dubiti,
 > usa `lgdock`.
+
+**Manutenzione dell'installazione** — due comandi che valgono solo per chi ha
+installato via `install_legopst_dock.sh`:
+
+| Comando | Cosa fa |
+|---|---|
+| `lgrun update` | Reinstalla `lgrun` all'ultima versione **e aggiorna l'immagine Docker**. Riscarica l'installer e lo esegue: installazione e aggiornamento restano un solo percorso di codice, che non può divergere. |
+| `lgrun uninstall` | Disinstalla, come `install_legopst_dock.sh -u`. Non tocca l'immagine né i tuoi dati (`~/legocad`, `~/sked`): dice come rimuoverli. |
+
+> **Da dove aggiorna.** L'installer stampiglia dentro `lgdock` le coordinate del
+> repository da cui l'installazione è venuta (`REPO_HOST`, `REPO_SLUG`,
+> `REPO_BRANCH`), come già fa con la versione. Così `update` riscarica **dallo
+> stesso branch**: chi ha installato da un branch di prova continua ad
+> aggiornarsi da quello, invece di saltare su `master` senza accorgersene.
+>
+> **Perché `exec`.** `update` sostituisce il proprio processo con l'installer
+> invece di chiamarlo. L'installer riscrive `lgdock` con `curl -o`, che
+> **tronca lo stesso inode**; bash legge uno script a pezzi tenendo aperto il
+> descrittore, quindi se il contenuto cambia sotto prosegue al vecchio offset
+> dentro il nuovo testo ed esegue spazzatura. Con `exec` il descrittore è già
+> chiuso quando l'installer scrive. **Non sostituire quella `exec` con una
+> chiamata normale.**
+>
+> Se il download fallisce o non arriva uno script (rete giù, URL che risponde
+> con altro), `update` **si ferma prima di toccare qualcosa**: il comando che
+> hai continua a funzionare. Se invece fallisce solo il `docker pull`,
+> l'installazione resta valida e lo dice.
 
 Dettagli su immagine, build e installazione: [../docker/README_INSTALLER.md](../docker/README_INSTALLER.md).
 
