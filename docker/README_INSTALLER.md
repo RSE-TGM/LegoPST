@@ -338,6 +338,40 @@ Podman e per `--userns=keep-id`:
   creato, niente sudoers) e si fa `chown` a `0:0`, così sull'host i file
   risultano dell'utente. Lo dice con un banner
   `=== Modalita' rootless rilevata (Podman o Docker) ===`;
+
+### Cosa si vede: la home dentro il container cambia
+
+È la conseguenza visibile del punto qui sopra, e sorprende perché sembra un
+errore. Sulla **stessa** macchina, con lo **stesso** comando:
+
+| | runtime classico | rootless (Podman, Docker rootless) |
+|---|---|---|
+| utente nel container | `antonio` (UID 1000) | `root` (UID 0) |
+| `$HOME` | `/home/antonio` | **`/root`** |
+| `LEGOCAD_USER` | `/home/antonio` | **`/root`** |
+| prompt | `LegoPST@.../antonio` | `LegoPST@.../root` |
+
+**Non cambia quali dati vedi.** La home dell'host è montata in `/host_home` —
+è l'unico punto in cui entra nel container — e `lgdock` crea in entrambi i casi
+gli stessi collegamenti:
+
+```
+~/legocad   ->  /host_home/legocad
+~/sked      ->  /host_home/sked
+~/defaults  ->  /host_home/defaults
+~/host_data ->  /host_home
+```
+
+Quindi `/root/sked` e `/home/antonio/sked` sono lo stesso `~/sked` dell'host. Se
+due esecuzioni mostrano **simulatori diversi** non è il container: sono due home
+diverse. Succede tipicamente su WSL, dove ogni distribuzione ha il suo
+`/home/<utente>` e `lgdock` monta quella da cui lo lanci.
+
+> **La home del container è effimera, in entrambi i casi.** `/home/antonio` e
+> `/root` vivono dentro il container e con `--rm` spariscono all'uscita.
+> Sopravvive solo ciò che sta sotto i quattro collegamenti qui sopra, perché
+> puntano all'host. Quello che salvi in `~/altro` lo perdi — e non c'entra il
+> rootless.
 - risulta altro (`65534`, userns-remap, filesystem senza proprietà Unix) → non è
   traducibile: avvisa e prosegue con quel valore.
 

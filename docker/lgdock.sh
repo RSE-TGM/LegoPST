@@ -463,9 +463,23 @@ if [[ "USE_SOCAT_VAR" == "true" ]]; then
 fi
 
 # Link simbolici
+#
+# -n (--no-dereference) su tutte, per allinearle alle due del demo che lo
+# avevano gia'. Serve quando il bersaglio esiste ed e' un LINK A DIRECTORY:
+# senza -n, ln lo segue e crea il collegamento DENTRO la directory puntata -
+# viene ~/sked/sked invece di ~/sked, e si continua a vedere il contenuto
+# vecchio senza un errore che lo dica. Con -n il link viene sostituito.
+#
+# Attenzione a non aspettarsi di piu': se il bersaglio e' una DIRECTORY VERA
+# nemmeno -n la sostituisce (ln non rimpiazza una directory con un link), e il
+# collegamento finisce dentro comunque. Quel caso resta scoperto: qui va bene
+# perche' non si verifica - con --rm la home del container e' sempre nuova,
+# appena creata da useradd o il /root dell'immagine, che non contiene ne' sked
+# ne' legocad - ma se un domani l'immagine nascesse con quelle directory il
+# problema tornerebbe, e -n non basterebbe.
 echo "Creazione link simbolici in $USER_HOME_IN_CONTAINER..."
 mkdir -p "$USER_HOME_IN_CONTAINER"
-ln -sf /host_home "$USER_HOME_IN_CONTAINER/host_data"
+ln -sfn /host_home "$USER_HOME_IN_CONTAINER/host_data"
 
 # Eventuale copia del legocad demo nella home dell'utente
 if [[ "RUN_DEMO_FLAG" == "true" ]]; then
@@ -549,9 +563,9 @@ if [[ "RUN_DEMO_FLAG" == "true" ]]; then
 fi
 
 # Link simbolici finali
-ln -sf /host_home/legocad "$USER_HOME_IN_CONTAINER/legocad" 2>/dev/null || true
-ln -sf /host_home/sked "$USER_HOME_IN_CONTAINER/sked" 2>/dev/null || true
-ln -sf /host_home/defaults "$USER_HOME_IN_CONTAINER/defaults" 2>/dev/null || true
+ln -sfn /host_home/legocad "$USER_HOME_IN_CONTAINER/legocad" 2>/dev/null || true
+ln -sfn /host_home/sked "$USER_HOME_IN_CONTAINER/sked" 2>/dev/null || true
+ln -sfn /host_home/defaults "$USER_HOME_IN_CONTAINER/defaults" 2>/dev/null || true
 chown -h "$CONT_UID:$CONT_GID" "$USER_HOME_IN_CONTAINER/host_data"
 
 # Configurazione .bash_profile
