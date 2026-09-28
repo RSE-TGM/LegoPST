@@ -30,6 +30,37 @@
 #     "dnf remove --assumeno gimp", con lui se ne vanno 32 pacchetti e
 #     355 MB - suitesparse (140 MB) e openblas-openmp (39 MB) compresi.
 #
+#  3bis. firefox: serve un BROWSER, e dev'essere lui.
+#     Il menu "?" di lghmi e legopc apre la documentazione HTML con
+#     "exec $browser $file &" (openhelp.tcl). Senza browser la catena di
+#     lg_pick cade su xdg-open, che a sua volta non trova niente: l'utente
+#     vedeva venti righe di "command not found" e nessun documento.
+#
+#     Costo misurato nell'immagine con "dnf install --assumeno":
+#         lynx 2 MiB | links 3 | w3m 9 | epiphany 69 | firefox 98 | falkon 157
+#
+#     epiphany costerebbe 29 MiB in meno ed e' gia' nella lista dei candidati,
+#     ma NON FUNZIONA qui: usa bubblewrap per isolare i processi web, e creare
+#     namespace annidati dentro un container non e' permesso - sotto podman
+#     rootless a maggior ragione, perche' si e' gia' dentro un user namespace.
+#     Muore con "bwrap: Creating new namespace failed: Operation not
+#     permitted". Servirebbe --privileged o SYS_ADMIN: uno scambio pessimo per
+#     un lettore di documentazione.
+#
+#     firefox incontra la stessa restrizione ("Sandbox:
+#     CanCreateUserNamespace() clone() failure: EPERM") ma la DEGRADA con un
+#     avviso e prosegue: verificato rendendo una pagina nel container. Non gli
+#     serve nemmeno dbus.
+#
+#     I browser testuali costerebbero una manciata di MiB, ma openhelp.tcl li
+#     lancia staccati e senza terminale: partirebbero su un terminale che non
+#     c'e'. Per usarli servirebbe avvolgerli in lgterm e aggiungerli alle liste
+#     di candidati in Alg_env.sh e openhelp.tcl - e resterebbe una resa scadente
+#     per DOCUMENTATION_INDEX.html, che e' impaginato con CSS.
+#
+#     firefox e' gia' il PRIMO della lista dei candidati, quindi non si tocca
+#     una riga di codice.
+#
 #  3. evince RESTA, anche se zathura costerebbe 87 MiB di meno.
 #     esporta.tcl apre con LG_PDFVIEWER sia i PDF sia i PNG (_openFile), e
 #     zathura apre solo PDF: l'export PNG di legopc non si aprirebbe piu'.
@@ -89,6 +120,7 @@ RUN dnf update -y && \
         ImageMagick \
         mtpaint \
         evince \
+        firefox \
         unix2dos \
         xorg-x11-fonts-misc xorg-x11-fonts-100dpi xorg-x11-fonts-75dpi libXcursor \
         adwaita-cursor-theme \

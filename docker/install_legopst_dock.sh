@@ -82,6 +82,23 @@ AIUTO
 #  comandi in ~/.local/bin, e la riga del PATH soltanto quando non serve piu' a
 #  nessuno. L'immagine Docker e i dati dell'utente non sono roba
 #  dell'installatore: si dice come fare e si lascia decidere a lui.
+#  Il runtime dei container: docker se c'e' come ESEGUIBILE, altrimenti podman.
+#  Silenzioso: il messaggio lo stampa la verifica dei prerequisiti. Sta qui, in
+#  cima, perche' serve anche alla disinstallazione, che gira prima di quella.
+#
+#  Non basta cercare "docker": su alcune installazioni (Arch, tipicamente) e' un
+#  ALIAS di shell a podman, e gli alias NON esistono nelle shell non
+#  interattive. Questo script si lancia con bash -c "$(curl ...)", quindi non lo
+#  vedrebbe mai.
+rileva_runtime() {
+    if command -v docker >/dev/null 2>&1; then
+        echo docker
+    elif command -v podman >/dev/null 2>&1; then
+        echo podman
+    fi
+}
+RUNTIME="$(rileva_runtime)"
+
 #  Il nome dell'immagine, letto da un lgdock.
 #
 #  Solo la riga dell'ASSEGNAZIONE: appena sopra c'e' un commento che mostra
@@ -172,7 +189,7 @@ disinstalla() {
     echo ""
     echo "Non ho toccato:"
     echo "  - l'immagine Docker. Per togliere anche quella (qualche GB):"
-    echo "        docker rmi $IMMAGINE"
+    echo "        ${RUNTIME:-docker} rmi $IMMAGINE"
     echo "  - i tuoi dati: ~/legocad, ~/sked, ~/defaults e i modelli che"
     echo "    contengono. Sono il tuo lavoro, non li cancella nessuno script."
     echo ""
@@ -258,21 +275,31 @@ echo ""
 # =============================================================================
 echo "--- Verifica prerequisiti ---"
 
-# Controlla Docker
-if ! command -v docker >/dev/null 2>&1; then
-    echo "ERRORE: Docker non trovato!"
+#  Il runtime: docker se c'e' come ESEGUIBILE, altrimenti podman.
+#
+#  Non basta cercare "docker": su alcune installazioni (Arch, tipicamente) e' un
+#  ALIAS di shell a podman, e gli alias NON esistono nelle shell non
+#  interattive. Questo script si lancia con "bash -c \"$(curl ...)\"", quindi
+#  non lo vedrebbe mai: diceva "Docker non trovato" e si fermava, mentre Podman
+#  era installato e funzionante.
+if [ -z "$RUNTIME" ]; then
+    echo "ERRORE: nessun runtime per container trovato (docker o podman)!"
     echo ""
-    echo "Per installare Docker:"
-    echo "  Ubuntu/Debian: sudo apt-get install docker.io"
-    echo "  Fedora/RHEL:   sudo dnf install docker"
-    echo "  Arch:          sudo pacman -S docker"
+    echo "Per installarne uno:"
+    echo "  Ubuntu/Debian: sudo apt-get install docker.io   (oppure podman)"
+    echo "  Fedora/RHEL:   sudo dnf install docker          (oppure podman)"
+    echo "  Arch:          sudo pacman -S docker            (oppure podman)"
     echo ""
-    echo "Dopo l'installazione, aggiungi il tuo utente al gruppo docker:"
+    echo "Con Docker, aggiungi il tuo utente al gruppo docker:"
     echo "  sudo usermod -aG docker \$USER"
     echo "  newgrp docker"
+    echo ""
+    echo "Se 'docker' funziona nel tuo terminale ma non qui, e' un ALIAS: gli"
+    echo "alias non esistono nelle shell non interattive. Installa"
+    echo "podman-docker, oppure usa podman - ora lo trovo da solo."
     exit 1
 fi
-echo "✓ Docker installato"
+echo "✓ Runtime trovato: $RUNTIME"
 
 # Controlla curl
 if ! command -v curl >/dev/null 2>&1; then
@@ -282,15 +309,13 @@ if ! command -v curl >/dev/null 2>&1; then
 fi
 echo "✓ curl installato"
 
-# Verifica che Docker sia accessibile
-if ! docker ps >/dev/null 2>&1; then
-    if [ -w "/var/run/docker.sock" ]; then
-        echo "✓ Docker accessibile"
-    else
-        echo "⚠ Docker richiede sudo (normale, lo script gestirà automaticamente)"
-    fi
+# Verifica che il runtime sia accessibile
+if $RUNTIME ps >/dev/null 2>&1; then
+    echo "✓ $RUNTIME accessibile"
+elif [ -w "/var/run/docker.sock" ]; then
+    echo "✓ $RUNTIME accessibile"
 else
-    echo "✓ Docker accessibile"
+    echo "⚠ $RUNTIME richiede sudo (normale, lo script gestirà automaticamente)"
 fi
 
 echo ""
@@ -445,7 +470,7 @@ if [ "$PULL_IMAGE" = true ]; then
     echo "Immagine: $IMG"
     echo "(qualche GB: puo' volerci parecchio)"
     echo ""
-    if docker pull "$IMG"; then
+    if $RUNTIME pull "$IMG"; then
         echo "✓ Immagine aggiornata"
         IMMAGINE_PRONTA=true
     else
@@ -454,7 +479,7 @@ if [ "$PULL_IMAGE" = true ]; then
         echo ""
         echo "⚠ Non sono riuscito ad aggiornare l'immagine."
         echo "  I comandi sono installati e funzionano con quella che hai."
-        echo "  Puoi riprovare piu' tardi con:  docker pull $IMG"
+        echo "  Puoi riprovare piu' tardi con:  $RUNTIME pull $IMG"
     fi
     echo ""
 fi

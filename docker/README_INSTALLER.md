@@ -11,8 +11,8 @@ make -f Makefile.mk docker-push   # la costruisce e la pubblica
 
 2,27 GB su disco, 447 pacchetti rpm, e un layer da 462 MB per la copia del
 repository. Dentro ci sono `gcc`, `gfortran`, Motif, Tcl/Tk/Tix,
-`ghostscript`, ImageMagick, `evince` e tutti i `-devel`: si compila e si lavora
-come sulla macchina di sviluppo.
+`ghostscript`, ImageMagick, `evince`, `firefox` e tutti i `-devel`: si compila
+e si lavora come sulla macchina di sviluppo.
 
 ### Perché una sola
 
@@ -25,6 +25,49 @@ Fino al **2026-09-27** ce n'erano due, `legopst_multi` (tutti i pacchetti) e
 | `gimp` | 32 pacchetti, **355 MB** (`suitesparse` 140, gimp 105, `openblas-openmp` 39). Sostituito con `mtpaint`: `LG_ICOEDITOR` in `Alg_env.sh` è una catena di ripieghi, serve *un* editor di icone, non quello |
 | dipendenze deboli | circa 120 pacchetti: `systemd-udev`, `NetworkManager-libnm`, `pipewire`, `pulseaudio`, `tracker-miners`, `appstream`, la catena di perl. Un desktop, in un container che fa X11 e Motif |
 | `git` → `git-core` | 70 pacchetti per 73 MB, di cui `git-core-doc` da solo 18 MB. Restano i comandi, si perdono i sottocomandi in perl (`git send-email`, `git svn`) |
+
+### Perché il browser è `firefox` e non uno più leggero
+
+Il menu **?** di `lghmi` e `legopc` apre la documentazione HTML con
+`exec $browser $file &` (`openhelp.tcl`). Senza browser la catena di
+`lg_pick` cade su `xdg-open`, che a sua volta non trova nulla: si vedevano venti
+righe di *command not found* e nessun documento.
+
+Costo misurato dentro l'immagine con `dnf install --assumeno`:
+
+| | | |
+|---|---|---|
+| `lynx` | 2 MiB | solo testo |
+| `links` | 3 MiB | solo testo |
+| `w3m` | 9 MiB | solo testo |
+| `epiphany` | 69 MiB | grafico — **non funziona qui** |
+| **`firefox`** | **98 MiB** | grafico — la scelta |
+| `falkon` | 157 MiB | grafico, porta l'intero stack Qt |
+
+**`epiphany` costerebbe 29 MiB in meno ed è già nella lista dei candidati, ma
+muore**: usa *bubblewrap* per isolare i processi web, e creare namespace
+annidati dentro un container non è permesso — sotto Podman rootless a maggior
+ragione, perché si è già dentro uno user namespace.
+
+```
+bwrap: Creating new namespace failed: Operation not permitted
+Failed to fully launch dbus-proxy
+```
+
+Servirebbe `--privileged` o `SYS_ADMIN`: uno scambio pessimo per un lettore di
+documentazione. `firefox` incontra **la stessa restrizione** —
+`Sandbox: CanCreateUserNamespace() clone() failure: EPERM` — ma la degrada con
+un avviso e prosegue. Verificato rendendo una pagina dentro il container; non
+gli serve nemmeno `dbus`.
+
+I browser testuali costerebbero una manciata di MiB, ma `openhelp.tcl` li lancia
+**staccati e senza terminale**: partirebbero su un terminale che non c'è. Per
+usarli servirebbe avvolgerli in `lgterm` e aggiungerli alle liste di candidati
+in `Alg_env.sh` e `openhelp.tcl`, e resterebbe una resa scadente per
+`DOCUMENTATION_INDEX.html`, che è impaginato con CSS.
+
+`firefox` è già il **primo** della lista dei candidati, quindi non si tocca una
+riga di codice.
 
 Tenerle separate costava due `.dockerignore` da allineare, due bersagli nel
 makefile, un'opzione in tre lanciatori — e una volta si sono disallineate per

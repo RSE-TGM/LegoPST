@@ -131,17 +131,37 @@ show_version() {
 # =============================================================================
 # Controllo Docker
 # =============================================================================
-if ! command -v docker >/dev/null 2>&1; then
+#  Il runtime: docker se c'e' come ESEGUIBILE, altrimenti podman.
+#
+#  Non basta cercare "docker". Ci sono tre situazioni diverse, e solo la prima
+#  e' quella ovvia:
+#    1. Docker vero              -> /usr/bin/docker
+#    2. podman-docker (Fedora,   -> /usr/bin/docker, ma sotto e' Podman
+#       Ubuntu): uno shim
+#    3. alias di shell su Podman -> NIENTE nel PATH
+#  Il terzo caso e' quello che rompeva: un "alias docker=podman" nel .bashrc
+#  non esiste nelle shell NON INTERATTIVE, e questo script ci gira sempre
+#  (l'installer lo lancia con "bash -c"). Si cercava docker, non lo si trovava,
+#  e si diceva all'utente di installare Docker mentre Podman era li'.
+if command -v docker >/dev/null 2>&1; then
+    RUNTIME="docker"
+elif command -v podman >/dev/null 2>&1; then
+    RUNTIME="podman"
+else
     echo "---------------------------------------------------------------------"
-    echo "WARNING: Docker appears to be missing or is not in your PATH."
-    echo "         Please install Docker to create the LegoPST container."
+    echo "WARNING: no container runtime found in your PATH (docker or podman)."
+    echo "         Install one of them to create the LegoPST container."
+    echo ""
+    echo "         If 'docker' works in your terminal but not here, it is an"
+    echo "         ALIAS: aliases do not exist in non-interactive shells."
+    echo "         Install podman-docker, or use podman directly - this script"
+    echo "         now finds it by itself."
     echo "---------------------------------------------------------------------"
     exit 1
 fi
 
 # 2. Determina se è necessario usare 'sudo'
-#    Inizializziamo il comando base come 'docker'.
-DOCKER_CMD="docker"
+DOCKER_CMD="$RUNTIME"
 
 #    Il percorso standard del socket di Docker su Linux.
 DOCKER_SOCKET="/var/run/docker.sock"
@@ -151,7 +171,7 @@ DOCKER_SOCKET="/var/run/docker.sock"
 if [ -S "$DOCKER_SOCKET" ] && ! [ -w "$DOCKER_SOCKET" ]; then
   echo "INFO: L'utente corrente non ha i permessi per accedere al socket di Docker."
   echo "      Verrà usato 'sudo' per eseguire i comandi Docker."
-  DOCKER_CMD="sudo docker"
+  DOCKER_CMD="sudo $RUNTIME"
 
   # Aggiungiamo un piccolo test per vedere se 'sudo' funziona senza password
   # o per forzare l'utente a inserirla subito, prima che lo script faccia altro.
