@@ -61,6 +61,21 @@
 #     firefox e' gia' il PRIMO della lista dei candidati, quindi non si tocca
 #     una riga di codice.
 #
+#  3ter. le utilita' di base che il dimagrimento aveva portato via.
+#     Togliere le dipendenze deboli (punto 1) si e' tirato dietro anche una
+#     manciata di comandi che chiunque da per scontati. Il primo a farsi
+#     sentire e' stato "file": cad_maketask lo invocava sul sorgente prima di
+#     copiarlo - solo per stampare, ma make interrompe la ricetta al primo
+#     comando fallito - e la costruzione di una task moriva con
+#         make: file: No such file or directory ... Error 127
+#     che si legge come se mancasse il SORGENTE, non il comando. Quella riga
+#     e' stata tolta (era l'unica invocazione di "file" nel repository), ma il
+#     comando serve comunque a chi lavora dentro il container.
+#
+#     Costo misurato: file 49 KiB, patch 213, bc 120 (porta anche dc),
+#     unzip 185, zip 450, rsync 453, nano 729, wget 1 MiB.
+#     Tutti insieme: 3 MiB. Non vale la pena sceglierli a uno a uno.
+#
 #  3. evince RESTA, anche se zathura costerebbe 87 MiB di meno.
 #     esporta.tcl apre con LG_PDFVIEWER sia i PDF sia i PNG (_openFile), e
 #     zathura apre solo PDF: l'export PNG di legopc non si aprirebbe piu'.
@@ -121,6 +136,7 @@ RUN dnf update -y && \
         mtpaint \
         evince \
         firefox \
+        file patch nano bc wget rsync unzip zip \
         unix2dos \
         xorg-x11-fonts-misc xorg-x11-fonts-100dpi xorg-x11-fonts-75dpi libXcursor \
         adwaita-cursor-theme \

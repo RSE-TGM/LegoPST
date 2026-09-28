@@ -172,7 +172,15 @@ foraus.for:
 	touch foraus.for
 
 forausbase.f: ../../legocad/libut/forausbase.f
-	file ../../legocad/libut/forausbase.f
+#  La riga "file ../../legocad/libut/forausbase.f" che stava qui era solo
+#  diagnostica - stampava il tipo del sorgente - e nessuno ne leggeva l'uscita:
+#  il lavoro lo fa il cp qui sotto. Ma make interrompe la ricetta al primo
+#  comando fallito, e dove il comando "file" non e' installato (il container
+#  LegoPST, per esempio) la costruzione moriva con
+#      make: file: No such file or directory
+#      make: *** [cad_maketask:175: forausbase.f] Error 127
+#  cioe' "comando non trovato", che pero' si legge come se mancasse il sorgente.
+#  Era l'unica invocazione di "file" in tutto il repository.
 	cp ../../legocad/libut/forausbase.f forausbase.f
 
 proc/first:
