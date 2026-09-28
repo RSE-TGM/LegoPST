@@ -165,6 +165,41 @@ set noregmode [expr {[lsearch -exact $argv "-noreg"] >= 0}]
 set mostra_reg [expr {!$noregmode && ($regmode || $doppia)}]
 set LGTIX    [expr {[info exists env(LG_TIX)] ? $env(LG_TIX) : ""}]
 
+#  Directory del simulatore passata come ARGOMENTO NUDO:
+#
+#      lghmi ~/sked/<simulatore>
+#
+#  Equivale a File -> Open Simulator path, cioe' a lanciare lghmi da li':
+#  cambia la directory di lavoro, e con essa la modalita' (l'S01 si cerca
+#  nella cwd), la lista dei faceplate (dirs_con_r02 guarda [pwd]) e il Set Sim
+#  path.
+#
+#  NON e' la stessa cosa di "-loc DIR", che imposta soltanto LG_SIM_PATH - dove
+#  le HMI leggono i dati vivi - e lascia la cwd dov'era. I due rispondono a
+#  domande diverse e restano separati apposta: c'e' chi lancia lghmi dalla
+#  directory di una regolazione, per avere li' i suoi faceplate, con le HMI
+#  puntate al simulatore che gira altrove.
+#
+#  Il valore di -loc l'helper se lo consuma e non lo inoltra, quindi qui un
+#  token che non comincia per "-" e' inequivocabilmente la directory. Il salto
+#  dopo -loc serve solo a chi lancia lghmi.tcl con wish a mano.
+proc dir_da_argv {} {
+    global argv
+    set n [llength $argv]
+    for {set i 0} {$i < $n} {incr i} {
+        set a [lindex $argv $i]
+        if {$a eq "-loc" || $a eq "--loc"} {
+            set prossimo [lindex $argv [expr {$i + 1}]]
+            if {$prossimo ne "" && [string index $prossimo 0] ne "-"} { incr i }
+            continue
+        }
+        if {[string index $a 0] eq "-"} continue
+        return $a
+    }
+    return ""
+}
+set SIMARG [dir_da_argv]
+
 # --- Modalita' S01: file "S01" nella cwd di lancio ----------------------
 # La cwd e' la dir da cui l'helper ha fatto exec di wish (nessun cd), quindi
 # tipicamente la dir del simulatore in esecuzione.
@@ -3153,4 +3188,19 @@ if {$mostra_reg} {
     wm geometry . 680x[winfo reqheight .]
 }
 
-refresh_list
+#  Con una directory sulla riga di comando si parte da li', esattamente come
+#  se si fosse usato File -> Open Simulator path: imposta_loc fa il cd, ricava
+#  la modalita' dall'S01, aggiorna il Set Sim path e ricarica le liste (e
+#  chiama refresh_list da se', percio' qui non si ripete).
+if {$SIMARG ne ""} {
+    set err [imposta_loc $SIMARG]
+    if {$err ne ""} {
+        refresh_list
+        tk_messageBox -icon error -title "lghmi" -parent . -message $err
+    } else {
+        ricorda_recente $::SIMPATH
+        aggiorna_menu_file
+    }
+} else {
+    refresh_list
+}

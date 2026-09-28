@@ -26,6 +26,7 @@ selettore Tk [`Alg_legopc/src/tix/lghmi.tcl`](src/tix/lghmi.tcl) (deployato in
 ## Uso
 
 ```bash
+lghmi DIR          # apre il selettore SU QUEL SIMULATORE (argomento nudo)
 lghmi              # processo + faceplate affiancati, regolazioni sotto
 lghmi -proc        # solo le pagine di processo (task -> draw2gr)
 lghmi -staz        # solo i faceplate (pagine di r02.dat -> xstaz)
@@ -1028,6 +1029,29 @@ shell che chiama `ksetsim` per conto suo, ed è quella a derivarle.
 Quando il ripiego scatta, la barra di stato lo dice; se non c'è proprio nessun
 simulatore, dice quello e indica dove sceglierne uno. Succede anche dopo
 *File → Work area* verso un'area il cui `sked` non ha simulatori.
+
+> **`DIR` e `-loc DIR` sono due cose diverse**, ed è l'equivoco più facile:
+>
+> | | risponde a | effetto |
+> |---|---|---|
+> | `lghmi DIR` | *quale simulatore mostra `lghmi`* | cambia la **directory di lavoro**: modalità `S01`, elenco delle task, faceplate |
+> | `lghmi -loc DIR` | *dove le HMI leggono i dati vivi* | imposta **`LG_SIM_PATH`**, e basta |
+>
+> Nel flusso normale — `cd` nella directory del simulatore, poi `lghmi` — le due
+> coincidono e non ci si accorge della differenza. `-loc DIR` da solo **non
+> sposta il selettore**: se lo lanci da `$HOME` non trova né l'`S01` né gli
+> `r02.dat`, e l'elenco dei faceplate resta vuoto.
+>
+> Restano separate apposta: si può lanciare `lghmi -staz -loc ~/sked/<sim>`
+> dalla directory di una regolazione, per avere lì i suoi faceplate con `xstaz`
+> e le HMI puntati al simulatore che gira altrove.
+>
+> L'argomento nudo è l'equivalente da riga di comando di *File → Open Simulator
+> path*: chiama la stessa `imposta_loc`, quindi fa il `cd`, rileva l'`S01`,
+> aggiorna il *Set Sim path* e ricarica le liste. Conserva il **nome** con cui
+> hai scritto la directory (`~/sked/…`), non quello risolto dal kernel: quei
+> link esistono apposta perché `lghmi`, `legopc` e le HMI parlino sempre di
+> `~/sked/…` senza sapere su quale area sono appoggiati.
 
 > **`Open Simulator path` non c'entra con il simulatore corrente.** Cambia la
 > directory su cui lavora il selettore — quale elenco di task si vede e quale

@@ -13,7 +13,11 @@
 #     e' lanciata dalla propria dir modello (path relativo risolto sul S01).
 #   - altrimenti (default): sottodir di $LG_TASKROOT ($HOME/legocad) con *.tom.
 #
-# Uso:   lghmi [-proc | -staz] [-loc [DIR] | -noloc] [-insim] [-noedit]
+# Uso:   lghmi [DIR] [-proc | -staz] [-reg | -noreg] [-loc [DIR] | -noloc]
+#              [-insim] [-noedit]
+#
+#        DIR (opzionale) e' la directory del simulatore da aprire:
+#            lghmi ~/sked/<simulatore>
 #   (senza -proc/-staz)
 #                 mostra DUE liste affiancate: a sinistra le pagine di processo
 #                 (task -> HMI draw2gr), a destra i faceplate di comando
@@ -30,6 +34,24 @@
 #                 non ha il dialogo delle stazioni di net_monit. Le pagine
 #                 vengono cercate nella cwd, poi nelle task del file S01
 #                 (regolazione compresa) o nelle sottodir di $LG_TASKROOT.
+# DIR e -loc DIR sono due cose diverse, ed e' facile confonderle:
+#
+#     DIR (argomento nudo)   QUALE SIMULATORE MOSTRA lghmi  -> cambia la dir
+#     -loc DIR               DOVE LE HMI LEGGONO I DATI     -> LG_SIM_PATH
+#
+# Nel flusso normale - cd nella dir del simulatore, poi lghmi - le due
+# coincidono e non te ne accorgi. Servono separate solo quando devono puntare a
+# due directory diverse.
+#
+#   DIR           (argomento nudo, opzionale) apre il selettore SU QUEL
+#                 SIMULATORE, come se lghmi fosse stato lanciato da li': cambia
+#                 la directory di lavoro, e con essa la modalita' (l'S01 si
+#                 cerca li'), la lista dei faceplate e il Set Sim path. E'
+#                 l'equivalente da riga di comando di File -> Open Simulator
+#                 path.
+#                     lghmi ~/sked/<simulatore>
+#                 NON confonderlo con -loc DIR, che imposta soltanto dove le
+#                 HMI leggono i dati vivi e lascia la directory dov'era.
 #   -reg, --reg / -noreg, --noreg
 #                 mostra o nasconde il riquadro delle task di REGOLAZIONE
 #                 (quelle r_*, che si modificano con config invece che con la
@@ -38,14 +60,23 @@
 #                 lo spengono. Le regolazioni non hanno un .tom, quindi non
 #                 comparivano affatto nell'elenco delle task.
 #   -loc, --loc [DIR]
-#                 pre-imposta il "Set Sim path" (menu View) delle HMI lanciate
-#                 (via LG_SIM_PATH). Senza DIR usa la directory CORRENTE da cui
-#                 lanci lghmi; con DIR usa quella directory (come se lanciassi
-#                 lghmi da li'). E' il comportamento di DEFAULT: utile se lanci
-#                 lghmi dalla dir della simulazione in corso, cosi'
-#                 animazione/Plot/Command puntano subito a quella sim senza dover
-#                 fare Set Sim path a mano in ogni HMI. In modalita' S01 la cwd
-#                 e' gia' la dir del simulatore in esecuzione.
+#                 pre-imposta il "Set Sim path" (menu View) delle HMI lanciate,
+#                 via LG_SIM_PATH: e' DOVE LE HMI LEGGONO I DATI VIVI (SHM,
+#                 f22circ.dat, variabili.rtf). Serve perche' una task si apre
+#                 dalla sua dir MODELLO (~/legocad/<task>, dove sta il .tom)
+#                 mentre i dati stanno nella dir del SIMULATORE: senza, la HMI
+#                 caricherebbe lo schema giusto e cercherebbe i valori nel posto
+#                 sbagliato - animazione ferma, Plot e Command a vuoto.
+#                 Senza DIR usa la directory corrente; con DIR usa quella.
+#                 E' il comportamento di DEFAULT.
+#
+#                 NON sposta il selettore: la directory di lavoro resta dov'e',
+#                 quindi l'elenco delle task, i faceplate e la modalita' S01
+#                 continuano a riferirsi a dove hai lanciato lghmi. Per aprire
+#                 un altro simulatore si passa la DIR come argomento nudo (vedi
+#                 sopra). I due sono separati apposta: si puo' lanciare lghmi
+#                 dalla dir di una regolazione, per avere li' i suoi faceplate,
+#                 con le HMI puntate al simulatore che gira altrove.
 #   -noloc, --noloc
 #                 NON pre-imposta alcun Set Sim path (LG_SIM_PATH non definito):
 #                 ogni HMI parte senza sim path, da impostare a mano.
@@ -104,7 +135,23 @@ while [ "$#" -gt 0 ]; do
             fi
             ;;
         -h|--help)  sed -n '3,/^[^#]/p' "$0" | sed -n 's/^# \{0,1\}//p'; exit 0 ;;
-        *)          WISH_ARGS+=("$a") ;;
+        -*)         WISH_ARGS+=("$a") ;;
+        *)
+            # Argomento nudo = directory del simulatore da aprire. Si valida
+            # qui per dare un errore chiaro sulla riga di comando, ma si passa
+            # AL .tcl COM'E' SCRITTA: ~/sked/<sim> e' un link, e il nome con cui
+            # la si chiama va conservato (lo risolve il kernel, non noi).
+            if [ -n "${SIM_DIR:-}" ]; then
+                echo "lghmi: una sola directory per volta ('$SIM_DIR' e '$a')." >&2
+                exit 1
+            fi
+            if [ ! -d "$a" ]; then
+                echo "lghmi: directory non trovata: $a" >&2
+                exit 1
+            fi
+            SIM_DIR="$a"
+            WISH_ARGS+=("$a")
+            ;;
     esac
     shift
 done

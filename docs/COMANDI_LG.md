@@ -145,7 +145,8 @@ Opzioni principali:
 | Opzione | Effetto |
 |---|---|
 | `-staz` | modalità faceplate invece che task (vedi sopra) |
-| `-loc [DIR]` | pre-imposta il *Set Sim path* delle HMI lanciate (via `LG_SIM_PATH`). Senza `DIR` usa la directory corrente. **È il comportamento di default**: animazione, Plot e Command puntano subito alla simulazione giusta senza doverlo fare a mano in ogni HMI |
+| `DIR` (nudo) | **apre il selettore su quel simulatore**: cambia la directory di lavoro, e con essa modalità `S01`, elenco delle task e faceplate. È l'equivalente di *File → Open Simulator path*. Da non confondere con `-loc`, che imposta solo dove le HMI leggono i dati vivi |
+| `-loc [DIR]` | pre-imposta il *Set Sim path* delle HMI lanciate (via `LG_SIM_PATH`), cioè **dove le HMI leggono i dati vivi**: serve perché una task si apre dalla sua directory *modello* mentre SHM e `f22circ.dat` stanno in quella del *simulatore*. Senza `DIR` usa la directory corrente, ed è il **default**. **Non sposta il selettore**: per quello serve l'argomento nudo |
 | `-noloc` | non pre-imposta alcun sim path: ogni HMI parte "nuda" |
 | `-insim` | dichiara che il selettore è lanciato **da dentro** una simulazione in corso. Lo passa il banco (`new_monit`). Disabilita *File → Open Simulator path* e il pulsante *net_startup*, che con `killsim` ammazzerebbe proprio la simulazione che ha aperto il selettore, e *File → Work area*; lancia le HMI senza menu *Edit* |
 | `-noedit` | le HMI `draw2gr` lanciate non hanno il menu *Edit*, che apre il modello della task in `legopc`. Senza, il menu c'è per le task dell'area corrente (mai per quelle dei bundle FMU) |
