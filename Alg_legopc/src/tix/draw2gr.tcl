@@ -1051,7 +1051,8 @@ source $env(LG_TIX)/animate.tcl
 # ── Backg Color con colori recenti (condivisi con legopc.tix via stesso file prefs) ──
 # Popup tasto destro canvas: mostra "Backg Color" solo se il click NON è
 # su un item infoitemname (casella animazione / Show Names).
-# In draw2gr.tcl il menu bgcolor è .menu.vmgr.bgcolor (separato da legopc.tix).
+# In draw2gr.tcl il menu bgcolor è figlio del popup della canvas ($c.pop.bgcolor),
+# separato da quello di legopc.tix: vedi il commento alla sua creazione.
 
 if {![info exists ::recentColors]} { set ::recentColors {} }
 
@@ -1063,23 +1064,47 @@ proc d2g_loadPrefs {} {
     set pf [d2g_prefsFile]
     if {[file exists $pf]} { catch {source $pf} }
 }
+#  Salva le righe che appartengono a draw2gr, lasciando intatte quelle di
+#  legopc.tix (bgColorTopol, bgColorDat, bgColorTask, pref_*): il file e' in
+#  comune, e riscriverlo per intero cancellerebbe le preferenze dell'altro.
+#
+#  bgColorHmi e' la chiave di draw2gr, distinta da quelle di legopc. Prima non
+#  esisteva: si salvavano solo i colori recenti, quindi la lista sopravviveva
+#  ma la scelta no, e a ogni riapertura si tornava al gray90 cablato. Non si
+#  eredita bgColorTopol apposta: quelli sono i colori delle tre viste del CAD, e
+#  prendere proprio quello della topologia sarebbe arbitrario.
 proc d2g_savePrefs {} {
-    # Aggiorna solo la riga recentColors senza toccare le voci di legopc.tix
+    global wsBackg
     set pf [d2g_prefsFile]
     set lines {}
     if {[file exists $pf]} {
-        set fh [open $pf r]
+        if {[catch {set fh [open $pf r]}]} return
         set lines [split [read $fh] \n]
         close $fh
     }
     set out {}
     foreach ln $lines {
-        if {![string match "set ::recentColors*" $ln]} { lappend out $ln }
+        if {[string match "set ::recentColors*" $ln]} continue
+        if {[string match "set ::bgColorHmi*" $ln]}   continue
+        lappend out $ln
+    }
+    #  Via le righe vuote in coda prima di riscrivere: "split" su un file che
+    #  finisce con newline lascia un elemento vuoto finale, e "puts" ne aggiunge
+    #  un altro - cosi' il file guadagnava una riga vuota a ogni salvataggio.
+    #  Prima si notava poco (si salvava solo scegliendo "Custom..."); ora che si
+    #  salva a ogni colore, il file crescerebbe a vista d'occhio.
+    while {[llength $out] > 0 && [string trim [lindex $out end]] eq ""} {
+        set out [lrange $out 0 end-1]
     }
     lappend out "set ::recentColors [list $::recentColors]"
-    set fh [open $pf w]
-    puts $fh [join $out \n]
-    close $fh
+    lappend out "set ::bgColorHmi [list $wsBackg]"
+    #  Se la home non e' scrivibile si perde la memoria del colore, non il
+    #  sinottico: non e' un motivo per fermare la HMI.
+    catch {
+        set fh [open $pf w]
+        puts $fh [join $out \n]
+        close $fh
+    }
 }
 proc d2g_addRecentColor {color} {
     set idx [lsearch -exact $::recentColors $color]
@@ -1090,7 +1115,7 @@ proc d2g_addRecentColor {color} {
     }
 }
 proc d2g_rebuildBgMenu {} {
-    set menu .menu.vmgr.bgcolor
+    set menu $::d2g_bgmenu
     set stop 0
     while {!$stop} {
         if {[catch {set last [$menu index end]}]} {
@@ -1114,6 +1139,7 @@ proc d2g_applyBgColor {color} {
     global wsBackg
     set wsBackg $color
     $::canv1 configure -bg $color
+    d2g_savePrefs
 }
 proc d2g_setBgColor {mode} {
     global wsBackg
@@ -1124,19 +1150,46 @@ proc d2g_setBgColor {mode} {
         if {$color == ""} return
         d2g_addRecentColor $color
         d2g_rebuildBgMenu
-        d2g_savePrefs
+        #  il salvataggio lo fa d2g_applyBgColor, che ha gia' il colore nuovo
+        #  in wsBackg: qui verrebbe scritto quello vecchio
     }
     d2g_applyBgColor $color
 }
 
 d2g_loadPrefs
 
-menu .menu.vmgr.bgcolor -tearoff 0
+#  Il colore dell'ultima volta, se c'e'. Si applica direttamente invece di
+#  passare per d2g_applyBgColor, che riscriverebbe le preferenze appena lette.
+if {[info exists ::bgColorHmi] && $::bgColorHmi ne ""} {
+    set wsBackg $::bgColorHmi
+    catch {$c configure -bg $wsBackg}
+}
+
+#  Il menu dei colori e' figlio del POPUP, non di .menu.vmgr.
+#
+#  Stava in .menu.vmgr.bgcolor, cioe' figlio diretto del menu "View" della
+#  MENUBAR, ed era agganciato come cascade al popup della canvas. Cosi' il
+#  sottomenu si apriva e le voci si vedevano, ma il clic NON faceva partire il
+#  comando: ne' i colori recenti ne' "Custom...". Verificato riproducendo le due
+#  disposizioni - con il sottomenu figlio della menubar il comando non parte,
+#  figlio del popup parte - e riprodotto anche sull'applicazione vera.
+#
+#  E' la regola di Tk: un menu usato come cascade dev'essere FIGLIO del menu che
+#  lo richiama. Quando il padre e' agganciato alla menubar (. configure -menu),
+#  Tk lo clona insieme ai suoi discendenti diretti, e il menu che viene postato
+#  dal popup non e' piu' quello a cui sono attaccati i comandi.
+#
+#  legopc.tix se la cava perche' li' il menu del popup e' un NIPOTE
+#  (.menu.view.bgcolor.topol): .menu.view.bgcolor e' un semplice contenitore,
+#  non una voce cascade di .menu.view, quindi resta fuori dall'albero clonato.
+#  Non e' un motivo per imitarlo: figlio del popup e' la forma corretta.
 set popc $c.pop
 menu $popc -activebackground darkblue -activeforeground white -tearoff 0
-$popc add cascade -label "Backg Color" -menu .menu.vmgr.bgcolor
-.menu.vmgr.bgcolor add command -label "Default"   -command {d2g_setBgColor default}
-.menu.vmgr.bgcolor add command -label "Custom..." -command {d2g_setBgColor custom}
+set ::d2g_bgmenu $popc.bgcolor
+menu $::d2g_bgmenu -tearoff 0
+$popc add cascade -label "Backg Color" -menu $::d2g_bgmenu
+$::d2g_bgmenu add command -label "Default"   -command {d2g_setBgColor default}
+$::d2g_bgmenu add command -label "Custom..." -command {d2g_setBgColor custom}
 d2g_rebuildBgMenu
 
 proc d2g_popup_if_background {pop W X Y x y} {
