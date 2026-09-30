@@ -105,11 +105,31 @@ proc/lg3: $(OGGETTI_LG3)
 lg1:  proc/first proc/f03.dat f14.dat
 #	touch lg1_done.out Commentata l'aggiunta di Guag. Attenzione al funzionamento di LegoPC
 f14.dat: f01.dat
+#  Se un f14.dat c'e' gia', edi14_exe lo FONDE con il proc/f14.dat nuovo, per
+#  non perdere le assegnazioni gia' fatte.
+#
+#  I comandi erano incatenati con ";": il "mv f14.out f14.dat" avveniva anche
+#  quando edi14_exe FALLIVA, e il f14.dat buono veniva sostituito dall'uscita
+#  troncata. E' successo con un modello che superava il limite delle eccezioni:
+#  l'errore era scritto in edi14.lis, che nessuno legge, mentre il file con il
+#  lavoro dell'utente era gia' stato distrutto. Un errore segnalato diventava
+#  una perdita di dati silenziosa.
+#
+#  Ora la catena e' con "&&": se edi14_exe fallisce, o non produce f14.out, il
+#  f14.dat esistente resta INTATTO e make si ferma dicendo dove guardare.
 	 if test -f f14.dat;\
 	 then\
-	    edi14_exe > edi14.lis;\
-	    mv f14.out f14.dat;\
-	    rm -f proc/f14.dat;\
+	    if edi14_exe > edi14.lis && test -s f14.out;\
+	    then\
+	       mv f14.out f14.dat;\
+	       rm -f proc/f14.dat;\
+	    else\
+	       echo "ERRORE: edi14_exe non ha prodotto un f14.out valido.";\
+	       echo "        Il f14.dat esistente NON e' stato toccato.";\
+	       echo "        Il motivo e' in edi14.lis:";\
+	       sed 's/^/          /' edi14.lis;\
+	       exit 1;\
+	    fi;\
 	 else\
 	    mv proc/f14.dat f14.dat;\
 	 fi

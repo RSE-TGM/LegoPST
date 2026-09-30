@@ -375,7 +375,22 @@ C NOTA: La funzione IVERECC ritorna INTEGER ma prende argomenti CHARACTER
 C
       INTEGER FUNCTION IVERECC(IBLDEST,IBLSORG)
 C --- Dichiarazioni Originali e Modificate ---
-      PARAMETER(NSORG=100,NDEST=100)
+C
+C     NSORG e' il numero massimo di righe di edi14_eccezioni.inp, cioe' di
+C     blocchi incollati in una sessione di legopc: aggiungi_eccedi14 (legopc.tix)
+C     ne scrive UNA PER BLOCCO. Era 100, e un copia-incolla di 134 blocchi lo
+C     superava: edi14 si fermava con STOP, ma la regola di cad_maketask faceva
+C     comunque "mv f14.out f14.dat" e il f14.dat buono veniva distrutto.
+C     Portato a 1600. NDEST resta 100: e' il numero di blocchi per RIGA, e
+C     legopc ne scrive sempre uno solo per riga.
+C     Costo: CHARACTER*4 IECC(1600,100) = 640 KB di COMMON statico.
+C
+C     ATTENZIONE: questo PARAMETER compare in QUATTRO punti - due qui e due in
+C     main_edi14c.f - e le dimensioni entrano nel COMMON /EDI14ECC/. Cambiarne
+C     uno solo non da' errore di compilazione, ma lascia il COMMON di
+C     dimensioni diverse fra le routine: comportamento indefinito a runtime.
+C     Vanno cambiati TUTTI E QUATTRO insieme.
+      PARAMETER(NSORG=1600,NDEST=100)
 C
       CHARACTER*4 IBLDEST     ! Modificato da INTEGER implicito (dummy)
       CHARACTER*4 IBLSORG     ! Modificato da INTEGER implicito (dummy)
@@ -434,7 +449,7 @@ C    &        ') NECC(',I,')=',NECC(I),' IBLSORG=',IBLSORG
 
       SUBROUTINE leggi_inp()
 C --- Dichiarazioni Originali e Modificate ---
-      PARAMETER(NSORG=100,NDEST=100)
+      PARAMETER(NSORG=1600,NDEST=100)   ! vedi nota sopra / in main_edi14.f
 C
 C      integer*4 IECC(NSORG,NDEST),NECC(NSORG) <--- Originale in COMMON
       CHARACTER*4 IECC(NSORG,NDEST) ! Modificato da INTEGER (via COMMON)
