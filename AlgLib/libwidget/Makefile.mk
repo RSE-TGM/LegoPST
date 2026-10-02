@@ -22,9 +22,9 @@ SQLITE_LIB=-L$(LEGOROOT_LIB)/sqlite_lib
 #   data 96/03/19
 #   reserved @(#)Makefile	5.1
 #
-SORGENTI = Bottone.c Led.c Selettore.c
+SORGENTI = Bottone.c Led.c Selettore.c Rilievo.c
 
-OGGETTI  = Bottone.o Led.o Selettore.o
+OGGETTI  = Bottone.o Led.o Selettore.o Rilievo.o
 
 CFLAGS = -I $(X_INCLUDE) -I$(LEGORT_INCLUDE) -I$(LEGORT_INCLUDE)/widget \
 	-D$(OS) $(VERSIONE) $(C_FLAGS)

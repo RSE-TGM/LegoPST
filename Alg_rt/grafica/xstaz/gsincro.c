@@ -34,6 +34,8 @@ static char SccsID[] = "@(#)gsincro.c	1.2\t3/23/95";
 #include <Xm/DrawingA.h>
 #include "sim_param.h"
 #include "xstaz.h"
+#include "Rilievo.h"
+void cornice_rilievo();  /* grilievo.c */
 #include "compstaz.h"
 
 #include "sincro.bmp"
@@ -104,6 +106,7 @@ XtSetArg(args[i],XmNmarginWidth,0); i++;
 XtSetArg(args[i],XmNborderWidth,wborder); i++;
 wsincro=(Widget) XmCreateDrawingArea(wbox,"draw_sincro",args,i);
 XtManageChild(wsincro);
+cornice_rilievo(wsincro,RILIEVO_INCAVATO,sfondo_staz.pixel);
 XFreePixmap(display,sfondo);
 
 /*

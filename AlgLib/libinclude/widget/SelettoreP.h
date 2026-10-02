@@ -55,6 +55,7 @@ typedef struct {
 	Pixmap selettore_0;  /* selettore nello stato 0 */
 	Pixmap selettore_1; /* selettore nello stato 1 */
 	int stato_fz;   /* stato a cui forzare il selettore */
+	int disegno;    /* SELE_BITMAP, SELE_LEVA, SELE_IMPUGNATURA */
 
 	/* variabili di stato (privato) */
 	Pixmap pixmap_1;

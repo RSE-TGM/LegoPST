@@ -35,6 +35,17 @@
 #define XtNseleBg "seleBg"
 #define XtCSeleBg "SeleBg"
 
+/*
+ come si disegna il selettore: con le bitmap di pixmap0/pixmap1 (com'era)
+ oppure in rilievo, con la leva dritta (tipo A di xstaz) o a impugnatura
+ (tipo B)
+*/
+#define XtNdisegnoSel "disegnoSel"
+#define XtCDisegnoSel "DisegnoSel"
+#define SELE_BITMAP      0
+#define SELE_LEVA        1
+#define SELE_IMPUGNATURA 2
+
 #define XtNpressSelCallback "pressSelCallback"
 #define XtCPressSelCallback "PressSelCallback"
 #define XtNreleaseSelCallback "releaseSelCallback"

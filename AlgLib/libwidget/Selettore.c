@@ -31,6 +31,7 @@ static char SccsID[] = "@(#)Selettore.c	5.1\t11/7/95";
 #include <stdio.h>
 
 #include "SelettoreP.h"
+#include "Rilievo.h"
 
 #define DEFAULTWIDTH 11
 #define DEFAULTHEIGHT 11
@@ -102,6 +103,15 @@ static XtResource resources[]= {
         XtOffsetOf(SelettoreRec,selettore.selettore_1),
         XtRImmediate,
         (XtPointer) XtUnspecifiedPixmap
+        },
+        {
+        XtNdisegnoSel,
+        XtCDisegnoSel,
+        XmRInt,
+        sizeof(int),
+        XtOffsetOf(SelettoreRec,selettore.disegno),
+        XmRImmediate,
+        (XtPointer)SELE_BITMAP
         },
         };
 
@@ -233,6 +243,91 @@ cw->selettore.pixmap_1=
 }
 
 
+/*
+ Il selettore in rilievo: un quadrante incassato nel pannello con sopra
+ la manopola bombata, e la leva scura in diagonale - verso la tacca in
+ alto a sinistra nello stato 0, verso quella in alto a destra nello
+ stato 1, come nelle bitmap di una volta. La leva ha la sua ombra sulla
+ manopola e una punta chiara dalla parte della tacca che indica; nel
+ tipo a impugnatura la meta' bassa e' piu' larga.
+ Le misure sono quelle delle bitmap 23x23 di xstaz, scalate se il widget
+ e' di un'altra misura.
+*/
+static void DisegnaLeva(cw,pix,stato)
+SelettoreWidget cw;
+Pixmap pix;
+int stato;
+{
+Widget w=(Widget)cw;
+Display *dpy=XtDisplay(w);
+GC gc;
+RilievoRgb sfondo,leva,ombra,luce,punta;
+XPoint tacca[3];
+int lato,d,x0,ytop,xtop,ybot,xbot,larg,s,i;
+
+lato=cw->core.width;
+gc=XCreateGC(dpy,pix,0,NULL);
+RilievoPixelRgb(w,cw->core.background_pixel,&sfondo);
+leva=RilievoScurisci(sfondo,190);
+ombra=RilievoScurisci(sfondo,120);
+luce=RilievoSchiarisci(leva,90);
+punta=RilievoSchiarisci(sfondo,200);
+
+XFillRectangle(dpy,pix,cw->selettore.clear_gc,0,0,lato+2,lato+2);
+
+/* le due tacche delle posizioni, negli angoli alti */
+s=(lato*5)/23;
+XSetForeground(dpy,gc,RilievoRgbPixel(w,&leva));
+for(i=0;i<2;i++)
+	{
+	x0= i ? lato-1 : 0;
+	tacca[0].x=x0;                tacca[0].y=0;
+	tacca[1].x=x0+(i ? -s : s);   tacca[1].y=0;
+	tacca[2].x=x0;                tacca[2].y=s;
+	XFillPolygon(dpy,pix,gc,tacca,3,Convex,CoordModeOrigin);
+	}
+
+/* il quadrante incassato e la manopola */
+x0=(lato*2)/23;
+d=lato-2*x0-1;
+RilievoSfumaCerchio(w,pix,gc,x0,x0,d,RilievoScurisci(sfondo,110),sfondo,
+	RilievoSchiarisci(sfondo,90),RILIEVO_INCAVATO);
+RilievoContornoCerchio(w,pix,gc,x0,x0,d,RilievoScurisci(sfondo,170));
+RilievoSfumaCerchio(w,pix,gc,x0+2,x0+2,d-4,RilievoScurisci(sfondo,70),sfondo,
+	RilievoSchiarisci(sfondo,140),RILIEVO_SPORGE);
+
+/* la leva: estremo alto verso la tacca dello stato */
+ytop=(lato*6)/23;
+ybot=lato-1-ytop;
+xtop= stato ? ybot : ytop;
+xbot= stato ? ytop : ybot;
+larg=(lato*4)/23;
+if(larg<2) larg=2;
+
+/* ombra sulla manopola */
+XSetForeground(dpy,gc,RilievoRgbPixel(w,&ombra));
+XSetLineAttributes(dpy,gc,larg,LineSolid,CapRound,JoinRound);
+XDrawLine(dpy,pix,gc,xtop+1,ytop+1,xbot+1,ybot+1);
+
+/* il corpo */
+XSetForeground(dpy,gc,RilievoRgbPixel(w,&leva));
+XDrawLine(dpy,pix,gc,xtop,ytop,xbot,ybot);
+if(cw->selettore.disegno==SELE_IMPUGNATURA)
+	{
+	XSetLineAttributes(dpy,gc,larg+2,LineSolid,CapRound,JoinRound);
+	XDrawLine(dpy,pix,gc,(xtop+xbot)/2,(ytop+ybot)/2,xbot,ybot);
+	}
+
+/* il filo di luce lungo la leva e la punta chiara verso la tacca */
+XSetLineAttributes(dpy,gc,1,LineSolid,CapRound,JoinRound);
+XSetForeground(dpy,gc,RilievoRgbPixel(w,&luce));
+XDrawLine(dpy,pix,gc,xtop+(stato ? 0 : -1),ytop-1+(stato ? 0 : 1),
+	(xtop+xbot)/2+(stato ? 0 : -1),(ytop+ybot)/2-1+(stato ? 0 : 1));
+XSetForeground(dpy,gc,RilievoRgbPixel(w,&punta));
+XFillArc(dpy,pix,gc,xtop-1,ytop-1,3,3,0,360*64);
+XFreeGC(dpy,gc);
+}
+
 static void DrawIntoPixmap(w)
 Widget w;
 {
@@ -241,6 +336,13 @@ int delta;
 int width,height;
 width=cw->core.width-1;
 height=cw->core.height-1;
+
+if(cw->selettore.disegno!=SELE_BITMAP)
+	{
+	DisegnaLeva(cw,cw->selettore.pixmap_0,0);
+	DisegnaLeva(cw,cw->selettore.pixmap_1,1);
+	return;
+	}
 
 XFillRectangle(XtDisplay(cw),cw->selettore.pixmap_0,
 		cw->selettore.clear_gc,0,0,cw->core.width+2,cw->core.height+2);

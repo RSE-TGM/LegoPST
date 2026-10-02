@@ -53,11 +53,11 @@ OGGETTI1 = am1_r.o am2_r.o am3_r.o amd_r.o id1_r.o tr1_r.o sp1_r.o spd_r.o\
 
 SORGENTI2 = xstaz.c cnewstaz.c gled.c gstringa.c glampada.c gpulsluce.c\
         gpulsante.c gselet.c gdisplay.c gindic.c gluce.c gtasto.c\
-        gsetval.c gdisplayscal.c gsincro.c
+        gsetval.c gdisplayscal.c gsincro.c grilievo.c
 
 OGGETTI2 = xstaz.o cnewstaz.o gled.o gstringa.o glampada.o gpulsluce.o\
         gpulsante.o gselet.o gdisplay.o gindic.o gluce.o gtasto.o\
-        gsetval.o gdisplayscal.o gsincro.o
+        gsetval.o gdisplayscal.o gsincro.o grilievo.o
 
 SORGENTI = $(SORGENTI1) $(SORGENTI2)                                                                     
 all:  libstaz_r.a $(LEGORT_BIN)/xstaz $(LEGORT_BIN)/stazpag

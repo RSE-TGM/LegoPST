@@ -33,6 +33,8 @@ static char SccsID[] = "@(#)gtasto.c	1.4\t3/23/95";
 #include <Xm/PushB.h>
 #include "sim_param.h"
 #include "xstaz.h"
+#include "Rilievo.h"
+void cornice_rilievo();  /* grilievo.c */
 #include "compstaz.h"
 
 
@@ -48,7 +50,7 @@ extern DATI_REFRESH trefr_newstaz[];
 
 
 extern Display *display;
-extern XColor excolor_new[],excolor_blink[];
+extern XColor excolor_new[],excolor_blink[],sfondo_staz;
 extern int font_height;
 extern int font_ascent;
 extern int font_width;
@@ -97,6 +99,7 @@ XtSetArg(args[i],XmNborderWidth,2);i++;
 XtSetArg(args[i],XmNlabelString,XmStringCreateLtoR("",XmSTRING_DEFAULT_CHARSET)); i++;
 wpuls=XmCreatePushButton(wbox,"tasto",args,i);
 XtManageChild(wpuls);
+cornice_rilievo(wpuls,RILIEVO_INCAVATO,sfondo_staz.pixel);
 XtAddCallback(wpuls,XmNactivateCallback,pressato_tasto,p_r02);
 
 }

@@ -34,6 +34,8 @@ static char SccsID[] = "@(#)cnewstaz.c	1.7\t3/23/95";
 #include <Xm/DrawingA.h>
 #include "sim_param.h"
 #include "xstaz.h"
+#include "Rilievo.h"
+void cornice_rilievo();  /* grilievo.c */
 #include "compstaz.h"
 
 
@@ -94,6 +96,7 @@ XtSetArg(args[i],XmNmarginHeight,0);i++;
 XtSetArg(args[i],XmNresizePolicy,XmRESIZE_NONE);i++;
 wbox=XmCreateDrawingArea(pagvis[ip3].w,"box",args,i);
 XtManageChild(wbox);
+cornice_rilievo(wbox,RILIEVO_SPORGE,sfondo_staz.pixel);
 
 
 /***********

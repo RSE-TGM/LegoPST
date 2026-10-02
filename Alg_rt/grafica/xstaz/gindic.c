@@ -34,6 +34,8 @@ static char SccsID[] = "@(#)gindic.c	1.5\t3/23/95";
 #include <Xm/DrawingA.h>
 #include "sim_param.h"
 #include "xstaz.h"
+#include "Rilievo.h"
+void cornice_rilievo();  /* grilievo.c */
 #include "compstaz.h"
 
 #include "barra1.bmp"
@@ -149,6 +151,7 @@ XtSetArg(args[i],XmNmarginWidth,0); i++;
 XtSetArg(args[i],XmNborderWidth,wborder); i++;
 windic=(Widget) XmCreateDrawingArea(wbox,"draw_indic",args,i);
 XtManageChild(windic);
+cornice_rilievo(windic,RILIEVO_INCAVATO,sfondo_staz.pixel);
 XFreePixmap(display,sfondo);
 
 /*

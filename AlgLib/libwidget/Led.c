@@ -31,6 +31,7 @@ static char SccsID[] = "@(#)Led.c	5.1\t11/7/95";
 #include <stdio.h>
 
 #include "LedP.h"
+#include "Rilievo.h"
 
 #define DEFAULTWIDTH 11
 #define DEFAULTHEIGHT 11
@@ -62,6 +63,7 @@ static void blink_proc();
 /* dichiarazione dei metodi (methods) */
 
 static void Initialize();
+static void Redisplay();
 static void Destroy();
 static Boolean SetValues();
 
@@ -88,7 +90,7 @@ LedClassRec ledClassRec = {
     /* visible_interest         */      FALSE,
     /* destroy                  */      Destroy,
     /* resize                   */      XtInheritResize,
-    /* expose                   */      XtInheritExpose,
+    /* expose                   */      Redisplay,
     /* set_values               */      SetValues,
     /* set_values_hook          */      NULL,
     /* set_values_almost        */      XtInheritSetValuesAlmost,
@@ -116,6 +118,17 @@ Cardinal *num_args;
 {
 LedWidget new = (LedWidget)tnew;
 new->led.color_norm=new->core.background_pixel;
+/*
+ Il bordo nero di X diventa una cornice incassata disegnata dentro la
+ finestra: la finestra cresce di quanto era il bordo, cosi' l'ingombro
+ (e la posizione, che in X e' quella dell'angolo esterno del bordo)
+ resta identico.
+*/
+new->led.bordo=new->core.border_width;
+new->core.width+=2*new->core.border_width;
+new->core.height+=2*new->core.border_width;
+new->core.border_width=0;
+new->led.gc=XCreateGC(XtDisplay(tnew),RootWindowOfScreen(XtScreen(tnew)),0,NULL);
 new->led.alterna=0;
 if(new->led.blink_on)
 	new->led.time_id=XtAddTimeOut(400,blink_proc,new);
@@ -154,6 +167,35 @@ else /* ridisegna il led in stato normale e non ricarica il
 
 
 
+/*
+ Il led come una lente colorata incassata nel pannello: cornice incavata
+ (luce e ombra ricavate dal colore del pannello, cioe' del padre) e il
+ colore del led sfumato dall'alto, piu' chiaro, al basso, piu' scuro.
+ Il colore e' il background del widget, che il lampeggio e gled/gluce
+ cambiano con XtSetValues: Xt ripulisce la finestra e ridisegna da qui.
+*/
+static void Redisplay(w, event, region)
+Widget w;
+XEvent *event;
+Region region;
+{
+LedWidget cw= (LedWidget)w;
+RilievoRgb base;
+int b,larg,alt;
+if(!XtIsRealized(w)) return;
+larg=cw->core.width;
+alt=cw->core.height;
+b=cw->led.bordo;
+/* le luci grandi reggono il contorno scuro in piu' */
+if(b>0 && alt>=20) b=2;
+RilievoPixelRgb(w,cw->core.background_pixel,&base);
+RilievoSfumaRett(w,XtWindow(w),cw->led.gc,b,b,larg-2*b,alt-2*b,
+	RilievoSchiarisci(base,120),base,RilievoScurisci(base,70));
+if(b>0)
+	RilievoCornice(w,XtWindow(w),cw->led.gc,0,0,larg,alt,b,
+		XtParent(w)->core.background_pixel,RILIEVO_INCAVATO);
+}
+
 static Boolean SetValues(current,request,new,args,num_args)
 Widget current,request,new;
 ArgList args;
@@ -183,5 +225,7 @@ Widget w;
 LedWidget cw= (LedWidget) w;
 if (cw->led.blink_on==1 && cw->led.time_id)
 	XtRemoveTimeOut(cw->led.time_id);
+if (cw->led.gc)
+	XFreeGC(XtDisplay(w),cw->led.gc);
 }
 

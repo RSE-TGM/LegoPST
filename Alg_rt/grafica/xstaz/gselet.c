@@ -104,6 +104,8 @@ XtSetArg(args[i],XtNpixmap0,pixmap_0); i++;
 XtSetArg(args[i],XtNpixmap1,pixmap_1); i++;
 XtSetArg(args[i],XtNstatoSel,vstato); i++;
 XtSetArg(args[i],XtNseleBg,sfondo_staz.pixel ); i++;
+XtSetArg(args[i],XtNdisegnoSel,
+	p_ogg->sottotipo==SELET_TIPO_A ? SELE_LEVA : SELE_IMPUGNATURA); i++;
 wselet=XtCreateManagedWidget("sele",selettoreWidgetClass,wbox,args,i);
 /*
 	aggiunge le callbacks di presa e rilascio del selettore

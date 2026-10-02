@@ -54,6 +54,8 @@ typedef struct {
 	int alterna;
 	Pixel color_norm;
 	XtIntervalId time_id; 
+	int bordo;	/* spessore del bordo X richiesto, ridisegnato in rilievo */
+	GC gc;		/* GC per il disegno del rilievo */
 	} LedPart;
 /*
  Dichiarazione completa del record per instanziazione

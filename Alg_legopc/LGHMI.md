@@ -27,12 +27,13 @@ selettore Tk [`Alg_legopc/src/tix/lghmi.tcl`](src/tix/lghmi.tcl) (deployato in
 
 ```bash
 lghmi DIR          # apre il selettore SU QUEL SIMULATORE (argomento nudo)
-lghmi              # processo + faceplate affiancati, regolazioni sotto
+lghmi              # riparte dall'ultimo Simulator path usato (vedi sotto)
+                   # processo + faceplate affiancati, regolazioni sotto
 lghmi -proc        # solo le pagine di processo (task -> draw2gr)
 lghmi -staz        # solo i faceplate (pagine di r02.dat -> xstaz)
 lghmi -reg         # riaccende le regolazioni insieme a -proc/-staz
 lghmi -noreg       # nasconde il riquadro delle task di regolazione
-lghmi -loc         # esplicito, identico al default
+lghmi -loc         # Sim path = directory di lancio (senza riprendere l'ultimo)
 lghmi -loc DIR     # usa DIR come dir della simulazione
 lghmi -noloc       # NON pre-imposta alcun sim path
 lghmi -insim       # lanciato da dentro una simulazione (lo passa il banco)
@@ -221,9 +222,36 @@ lghmi                                # scegli la task: la HMI punta gia' a quest
 Così animazione/Plot/Command funzionano subito, senza *Set Sim path* manuale.
 Il selettore mostra in alto (in blu) il path pre-impostato.
 
+### All'avvio riparte dall'ultimo Simulator path
+
+Lanciato **senza dire dove lavorare** — niente `DIR`, `-loc`, `-noloc` o
+`-insim` — `lghmi` riparte dall'**ultimo Simulator path usato nell'area di
+lavoro corrente**: il primo dei [path recenti](#i-path-recenti) visibili, come se
+lo si riaprisse da *File → Open Simulator path*. La riga di stato comincia con
+`Last Simulator path: ...`.
+
+Si resta invece sulla directory di lancio, come prima, quando:
+
+- la directory di lancio **è già una simulazione** (c'è un `S01` o
+  `variabili.rtf`): chi fa `cd` nel simulatore e lancia `lghmi` vuole quello.
+  Lo stesso vale per `lg_cosim`, che apre il selettore dalla directory dell'`S01`
+  della co-simulazione;
+- non c'è un path recente dell'area corrente: primo avvio, oppure i path
+  ricordati **non esistono più** o stanno in un'altra area;
+- si passa `-loc`, che chiede esplicitamente la directory di lancio.
+
+Alla ripresa il simulatore corrente si allinea **solo in memoria**, come per la
+directory di lancio: l'avvio non è una scelta, e `~/.legosim` non si tocca. Non
+si toccano nemmeno i recenti, dove quel path è già il primo.
+
+Il meccanismo: l'helper `lghmi` aggiunge `-ultimo` agli argomenti di
+`lghmi.tcl` quando la riga di comando non dice dove lavorare, e
+`ultimo_sim_path` decide se e dove ripartire.
+
 | Opzione | Effetto |
 |---|---|
-| *(nessuna)* / `-loc` | `LG_SIM_PATH=$PWD` — la dir di lancio |
+| *(nessuna)* | l'ultimo Simulator path dell'area (vedi sopra), altrimenti `LG_SIM_PATH=$PWD` |
+| `-loc` | `LG_SIM_PATH=$PWD` — la dir di lancio, senza riprendere l'ultimo |
 | `-loc DIR` | usa `DIR` (relativo → normalizzato ad assoluto; se non esiste: errore ed exit) |
 | `-noloc` | non pre-imposta nulla: ogni HMI parte senza sim path, da impostare a mano |
 

@@ -327,6 +327,37 @@ Il `NOME` di una pagina piu' lungo di 8 caratteri sforava nel campo descrizione
 che segue nella struttura; da settembre 2026 `compstaz` e `convstaz` lo rifiutano
 con un messaggio.
 
+## L'aspetto in rilievo
+
+Da ottobre 2026 le stazioni non sono piu' disegnate piatte: luce in alto a
+sinistra, pulsanti bombati, finestre degli strumenti incassate. Tutto Xlib,
+nessuna dipendenza nuova.
+
+- **Le primitive** (sfumature radiali e verticali, cornici, colori di luce e
+  ombra ricavati dal colore base) stanno in
+  [`AlgLib/libwidget/Rilievo.c`](../../../AlgLib/libwidget/Rilievo.c). Con
+  visual TrueColor i colori si calcolano in locale, senza round trip al server.
+- **I widget** disegnano se stessi: `Bottone` (pulsanti, pulsanti luminosi,
+  lampade: sede incassata, tasto bombato, incavato mentre e' premuto), `Led`
+  (anche le `LUCE`: lente sfumata in una cornice incassata), `Selettore`
+  (quadrante, manopola e leva disegnati invece delle bitmap; `gselet.c` sceglie
+  la leva dritta per il tipo A e quella a impugnatura per il tipo B con la
+  risorsa `XtNdisegnoSel`; `SELE_BITMAP` torna al disegno vecchio).
+  Pulsanti e selettori disegnano tutto nelle loro pixmap, una volta: lampeggio
+  e refresh costano come prima.
+- **Le cornici** di stazione, display, strumenti, sincronoscopio, tasti e
+  casella di `gsetval` le fa [`grilievo.c`](grilievo.c): `cornice_rilievo()`
+  toglie il bordo nero di X (`XmNborderWidth`), sposta il widget in dentro di
+  quanto era spesso e fa disegnare al **padre**, nella expose, una cornice dello
+  stesso spessore, sporgente per la stazione e incassata per il resto.
+  L'ingombro resta identico al pixel, e conta per gli sprite di `lgmkstaz`, che
+  si ritagliano per geometria.
+
+Un limite: una cornice di 1 pixel disegnata dal padre sta *sotto* i fratelli,
+quindi dove un'etichetta si sovrappone al bordo (il lato alto di qualche
+indicatore, sotto la fascia del titolo) quel lato non si vede. Il bordo X, che
+sta sopra, lo copriva.
+
 ## Se modifichi il codice delle stazioni
 
 Il disegno delle stazioni non finisce in `xstaz`: le **immagini** che
@@ -384,10 +415,12 @@ cominciassero a 0: **contano solo le posizioni relative** fra le stazioni, non
 quelle assolute.
 
 **Le catture non sono riproducibili al bit** se cambia lo stato della memoria
-condivisa: display e indicatori mostrano il valore che leggono. Con una chiave
-isolata e nessuna simulazione attaccata un `DISPLAY` scrive `----` e un
-indicatore non ha indice; con dei valori a disposizione scrive `0.00` e
-disegna l'indice a fondo scala. E' una differenza di contenuto, non di
+condivisa: display e indicatori mostrano il valore che leggono. Appena aperta
+la pagina un `DISPLAY` scrive `----` e un indicatore non ha indice; dopo il
+primo refresh (`staz_proc`, ogni secondo) scrive `0.00` e disegna l'indice.
+Per questo `cattura_pagine.tcl` aspetta 2,5 s dopo `stazpag` prima di
+fotografare: prima scattava appena la finestra c'era, e il risultato dipendeva
+da quanto ci metteva xstaz a disegnare. E' una differenza di contenuto, non di
 inquadratura: le altre pagine tornano identiche al pixel.
 
 ## Trappole

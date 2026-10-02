@@ -36,6 +36,8 @@ static char SccsID[] = "@(#)gsetval.c	1.5\t3/23/95";
 #include <Xm/DrawingA.h>
 #include "sim_param.h"
 #include "xstaz.h"
+#include "Rilievo.h"
+void cornice_rilievo();  /* grilievo.c */
 #include "compstaz.h"
 
 /*
@@ -141,6 +143,7 @@ XtSetArg(args[i],XmNbackground,sfondo_staz.pixel);i++;
 wtext= XmCreateText(wsetval,"text",args,i);
 XmTextSetEditable(wtext,False);
 XtManageChild(wtext);
+cornice_rilievo(wtext,RILIEVO_INCAVATO,sfondo_staz.pixel);
 
 i=0;
 XtSetArg(args[i],XmNx,75); i++;

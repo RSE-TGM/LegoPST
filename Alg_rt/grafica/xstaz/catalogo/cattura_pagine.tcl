@@ -282,6 +282,12 @@ proc cattura_pagina {modello numero nome descrizione} {
     cd $vecchia
     if {!$aperto} { return [list "" "stazpag non ha aperto '$nome': $out"] }
 
+    #  I valori (display "0.00", lancette degli strumenti) li scrive il refresh,
+    #  che xstaz fa ogni secondo (staz_proc, xstaz.c): appena aperta la pagina
+    #  mostra ancora "----" e gli strumenti senza lancetta. Si aspetta piu' di un
+    #  giro, altrimenti la cattura dipende da quanto ci mette xstaz a disegnare.
+    after 2500
+
     #  Si fotografa la root e si ritaglia (0,0)-(fin_w,fin_h): la finestra e'
     #  li' perche' xstaz e' appena partito. Si riprova finche' il contenuto non
     #  ha la dimensione attesa - e' anche il modo di sapere che e' disegnata.

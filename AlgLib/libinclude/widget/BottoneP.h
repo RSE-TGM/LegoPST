@@ -69,6 +69,7 @@ typedef struct {
 	GC blink_gc;          /* GC lampada in stato di blinking */
 	XtIntervalId time_id; /* id per timeout blinking */
 	int alterna; /* per realizzazione blinking */
+	int premuto; /* 1 tra Btn1Down e Btn1Up: tasto disegnato incavato */
 	} BottonePart;
 /*
  Dichiarazione completa del record per instanziazione

@@ -34,6 +34,8 @@ static char SccsID[] = "@(#)gdisplayscal.c	1.5\t3/23/95";
 
 #include "sim_param.h"
 #include "xstaz.h"
+#include "Rilievo.h"
+void cornice_rilievo();  /* grilievo.c */
 #include "compstaz.h"
 #include "LedP.h"
 #include "Led.h"
@@ -116,6 +118,7 @@ XtSetArg(args[i],XmNalignment,XmALIGNMENT_END); i++;
 XtSetArg(args[i],XmNlabelString,XmStringCreateLtoR("----",XmSTRING_DEFAULT_CHARSET)); i++;
 wdisplay=XmCreateLabel(wbox,"lab",args,i);
 XtManageChild(wdisplay);
+cornice_rilievo(wdisplay,RILIEVO_INCAVATO,sfondo_staz.pixel);
 
 /*
         inserisce il riferimento per l'oggetto nella tabella

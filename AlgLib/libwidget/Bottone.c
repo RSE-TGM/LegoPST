@@ -32,6 +32,7 @@ static char SccsID[] = "@(#)Bottone.c	5.1\t11/7/95";
 #include <stdio.h>
 
 #include "BottoneP.h"
+#include "Rilievo.h"
 
 #define DEFAULTWIDTH 11
 #define DEFAULTHEIGHT 11
@@ -316,123 +317,102 @@ cw->bottone.bottone_blink=
 }
 
 
+/*
+ Disegno in rilievo.
+ Ogni elemento e' un cerchio riempito con una sfumatura radiale finta:
+ cerchi concentrici sempre piu' piccoli e chiari, con il centro che si
+ sposta verso la luce (in alto a sinistra). Cosi' il tasto sembra
+ bombato; con la luce dalla parte opposta sembra incavato.
+ I colori di luce e ombra si ricavano dal colore base mescolandolo con
+ bianco o nero (Rilievo.c). Tutto finisce nelle due pixmap di sempre
+ (normale e blink): a runtime il costo e' lo stesso di prima.
+
+ Disegna il bottone nella pixmap: col_tasto e' il colore del tasto (o
+ della lampada, per BOTTONE_LUCE), col_luce quello della luce interna di
+ BOTTONE_CON_LUCE.
+*/
+static void DisegnaBottone(w,pix,col_tasto,col_luce)
+Widget w;
+Pixmap pix;
+Pixel col_tasto,col_luce;
+{
+BottoneWidget cw= (BottoneWidget)w;
+Display *dpy=XtDisplay(w);
+GC gc;
+RilievoRgb sfondo,tasto,luce;
+int d,k,dc,sp,dl,kl;
+
+d=cw->core.width-1;
+gc=XCreateGC(dpy,pix,0,NULL);
+XFillRectangle(dpy,pix,cw->bottone.clear_gc,0,0,
+		cw->core.width+2,cw->core.height+2);
+RilievoPixelRgb(w,cw->core.background_pixel,&sfondo);
+RilievoPixelRgb(w,col_tasto,&tasto);
+RilievoPixelRgb(w,col_luce,&luce);
+
+/* la sede nel pannello: incavata, ombra in alto a sinistra */
+RilievoSfumaCerchio(w,pix,gc,0,0,d,RilievoScurisci(sfondo,90),sfondo,RilievoSchiarisci(sfondo,80),RILIEVO_INCAVATO);
+RilievoContornoCerchio(w,pix,gc,0,0,d,RilievoScurisci(sfondo,110));
+
+if(cw->bottone.tipo_bt==BOTTONE_LUCE)
+	{
+/* lampada: una cupola di vetro colorato con il suo riflesso */
+	k=1;
+	dc=d-2*k;
+	RilievoSfumaCerchio(w,pix,gc,k,k,dc,RilievoScurisci(tasto,70),tasto,RilievoSchiarisci(tasto,110),RILIEVO_SPORGE);
+	RilievoRiflesso(w,pix,gc,k,k,dc,tasto,200);
+	XFreeGC(dpy,gc);
+	return;
+	}
+
+/* il tasto: bombato, o incavato quando premuto (con la luce interna
+   spostata di un pixel, che a 15 pixel e' il movimento che si vede) */
+k=d/14;
+if(k<1) k=1;
+dc=d-2*k;
+sp=cw->bottone.premuto ? 1 : 0;
+if(cw->bottone.premuto)
+	RilievoSfumaCerchio(w,pix,gc,k,k,dc,RilievoScurisci(tasto,90),RilievoScurisci(tasto,30),tasto,RILIEVO_INCAVATO);
+else
+	RilievoSfumaCerchio(w,pix,gc,k,k,dc,RilievoScurisci(tasto,60),tasto,RilievoSchiarisci(tasto,90),RILIEVO_SPORGE);
+RilievoContornoCerchio(w,pix,gc,k,k,dc,RilievoScurisci(tasto,120));
+
+if(cw->bottone.tipo_bt==BOTTONE_CON_LUCE)
+	{
+/* la luce interna, una cupola piu' piccola dentro il tasto */
+	kl=d/8;
+	if(kl<3) kl=3;
+	dl=d-2*kl;
+	RilievoSfumaCerchio(w,pix,gc,kl+sp,kl+sp,dl,RilievoScurisci(luce,50),luce,RilievoSchiarisci(luce,120),RILIEVO_SPORGE);
+	RilievoRiflesso(w,pix,gc,kl+sp,kl+sp,dl,luce,210);
+	}
+else if(!cw->bottone.premuto)
+	RilievoRiflesso(w,pix,gc,k,k,dc,tasto,150);
+XFreeGC(dpy,gc);
+}
+
 static void DrawIntoPixmap(w)
 Widget w;
 {
 BottoneWidget cw= (BottoneWidget)w;
-int delta;
-int width,height;
-width=cw->core.width-1;
-height=cw->core.height-1;
-XFillRectangle(XtDisplay(cw),cw->bottone.bottone_norm,
-                cw->bottone.clear_gc,0,0,cw->core.width+2,cw->core.height+2);
-XFillArc(XtDisplay(w),cw->bottone.bottone_norm,cw->bottone.norm_bg_gc
-                                   ,0,0,
-                                    width,height,
-                                     0,360*64);
-XDrawArc(XtDisplay(w),cw->bottone.bottone_norm,cw->bottone.norm_gc
-                                   ,0,0,
-                                    width,height,
-                                     0,360*64);
-if(cw->bottone.tipo_bt==BOTTONE_CON_LUCE)
-        {
-/*
- Disegna la luce interna
-*/
-	delta=width/8;
-	if(delta<3) delta=3;
-	XFillArc(XtDisplay(w),cw->bottone.bottone_norm,cw->bottone.lamp_gc
-                                   ,delta,delta,
-				    width-delta*2,
-			            height-delta*2,
-				    0,360*64);
-	}
-if(cw->bottone.tipo_bt==BOTTONE_CON_LUCE || cw->bottone.tipo_bt==BOTTONE)
-	{
-/*
- Disegna una circonferenza per dare l'idea di bottone schiacciabile
- */
-	width-=4;
-	height-=4;
-	XDrawArc(XtDisplay(w),cw->bottone.bottone_norm,cw->bottone.norm_gc
-                                   ,2,2,
-                                    width,height,
-                                     0,360*64);
-        }
+DisegnaBottone(w,cw->bottone.bottone_norm,
+		cw->bottone.norm_bg,cw->bottone.color_lamp);
 }
-
-/*
- Disegna il bottone premuto 
-*/
-
-static void DrawIntoPixmapPush(w)
-Widget w;
-{
-BottoneWidget cw= (BottoneWidget)w;
-XDrawArc(XtDisplay(cw),cw->bottone.bottone_norm,cw->bottone.act_gc
-                                   ,1,1,
-                                    (cw->core.width-1)-2,
-                                    (cw->core.height-1)-2,0,360*64);
-}
-
-/*
- Disegna il bottone premuto per blink.
-*/
-static void DrawIntoPixmapBlinkPush(w)
-Widget w;
-{
-BottoneWidget cw= (BottoneWidget)w;
-XDrawArc(XtDisplay(cw),cw->bottone.bottone_blink,cw->bottone.act_gc
-                                   ,1,1,
-                                    (cw->core.width-1)-2,
-                                    (cw->core.height-1)-2,0,360*64);
-}
-
 
 /* 
- Disegna il Pixmap per blink
+ Disegna il Pixmap per blink: lampeggia la luce interna se c'e',
+ altrimenti tutto il tasto (o la lampada)
 */
 static void DrawIntoPixmapBlink(w)
 Widget w;
 {
 BottoneWidget cw= (BottoneWidget)w;
-int delta;
-int width,height;
-/*
- Prepara il Pixmap per il blink
-*/
-	width=cw->core.width;
-	height=cw->core.height;
-	XCopyArea(XtDisplay(cw),cw->bottone.bottone_norm,
-          cw->bottone.bottone_blink,cw->bottone.norm_gc,0,0,width,height,0,0);
-	width--;
-	height--;
-	if(cw->bottone.tipo_bt==BOTTONE_CON_LUCE)
-		{
-/*
- Disegna la luce interna
-*/
-		delta=width/8;
-		if(delta<3) delta=3;
-		XFillArc(XtDisplay(w),cw->bottone.bottone_blink,
-				cw->bottone.blink_gc,delta,delta,
-				    width-delta*2,
-			            height-delta*2,
-				    0,360*64);
-		}
-	else
-		{
-		XFillArc(XtDisplay(w),cw->bottone.bottone_blink,
-                          	    cw->bottone.blink_gc
-                                   ,0,0,
-                                    width,height,
-                                     0,360*64);
-		XDrawArc(XtDisplay(w),cw->bottone.bottone_blink
-                                    ,cw->bottone.norm_gc
-                                    ,0,0,
-                                    width,height,
-                                     0,360*64);
-		}
+if(cw->bottone.tipo_bt==BOTTONE_CON_LUCE)
+	DisegnaBottone(w,cw->bottone.bottone_blink,
+		cw->bottone.norm_bg,cw->bottone.color_blink);
+else
+	DisegnaBottone(w,cw->bottone.bottone_blink,
+		cw->bottone.color_blink,cw->bottone.color_lamp);
 }
   
 static void DrawBottAct(w,event,params,num_params)
@@ -444,8 +424,9 @@ Cardinal *num_params;
 BottoneWidget cw= (BottoneWidget)w;
 if(cw->bottone.tipo_bt!= BOTTONE_LUCE)
 	{
-	DrawIntoPixmapPush(cw);
-	DrawIntoPixmapBlinkPush(cw);
+	cw->bottone.premuto=1;
+	DrawIntoPixmap(cw);
+	DrawIntoPixmapBlink(cw);
 	Redisplay(cw,NULL);
 	XtCallCallbacks(w,XtNpressBtCallback,NULL);
 	}
@@ -459,6 +440,7 @@ String *params;
 Cardinal *num_params;
 {
 BottoneWidget cw= (BottoneWidget)w;
+cw->bottone.premuto=0;
 DrawIntoPixmap(cw);
 DrawIntoPixmapBlink(cw);
 Redisplay(w,NULL);
@@ -481,6 +463,7 @@ if(new->core.width!=new->core.height)
 	}
 new->core.border_width=0;
 new->bottone.alterna=0;
+new->bottone.premuto=0;
 GetAllGCs(new);
 CreatePixmap(new);
 DrawIntoPixmap(new);

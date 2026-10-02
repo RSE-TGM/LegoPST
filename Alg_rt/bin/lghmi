@@ -80,6 +80,14 @@
 #   -noloc, --noloc
 #                 NON pre-imposta alcun Set Sim path (LG_SIM_PATH non definito):
 #                 ogni HMI parte senza sim path, da impostare a mano.
+#
+#   Senza DIR, -loc, -noloc e -insim lghmi riparte dall'ULTIMO Simulator
+#   path usato nell'area di lavoro corrente (il primo di ~/.lghmi_recent),
+#   come se lo si riaprisse da File -> Open Simulator path. Non lo fa se la
+#   directory di lancio e' gia' una simulazione (c'e' un S01 o variabili.rtf:
+#   cd nel simulatore e lghmi, oppure lg_cosim), ne' se quel path non esiste
+#   piu': allora vale la directory di lancio, come sempre. -loc senza DIR
+#   torna esplicitamente alla directory di lancio.
 #   -insim, --insim
 #                 il selettore e' lanciato DA DENTRO una simulazione in corso.
 #                 Lo passa il banco (new_monit), che apre lghmi dal suo menu e
@@ -117,18 +125,22 @@ LOC_DIR="$PWD"
 # lancio; -noloc disabilita del tutto la pre-impostazione del sim path.
 LOC=1
 WISH_ARGS=()
+# Diventa 1 se la riga di comando dice gia' dove lavorare (DIR, -loc, -noloc,
+# -insim): allora NON si riprende l'ultimo Simulator path.
+ESPLICITO=0
 while [ "$#" -gt 0 ]; do
     a="$1"
     case "$a" in
         -staz|--staz)   WISH_ARGS+=("-staz") ;;
         -proc|--proc)   WISH_ARGS+=("-proc") ;;
-        -noloc|--noloc) LOC=0 ;;
-        -insim|--insim) WISH_ARGS+=("-insim") ;;
+        -noloc|--noloc) LOC=0; ESPLICITO=1 ;;
+        -insim|--insim) WISH_ARGS+=("-insim"); ESPLICITO=1 ;;
         -noedit|--noedit) WISH_ARGS+=("-noedit") ;;
         -reg|--reg)     WISH_ARGS+=("-reg") ;;
         -noreg|--noreg) WISH_ARGS+=("-noreg") ;;
         -loc|--loc)
             LOC=1
+            ESPLICITO=1
             # Se il prossimo argomento non e' un'opzione, e' la dir di lancio.
             if [ "$#" -ge 2 ] && [ "${2#-}" = "$2" ]; then
                 LOC_DIR="$2"; shift
@@ -150,6 +162,7 @@ while [ "$#" -gt 0 ]; do
                 exit 1
             fi
             SIM_DIR="$a"
+            ESPLICITO=1
             WISH_ARGS+=("$a")
             ;;
     esac
@@ -194,6 +207,13 @@ if [ "$LOC" -eq 1 ]; then
     # Normalizza a path assoluto (LOC_DIR puo' essere relativo se dato con -loc DIR).
     LG_SIM_PATH="$(cd "$LOC_DIR" && pwd)"
     export LG_SIM_PATH
+fi
+
+# Lancio di default: il .tcl riprende l'ultimo Simulator path, se c'e' e se la
+# directory di lancio non e' gia' una simulazione (lo decide lui, che ha i
+# recenti e l'area corrente).
+if [ "$ESPLICITO" -eq 0 ]; then
+    WISH_ARGS+=("-ultimo")
 fi
 
 exec wish "$LG_TIX/lghmi.tcl" ${WISH_ARGS[@]+"${WISH_ARGS[@]}"}

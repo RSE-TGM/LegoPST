@@ -133,6 +133,11 @@ set insim [expr {[lsearch -exact $argv "-insim"] >= 0}]
 # nessuna task. Senza, il menu c'e' dove ha senso: vedi hmi_con_edit.
 set noeditmode [expr {[lsearch -exact $argv "-noedit"] >= 0}]
 
+# -ultimo: lo aggiunge l'helper quando la riga di comando non dice dove
+# lavorare (niente DIR, -loc, -noloc, -insim). Allora si riparte dall'ultimo
+# Simulator path usato nell'area corrente: vedi ultimo_sim_path.
+set ultimomode [expr {[lsearch -exact $argv "-ultimo"] >= 0}]
+
 # Directory usate di recente, per riaprirle dal menu File senza passare dal
 # dialogo di selezione. Stanno in un file nella home e non in
 # $LG_ENTRY/legopc_prefs.tcl perche' la lista attraversa le installazioni: la
@@ -806,6 +811,28 @@ proc salva_recenti {} {
         foreach d $RECENTI { puts $fd $d }
         close $fd
     }
+}
+
+#  La directory da cui ripartire all'avvio, o "" per restare dove si e'.
+#
+#  E' l'ultimo Simulator path usato nell'area di lavoro corrente: il primo dei
+#  recenti visibili, che carica_recenti ha gia' ripulito da quelli che non
+#  esistono piu'. Si riprende solo con -ultimo (lancio senza DIR, -loc,
+#  -noloc, -insim), e solo se la directory di lancio non e' gia' una
+#  simulazione: chi fa cd nel simulatore e lancia lghmi - o lg_cosim, che lo
+#  lancia dalla directory dell'S01 della co-simulazione - vuole quella, non
+#  l'ultima.
+proc ultimo_sim_path {} {
+    global ultimomode insim RECENTI
+    if {!$ultimomode || $insim} { return "" }
+    if {[file exists [file join [pwd] S01]] || \
+        [file exists [file join [pwd] variabili.rtf]]} { return "" }
+    foreach d $RECENTI {
+        if {![recente_visibile $d]} continue
+        if {[stessa_directory $d [pwd]]} { return "" }
+        return $d
+    }
+    return ""
 }
 
 #  Mette <dir> in testa ai recenti (senza doppioni), tronca e salva.
@@ -3202,5 +3229,19 @@ if {$SIMARG ne ""} {
         aggiorna_menu_file
     }
 } else {
-    refresh_list
+    #  Lancio di default: si riparte dall'ultimo Simulator path, se c'e'.
+    #  Come una voce dei recenti, ma senza le scritture di vai_a_loc: l'avvio
+    #  non e' una scelta, quindi ~/.legosim non si tocca (il simulatore
+    #  corrente si allinea solo in memoria, come per la directory di lancio) e
+    #  i recenti restano come sono - questo path e' gia' il primo.
+    set ultimo [ultimo_sim_path]
+    if {$ultimo ne "" && [imposta_loc $ultimo] eq ""} {
+        if {[allinea_simulatore 0] ne ""} { set ::RIPIEGO "" }
+        set ::KSIMSCELTO [simulatore_corrente]
+        refresh_list
+        .status configure -text \
+            "Last Simulator path: $::SIMPATH   |   [.status cget -text]"
+    } else {
+        refresh_list
+    }
 }
