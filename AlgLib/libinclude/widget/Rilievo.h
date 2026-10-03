@@ -38,9 +38,9 @@ void RilievoSfumaRett(Widget w, Drawable dr, GC gc, int x, int y,
 
 /*
  Cornice di "spessore" pixel attorno al rettangolo (x,y,larg,alt), dentro
- il rettangolo stesso. Il pixel piu' esterno e' un contorno scuro che
- stacca l'oggetto da quello che ha attorno; gli altri sono luce e ombra.
- "sfondo" e' il colore da cui si ricavano luce e ombra.
+ il rettangolo stesso: un anello di luce e ombra con un pixel, due anelli
+ (esterno e interno) da due in su. "sfondo" e' il colore da cui si
+ ricavano luce e ombra.
 */
 void RilievoCornice(Widget w, Drawable dr, GC gc, int x, int y,
 		int larg, int alt, int spessore, Pixel sfondo, int verso);

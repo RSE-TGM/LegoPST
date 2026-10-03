@@ -185,33 +185,52 @@ XFillRectangle(dpy,dr,gc,x,y,larg-1,1);
 XFillRectangle(dpy,dr,gc,x,y,1,alt-1);
 }
 
+/*
+ Con un pixel solo luce e ombra fanno anche da contorno. Da due pixel in su
+ si usano due anelli.
+ Incassata (display, strumenti): esterno grigio in alto a sinistra e bianco
+ in basso a destra, interno quasi nero e chiaro, come i campi Motif.
+ Sporgente (le stazioni): esterno scuro su TUTTI i lati, interno bianco in
+ alto a sinistra e grigio in basso a destra. L'esterno uniforme non e' un
+ vezzo: le stazioni di xstaz sono larghe ltot-2 piu' 2 px di bordo per lato,
+ quindi il bordo destro (e basso) di una coincide pixel per pixel con il
+ sinistro (e alto) della vicina, che lo copre. Con l'anello esterno scuro il
+ giunto resta una linea di separazione, seguita dalla luce della stazione
+ vicina; con un esterno chiaro in alto a sinistra la vicina sembrava
+ traboccare sopra la precedente, che perdeva la sua ombra.
+*/
 void RilievoCornice(Widget w, Drawable dr, GC gc, int x, int y,
 		int larg, int alt, int spessore, Pixel sfondo, int verso)
 {
-RilievoRgb base,luce,ombra,scuro;
-int i,primo;
+RilievoRgb base,est_as,est_bd,int_as,int_bd;
+int i;
 RilievoPixelRgb(w,sfondo,&base);
-luce=RilievoSchiarisci(base,150);
-ombra=RilievoScurisci(base,110);
-scuro=RilievoScurisci(base,180);
-primo=0;
-if(spessore>=2)
+if(spessore<=1)
 	{
-/* il contorno scuro, che stacca l'oggetto da quello che ha attorno */
-	Anello(w,dr,gc,x,y,larg,alt,scuro,scuro);
-	primo=1;
+	if(verso==RILIEVO_SPORGE)
+		Anello(w,dr,gc,x,y,larg,alt,RilievoSchiarisci(base,150),
+			RilievoScurisci(base,180));
+	else
+		Anello(w,dr,gc,x,y,larg,alt,RilievoScurisci(base,180),
+			RilievoSchiarisci(base,150));
+	return;
+	}
+if(verso==RILIEVO_SPORGE)
+	{
+	est_as=RilievoScurisci(base,190);
+	est_bd=est_as;
+	int_as=RilievoSchiarisci(base,220);
+	int_bd=RilievoScurisci(base,110);
 	}
 else
 	{
-/* con un pixel solo luce e ombra devono bastare anche da contorno */
-	luce=RilievoSchiarisci(base,150);
-	ombra=RilievoScurisci(base,180);
+	est_as=RilievoScurisci(base,100);
+	est_bd=RilievoSchiarisci(base,220);
+	int_as=RilievoScurisci(base,200);
+	int_bd=RilievoSchiarisci(base,90);
 	}
-for(i=primo;i<spessore;i++)
-	{
-	if(verso==RILIEVO_SPORGE)
-		Anello(w,dr,gc,x+i,y+i,larg-2*i,alt-2*i,luce,ombra);
-	else
-		Anello(w,dr,gc,x+i,y+i,larg-2*i,alt-2*i,ombra,luce);
-	}
+Anello(w,dr,gc,x,y,larg,alt,est_as,est_bd);
+/* oltre i due pixel l'anello interno si ripete */
+for(i=1;i<spessore;i++)
+	Anello(w,dr,gc,x+i,y+i,larg-2*i,alt-2*i,int_as,int_bd);
 }

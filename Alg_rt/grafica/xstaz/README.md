@@ -347,16 +347,24 @@ nessuna dipendenza nuova.
   e refresh costano come prima.
 - **Le cornici** di stazione, display, strumenti, sincronoscopio, tasti e
   casella di `gsetval` le fa [`grilievo.c`](grilievo.c): `cornice_rilievo()`
-  toglie il bordo nero di X (`XmNborderWidth`), sposta il widget in dentro di
-  quanto era spesso e fa disegnare al **padre**, nella expose, una cornice dello
-  stesso spessore, sporgente per la stazione e incassata per il resto.
-  L'ingombro resta identico al pixel, e conta per gli sprite di `lgmkstaz`, che
-  si ritagliano per geometria.
+  lascia il bordo X (`XmNborderWidth`) dov'e' e invece del nero gli da' una
+  pixmap (`XtNborderPixmap`) con la cornice disegnata, sporgente per la
+  stazione e incassata per il resto. Da 2 px in su sono due anelli. Per la
+  stazione l'esterno e' scuro su tutti i lati e il rilievo lo fa l'interno
+  (bianco in alto a sinistra, grigio in basso a destra): le stazioni sono
+  larghe `ltot-2` piu' 2 px di bordo per lato, quindi il bordo destro e basso
+  di una coincide con il sinistro e alto della vicina, che lo copre. Con
+  l'esterno scuro il giunto resta una linea di separazione; con un esterno
+  chiaro la vicina sembrava traboccare sulla precedente. La griglia
+  (`DIM_UNITSTAZ`, 62 px) e lo spessore del bordo sono quelli di sempre.
+  Il bordo lo disegna il server, sta sopra i fratelli e la geometria non
+  cambia di un pixel. Se il widget cambia misura la pixmap si rifa'
+  (`StructureNotify`), perche' si ripete come una piastrella con l'origine
+  nell'angolo interno della finestra.
 
-Un limite: una cornice di 1 pixel disegnata dal padre sta *sotto* i fratelli,
-quindi dove un'etichetta si sovrappone al bordo (il lato alto di qualche
-indicatore, sotto la fascia del titolo) quel lato non si vede. Il bordo X, che
-sta sopra, lo copriva.
+  Una prima versione toglieva il bordo e faceva disegnare la cornice al
+  padre: il BulletinBoard della pagina, che si dimensiona sui figli, si
+  restringeva di 2 px e le stazioni sul perimetro perdevano i lati esterni.
 
 ## Se modifichi il codice delle stazioni
 
