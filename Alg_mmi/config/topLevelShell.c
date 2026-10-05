@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <Xm/Xm.h>
 #include <Xm/MwmUtil.h>
+#include <Xm/Protocols.h>
 #include <Xm/MenuShell.h>
 #include "UxXt.h"
 
@@ -1490,6 +1491,22 @@ static	void	activateCB_menu1Exit1( UxWidget, UxClientData, UxCallbackArg )
 	
 	}
 	UxTopLevelShellContext = UxSaveCtx;
+}
+
+/*
+ Chiusura dalla X del window manager. Senza, valeva il default Motif
+ (XmNdeleteResponse = XmDESTROY): la finestra spariva ma il processo no,
+ perche' topLevelShell e' figlia di un'applicationShell mai mostrata
+ (configMom) e XtAppMainLoop continuava a girare su quella. Restava un
+ config vivo e senza finestre (stato Ss in ps), uno per ogni chiusura.
+ Ora la X fa quello che fa File -> Exit, conferma compresa: client_data e'
+ il pulsante Exit, da cui la callback ricava il suo contesto.
+*/
+static	void	chiusura_wm( UxWidget, UxClientData, UxCallbackArg )
+	Widget		UxWidget;
+	XtPointer	UxClientData, UxCallbackArg;
+{
+	activateCB_menu1Exit1( (Widget) UxClientData, NULL, NULL );
 }
 
 static	void	activateCB_Page( UxWidget, UxClientData, UxCallbackArg )
@@ -3529,6 +3546,12 @@ Widget	create_topLevelShell()
 		npagopen = 0;
 		fpLogMsg = fopen("config.log","w");
 		rtrn = _Uxbuild_topLevelShell();
+
+		/* la X del window manager come File -> Exit (vedi chiusura_wm) */
+		XtVaSetValues(topLevelShell, XmNdeleteResponse, XmDO_NOTHING, NULL);
+		XmAddWMProtocolCallback(topLevelShell,
+			XmInternAtom(XtDisplay(topLevelShell),"WM_DELETE_WINDOW",False),
+			(XtCallbackProc) chiusura_wm, (XtPointer) menu1Exit1);
 
 
 		/* creo il find_kit */
