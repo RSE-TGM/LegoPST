@@ -19,12 +19,12 @@
 # scelta con xstaz. Serve a chi gestisce la simulazione con net_startup, che
 # monta il banco (new_monit) e non ha il dialogo delle stazioni di net_monit.
 #
-# La barra in basso ha anche un pulsante "mmi" che lancia l'applicazione MMI
+# In alto a sinistra c'e' il pulsante "mmi", che lancia l'applicazione MMI
 # (Alg_mmi): non dipende dalle liste, sceglie la directory di lavoro fra $KPAGES,
 # $LG_SIM_PATH/globpages, $KPAGES, ./globpages e la cwd, perche' mmi legge il
 # Context.ctx della dir da cui parte.
 #
-# Accanto c'e' il pulsante "net_startup", che lancia la simulazione della
+# Sopra c'e' il pulsante "start sim" (net_startup), che lancia la simulazione della
 # directory corrente. E' abilitato solo dove esiste variabili.rtf, il file che
 # net_startup controlla per primo, e chiede sempre conferma perche' comincia con
 # killsim (che cancella tutte le SHM dell'utente). La simulazione parte in una
@@ -35,7 +35,8 @@
 #
 # File -> Work area cambia l'area di lavoro (i link ~/legocad e ~/sked) con
 # lgswitch, dopo aver controllato che niente lavori ancora sull'area corrente;
-# l'area corrente sta nel titolo e nella prima riga dell'intestazione.
+# l'area corrente sta nel titolo e nella prima riga dell'intestazione (in alto
+# a destra).
 #
 # Tools -> Edit model apre la task selezionata in legopc. I controlli e il
 # lancio stanno in lgedit.tcl, condivisi con il menu Edit di draw2gr: le HMI
@@ -323,7 +324,7 @@ proc riempi_proc {} {
             $LB_PROC insert end $label
             lappend ITEMS_PROC [list $label $dir $name]
         }
-        catch {.hdr.s01 configure -text "Simulator: $::s01_name  $::s01_desc"}
+        catch {.hdr.s01 configure -text [string trim "$::s01_name  $::s01_desc"]}
         if {[llength $ITEMS_PROC] == 0} {
             return "No process task (P) in the S01 file"
         }
@@ -616,10 +617,10 @@ proc aggiorna_stato_mmi {} {
     set d [expr {$dir eq "" ? [pwd] : $dir}]
     set n [pagine_mmi $d]
     if {$n > 0} {
-        .btn.mmi configure -state normal -background "#50a050"
+        .cima.az.mmi configure -state normal -background "#50a050"
         return ""
     }
-    .btn.mmi configure -state disabled -background "#9ab89a"
+    .cima.az.mmi configure -state disabled -background "#9ab89a"
     if {$n < 0} { return "mmi: no Context.ctx in $d" }
     return "mmi: no compiled page (.rtf) in $d"
 }
@@ -742,13 +743,13 @@ proc popup_open_page {lb azione y X Y {etichetta "Open page"}} {
 proc aggiorna_etichette_loc {} {
     global SIMPATH
     if {[.hdr.s01 cget -text] ne ""} {
-        pack .hdr.s01 -side top -fill x
+        pack .hdr.s01 -side top -anchor e
     } else {
         pack forget .hdr.s01
     }
     if {$SIMPATH ne ""} {
-        .hdr.loc configure -text "Set Sim path: $SIMPATH"
-        pack .hdr.loc -side top -fill x
+        .hdr.loc configure -text "Sim path: $SIMPATH"
+        pack .hdr.loc -side top -anchor e
     } else {
         .hdr.loc configure -text ""
         pack forget .hdr.loc
@@ -1591,14 +1592,14 @@ proc aggiorna_stato_startup {} {
     if {$insim} {
         # lanciato dal banco: la simulazione gira gia', e net_startup la
         # fermerebbe con killsim
-        .btn.start configure -state disabled
+        .cima.az.start configure -state disabled
         return "started from the desk: fixed directory, simulation already running"
     }
     if {[file exists [file join [pwd] variabili.rtf]]} {
-        .btn.start configure -state normal
+        .cima.az.start configure -state normal
         return "simulation can be started from here"
     }
-    .btn.start configure -state disabled
+    .cima.az.start configure -state disabled
     return ""
 }
 
@@ -2055,6 +2056,7 @@ proc etichetta_log {file} {
         xstaz       { return "xstaz (faceplates)" }
         legopc      { return "legopc (CAD)" }
         lgswitch    { return "lgswitch (work area)" }
+        killsim     { return "killsim (clean up)" }
     }
     #  I log che portano il nome di cio' su cui hanno lavorato. Senza questi
     #  finirebbero tutti nel ramo "HMI:", che per una compilazione e' falso.
@@ -2488,7 +2490,7 @@ proc aggiorna_menu_tools {} {
     set stato [expr {$nome ne "" ? "normal" : "disabled"}]
     set quale [expr {$nome ne "" ? $nome : "no simulator"}]
 
-    #  Ordine: Edit model, lgmkstaz, kUpSim, kCompile, Terminal. I due editor
+    #  Ordine: Edit model, lgmkstaz, kUpSim, kCompile, killsim, Terminal. I due editor
     #  stanno in cima e accanto. Le varianti di
     #  kUpSim e di kCompile stanno in un sottomenu ciascuno: il menu resta
     #  corto e le varianti restano vicine. Il simulatore corrente si sceglie
@@ -2540,9 +2542,88 @@ proc aggiorna_menu_tools {} {
     .mb.tools add cascade -label "kCompile" -menu .mb.tools.kcompile -state $sreg
     .mb.tools add separator
 
+    #  killsim: ripulisce i residui di una simulazione andata male. Prima di
+    #  Terminal, dopo le compilazioni: e' un'operazione sull'ambiente, non sul
+    #  simulatore corrente, e quindi non dipende da lui. Spenta con -insim: il
+    #  selettore l'ha aperto il banco di una simulazione viva, e killsim
+    #  ammazzerebbe proprio quella.
+    .mb.tools add command -command pulisci_ambiente \
+        -state [expr {$::insim ? "disabled" : "normal"}] \
+        -label "killsim - clean up leftovers of a previous simulation"
+
     #  Sempre attiva: un terminale serve anche senza simulatore corrente.
     .mb.tools add command -command apri_terminale \
         -label "Terminal - shell in the current directory"
+}
+
+#  Tools -> killsim: ripulisce l'ambiente dai residui di una simulazione
+#  precedente - processi rimasti appesi, segmenti di memoria condivisa, code
+#  di messaggi e semafori - lasciati da un crash, da una finestra chiusa male,
+#  da un net_startup interrotto. Sono i residui per cui una simulazione nuova
+#  non parte, o parte e legge dati vecchi.
+#
+#  E' killsim, il modo previsto di ripulire (non pkill/ipcrm a mano), lo stesso
+#  comando con cui net_startup comincia e con cui "Kill simulation" ferma una
+#  simulazione viva. Brutale per definizione: su Linux killsim non filtra per
+#  chiave e cancella TUTTE le SHM, le code e i semafori dell'utente, e ammazza i
+#  processi di simulazione. Da qui la conferma, che dice anche se in questo
+#  momento una simulazione sta girando.
+#
+#  L'output di killsim (lungo, con righe di DEBUG) va in un log che si rilegge
+#  da File -> Logs; la riga di stato dice solo l'esito.
+proc pulisci_ambiente {} {
+    global insim
+    if {$insim} {
+        .status configure -text \
+            "killsim not available: this launcher was started from the desk of the running simulation."
+        return
+    }
+    if {[auto_execok killsim] eq ""} {
+        tk_messageBox -icon error -title "killsim" -parent . -message \
+            "Executable 'killsim' not found in PATH.\nStart lghmi from a LegoPST environment (profile sourced)."
+        return
+    }
+    set vivi [sim_attiva]
+    #  Niente a capo dentro i paragrafi: il dialogo va a capo da se', e quelli
+    #  a mano spezzavano le righe a meta'.
+    set msg "Clean up the environment with killsim?\n\n"
+    append msg "killsim removes the leftovers of a previous simulation (after a crash "
+    append msg "or a window closed the wrong way): simulation processes still hanging, "
+    append msg "shared memory segments, message queues and semaphores.\n\n"
+    append msg "On Linux it deletes EVERY SHM segment, queue and semaphore of this user, "
+    append msg "without filtering by key: the open HMIs, faceplates and mmi lose their "
+    append msg "data, and any other LegoPST session of yours (another simulator, an FMU "
+    append msg "co-simulation) is wiped as well."
+    if {[llength $vivi] > 0} {
+        append msg "\n\nWARNING: a simulation is running now ([join $vivi ", "]): "
+        append msg "it will be killed. The orderly way to stop it is \"Simulator "
+        append msg "Shutdown ...\" in the Master Menu of the desk."
+    }
+    append msg "\n\nProceed?"
+    if {[tk_messageBox -icon warning -type yesno -default no -parent . \
+             -title "killsim" -message $msg] ne "yes"} {
+        .status configure -text "killsim cancelled."
+        return
+    }
+
+    #  Il nome segue lghmi_*.log, cosi' compare in File -> Logs.
+    set log [file join /tmp lghmi_killsim.log]
+    . configure -cursor watch
+    update idletasks
+    set fallito [catch {exec killsim >$log 2>@1}]
+    . configure -cursor ""
+
+    set ancora [sim_attiva]
+    if {[llength $ancora] > 0} {
+        set esito "killsim done, but still running: [join $ancora ", "]"
+    } elseif {$fallito} {
+        set esito "killsim ended with an error"
+    } else {
+        set esito "Environment cleaned up with killsim"
+    }
+    catch {aggiorna_stato_sim}
+    catch {aggiorna_voci_log}
+    .status configure -text "$esito   |   output: $log (File -> Logs)"
 }
 
 #  Tools -> lgmkstaz: builder grafico delle pagine di faceplate xstaz
@@ -2885,19 +2966,15 @@ proc about_legopst {} {
 # --- Interfaccia ---------------------------------------------------------
 if {$doppia} {
     wm title . "LegoPST - HMI and faceplates"
-    # Stessa larghezza del banco (new_monit, 680 px): le due finestre si usano
-    # insieme, una sopra l'altra, e allineate stanno meglio. L'altezza e' quella
-    # che serve a 12 righe di lista.
-    #  Con le regolazioni l'altezza si calcola DOPO aver costruito i riquadri
-    #  (vedi in fondo): cablarla qui darebbe alle tre liste altezze diverse.
-    wm geometry . 680x328
-    wm minsize . 560 [expr {$mostra_reg ? 380 : 300}]
+    # La misura di partenza (680x680) si imposta in fondo, dopo aver costruito
+    # i riquadri.
+    wm minsize . 440 [expr {$mostra_reg ? 340 : 260}]
 } elseif {$stazmode} {
     wm title . "LegoPST - Faceplate launcher (xstaz)"
-    wm minsize . 520 280
+    wm minsize . 400 240
 } else {
     wm title . "LegoPST - HMI launcher"
-    wm minsize . 340 280
+    wm minsize . 300 240
 }
 
 # Barra dei menu. Finora non c'era: nasce per "Open Simulator path", che cambia
@@ -3040,39 +3117,81 @@ if {[file exists [file join [pwd] S01]] || \
 # partita in dir-scan non ci sarebbe nessun widget da riempire. Stanno in un
 # frame perche' l'ordine fra le due resti stabile quando si mostrano e si
 # nascondono (pack/pack forget dentro il frame, non sulla toplevel).
+#  La fascia in alto: a sinistra i due lanci (simulazione e MMI), uno sopra
+#  l'altro; a destra, allineate a destra, area di lavoro, simulatore e Sim
+#  path. Sono le due cose che si guardano per prime - cosa si puo' avviare e
+#  su cosa si sta lavorando - e prima stavano una nella barra in basso e
+#  l'altra in tre righe a sinistra sopra le liste.
+frame .cima
+pack  .cima -side top -fill x
+frame .cima.az
+pack  .cima.az -side left -anchor nw -padx 4 -pady 4
+frame .cima.dx
+pack  .cima.dx -side right -anchor ne -padx 4 -pady 4
+
 frame .hdr
-pack  .hdr -side top -fill x
 # L'area di lavoro (File -> Work area) sta sopra le altre due intestazioni ed
 # e' sempre visibile: e' il contesto di tutto il resto. In rosso quando i link
 # non indicano un'area sola.
-label .area -text "" -anchor w -padx 6
-pack  .area -side top -fill x -before .hdr
-label .hdr.s01 -text "" -anchor w -padx 6 -foreground "#006400"
-label .hdr.loc -text "" -anchor w -padx 6 -foreground blue
+label .area -text "" -anchor e -justify right -padx 6
+label .hdr.s01 -text "" -anchor e -justify right -padx 6 -foreground "#8b0000"
+label .hdr.loc -text "" -anchor e -justify right -padx 6 -foreground black
+#  .area e .hdr sono figli della toplevel (il resto del file li chiama cosi')
+#  ma stanno nella colonna di destra: pack -in. Creati prima di .cima, nel
+#  suo ordine di sovrapposizione starebbero SOTTO e .cima li coprirebbe: raise.
+pack  .area -in .cima.dx -side top -anchor e
+pack  .hdr  -in .cima.dx -side top -anchor e -fill x
+raise .area
+raise .hdr
 
-# Barra in basso: Refresh, mmi e Quit. Le pagine si aprono dalla lista (doppio
+#  Le icone dei due lanci: bitmap XBM, che Tk disegna da se' senza file
+#  esterni e nel colore del testo. Un triangolo pieno, il "play", per la
+#  simulazione; un monitor con la tastiera per l'interfaccia uomo-macchina.
+image create bitmap ::icona_start -data {
+#define start_width 18
+#define start_height 20
+static unsigned char start_bits[] = {
+   0x01, 0x00, 0x00, 0x07, 0x00, 0x00, 0x1f, 0x00, 0x00, 0x3f, 0x00, 0x00,
+   0xff, 0x00, 0x00, 0xff, 0x03, 0x00, 0xff, 0x0f, 0x00, 0xff, 0x3f, 0x00,
+   0xff, 0x7f, 0x00, 0xff, 0xff, 0x01, 0xff, 0xff, 0x01, 0xff, 0x7f, 0x00,
+   0xff, 0x3f, 0x00, 0xff, 0x0f, 0x00, 0xff, 0x03, 0x00, 0xff, 0x00, 0x00,
+   0x3f, 0x00, 0x00, 0x1f, 0x00, 0x00, 0x07, 0x00, 0x00, 0x01, 0x00, 0x00};
+}
+image create bitmap ::icona_mmi -data {
+#define mmi_width 16
+#define mmi_height 16
+static unsigned char mmi_bits[] = {
+   0x00, 0x00, 0xfe, 0x7f, 0x02, 0x40, 0xda, 0x5c, 0x02, 0x40, 0xfa, 0x4c,
+   0x02, 0x40, 0x3a, 0x4f, 0x02, 0x40, 0xfe, 0x7f, 0xc0, 0x03, 0xf0, 0x0f,
+   0xfc, 0x3f, 0x54, 0x55, 0xfc, 0x3f, 0x00, 0x00};
+}
+
+#  Lancia la simulazione nella directory corrente (net_startup). Parte
+#  disabilitato ed e' aggiorna_stato_startup a deciderne lo stato, in base alla
+#  presenza di variabili.rtf nella dir corrente. Con un'immagine -width e' in
+#  pixel: la stessa per i due pulsanti, cosi' sono allineati.
+set LARGHEZZA_LANCI 120
+#  Scritta in rosso scuro, come il nome del simulatore che avvia; il triangolo
+#  resta nero (un'immagine bitmap ha il suo colore, non quello del pulsante).
+button .cima.az.start -text " start sim" -image ::icona_start -compound left \
+                  -width $LARGHEZZA_LANCI -anchor w -padx 6 -state disabled \
+                  -foreground "#8b0000" -activeforeground "#8b0000" \
+                  -command lancia_net_startup
+#  Lancio di un'altra applicazione: con il verde della finestra dell'MMI, cosi'
+#  si riconosce a colpo d'occhio.
+button .cima.az.mmi -text " mmi" -image ::icona_mmi -compound left \
+                -width $LARGHEZZA_LANCI -anchor w -padx 6 -command launch_mmi \
+                -background "#50a050" -activebackground "#60c060" \
+                -foreground black -activeforeground black
+pack .cima.az.start .cima.az.mmi -side top -anchor w -pady 2
+
+# Barra in basso: Refresh e Quit. Le pagine si aprono dalla lista (doppio
 # click o tasto destro), non da un pulsante.
 frame .btn
 button .btn.refresh -text "Refresh" -command refresh_list
 button .btn.quit    -text "Quit"    -command exit
-# Lancia la simulazione nella directory corrente. Nome del comando come
-# etichetta, come per il pulsante "mmi": si riconosce cosa fa. Parte disabilitato
-# ed e' aggiorna_stato_startup a deciderne lo stato, in base alla presenza di
-# variabili.rtf nella dir corrente.
-button .btn.start -text "net_startup" -width 11 -state disabled \
-                  -command lancia_net_startup
-# Lancio di un'altra applicazione, non un'azione sulla lista: sta al centro
-# della barra, largo il doppio e con il verde della finestra dell'MMI, cosi' si
-# riconosce a colpo d'occhio. Centratura con `place` (non pack -expand): il
-# centro e' quello della finestra, non della porzione lasciata libera da
-# Refresh e Quit, che hanno larghezze diverse.
-button .btn.mmi -text "mmi" -width 11 -command launch_mmi \
-                -background "#50a050" -activebackground "#60c060" \
-                -foreground black -activeforeground black
 pack  .btn.refresh -side left  -padx 4 -pady 6
-pack  .btn.start   -side left  -padx 4 -pady 6
 pack  .btn.quit    -side right -padx 4 -pady 6
-place .btn.mmi -relx 0.5 -rely 0.5 -anchor center
 pack .btn -side bottom -fill x
 
 label .status -text "" -anchor w -relief sunken -bd 1 -padx 4
@@ -3122,12 +3241,19 @@ proc crea_riquadro {parent titolo larghezza {balloon ""}} {
 #  Tre liste affiancate avrebbero sfondato la larghezza o ridotto ogni colonna a
 #  una ventina di caratteri.
 #
+#  La finestra parte a 680 px ma si ridimensiona in tutte e due le direzioni,
+#  e lo spazio in piu' (o in meno) si divide fra TUTTI i pannelli
+#  (-stretch always): con il default di panedwindow se lo prendeva solo
+#  l'ultimo - le regolazioni in larghezza, i faceplate in altezza - e le
+#  altre liste restavano ferme. I minimi dei pannelli sono quelli che lasciano
+#  leggere il titolo e qualche riga, cosi' la finestra si puo' anche stringere.
+#
 #  $sopra e' un FRATELLO di .pv, non un suo figlio: Tk lo accetta come pannello,
 #  ma .pv - creata dopo - gli finirebbe DAVANTI nell'ordine di sovrapposizione,
 #  lasciando un rettangolo grigio al posto delle liste. Da qui la raise.
 proc impila_sotto {sopra sotto} {
-    .pv add $sopra -minsize 150
-    .pv add $sotto -minsize 150
+    .pv add $sopra -minsize 90 -stretch always
+    .pv add $sotto -minsize 90 -stretch always
     raise $sopra .pv
 }
 
@@ -3149,13 +3275,13 @@ if {$doppia} {
     if {$mostra_reg} {
         set LB_REG  [crea_riquadro .pw.reg  "Regulation tasks (r_*)" 39 $BALLOON_REG]
         set LB_STAZ [crea_riquadro .pv.staz "xstaz faceplates" 39]
-        .pw add .pw.proc -minsize 180
-        .pw add .pw.reg  -minsize 180
+        .pw add .pw.proc -minsize 140 -stretch always
+        .pw add .pw.reg  -minsize 140 -stretch always
         impila_sotto .pw .pv.staz
     } else {
         set LB_STAZ [crea_riquadro .pw.staz "xstaz faceplates" 39]
-        .pw add .pw.proc -minsize 180
-        .pw add .pw.staz -minsize 180
+        .pw add .pw.proc -minsize 140 -stretch always
+        .pw add .pw.staz -minsize 140 -stretch always
     }
     bind $LB_PROC <Double-1> { launch_hmi }
     bind $LB_PROC <Return>   { launch_hmi }
@@ -3203,17 +3329,25 @@ if {$mostra_reg} {
 
 bind . <Escape> { exit }
 
-#  Altezza della finestra: quella RICHIESTA dal contenuto, non un numero
-#  cablato. Le tre liste chiedono tutte 12 righe (crea_riquadro), e una
-#  panedwindow alla prima apertura da' a ogni pannello la sua dimensione
-#  naturale: chiedendo alla finestra esattamente quel che le serve, le tre liste
-#  partono alla STESSA altezza. Con un'altezza fissa il pannello di sotto si
-#  prendeva quel che avanzava, e si apriva schiacciato.
-#  La larghezza resta 680, che non dipende dal contenuto.
-if {$mostra_reg} {
-    update idletasks
-    wm geometry . 680x[winfo reqheight .]
+#  Misura di partenza: 680x680, in tutte le modalita'. 680 e' la larghezza del
+#  banco; l'altezza e' quella che lascia alle liste spazio per lavorare. Le
+#  liste chiedono tutte 12 righe (crea_riquadro) e i pannelli hanno
+#  -stretch always, quindi l'altezza in piu' si divide in parti uguali e le
+#  liste di sopra e di sotto partono alla STESSA altezza. (Prima l'altezza era
+#  quella richiesta dal contenuto, proprio perche' senza -stretch il pannello
+#  di sotto si prendeva tutto l'avanzo, o si apriva schiacciato.)
+#  Su uno schermo piu' piccolo si parte da quello che c'e', meno un margine per
+#  la barra dei menu (che Tk aggiunge SOPRA l'altezza di wm geometry, ~35 px),
+#  il titolo della finestra e la barra delle applicazioni: una finestra piu'
+#  alta dello schermo lasciava fuori proprio la riga di stato e i pulsanti in
+#  basso, e il bordo da afferrare per stringerla. Il minimo di wm minsize resta
+#  il limite inferiore.
+proc misura_iniziale {voluta schermo margine minimo} {
+    set m [expr {min($voluta, $schermo - $margine)}]
+    return [expr {max($m, $minimo)}]
 }
+lassign [wm minsize .] min_l min_a
+wm geometry . [misura_iniziale 680 [winfo screenwidth .]  40 $min_l]x[misura_iniziale 680 [winfo screenheight .] 130 $min_a]
 
 #  Con una directory sulla riga di comando si parte da li', esattamente come
 #  se si fosse usato File -> Open Simulator path: imposta_loc fa il cd, ricava

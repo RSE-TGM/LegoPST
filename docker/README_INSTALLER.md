@@ -319,6 +319,46 @@ echo $DISPLAY
 lgrun --socat
 ```
 
+### `WARN ... "/" is not a shared mount` (Podman rootless, WSL)
+
+```
+WARN[0001] "/" is not a shared mount, this could cause issues or missing mounts with rootless containers
+```
+
+È un **avviso di Podman**, non un errore di LegoPST: dopo il messaggio
+LegoPST parte normalmente. Compare con Podman rootless (anche quando il comando
+si chiama `docker`, vedi lo shim `podman-docker` più sotto) se la radice `/`
+dell'host non è montata come *shared*, cioè senza la propagazione dei mount.
+
+**Per `lgrun` è innocuo.** La propagazione serve solo ai container che chiedono
+di vedere i mount fatti *dopo* l'avvio (`:rshared`, `:rslave`).
+[`lgdock.sh`](lgdock.sh) monta solo il socket X11, il file `.Xauthority` e la
+home su `/host_home`, con dei `-v` semplici.
+
+Si vede tipicamente in una **WSL senza systemd** (es. Arch): è systemd che
+all'avvio rende `/` shared, e senza di lui resta *private*. Su una distribuzione
+con systemd attivo (Fedora, Ubuntu recenti) l'avviso non compare.
+
+Per toglierlo, fino al prossimo riavvio della WSL:
+
+```bash
+sudo mount --make-rshared /
+```
+
+Per sempre, in `/etc/wsl.conf`, poi `wsl --shutdown` da Windows:
+
+```ini
+[boot]
+command = mount --make-rshared /
+```
+
+Se `/etc/wsl.conf` ha già `systemd=true` e l'avviso compare lo stesso, systemd
+non sta partendo: il problema è quello, non LegoPST.
+
+L'**attesa** al primo `lgrun` dopo un riavvio della WSL non dipende da questo
+avviso: Podman rootless prepara lo spazio utente e i layer dell'immagine, e i
+lanci successivi sono più rapidi.
+
 ### `lgrun -d`: demo di un utente inesistente (100999), o "Cannot change mode"
 
 ```

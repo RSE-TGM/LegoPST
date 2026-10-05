@@ -72,10 +72,16 @@ Nella finestra:
   di stato lo dice per entrambe.
   Il divisorio fra i due riquadri si trascina per dare più spazio all'uno o
   all'altro.
-- La finestra parte **680x328**, la stessa larghezza del **banco** (`new_monit`),
+- La finestra parte **680x680** (in tutte le modalità; su uno schermo più
+  piccolo, quanto ci sta lasciando 130 px per menu, titolo e barra delle
+  applicazioni, mai sotto il minimo), la stessa larghezza del **banco** (`new_monit`),
   con le due liste di pari larghezza: le due finestre si usano insieme, una sopra
   l'altra, e allineate stanno meglio. Il divisorio resta trascinabile e la
-  finestra ridimensionabile (minimo 560x300).
+  finestra si ridimensiona in tutte e due le direzioni (minimo 440x260, 440x340
+  con le regolazioni): lo spazio in più o in meno si divide fra **tutti** i
+  riquadri (`-stretch always`). Con il default di `panedwindow` se lo prendeva
+  solo l'ultimo — le regolazioni in larghezza, i faceplate in altezza — e le
+  altre liste restavano ferme.
 - **L'area di lavoro corrente** (`legopst_<nome>`) sta nel **titolo** e nella
   **prima riga** in alto, rossa se i link `~/legocad` e `~/sked` non indicano
   un'area sola.
@@ -220,7 +226,8 @@ lghmi                                # scegli la task: la HMI punta gia' a quest
 ```
 
 Così animazione/Plot/Command funzionano subito, senza *Set Sim path* manuale.
-Il selettore mostra in alto (in blu) il path pre-impostato.
+Il selettore mostra in alto a destra (in nero, `Sim path: ...`) il path
+pre-impostato.
 
 ### All'avvio riparte dall'ultimo Simulator path
 
@@ -315,7 +322,7 @@ una voce del suo menù — [`attiva_lghmi`](../Alg_rt/net_simula/new_monit/cont_
 fa `system("$LEGORT_BIN/lghmi -insim &")` — e il banco gira nella directory del
 simulatore, perché lo avvia `net_startup`.
 
-In quel caso il selettore **appartiene a quella simulazione**, e quattro comandi
+In quel caso il selettore **appartiene a quella simulazione**, e cinque comandi
 vengono **disabilitati**:
 
 | comando | perché |
@@ -324,6 +331,7 @@ vengono **disabilitati**:
 | pulsante *net_startup* | comincia con `killsim`: ammazzerebbe proprio la simulazione da cui è stato lanciato, e il banco con lei |
 | menu *Edit* delle HMI | le HMI lanciate da qui partono **senza** `-edit`: la simulazione è in corso, e il modello non va toccato (vedi [il menu Edit delle HMI](#il-menu-edit-delle-hmi-draw2gr--edit)) |
 | *File → Work area* | cambierebbe l'area sotto la simulazione in corso (vedi [Work area](#cambiare-area-di-lavoro-menu-file-work-area)) |
+| *Tools → killsim* | come *net_startup*: ammazzerebbe la simulazione da cui è stato lanciato (vedi [Tools → killsim](#tools--killsim--ripulire-i-residui-di-una-simulazione)) |
 
 Le voci di menù nascono disabilitate e il pulsante resta spento; la riga di
 stato dice *"started from the desk: fixed directory, simulation already
@@ -385,8 +393,8 @@ disabilitati: vedi sopra.
 > l'`S01` e i faceplate continuano a essere cercati nella directory di lancio.
 > La voce di menu fa entrambe le cose.
 
-Le due intestazioni in alto — il simulatore `S01` (verde) e il *Set Sim path*
-(blu) — compaiono e spariscono da sé secondo quello che c'è nella nuova
+Le due intestazioni in alto a destra — il simulatore `S01` (rosso scuro) e il
+*Sim path* (nero) — compaiono e spariscono da sé secondo quello che c'è nella nuova
 directory. Per questo esistono sempre come widget, anche vuote: creandole solo
 all'avvio, aprendo una directory con `S01` da una sessione partita in dir-scan
 non ci sarebbe niente da riempire.
@@ -472,7 +480,25 @@ quando si lascia un'area. Sta nella home, come `~/.legosim`, e non dentro le
 aree, che si copiano e si impacchettano. Se la nuova area non ha simulatori, le
 voci di `Tools` si spengono e la riga di stato lo dice.
 
-## Il pulsante `net_startup` — lanciare la simulazione
+## La fascia in alto: i due lanci e il contesto
+
+Sotto il menù, una fascia sola raccoglie le due cose che si guardano per prime.
+
+- **A sinistra, uno sopra l'altro e della stessa larghezza**, i due lanci:
+  **start sim** (un triangolo nero pieno, il "play", e la scritta in rosso
+  scuro: è `net_startup`) e **mmi**
+  (un monitor con la tastiera, sullo sfondo verde dell'MMI). Le icone sono
+  bitmap XBM nel sorgente, senza file esterni.
+- **A destra, allineate a destra**: l'area di lavoro, il simulatore `S01`
+  (rosso scuro: nome e descrizione) e il *Sim path* (nero).
+
+La barra in basso tiene solo *Refresh* e *Quit*. Fino a ottobre 2026
+`net_startup` e `mmi` stavano lì, `mmi` al centro, e le tre intestazioni erano
+righe allineate a sinistra sopra le liste. Nel codice `.area` e `.hdr` restano
+figli della toplevel, impacchettati con `pack -in` nella colonna di destra
+(`.cima.dx`); i pulsanti sono `.cima.az.start` e `.cima.az.mmi`.
+
+## Il pulsante `net_startup` (start sim) — lanciare la simulazione
 
 Lancia `net_startup` nella **directory corrente** e ne mostra l'output in una
 **finestra di log** del selettore, così si vedono scorrere i suoi controlli e si
@@ -722,6 +748,7 @@ lgmkstaz - build/edit faceplate pages (r01.dat)
 kUpSim                 >   le tre varianti di kUpSim
 kCompile               >   le tre compilazioni della regolazione
 --------
+killsim - clean up leftovers of a previous simulation
 Terminal - shell in the current directory
 ```
 
@@ -927,16 +954,17 @@ erano nella stessa categoria di `libgraph` e `libut`.
 Ora hanno un riquadro loro, in un layout **2+1**: **processo e regolazione
 affiancate in alto** — sono le due liste su cui si lavora di più e che si
 confrontano fra loro — e i **faceplate `xstaz` sotto**, a tutta larghezza. **La
-finestra non si allarga**: resta 680 px, la larghezza del banco — che è la
-ragione per cui quel numero è quello — e cresce solo in altezza. Tre liste
+finestra parte** a 680 px, la larghezza del banco — che è la ragione per cui
+quel numero è quello —; poi si ridimensiona liberamente, e i tre riquadri
+crescono e calano insieme. Tre liste
 affiancate avrebbero sfondato la larghezza o ridotto ogni colonna a una ventina
 di caratteri.
 
-L'altezza della finestra **non è cablata**: si prende quella *richiesta* dal
-contenuto dopo aver costruito i riquadri. Le tre liste chiedono tutte 12 righe,
-e una `panedwindow` alla prima apertura dà a ogni pannello la sua dimensione
-naturale: così le tre partono **alla stessa altezza**. Con un numero fisso il
-pannello di sotto si prendeva quel che avanzava e si apriva schiacciato.
+L'altezza di partenza è **680 px**; i pannelli hanno `-stretch always`, quindi
+lo spazio oltre quello richiesto si divide in parti uguali e le liste di sopra e
+di sotto partono alla stessa altezza. Fino a ottobre 2026 l'altezza era quella
+*richiesta* dal contenuto dopo aver costruito i riquadri: senza `-stretch` un
+numero fisso dava tutto l'avanzo al pannello di sotto, o lo apriva schiacciato.
 
 Non c'è un pulsante: la task si apre come nelle altre liste — doppio clic,
 `Invio`, o tasto destro.
@@ -1011,6 +1039,33 @@ selezione che senza quel riquadro non esiste.
 > due, perché non modifica file ma **rigenera la task**: l'eseguibile in `proc/`
 > viene ricostruito sotto la simulazione, che continuerebbe a usare il vecchio
 > fino al riavvio.
+
+### `Tools → killsim` — ripulire i residui di una simulazione
+
+*killsim - clean up leftovers of a previous simulation* lancia `killsim`, il
+modo previsto di ripulire l'ambiente: ammazza i processi di simulazione rimasti
+appesi e cancella segmenti di memoria condivisa, code di messaggi e semafori.
+Serve dopo un crash, una finestra chiusa male o un `net_startup` interrotto, i
+casi in cui una simulazione nuova non parte o parte leggendo dati vecchi. Non si
+fa a mano con `pkill`/`ipcrm`.
+
+**Chiede sempre conferma** (default *No*), perché su Linux `killsim` non filtra
+per chiave: cancella **tutte** le SHM, le code e i semafori dell'utente. Le HMI,
+i faceplate e l'`mmi` aperti perdono i dati, e se ne va anche ogni altra sessione
+LegoPST dell'utente, come un altro simulatore o una co-simulazione FMU. Se in
+quel momento gira una simulazione (`dispatcher`, `net_sked` o `banco`) la
+conferma lo dice e ricorda che lo stop ordinato è *Simulator Shutdown* nel
+Master Menu del banco.
+
+L'output di `killsim`, lungo e pieno di righe di DEBUG, va in
+`/tmp/lghmi_killsim.log`, che si rilegge da *File → Logs*; la riga di stato dice
+solo l'esito. La voce è **spenta con `-insim`**: lì il selettore l'ha aperto il
+banco di una simulazione viva, e `killsim` ammazzerebbe proprio quella. È la
+stessa ragione per cui con `-insim` è spento *start sim*.
+
+È lo stesso comando con cui comincia `net_startup` e con cui il pulsante *Kill
+simulation* della finestra di log ferma una simulazione viva: la voce di
+`Tools` serve quando non c'è niente da fermare, solo da ripulire.
 
 ### `Tools → Terminal`
 
@@ -1277,12 +1332,9 @@ perdeva il secondo byte (`0xA0`, che in Latin-1 è uno spazio e cadeva col
 
 ## Il pulsante `mmi`
 
-**Al centro** della barra in basso, largo il doppio degli altri e con lo sfondo
-**verde `#50a050`**, lo stesso della finestra dell'MMI: non agisce sulle liste,
-lancia l'**MMI** (`Alg_mmi/run_time`, le pagine sinottiche SCADA-like), non una
-HMI di task. È centrato con `place -relx 0.5 -anchor center`, quindi sul centro
-della finestra e non su quello dello spazio lasciato libero da *Refresh* e *Quit*,
-che hanno larghezze diverse.
+In alto a sinistra, sotto *start sim*, con lo sfondo **verde `#50a050`**, lo
+stesso della finestra dell'MMI: non agisce sulle liste, lancia l'**MMI**
+(`Alg_mmi/run_time`, le pagine sinottiche SCADA-like), non una HMI di task.
 
 `mmi` non ha opzioni per dire dove stanno le pagine: legge `Context.ctx` **nella
 directory da cui parte** e da lì ricava tutto (vedi
