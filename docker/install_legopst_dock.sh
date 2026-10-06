@@ -46,6 +46,7 @@ DOPO L'INSTALLAZIONE
   lgrun --socat      X11 attraverso un socket bridge, per SSH/MobaXterm
   lgrun --pull       aggiorna l'immagine prima di partire
   lgrun -e lghmi     appena il container e' pronto apre lghmi (o un altro programma)
+  lgrun -a lghmi     solo lghmi, senza shell: il container si chiude con lui
   lgrun update       reinstalla all'ultima versione e aggiorna l'immagine
   lgrun uninstall    disinstalla (come "install_legopst_dock.sh -u")
   lgrun --help       tutte le opzioni

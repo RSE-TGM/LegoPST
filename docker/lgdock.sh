@@ -106,6 +106,12 @@ Opzioni:
                       terminale resta una shell del container. PROG puo' avere
                       argomenti, tra virgolette: -e "lghmi -staz".
                       L'output va in /tmp/lgdock_exec.log, dentro il container.
+  -a, --app PROG      Modo "applicazione": il container esegue solo
+                      PROG, senza aprire una shell nel terminale, e VIVE QUANTO
+                      PROG. Quando PROG finisce - chiuso o andato in crash - il
+                      container termina, con tutto quello che PROG ha lanciato.
+                      $CMD_NAME resta in attesa e restituisce il codice di
+                      uscita di PROG; Ctrl-C lo ferma.
 
 Manutenzione:
   update              Reinstalla $CMD_NAME all'ultima versione e aggiorna
@@ -120,6 +126,7 @@ Esempi:
   $CMD_NAME --socat          # Lancia container con socat per X11 (per SSH/MobaXterm)
   $CMD_NAME -d -s            # Demo + socat
   $CMD_NAME -e lghmi         # Lancia il container e apre subito lghmi
+  $CMD_NAME -a lghmi         # Solo lghmi: il container si chiude con lui
   $CMD_NAME update           # aggiorna comando e immagine all'ultima versione
   $CMD_NAME uninstall        # rimuove il comando
 
@@ -197,6 +204,7 @@ RUN_DEMO=false
 USE_SOCAT=false
 DO_PULL=false
 EXEC_PROG=""
+APP_PROG=""
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -228,6 +236,14 @@ while [[ $# -gt 0 ]]; do
             EXEC_PROG="$2"
             shift 2
             ;;
+        -a|--app)
+            if [[ $# -lt 2 || -z "$2" ]]; then
+                echo "L'opzione $1 vuole il programma da eseguire: $1 <prog>"
+                exit 1
+            fi
+            APP_PROG="$2"
+            shift 2
+            ;;
         update)
             #  --pull-image: l'immagine si scarica DOPO aver installato gli
             #  script, non prima. Il nome dell'immagine sta dentro lgdock, e
@@ -245,6 +261,15 @@ while [[ $# -gt 0 ]]; do
             ;;
     esac
 done
+
+#  -e e -a rispondono a due idee opposte: con -e il programma parte in
+#  background e il terminale resta una shell del container; con -a non c'e'
+#  nessuna shell e il container vive quanto il programma.
+if [[ -n "$EXEC_PROG" && -n "$APP_PROG" ]]; then
+    echo "Le opzioni -e e -a non si usano insieme: -e lascia una shell nel"
+    echo "terminale, -a no. Scegline una."
+    exit 1
+fi
 
 # =============================================================================
 # Informazioni Host
@@ -674,6 +699,36 @@ echo "DISPLAY: $DISPLAY_VALUE"
 echo '======================================================================='
 echo ''
 
+# lgrun -a <prog>: modo "applicazione". Niente shell interattiva:
+# si esegue solo il programma, come farebbe la shell di login (su - ... -c
+# carica il .bash_profile, quindi DISPLAY e il profilo LegoPST), e si esce con
+# il suo codice. Questo script e' il processo 1 del container: quando esce, il
+# container finisce e il runtime termina tutto quello che il programma aveva
+# lanciato - simulazione, HMI, legopc - anche se in sessioni proprie.
+#
+# su in background + wait, e non una semplice chiamata, per i segnali: il
+# processo 1 ignora quelli per cui non ha un gestore, e un Ctrl-C dall'host
+# (che il runtime inoltra qui come SIGINT) andrebbe perso. Con la trap lo si
+# passa al programma, e wait - a differenza di un comando in primo piano - si
+# interrompe per farla scattare.
+if [ -n "${LGDOCK_APP:-}" ]; then
+    echo "Modo applicazione: $LGDOCK_APP"
+    echo "Il container si chiude quando il programma finisce."
+    echo ''
+    su - "$LOGIN_USER" -c "$LGDOCK_APP" &
+    APP_PID=$!
+    trap 'kill -TERM "$APP_PID" 2>/dev/null' INT TERM HUP
+    APP_RC=0
+    wait "$APP_PID" || APP_RC=$?
+    # interrotto da un segnale: il programma sta chiudendo, lo si aspetta
+    if kill -0 "$APP_PID" 2>/dev/null; then
+        wait "$APP_PID" || APP_RC=$?
+    fi
+    echo ''
+    echo "Programma terminato (codice $APP_RC): chiudo il container."
+    exit "$APP_RC"
+fi
+
 exec su - "$LOGIN_USER"
 SCRIPT_EOF
 
@@ -691,15 +746,22 @@ CONTAINER_SCRIPT="${CONTAINER_SCRIPT//DISPLAY_NUM_VAR/$DISPLAY_NUM}"
 # =============================================================================
 # Docker Run - Diverso per modalità standard vs socat
 # =============================================================================
+#  -it serve alla shell interattiva. In modo applicazione (-a) non c'e' nessuna
+#  shell da pilotare: senza -t il runtime non pretende un terminale (si puo'
+#  lanciare da un menu, da uno script, con &) e inoltra i segnali al container.
+DOCKER_TTY="-it"
+[[ -n "$APP_PROG" ]] && DOCKER_TTY=""
+
 if [[ "$USE_SOCAT" == true ]]; then
     # Modalità socat: con xauth e socket bridge
 #    sudo docker run --rm -it \
 
-    $DOCKER_CMD run --rm -it \
+    $DOCKER_CMD run --rm $DOCKER_TTY \
         --platform linux/amd64 \
         -e DISPLAY=":${DISPLAY_NUM}" \
         -e XAUTHORITY="/tmp/.Xauthority" \
         -e LGDOCK_EXEC="$EXEC_PROG" \
+        -e LGDOCK_APP="$APP_PROG" \
         -v /tmp/.X11-unix:/tmp/.X11-unix:rw \
         -v "$TEMP_XAUTH:/tmp/.Xauthority:ro" \
         -v "$HOST_USER_HOME:/host_home" \
@@ -711,10 +773,11 @@ else
     # Modalità standard: X11 forwarding diretto
 #    sudo docker run --rm -it \
 
-     $DOCKER_CMD run --rm -it \
+     $DOCKER_CMD run --rm $DOCKER_TTY \
         --platform linux/amd64 \
         -e DISPLAY="$DISPLAY" \
         -e LGDOCK_EXEC="$EXEC_PROG" \
+        -e LGDOCK_APP="$APP_PROG" \
         -v /tmp/.X11-unix:/tmp/.X11-unix \
         -v "$HOST_USER_HOME:/host_home" \
         --network=host \

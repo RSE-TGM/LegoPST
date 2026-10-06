@@ -368,6 +368,18 @@ non serve riaprire il dialogo di selezione: si clicca la voce.
   `$LG_ENTRY/legopc_prefs.tcl` come le preferenze di `legopc`, perché
   attraversa le installazioni: la radice utente cambia proprio quando si cambia
   directory.
+- **Nel container Docker sta in `~/defaults/.lghmi_recent`.** Lì la home è
+  effimera — con `--rm` nasce nuova a ogni `lgrun` — e un file scritto in `~` si
+  perderebbe all'uscita: i recenti sarebbero sempre vuoti e la ripartenza
+  dall'ultimo Simulator path non avrebbe niente da riprendere. `~/defaults`
+  invece è il collegamento che `lgdock` crea verso la directory `defaults`
+  dell'host, e sopravvive. La regola (`file_di_memoria` in `lghmi.tcl`), che
+  vale anche per `~/.lghmi_areas`: `~/<file>` se esiste; altrimenti
+  `~/defaults/<file>` se esiste; se non c'è nessuno dei due, `~/defaults/<file>`
+  quando `~/defaults` è un **link** (la firma del container), altrimenti
+  `~/<file>`. Un'installazione nativa resta quindi com'era. I due file sono
+  distinti apposta: nel container i path hanno un altro nome
+  (`/host_home/...`), che sull'host non esiste.
 - **Il menù mostra solo i path dell'area corrente** (vedi
   [*Work area*](#cambiare-area-di-lavoro-menu-file-work-area)): un path che sta in
   un'altra `legopst_*` non compare, mentre quelli fuori da qualunque area si

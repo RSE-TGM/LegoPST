@@ -257,6 +257,9 @@ lgrun --demo --socat
 # Avvia e apre subito un programma nel container (qui il selettore lghmi)
 lgrun -e lghmi
 
+# Solo lghmi, senza shell: il container si chiude quando lo chiudi
+lgrun -a lghmi
+
 # Mostra help
 lgrun --help
 
@@ -291,6 +294,53 @@ lgrun -e "lghmi -staz"         # con argomenti: tra virgolette
 Il comando arriva al container in una variabile d'ambiente (`LGDOCK_EXEC`), non
 sostituito nel testo dello script: spazi, argomenti e virgolette arrivano
 intatti.
+
+### Modo applicazione: `-a`
+
+`lgrun -a <prog>` (anche `--app`) esegue **solo** `<prog>` e fa vivere il
+container **quanto lui**:
+
+```bash
+lgrun -a lghmi
+```
+
+- **Nessuna shell del container** nel terminale: il container si prepara come
+  sempre, esegue il programma con il profilo LegoPST caricato, e basta.
+- Finché il programma è aperto il container esiste, con tutto quello che il
+  programma lancia: da `lghmi`, la simulazione, le HMI, `legopc`, i faceplate.
+- Quando il programma **finisce — chiuso o andato in crash — il container
+  termina** e porta via anche quei processi. È la differenza con `-e`, dove il
+  container resta finché non si chiude la shell.
+- `lgrun` resta in attesa, come un qualsiasi programma grafico lanciato da
+  terminale, mostra l'output del programma e alla fine **restituisce il suo
+  codice di uscita**. Non vuole un terminale: si può lanciare da un menu, da uno
+  script o con `&`.
+- **Ctrl-C** (o un `kill` di `lgrun`) arriva al programma e chiude il container.
+
+> **Chiudere il programma chiude tutto, di colpo.** Se da `lghmi` è partita una
+> simulazione e si esce da `lghmi`, il container termina e la simulazione viene
+> ammazzata con lui, senza lo *Simulator Shutdown* ordinato del banco. Prima di
+> uscire conviene fermarla da lì.
+
+`-a` e `-e` non si usano insieme. Quale scegliere:
+
+| | `lgrun -e <prog>` | `lgrun -a <prog>` |
+|---|---|---|
+| nel terminale | la shell del container | niente shell: l'output del programma |
+| il programma | parte in background, una volta | è l'unica cosa che gira |
+| il container finisce | all'`exit` della shell | quando il programma finisce o va in crash |
+| serve un terminale | sì | no: va bene da menu, script, `&` |
+| codice di uscita di `lgrun` | quello della shell | quello del programma |
+
+In entrambi i modi `lghmi` ricorda l'ultimo Simulator path fra un avvio e
+l'altro: nel container tiene la sua memoria in `~/defaults`, che sta sull'host
+(vedi [LGHMI.md](../Alg_legopc/LGHMI.md), *I path recenti*).
+
+Come è fatto: senza `-it` nel `docker run`, e in fondo allo script del container
+`su - <utente> -c <prog>` al posto della shell interattiva. Lo script è il
+processo 1 del container: quando esce, il runtime termina tutto il resto. `su`
+gira in background con una `trap` e una `wait`, perché il processo 1 ignora i
+segnali per cui non ha un gestore e il Ctrl-C dell'host andrebbe perso.
 
 ## Primo Avvio
 

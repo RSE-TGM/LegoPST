@@ -146,7 +146,33 @@ set ultimomode [expr {[lsearch -exact $argv "-ultimo"] >= 0}]
 #  Il menu ne mostra MAXRECENTI, e solo quelle dell'area di lavoro corrente
 #  (File -> Work area); il file ne tiene di piu', di tutte le aree, cosi'
 #  tornando a un'area si ritrovano le sue.
-set RECENTIFILE [file join $env(HOME) .lghmi_recent]
+#
+#  Dove sta un file di memoria di lghmi (<nome> = .lghmi_recent, .lghmi_areas).
+#  Di norma nella home. Ma nel container Docker la home e' EFFIMERA: con --rm
+#  nasce nuova a ogni lgrun, e quello che lghmi ci scrive si perde all'uscita -
+#  a ogni avvio i recenti erano vuoti e "riparti dall'ultimo Sim path" non
+#  aveva niente da riprendere. Li' si usa ~/defaults, che lgdock collega alla
+#  directory defaults dell'host (/host_home/defaults) e quindi sopravvive.
+#
+#  La regola, nell'ordine:
+#    1. ~/<nome> se esiste: un'installazione nativa resta com'era;
+#    2. ~/defaults/<nome> se esiste;
+#    3. nessuno dei due: ~/defaults/<nome> se ~/defaults e' un LINK - e' la
+#       firma del container, dove lo crea lgdock; in un'installazione nativa
+#       defaults e' una directory vera, o non c'e' - altrimenti ~/<nome>.
+#  Il file scelto vale sia per leggere sia per scrivere.
+proc file_di_memoria {nome} {
+    global env
+    set casa [file join $env(HOME) $nome]
+    if {[file exists $casa]} { return $casa }
+    set def [file join $env(HOME) defaults]
+    if {![file isdirectory $def]} { return $casa }
+    set in_def [file join $def $nome]
+    if {[file exists $in_def]} { return $in_def }
+    if {![catch {file type $def} tipo] && $tipo eq "link"} { return $in_def }
+    return $casa
+}
+set RECENTIFILE [file_di_memoria .lghmi_recent]
 set MAXRECENTI  3
 set MAXRECENTIFILE 30
 set RECENTI     {}
@@ -154,8 +180,8 @@ set RECENTI     {}
 # L'ultimo simulatore usato in ciascuna area di lavoro, per ritrovarlo dopo
 # File -> Work area. Una riga per area: <directory fisica dell'area>|<nome>.
 # Nella home come ~/.legosim, e non dentro le aree, che si copiano e si
-# impacchettano.
-set AREEFILE [file join $env(HOME) .lghmi_areas]
+# impacchettano (nel container: in ~/defaults, vedi file_di_memoria).
+set AREEFILE [file_di_memoria .lghmi_areas]
 set mostra_proc [expr {$procmode || !$stazmode}]
 set mostra_staz [expr {$stazmode || !$procmode}]
 set doppia      [expr {$mostra_proc && $mostra_staz}]
