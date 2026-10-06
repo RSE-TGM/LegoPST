@@ -84,6 +84,7 @@ installato via `install_legopst_dock.sh`:
 |---|---|
 | `lgrun update` | Reinstalla `lgrun` all'ultima versione **e aggiorna l'immagine Docker**. Riscarica l'installer e lo esegue: installazione e aggiornamento restano un solo percorso di codice, che non può divergere. |
 | `lgrun uninstall` | Disinstalla, come `install_legopst_dock.sh -u`. Non tocca l'immagine né i tuoi dati (`~/legocad`, `~/sked`): dice come rimuoverli. |
+| `lgrun -e <prog>` | Appena il container è pronto esegue `<prog>` al suo interno, con il profilo LegoPST già caricato e in background: il terminale resta la shell del container. `lgrun -e lghmi` apre il selettore con un solo comando. Una volta sola per container; output in `/tmp/lgdock_exec.log` nel container. Dettagli in [docker/README_INSTALLER.md](../docker/README_INSTALLER.md). |
 
 > **Da dove aggiorna.** L'installer stampiglia dentro `lgdock` le coordinate del
 > repository da cui l'installazione è venuta (`REPO_HOST`, `REPO_SLUG`,

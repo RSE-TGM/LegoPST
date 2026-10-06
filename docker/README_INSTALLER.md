@@ -254,12 +254,43 @@ lgrun --socat
 # Combina opzioni
 lgrun --demo --socat
 
+# Avvia e apre subito un programma nel container (qui il selettore lghmi)
+lgrun -e lghmi
+
 # Mostra help
 lgrun --help
 
 # Mostra versione
 lgrun --version
 ```
+
+### Lanciare un programma all'avvio: `-e`
+
+`lgrun -e <prog>` (anche `--exec`) esegue `<prog>` dentro il container appena è
+pronto, così con un solo comando si apre, per esempio, `lghmi`:
+
+```bash
+lgrun -e lghmi
+lgrun -d -e lghmi              # con la demo
+lgrun -e "lghmi -staz"         # con argomenti: tra virgolette
+```
+
+- Parte **dopo il profilo LegoPST**, quindi con `DISPLAY`, `PATH` e le variabili
+  del simulatore corrente già impostate, come se lo si scrivesse al prompt.
+- Gira **in background**: il terminale resta la solita shell del container, da
+  cui si può continuare a lavorare. Il container vive finché vive quella shell,
+  e con lui `lghmi` e quello che apre (HMI, faceplate, la simulazione): è il
+  motivo per cui il container non si chiude al *Quit* del programma, che si
+  porterebbe via tutto il resto. Per uscire si chiude la shell (`exit`).
+- **Una volta sola** per container: le shell di login aperte dopo (un `bash -l`,
+  un terminale aperto da `lghmi`) non lo rilanciano.
+- L'output del programma va in **`/tmp/lgdock_exec.log`**, dentro il container,
+  per non mescolarsi con il prompt. Se il comando non esiste nel container lo
+  dice al posto dell'avvio.
+
+Il comando arriva al container in una variabile d'ambiente (`LGDOCK_EXEC`), non
+sostituito nel testo dello script: spazi, argomenti e virgolette arrivano
+intatti.
 
 ## Primo Avvio
 

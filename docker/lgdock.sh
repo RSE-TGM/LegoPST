@@ -101,6 +101,11 @@ Opzioni:
   -d, --demo          Installa una demo di legopst e lancia il container con essa
   -s, --socat         Usa socat per X11 forwarding (utile per SSH con MobaXterm)
   -p, --pull          Esegue docker pull dell'immagine prima di avviare il container
+  -e, --exec PROG     Appena il container e' pronto esegue PROG al suo interno,
+                      con l'ambiente LegoPST gia' caricato, in background: il
+                      terminale resta una shell del container. PROG puo' avere
+                      argomenti, tra virgolette: -e "lghmi -staz".
+                      L'output va in /tmp/lgdock_exec.log, dentro il container.
 
 Manutenzione:
   update              Reinstalla $CMD_NAME all'ultima versione e aggiorna
@@ -114,6 +119,7 @@ Esempi:
   $CMD_NAME --demo           # Installa modello demo (legocad e sked) e lancia container
   $CMD_NAME --socat          # Lancia container con socat per X11 (per SSH/MobaXterm)
   $CMD_NAME -d -s            # Demo + socat
+  $CMD_NAME -e lghmi         # Lancia il container e apre subito lghmi
   $CMD_NAME update           # aggiorna comando e immagine all'ultima versione
   $CMD_NAME uninstall        # rimuove il comando
 
@@ -190,6 +196,7 @@ fi
 RUN_DEMO=false
 USE_SOCAT=false
 DO_PULL=false
+EXEC_PROG=""
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -212,6 +219,14 @@ while [[ $# -gt 0 ]]; do
         -p|--pull)
             DO_PULL=true
             shift
+            ;;
+        -e|--exec)
+            if [[ $# -lt 2 || -z "$2" ]]; then
+                echo "L'opzione $1 vuole il programma da eseguire: $1 <prog>"
+                exit 1
+            fi
+            EXEC_PROG="$2"
+            shift 2
             ;;
         update)
             #  --pull-image: l'immagine si scarica DOPO aver installato gli
@@ -615,6 +630,33 @@ PROFILE_LEGOROOT_PATH="/home/legoroot_fedora41/.profile_legoroot"
     echo "if [ -f \"$PROFILE_LEGOROOT_PATH\" ]; then"
     echo "    source \"$PROFILE_LEGOROOT_PATH\""
     echo "fi"
+    # lgrun -e <prog>: il programma arriva dall'host nella variabile
+    # LGDOCK_EXEC (docker run -e), non sostituito nel testo di questo script,
+    # cosi' spazi e virgolette arrivano intatti; qui si scrive quotato con %q.
+    # Parte DOPO il profilo, che da' DISPLAY, PATH e le variabili LegoPST.
+    # Una volta sola per container: il .bash_profile lo rileggono anche le
+    # shell di login aperte dopo (un "bash -l", un terminale da lghmi), e
+    # quelle non devono rilanciarlo - da qui il segnaposto in /tmp, che con
+    # --rm muore con il container.
+    # In background, perche' il terminale resti una shell: lghmi e quello che
+    # apre (HMI, xstaz, la simulazione) vivono finche' vive il container, e
+    # legare il container alla vita di lghmi li porterebbe via tutti al Quit.
+    if [ -n "${LGDOCK_EXEC:-}" ]; then
+        echo ""
+        echo "# lgrun -e: eseguito una volta, appena il container e' pronto"
+        printf 'LGDOCK_EXEC=%q\n' "$LGDOCK_EXEC"
+        echo 'if [ ! -e /tmp/.lgdock_exec_fatto ]; then'
+        echo '    touch /tmp/.lgdock_exec_fatto'
+        echo '    LGDOCK_PRIMO=${LGDOCK_EXEC%% *}'
+        echo '    if command -v "$LGDOCK_PRIMO" >/dev/null 2>&1; then'
+        echo '        echo "Avvio di: $LGDOCK_EXEC   (output in /tmp/lgdock_exec.log)"'
+        echo '        ( eval "$LGDOCK_EXEC" >/tmp/lgdock_exec.log 2>&1 & )'
+        echo '    else'
+        echo '        echo "lgrun -e: comando non trovato nel container: $LGDOCK_PRIMO"'
+        echo '    fi'
+        echo '    unset LGDOCK_PRIMO'
+        echo 'fi'
+    fi
 } > "$BASH_PROFILE_PATH"
 
 chown "$CONT_UID:$CONT_GID" "$BASH_PROFILE_PATH"
@@ -628,6 +670,7 @@ if [ "$ROOTLESS" = true ]; then
 fi
 echo "DISPLAY: $DISPLAY_VALUE"
 [[ "USE_SOCAT_VAR" == "true" ]] && echo "X11 Mode: socat bridge" || echo "X11 Mode: standard"
+[ -n "${LGDOCK_EXEC:-}" ] && echo "Da eseguire all'avvio: $LGDOCK_EXEC"
 echo '======================================================================='
 echo ''
 
@@ -656,6 +699,7 @@ if [[ "$USE_SOCAT" == true ]]; then
         --platform linux/amd64 \
         -e DISPLAY=":${DISPLAY_NUM}" \
         -e XAUTHORITY="/tmp/.Xauthority" \
+        -e LGDOCK_EXEC="$EXEC_PROG" \
         -v /tmp/.X11-unix:/tmp/.X11-unix:rw \
         -v "$TEMP_XAUTH:/tmp/.Xauthority:ro" \
         -v "$HOST_USER_HOME:/host_home" \
@@ -670,6 +714,7 @@ else
      $DOCKER_CMD run --rm -it \
         --platform linux/amd64 \
         -e DISPLAY="$DISPLAY" \
+        -e LGDOCK_EXEC="$EXEC_PROG" \
         -v /tmp/.X11-unix:/tmp/.X11-unix \
         -v "$HOST_USER_HOME:/host_home" \
         --network=host \

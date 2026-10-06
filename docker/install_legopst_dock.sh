@@ -45,6 +45,7 @@ DOPO L'INSTALLAZIONE
   lgrun --demo       ci mette anche un modello di esempio (legocad e sked)
   lgrun --socat      X11 attraverso un socket bridge, per SSH/MobaXterm
   lgrun --pull       aggiorna l'immagine prima di partire
+  lgrun -e lghmi     appena il container e' pronto apre lghmi (o un altro programma)
   lgrun update       reinstalla all'ultima versione e aggiorna l'immagine
   lgrun uninstall    disinstalla (come "install_legopst_dock.sh -u")
   lgrun --help       tutte le opzioni
