@@ -234,8 +234,8 @@ Fa l'inverso esatto dell'installazione, e **nulla di più**:
   spieghi;
 - **non cancella l'immagine Docker** — stampa il comando, `docker rmi
   aguagliardi/legopst:2.0`, e lascia decidere a te;
-- **non cancella i tuoi dati**: `~/legocad`, `~/sked`, `~/defaults` e i modelli
-  che contengono sono il tuo lavoro.
+- **non cancella i tuoi dati**: `~/legocad`, `~/sked`, `~/defaults`, `~/risorse`
+  e i modelli che contengono sono il tuo lavoro.
 
 ## Utilizzo
 
@@ -341,6 +341,32 @@ Come è fatto: senza `-it` nel `docker run`, e in fondo allo script del containe
 processo 1 del container: quando esce, il runtime termina tutto il resto. `su`
 gira in background con una `trap` e una `wait`, perché il processo 1 ignora i
 segnali per cui non ha un gestore e il Ctrl-C dell'host andrebbe perso.
+
+### Le risorse X: `~/risorse`
+
+Le applicazioni Motif di LegoPST (`config`, `mmi`, `graphics`, i tool di
+legocad…) prendono colori, font e scorciatoie da un file di risorse ciascuna —
+`Config`, `run_time`, `Grafics`, `LegocadMain`… — che il profilo cerca in
+**`~/risorse`** (`XAPPLRESDIR`). Senza, partono lo stesso ma con l'aspetto di
+default di Motif, e in `config` non funziona il Ctrl+C/X/V nei campi di testo:
+nessun errore lo dice.
+
+`lgdock` ci pensa da sé, a ogni avvio:
+
+- se sull'host **non c'è** `~/risorse`, la crea copiandoci la versione ufficiale
+  che sta nell'immagine (`util2025/risorse`, 21 file): a container chiuso resta
+  come `~/risorse`, tua;
+- se **c'è già non la tocca**: sono risorse personalizzabili, e puoi averle
+  cambiate;
+- nel container `~/risorse` è un collegamento a quella dell'host, quindi una
+  modifica fatta da dentro resta.
+
+Per tornare alle risorse ufficiali basta cancellare `~/risorse` (o rinominarla)
+e rilanciare `lgrun`. Fino a ottobre 2026 nel container la directory non
+esisteva affatto: la home nasce nuova a ogni avvio e nessuno la copiava.
+
+In un'installazione nativa si copiano a mano, come dice
+`util2025/risorse/Readme.md`: `cp -a $LEGOROOT/util2025/risorse $HOME`.
 
 ## Primo Avvio
 
@@ -523,6 +549,7 @@ gli stessi collegamenti:
 ~/legocad   ->  /host_home/legocad
 ~/sked      ->  /host_home/sked
 ~/defaults  ->  /host_home/defaults
+~/risorse   ->  /host_home/risorse
 ~/host_data ->  /host_home
 ```
 
@@ -533,7 +560,7 @@ diverse. Succede tipicamente su WSL, dove ogni distribuzione ha il suo
 
 > **La home del container è effimera, in entrambi i casi.** `/home/antonio` e
 > `/root` vivono dentro il container e con `--rm` spariscono all'uscita.
-> Sopravvive solo ciò che sta sotto i quattro collegamenti qui sopra, perché
+> Sopravvive solo ciò che sta sotto i cinque collegamenti qui sopra, perché
 > puntano all'host. Quello che salvi in `~/altro` lo perdi — e non c'entra il
 > rootless.
 - risulta altro (`65534`, userns-remap, filesystem senza proprietà Unix) → non è
@@ -607,6 +634,7 @@ docker rmi aguagliardi/legopst:2.0
 # Rimuovi i dati utente (opzionale - ATTENZIONE: cancella i tuoi modelli!)
 rm -rf ~/legopst_userstd
 rm -rf ~/defaults
+rm -rf ~/risorse      # le risorse X: se le hai personalizzate, le perdi
 ```
 
 ## Aggiornamento
@@ -649,6 +677,7 @@ Lo script crea automaticamente un utente nel container con:
 Tutti i dati utente (modelli, configurazioni) sono salvati nell'home dell'host:
 - `~/legopst_userstd/` - Modelli e progetti
 - `~/defaults/` - Configurazioni predefinite
+- `~/risorse/` - Risorse X delle applicazioni (colori, font, scorciatoie)
 - I dati sopravvivono alla chiusura del container
 
 ## Licenza

@@ -62,7 +62,7 @@ PER DISINSTALLARE
   install_legopst_dock.sh -u
   Toglie da ~/.local/bin i due comandi che ha messo (e solo quelli: un file
   omonimo di qualcun altro lo lascia dov'e'). NON cancella l'immagine Docker
-  ne' i tuoi dati - ~/legocad, ~/sked, ~/defaults sono il tuo lavoro; stampa il
+  ne' i tuoi dati - ~/legocad, ~/sked, ~/defaults, ~/risorse sono tuoi; stampa il
   comando per l'immagine, se la vuoi togliere anche quella. La riga del PATH
   nel .bashrc la toglie solo se ~/.local/bin resta vuota, perche' la' dentro
   vivono spesso altri comandi.
@@ -192,7 +192,7 @@ disinstalla() {
     echo "Non ho toccato:"
     echo "  - l'immagine Docker. Per togliere anche quella (qualche GB):"
     echo "        ${RUNTIME:-docker} rmi $IMMAGINE"
-    echo "  - i tuoi dati: ~/legocad, ~/sked, ~/defaults e i modelli che"
+    echo "  - i tuoi dati: ~/legocad, ~/sked, ~/defaults, ~/risorse e i modelli che"
     echo "    contengono. Sono il tuo lavoro, non li cancella nessuno script."
     echo ""
     echo "Disinstallazione completata."

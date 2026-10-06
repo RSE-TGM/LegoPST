@@ -628,6 +628,35 @@ ln -sfn /host_home/sked "$USER_HOME_IN_CONTAINER/sked" 2>/dev/null || true
 ln -sfn /host_home/defaults "$USER_HOME_IN_CONTAINER/defaults" 2>/dev/null || true
 chown -h "$CONT_UID:$CONT_GID" "$USER_HOME_IN_CONTAINER/host_data"
 
+# Risorse X delle applicazioni Motif (config, mmi, graphics, legocad...):
+# colori, font, scorciatoie - anche il Ctrl+C/X/V nei campi di config. Il
+# profilo le cerca in ~/risorse (XAPPLRESDIR, .profile_legoroot), e nella home
+# del container, che nasce nuova a ogni avvio, quella directory non c'era:
+# i programmi partivano con l'aspetto di default, senza un errore che lo dicesse.
+#
+# Come per defaults, stanno sull'host e qui si collegano: cosi' una modifica
+# fatta dall'utente sopravvive al container. Se l'host non le ha ancora si
+# creano ADESSO, dalla copia ufficiale dell'immagine (util2025/risorse, quella
+# che il suo Readme dice di copiare nella home): a container chiuso restano
+# come ~/risorse. Se ci sono gia' non si toccano - sono personalizzabili, e
+# l'utente puo' averle cambiate.
+RISORSE_UFFICIALI="/home/legoroot_fedora41/util2025/risorse"
+if [ ! -e /host_home/risorse ] && [ -d "$RISORSE_UFFICIALI" ]; then
+    echo "Creazione di ~/risorse (risorse X delle applicazioni) da util2025/risorse..."
+    # Gli stessi riguardi della demo: su un filesystem che non accetta i
+    # permessi Unix cp e chown possono lamentarsi, e nudi sotto set -e
+    # fermerebbero l'avvio del container per delle risorse grafiche.
+    if mkdir -p /host_home/risorse && cp -R "$RISORSE_UFFICIALI/." /host_home/risorse/; then
+        chown -R "$CONT_UID:$CONT_GID" /host_home/risorse 2>/dev/null || \
+            echo "ATTENZIONE: chown fallito su /host_home/risorse. Proseguo."
+    else
+        echo "ATTENZIONE: non riesco a creare /host_home/risorse. Proseguo senza:"
+        echo "le applicazioni useranno l'aspetto di default."
+    fi
+fi
+ln -sfn /host_home/risorse "$USER_HOME_IN_CONTAINER/risorse" 2>/dev/null || true
+chown -h "$CONT_UID:$CONT_GID" "$USER_HOME_IN_CONTAINER/risorse" 2>/dev/null || true
+
 # Configurazione .bash_profile
 BASH_PROFILE_PATH="$USER_HOME_IN_CONTAINER/.bash_profile"
 PROFILE_LEGOROOT_PATH="/home/legoroot_fedora41/.profile_legoroot"
