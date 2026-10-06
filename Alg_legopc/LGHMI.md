@@ -818,11 +818,8 @@ selezione. I controlli e il lancio stanno in
 [menu *Edit* delle HMI](#il-menu-edit-delle-hmi-draw2gr--edit): le due strade
 rifiutano negli stessi casi e con le stesse parole. `lghmi` lo sorgia sempre,
 dalla propria directory, e senza non parte — contiene anche `sim_attiva` e
-`stessa_directory`, che il selettore usa altrove. È la stessa cosa che fa l'alias `lgpc`, ma **l'alias non si può
-lanciare**: gli alias non esistono nelle shell non interattive, e dietro `lgpc`
-non c'è nemmeno un eseguibile — è `export LG_TIX=$LG_BIN; wish
-$LG_TIX/legopc.tix`. Qui si lancia `wish` su `legopc.tix` **ereditando
-`LG_TIX`**, così il CAD e le HMI vengono dalla stessa installazione: quella con
+`stessa_directory`, che il selettore usa altrove. Non passa dal comando `lgpc`, che reimposta `LG_TIX=$LG_BIN`: qui si lancia
+`wish` su `legopc.tix` **ereditando `LG_TIX`**, così il CAD e le HMI vengono dalla stessa installazione: quella con
 cui `lghmi` è stato avviato.
 
 Il lancio è un **processo indipendente** (`setsid`), come per le HMI: chiudere

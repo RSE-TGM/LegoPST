@@ -114,7 +114,7 @@ Dettagli su immagine, build e installazione: [../docker/README_INSTALLER.md](../
 
 | Comando | Tipo | Scopo |
 |---|---|---|
-| `lgpc` | alias | **Lancia il CAD grafico** `legopc.tix`: disegno degli schemi, librerie di moduli, generazione dei `.i5`/`.tom`. Imposta `LG_TIX=$LG_BIN` prima di partire, quindi usa sempre la versione corrente in `Alg_legopc/bin`. È il comando normale. |
+| `lgpc` | script | **Lancia il CAD grafico** `legopc.tix`: disegno degli schemi, librerie di moduli, generazione dei `.i5`/`.tom`. Imposta `LG_TIX=$LG_BIN` per legopc, quindi usa sempre la versione corrente in `Alg_legopc/bin`. È il comando normale. Sta in `Alg_rt/bin/lgpc` e, come `lghmi`, sorgia il profilo da sé se manca: si può chiamare anche da uno script, da un menu, da una shell non interattiva, da `lgrun -e lgpc` / `lgrun -a lgpc`. |
 | `lgpcu` | alias | Lo stesso CAD ma con il **wish "ultimo"** (`$LG_WISH`, in `tcltktix-8.3.5b/`) invece di quello di sistema. Serve solo quando il wish di sistema dà problemi con Tix. |
 | `lgpc2` | func | Lancia `wish $LG_TIX/legopc.tix` **senza reimpostare `LG_TIX`**: rispetta un `LG_TIX` già esportato a mano. L'uso previsto non è documentato da nessuna parte. Attenzione: essendo una funzione senza `"$@"`, **ignora gli argomenti** — `lgpc2 <modello>` apre legopc vuoto. |
 
@@ -127,7 +127,7 @@ lgpc SLB1_NI2         # apre $LG_MODELS/SLB1_NI2/SLB1_NI2.tom
 lgpc SLB1_NI2.tom     # stessa cosa
 ```
 
-Senza alias è `wish $LG_BIN/legopc.tix SLB1_NI2`. Quello che conta:
+A mano è `wish $LG_BIN/legopc.tix SLB1_NI2`. Quello che conta:
 
 - il nome si cerca **nell'area di lavoro corrente**, come
   `$LG_MODELS/<nome>/<nome>.tom` (`topRead` in
@@ -144,6 +144,14 @@ Senza alias è `wish $LG_BIN/legopc.tix SLB1_NI2`. Quello che conta:
 - più di un argomento dà l'errore *Wrong number or arguments*; un nome che non
   esiste dà *Model … not found! No model loaded*, e legopc resta aperto vuoto.
 
+> **`lgpc` era un alias** fino a ottobre 2026 (`export LG_TIX=$LG_BIN; wish
+> $LG_TIX/legopc.tix`): esisteva solo nelle shell interattive col profilo
+> sorgiato, e nessuno script poteva usarlo. L'unica differenza per chi lo
+> digita: l'alias reimpostava `LG_TIX` anche nella shell da cui partiva, lo
+> script solo per legopc — il profilo la imposta comunque già a `$LG_BIN`.
+> `Alg_env.sh` fa `unalias lgpc`, così una shell che aveva l'alias e risorgia il
+> profilo (`lgini`, `lggo`) passa al comando.
+>
 > `lgpc0` **non esiste più** (rimosso il 2026-08-02): lanciava la legopc originale
 > da `$LG_BASE/bin_old`, generata da `src/tix_old`, sorgente ormai escluso dal
 > build e quindi non più aggiornato. Usare `lgpc`.

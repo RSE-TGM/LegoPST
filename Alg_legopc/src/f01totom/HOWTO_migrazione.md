@@ -179,8 +179,7 @@ export LG_TIX=$LG_BIN
 wish $LG_TIX/legopc.tix $LG_MODELS/GTS_conv/GTS_conv.tom
 ```
 
-(È quello che fa l'alias `lgpc`, che però non prende argomenti: da lì il modello
-si apre con File → Open.)
+(È quello che fa il comando `lgpc`: `lgpc GTS_conv` apre lo stesso modello.)
 
 Cosa guardare:
 

@@ -15,10 +15,9 @@
 # e con le stesse parole.
 #
 # legopc e' il CAD: apre il .tom della task e ne riscrive schema, .i5 e
-# configurazione. NON si lancia "lgpc": quello e' un ALIAS di Alg_env.sh
-# (export LG_TIX=$LG_BIN; wish $LG_TIX/legopc.tix) e gli alias non esistono
-# nelle shell non interattive - stessa ragione per cui lghmi chiama kUpSim e
-# non lgupsim. Si lancia direttamente wish su legopc.tix EREDITANDO LG_TIX,
+# configurazione. NON si lancia il comando "lgpc" (Alg_rt/bin/lgpc), che
+# reimposta LG_TIX=$LG_BIN. Si lancia direttamente wish su legopc.tix
+# EREDITANDO LG_TIX,
 # cosi' CAD e HMI vengono dalla stessa installazione: quella da cui e' partita
 # l'applicazione che lo chiede.
 #

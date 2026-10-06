@@ -1,7 +1,7 @@
 # f01totom — da legocad a legopc.tix
 
 Converte la topologia di una task **legocad** d'epoca nel formato **`.tom`** di
-`legopc.tix` (l'alias `lgpc`), per non ridisegnare a mano i pochi modelli vecchi
+`legopc.tix` (il comando `lgpc`), per non ridisegnare a mano i pochi modelli vecchi
 che vale ancora la pena recuperare.
 
 Non è uno strumento della catena di build: è un convertitore una-tantum, da

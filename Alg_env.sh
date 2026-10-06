@@ -487,7 +487,11 @@ export LD_LIBRARY_PATH=$LG_BASE/tcltktix/lib:$LD_LIBRARY_PATH
 # escluso dal build (Alg_legopc/Makefile.mk), quindi bin_old non e' piu'
 # aggiornato: usare 'lgpc' (src/tix -> $LG_BIN).
 # alias lgpc0='export LG_TIX=$LG_BASE/bin_old; wish $LG_TIX/legopc.tix'
-alias lgpc='export LG_TIX=$LG_BIN; wish $LG_TIX/legopc.tix'
+# lgpc non e' piu' un alias (2026-10): e' il comando $LEGORT_BIN/lgpc
+# (Alg_rt/bin/lgpc), cosi' si puo' chiamare anche da script, menu e shell non
+# interattive. L'alias va tolto anche da una shell che lo avesse gia' - chi
+# risorgia il profilo con lgini/lggo - altrimenti vincerebbe lui sul comando.
+unalias lgpc 2>/dev/null || true
 export LG_WISH=$LEGOROOT/tcltktix-8.3.5b/tcltktix/bin/wish
 alias lgpcu='$LG_WISH $LG_TIX/legopc.tix'
 lgpc2() {
