@@ -48,6 +48,7 @@ DOPO L'INSTALLAZIONE
   lgrun -e lghmi     appena il container e' pronto apre lghmi (o un altro programma)
   lgrun lghmi        solo lghmi, senza shell: il container si chiude con lui
   lgrun -v           versione di lgrun, dell'immagine e di LegoPST
+  lgrun -dbg         mostra tutti i messaggi dell'avvio (di norma: una riga)
   lgrun -update      reinstalla all'ultima versione e aggiorna l'immagine
   lgrun -uninstall   disinstalla (come "install_legopst_dock.sh -u")
   lgrun --help       tutte le opzioni

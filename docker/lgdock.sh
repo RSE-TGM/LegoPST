@@ -105,6 +105,11 @@ Opzioni:
   -d, --demo          Installa una demo di legopst e lancia il container con essa
   -s, --socat         Usa socat per X11 forwarding (utile per SSH con MobaXterm)
   -p, --pull          Esegue docker pull dell'immagine prima di avviare il container
+  -dbg, --debug       Mostra tutti i messaggi dell'avvio: quelli di $CMD_NAME,
+                      gli avvisi del runtime, la preparazione del container e
+                      il profilo LegoPST. Senza, si vede una riga sola che dice
+                      che il container e' partito (e, se l'avvio fallisce,
+                      tutto quello che era stato detto fino a li').
   -e, --exec PROG     Appena il container e' pronto esegue PROG al suo interno,
                       con l'ambiente LegoPST gia' caricato, in background: il
                       terminale resta una shell del container. PROG puo' avere
@@ -259,6 +264,7 @@ USE_SOCAT=false
 DO_PULL=false
 EXEC_PROG=""
 APP_PROG=""
+DEBUG=false
 
 #  Il comando del modo applicazione, dagli argomenti rimasti. Un argomento solo
 #  si prende com'e': puo' essere una riga di shell tra virgolette
@@ -293,6 +299,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         -p|--pull)
             DO_PULL=true
+            shift
+            ;;
+        -dbg|--debug)
+            DEBUG=true
             shift
             ;;
         -e|--exec)
@@ -342,6 +352,42 @@ if [[ -n "$EXEC_PROG" && -n "$APP_PROG" ]]; then
 fi
 
 # =============================================================================
+# Modo silenzioso (il default) / -dbg
+# =============================================================================
+#  L'avvio parla molto: i riquadri di questo script, gli avvisi del runtime, la
+#  preparazione nel container, il profilo LegoPST. Serve quando qualcosa non
+#  va; tutte le altre volte e' una pagina di testo prima del prompt, o prima
+#  dell'output del comando che si e' chiesto. Senza -dbg se ne vede una riga.
+#
+#  I messaggi pero' non si buttano: finiscono in un file, e se lo script esce
+#  con un errore PRIMA di aver avviato il container li si mostra tutti. Un
+#  avvio fallito in silenzio sarebbe peggio del rumore.
+#
+#  Solo lo stdout: gli errori veri (stderr) restano a vista, e le domande di
+#  sudo passano dal terminale. FD_VISTA e' il descrittore su cui scrivere
+#  quello che si deve vedere comunque - l'avanzamento di un pull chiesto con -p.
+FD_VISTA=1
+LG_AVVIATO=""
+HOST_LOG=""
+fine_host() {
+    local rc=$?
+    if [[ -n "$HOST_LOG" ]]; then
+        if [[ $rc -ne 0 && -z "$LG_AVVIATO" ]]; then
+            cat "$HOST_LOG" >&5
+        fi
+        rm -f "$HOST_LOG"
+    fi
+    return $rc
+}
+if [[ "$DEBUG" != true ]] && HOST_LOG=$(mktemp 2>/dev/null); then
+    exec 5>&1 >"$HOST_LOG"
+    FD_VISTA=5
+    trap fine_host EXIT
+else
+    HOST_LOG=""
+fi
+
+# =============================================================================
 # Informazioni Host
 # =============================================================================
 HOST_USERNAME=$(whoami)
@@ -369,7 +415,7 @@ echo ""
 if [[ "$DO_PULL" == true ]]; then
     echo "--- Aggiornamento immagine Docker ---"
     echo "Esecuzione: $DOCKER_CMD pull $IMAGE_NAME"
-    $DOCKER_CMD pull $IMAGE_NAME
+    $DOCKER_CMD pull $IMAGE_NAME >&$FD_VISTA
     echo ""
 fi
 
@@ -441,7 +487,7 @@ if [[ "$USE_SOCAT" == true ]]; then
     # Cleanup alla fine - rimuovi solo ciò che abbiamo creato
     cleanup() {
         if [ -n "$SOCAT_PID" ]; then
-            echo "Terminazione socat (PID: $SOCAT_PID)..."
+            [[ "$DEBUG" == true ]] && echo "Terminazione socat (PID: $SOCAT_PID)..."
             kill $SOCAT_PID 2>/dev/null
         fi
         if [ "$SOCKET_CREATED" = true ]; then
@@ -449,7 +495,9 @@ if [[ "$USE_SOCAT" == true ]]; then
         fi
         rm -f "$TEMP_XAUTH" 2>/dev/null
     }
-    trap cleanup EXIT
+    #  una sola trap EXIT per script: questa prende anche il posto di quella
+    #  del modo silenzioso, e la richiama
+    trap 'cleanup; fine_host' EXIT
     
 else
     echo ""
@@ -465,6 +513,19 @@ echo ""
 # =============================================================================
 read -r -d '' CONTAINER_SCRIPT << 'SCRIPT_EOF'
 set -e
+
+# Modo silenzioso (LGDOCK_DEBUG diverso da 1): la preparazione non si vede. Va
+# in un file, e se questo script esce con un errore prima di essere arrivato
+# in fondo lo si stampa tutto: senza, un "UID gia' usato" o un tar fallito
+# chiuderebbero il container senza una parola. I descrittori 3 e 4 tengono da
+# parte lo stdout e lo stderr veri, per ridarli al programma alla fine.
+LGDOCK_PRONTO=""
+LGDOCK_LOG=""
+if [ "${LGDOCK_DEBUG:-0}" != 1 ]; then
+    LGDOCK_LOG=$(mktemp 2>/dev/null || echo /tmp/lgdock_avvio.log)
+    exec 3>&1 4>&2 >"$LGDOCK_LOG" 2>&1
+    trap 'rc=$?; if [ "$rc" -ne 0 ] && [ -z "$LGDOCK_PRONTO" ]; then cat "$LGDOCK_LOG" >&4; fi' EXIT
+fi
 
 USER_HOME_IN_CONTAINER="/home/HOST_USERNAME_VAR"
 
@@ -614,6 +675,8 @@ ln -sfn /host_home "$USER_HOME_IN_CONTAINER/host_data"
 # Eventuale copia del legocad demo nella home dell'utente
 if [[ "RUN_DEMO_FLAG" == "true" ]]; then
     if [ ! -d "/host_home/legopst_userstd" ]; then
+        # l'estrazione dura: in modo silenzioso almeno si dica che c'e'
+        [ -n "$LGDOCK_LOG" ] && echo "LegoPST: installazione della demo in corso..." >&4
         echo "=========================================="
         echo "  Installazione Demo LegoPST"
         echo "=========================================="
@@ -745,14 +808,22 @@ PROFILE_LEGOROOT_PATH="/home/legoroot_fedora41/.profile_legoroot"
     if [[ "USE_SOCAT_VAR" == "true" ]]; then
         echo "export XAUTHORITY=\"\$HOME/.Xauthority\""
     fi
-    echo "echo \"DISPLAY impostato a: \$DISPLAY\""
+    [ "${LGDOCK_DEBUG:-0}" = 1 ] && echo "echo \"DISPLAY impostato a: \$DISPLAY\""
     echo ""
     echo "# Prompt personalizzato LegoPST"
     echo "export PS1='LegoPST@\w \$ '"
     echo ""
     echo "# Sorgente del profilo custom LegoPST"
+    # In modo silenzioso il profilo si carica senza i suoi messaggi (la
+    # piattaforma, le tavole del vapore, il simulatore corrente...): sono
+    # quelli che riempivano lo schermo prima del prompt, e prima dell'output
+    # di un comando lanciato con "lgrun <comando>". Con -dbg si vedono.
     echo "if [ -f \"$PROFILE_LEGOROOT_PATH\" ]; then"
-    echo "    source \"$PROFILE_LEGOROOT_PATH\""
+    if [ "${LGDOCK_DEBUG:-0}" = 1 ]; then
+        echo "    source \"$PROFILE_LEGOROOT_PATH\""
+    else
+        echo "    source \"$PROFILE_LEGOROOT_PATH\" >/dev/null 2>&1"
+    fi
     echo "fi"
     # lgrun -e <prog>: il programma arriva dall'host nella variabile
     # LGDOCK_EXEC (docker run -e), non sostituito nel testo di questo script,
@@ -773,7 +844,8 @@ PROFILE_LEGOROOT_PATH="/home/legoroot_fedora41/.profile_legoroot"
         echo '    touch /tmp/.lgdock_exec_fatto'
         echo '    LGDOCK_PRIMO=${LGDOCK_EXEC%% *}'
         echo '    if command -v "$LGDOCK_PRIMO" >/dev/null 2>&1; then'
-        echo '        echo "Avvio di: $LGDOCK_EXEC   (output in /tmp/lgdock_exec.log)"'
+        [ "${LGDOCK_DEBUG:-0}" = 1 ] && \
+            echo '        echo "Avvio di: $LGDOCK_EXEC   (output in /tmp/lgdock_exec.log)"'
         echo '        ( eval "$LGDOCK_EXEC" >/tmp/lgdock_exec.log 2>&1 & )'
         echo '    else'
         echo '        echo "lgrun -e: comando non trovato nel container: $LGDOCK_PRIMO"'
@@ -798,6 +870,19 @@ echo "DISPLAY: $DISPLAY_VALUE"
 echo '======================================================================='
 echo ''
 
+# Fine della preparazione. In modo silenzioso si ridanno stdout e stderr veri
+# a quello che viene dopo - la shell, o il comando - e si dice in UNA riga che
+# questo e' un container LegoPST. Sullo stderr: chi fa "lgrun ls | wc -l" deve
+# contare i file, non anche questa riga.
+if [ -n "$LGDOCK_LOG" ]; then
+    LGDOCK_PRONTO=1
+    exec 1>&3 2>&4 3>&- 4>&-
+    LGDOCK_VER=$(tr -d '[:space:]' < /home/legoroot_fedora41/VERSION 2>/dev/null || true)
+    LGDOCK_RIGA="LegoPST container avviato (${LGDOCK_IMAGE:-immagine sconosciuta}${LGDOCK_VER:+, LegoPST $LGDOCK_VER})"
+    [ -z "${LGDOCK_APP:-}" ] && LGDOCK_RIGA="$LGDOCK_RIGA - 'exit' per uscire"
+    echo "$LGDOCK_RIGA" >&2
+fi
+
 # lgrun <comando>: modo "applicazione". Niente shell interattiva:
 # si esegue solo il programma, come farebbe la shell di login (su - ... -c
 # carica il .bash_profile, quindi DISPLAY e il profilo LegoPST), e si esce con
@@ -811,9 +896,11 @@ echo ''
 # passa al programma, e wait - a differenza di un comando in primo piano - si
 # interrompe per farla scattare.
 if [ -n "${LGDOCK_APP:-}" ]; then
-    echo "Modo applicazione: $LGDOCK_APP"
-    echo "Il container si chiude quando il programma finisce."
-    echo ''
+    if [ "${LGDOCK_DEBUG:-0}" = 1 ]; then
+        echo "Modo applicazione: $LGDOCK_APP"
+        echo "Il container si chiude quando il programma finisce."
+        echo ''
+    fi
     su - "$LOGIN_USER" -c "$LGDOCK_APP" &
     APP_PID=$!
     trap 'kill -TERM "$APP_PID" 2>/dev/null' INT TERM HUP
@@ -823,8 +910,10 @@ if [ -n "${LGDOCK_APP:-}" ]; then
     if kill -0 "$APP_PID" 2>/dev/null; then
         wait "$APP_PID" || APP_RC=$?
     fi
-    echo ''
-    echo "Programma terminato (codice $APP_RC): chiudo il container."
+    if [ "${LGDOCK_DEBUG:-0}" = 1 ]; then
+        echo ''
+        echo "Programma terminato (codice $APP_RC): chiudo il container."
+    fi
     exit "$APP_RC"
 fi
 
@@ -851,6 +940,24 @@ CONTAINER_SCRIPT="${CONTAINER_SCRIPT//DISPLAY_NUM_VAR/$DISPLAY_NUM}"
 DOCKER_TTY="-it"
 [[ -n "$APP_PROG" ]] && DOCKER_TTY=""
 
+#  Da qui il container parte: lo stdout torna a vista, e un errore non fa piu'
+#  stampare il file dei messaggi (a quel punto parla il container).
+LG_AVVIATO=1
+LGDOCK_DEBUG=0
+[[ "$DEBUG" == true ]] && LGDOCK_DEBUG=1
+FILTRO_PID=""
+if [[ -n "$HOST_LOG" ]]; then
+    exec 1>&5
+    #  Gli avvisi del runtime (le righe "WARN[0000] ..." di Podman: cgroup,
+    #  mount non condiviso) escono sullo stderr di questo comando. Si tolgono
+    #  quelle e solo quelle: tutto il resto dello stderr - gli errori del
+    #  runtime, l'avanzamento se l'immagine va scaricata, lo stderr del comando
+    #  in modo applicazione - passa com'e'.
+    exec 6>&2
+    exec 2> >(grep --line-buffered -v '^WARN\[' >&6)
+    FILTRO_PID=$!
+fi
+
 if [[ "$USE_SOCAT" == true ]]; then
     # Modalità socat: con xauth e socket bridge
 #    sudo docker run --rm -it \
@@ -861,6 +968,8 @@ if [[ "$USE_SOCAT" == true ]]; then
         -e XAUTHORITY="/tmp/.Xauthority" \
         -e LGDOCK_EXEC="$EXEC_PROG" \
         -e LGDOCK_APP="$APP_PROG" \
+        -e LGDOCK_DEBUG="$LGDOCK_DEBUG" \
+        -e LGDOCK_IMAGE="$IMAGE_NAME" \
         -v /tmp/.X11-unix:/tmp/.X11-unix:rw \
         -v "$TEMP_XAUTH:/tmp/.Xauthority:ro" \
         -v "$HOST_USER_HOME:/host_home" \
@@ -877,9 +986,20 @@ else
         -e DISPLAY="$DISPLAY" \
         -e LGDOCK_EXEC="$EXEC_PROG" \
         -e LGDOCK_APP="$APP_PROG" \
+        -e LGDOCK_DEBUG="$LGDOCK_DEBUG" \
+        -e LGDOCK_IMAGE="$IMAGE_NAME" \
         -v /tmp/.X11-unix:/tmp/.X11-unix \
         -v "$HOST_USER_HOME:/host_home" \
         --network=host \
         $IMAGE_NAME \
         bash -c "$CONTAINER_SCRIPT"
 fi
+LG_RC=$?
+
+#  Si aspetta il filtro dello stderr, altrimenti le sue ultime righe potrebbero
+#  arrivare dopo il prompt.
+if [[ -n "$FILTRO_PID" ]]; then
+    exec 2>&6 6>&-
+    wait "$FILTRO_PID" 2>/dev/null
+fi
+exit $LG_RC

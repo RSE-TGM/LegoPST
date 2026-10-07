@@ -268,6 +268,9 @@ lgrun -e lghmi
 # Solo lghmi, senza shell: il container si chiude quando lo chiudi
 lgrun lghmi
 
+# Mostra tutti i messaggi dell'avvio (per capire un problema)
+lgrun -dbg
+
 # Mostra help
 lgrun --help
 
@@ -298,6 +301,54 @@ coincidere: è il motivo per cui si mostrano entrambe. La terza riga si legge
 dall'immagine con un container che dura un attimo; se l'immagine **non è ancora
 stata scaricata** `-v` lo dice e non la scarica (sarebbero alcuni GB per
 rispondere a una domanda).
+
+### Cosa si vede all'avvio, e `-dbg`
+
+`lgrun` parte **in silenzio**: una riga sola, che dice che quello è un container
+LegoPST, e poi il prompt — o l'output del comando chiesto.
+
+```
+$ lgrun
+LegoPST container avviato (aguagliardi/legopst:2.0, LegoPST 2.0) - 'exit' per uscire
+LegoPST@.../antonio >
+
+$ lgrun ls ~/sked
+LegoPST container avviato (aguagliardi/legopst:2.0, LegoPST 2.0)
+SLaurent_0
+duetask
+```
+
+La riga va sullo **stderr**: in `lgrun ls ~/sked | wc -l` arrivano alla pipe
+solo i file, e il conto torna.
+
+Con **`-dbg`** (o `--debug`) si vede tutto, come fino a ottobre 2026: i riquadri
+di `lgrun`, gli avvisi del runtime (le righe `WARN[...]` di Podman), la
+preparazione nel container — l'utente creato, i collegamenti, il banner del
+modo rootless — e i messaggi del profilo LegoPST (piattaforma, tavole del
+vapore, simulatore corrente). In modo applicazione anche le righe *Modo
+applicazione* e *Programma terminato (codice N)*. È l'opzione da aggiungere
+quando qualcosa non va, o quando si segnala un problema.
+
+```bash
+lgrun -dbg
+lgrun -dbg lghmi
+```
+
+Il silenzio non nasconde gli errori:
+
+- i messaggi dell'avvio non vengono buttati ma **tenuti da parte**: se `lgrun` o
+  la preparazione del container si fermano con un errore, vengono mostrati
+  tutti, come con `-dbg`;
+- dello stderr si tolgono solo le righe `WARN[...]` del runtime: gli errori di
+  Docker/Podman (immagine non trovata, permessi) e l'avanzamento di un
+  download dell'immagine passano;
+- lo stderr e il codice di uscita del comando lanciato arrivano com'erano;
+- con `-d` la riga *installazione della demo in corso* si vede comunque, perché
+  l'estrazione dura.
+
+Tutti i messaggi citati nel resto di questo documento — il banner
+`=== Modalita' rootless rilevata ===`, gli avvisi `WARN[...]` — si vedono quindi
+**con `-dbg`**.
 
 ### Lanciare un programma all'avvio: `-e`
 
@@ -475,7 +526,8 @@ lgrun --socat
 WARN[0001] "/" is not a shared mount, this could cause issues or missing mounts with rootless containers
 ```
 
-È un **avviso di Podman**, non un errore di LegoPST: dopo il messaggio
+Si vede solo con `lgrun -dbg`: in modo normale gli avvisi del runtime sono
+nascosti. È un **avviso di Podman**, non un errore di LegoPST: dopo il messaggio
 LegoPST parte normalmente. Compare con Podman rootless (anche quando il comando
 si chiama `docker`, vedi lo shim `podman-docker` più sotto) se la radice `/`
 dell'host non è montata come *shared*, cioè senza la propagazione dei mount.
@@ -570,7 +622,7 @@ Podman e per `--userns=keep-id`:
 - risulta **0** → rootless: si lavora come root del container (niente utente
   creato, niente sudoers) e si fa `chown` a `0:0`, così sull'host i file
   risultano dell'utente. Lo dice con un banner
-  `=== Modalita' rootless rilevata (Podman o Docker) ===`;
+  `=== Modalita' rootless rilevata (Podman o Docker) ===` (con `lgrun -dbg`);
 
 ### Cosa si vede: la home dentro il container cambia
 
