@@ -130,6 +130,45 @@ proc lgdocindex::riscrivi {html dir se_stessa root cache codaVar} {
     return $fuori
 }
 
+#  Il riquadro con la versione INSTALLATA, da mettere in testa all'indice.
+#
+#  L'indice e' un file del repository, uguale per tutti; la versione no, cambia
+#  a ogni build e da un'installazione all'altra. Per questo non sta scritta nel
+#  file: la si legge qui, quando la copia viene generata, cioe' ogni volta che
+#  la documentazione si apre. Le fonti sono quelle di lgversion e di About
+#  LegoPST: il file VERSION e version.h (git describe, numero e data di build).
+#  Come per lghmi, version.h NON si genera se manca: qui non si invoca make.
+#  Ritorna "" se non c'e' niente da mostrare, e il riquadro resta nascosto.
+proc lgdocindex::riquadro_versione {root} {
+    set ver ""
+    catch { set ver [string trim [leggi [file join $root VERSION]]] }
+    set git ""; set num ""; set data ""
+    if {![catch {leggi [file join $root version.h]} h]} {
+        regexp {#define\s+GIT_VERSION_STRING\s+"([^"]+)"} $h -> git
+        regexp {#define\s+BUILD_NUMBER\s+(\d+)} $h -> num
+        regexp {#define\s+BUILD_DATE_STRING\s+"([^"]+)"} $h -> data
+    }
+    if {$ver eq "" && $git eq ""} { return "" }
+    #  la data arriva come AAAAMMGG
+    regsub {^(\d{4})(\d{2})(\d{2})$} $data {\1-\2-\3} data
+    set esc {& &amp; < &lt; > &gt;}
+    set grande [expr {$ver ne "" ? "LegoPST $ver" : "LegoPST"}]
+    set righe {}
+    if {$git ne ""} { lappend righe $git }
+    set b ""
+    if {$num ne ""}  { append b "build $num" }
+    if {$data ne ""} { append b [expr {$b ne "" ? " &middot; " : ""}] [string map $esc $data] }
+    if {$b ne ""}    { lappend righe $b }
+    set out "<span class=\"vlab\">Installed version</span>"
+    append out "<span class=\"vnum\">[string map $esc $grande]</span>"
+    foreach r $righe {
+        #  $b porta gia' la sua entita' (&middot;): non va riescapato
+        append out "<span class=\"vdet\">[expr {$r eq $b ? $r : [string map $esc $r]}]</span>"
+    }
+    append out "<span class=\"vdet\">[string map $esc $root]</span>"
+    return $out
+}
+
 #  Costruisce (o aggiorna) la copia navigabile. Ritorna il percorso dell'indice.
 proc lgdocindex::costruisci {root} {
     variable qui
@@ -155,6 +194,16 @@ proc lgdocindex::costruisci {root} {
     set html [riscrivi [leggi $indice] $root $out $root $cache coda]
     if {![regsub -nocase {<head[^>]*>} $html "&\n<base href=\"file://$root/\">" html]} {
         set html "<base href=\"file://$root/\">\n$html"
+    }
+    #  La versione installata: si riempie il riquadro e gli si toglie hidden.
+    set riquadro [riquadro_versione $root]
+    if {$riquadro ne ""} {
+        set i [string first {<div class="versione" id="lgversione" hidden><!--LGVERSIONE--></div>} $html]
+        if {$i >= 0} {
+            set vecchio {<div class="versione" id="lgversione" hidden><!--LGVERSIONE--></div>}
+            set html [string replace $html $i [expr {$i + [string length $vecchio] - 1}] \
+                          "<div class=\"versione\" id=\"lgversione\">$riquadro</div>"]
+        }
     }
     scrivi $out $html
 

@@ -64,20 +64,25 @@ if [ ! -f "$DOC" ]; then
     exit 1
 fi
 
+# La copia navigabile (vedi sotto) si prepara in una funzione, perche' serve in
+# due momenti: subito, per -p; dopo la finestra di attesa, per l'apertura.
+prepara_copia() {
 # La copia NAVIGABILE: l'indice e i documenti .md che cita, convertiti in HTML
 # con i collegamenti riscritti (lgdocindex.tcl). Un browser i .md non li rende,
 # ne mostra il sorgente, a meno di un'estensione che nel container non c'e'.
 # Se non si riesce a costruirla - manca tclsh, o il convertitore - si apre
 # l'indice originale, come prima: si vede, ma i .md restano testo grezzo.
-TIX_DIR="${LG_TIX:-$LEGOROOT/Alg_legopc/bin}"
-if command -v tclsh >/dev/null 2>&1 && [ -f "$TIX_DIR/lgdocindex.tcl" ]; then
-    NAVIGABILE="$(LEGOROOT="$LEGOROOT" tclsh "$TIX_DIR/lgdocindex.tcl" 2>/dev/null)" || NAVIGABILE=""
-    if [ -n "$NAVIGABILE" ] && [ -f "$NAVIGABILE" ]; then
-        DOC="$NAVIGABILE"
+    TIX_DIR="${LG_TIX:-$LEGOROOT/Alg_legopc/bin}"
+    if command -v tclsh >/dev/null 2>&1 && [ -f "$TIX_DIR/lgdocindex.tcl" ]; then
+        NAVIGABILE="$(LEGOROOT="$LEGOROOT" tclsh "$TIX_DIR/lgdocindex.tcl" 2>/dev/null)" || NAVIGABILE=""
+        if [ -n "$NAVIGABILE" ] && [ -f "$NAVIGABILE" ]; then
+            DOC="$NAVIGABILE"
+        fi
     fi
-fi
+}
 
 if [ "$SOLO_PATH" -eq 1 ]; then
+    prepara_copia
     echo "$DOC"
     exit 0
 fi
@@ -98,6 +103,117 @@ if [ -z "$BROWSER_SCELTO" ]; then
     echo "        $DOC" >&2
     exit 1
 fi
+
+# La finestrella di attesa. Il browser ci mette qualche secondo a comparire -
+# nel container di piu', perche' parte ogni volta con un profilo nuovo - e nel
+# frattempo non si vede niente: sembra che il comando non abbia fatto nulla.
+# Una barra animata al centro dello schermo dice che sta arrivando.
+#
+# E' una finestra Tk e non uno spinner nel terminale perche' deve vedersi anche
+# dove un terminale non c'e': "lgrun lghelp", un menu, uno script.
+#
+# Si chiude da sola, al primo di tre segnali:
+#   - compare una finestra nuova: si contano con xprop quelle note al window
+#     manager, prima e dopo. Non tutti lo permettono - WSLg, per dire, no;
+#   - aumentano i processi con cui i browser disegnano le pagine
+#     (-isForBrowser per Firefox, --type=renderer per Chromium,
+#     QtWebEngineProcess per Falkon): non dipende dal window manager, ed e' il
+#     segnale che funziona anche li';
+#   - scade un tempo massimo - breve se il browser era gia' aperto, perche'
+#     allora si apre solo una scheda e non c'e' niente di nuovo da vedere
+#     arrivare.
+# Senza wish o senza DISPLAY non compare affatto. Non blocca mai l'apertura
+# del browser.
+mostra_attesa() {
+    command -v wish >/dev/null 2>&1 || return 0
+    [ -n "${DISPLAY:-}" ] || return 0
+    local massimo=20000
+    # -x: il NOME del processo, non una ricerca nelle righe di comando, che
+    # troverebbe anche chi il browser lo sta solo nominando.
+    if pgrep -u "$(id -u)" -x "$(basename "$1")" >/dev/null 2>&1; then
+        massimo=3000
+    fi
+    LGHELP_BROWSER="$(basename "$1")" LGHELP_MAX="$massimo" \
+        wish >/dev/null 2>&1 <<'TCL' &
+package require Tk
+wm withdraw .
+set massimo $env(LGHELP_MAX)
+set t0 [clock milliseconds]
+
+# Quante finestre conosce il window manager, o -1 se non si puo' sapere
+# (niente xprop, o un window manager che non pubblica l'elenco).
+proc conta {} {
+    if {[catch {exec xprop -root -notype _NET_CLIENT_LIST} out]} { return -1 }
+    if {[string first "window id" $out] < 0} { return -1 }
+    return [llength [regexp -all -inline {0x[0-9a-fA-F]+} $out]]
+}
+set prima [conta]
+
+# Quanti processi "che disegnano pagine" ha l'utente. Si CONTANO, e conta
+# l'aumento: di processi cosi' ce ne possono essere gia' prima - un altro
+# browser aperto, o un editor fatto con lo stesso motore di Chromium, che usa
+# la stessa sigla - e la loro sola presenza non dice niente di questo lancio.
+proc disegnano {} {
+    if {[catch {exec id -u} uid]} { return 0 }
+    if {[catch {exec pgrep -u $uid -f -- {-isForBrowser|--type=renderer|QtWebEngineProcess}} out]} { return 0 }
+    return [llength [split [string trim $out] \n]]
+}
+set disegnavano [disegnano]
+
+wm overrideredirect . 1
+catch {wm attributes . -topmost 1}
+frame .f -bd 1 -relief solid -padx 22 -pady 14
+label .f.t -text "LegoPST documentation" -font {Helvetica 12 bold}
+label .f.s -text "Starting $env(LGHELP_BROWSER) ..."
+pack .f.t .f.s -side top
+if {[catch {
+    ttk::progressbar .f.p -mode indeterminate -length 260
+    pack .f.p -side top -pady {10 2}
+    .f.p start 12
+}]} {
+    # senza ttk: i puntini che scorrono
+    label .f.p -text "" -width 30
+    pack .f.p -side top -pady {10 2}
+    proc puntini {n} {
+        .f.p configure -text [string repeat ". " [expr {$n % 12 + 1}]]
+        after 200 [list puntini [incr n]]
+    }
+    puntini 0
+}
+pack .f
+update idletasks
+set x [expr {([winfo screenwidth .]  - [winfo reqwidth .])  / 2}]
+set y [expr {([winfo screenheight .] - [winfo reqheight .]) / 2}]
+wm geometry . +$x+$y
+wm deiconify .
+raise .
+
+proc controlla {} {
+    global prima t0 massimo
+    set passati [expr {[clock milliseconds] - $t0}]
+    if {$passati >= $massimo} { exit }
+    # almeno un secondo: una finestra che lampeggia e sparisce non dice niente
+    if {$passati >= 1000} {
+        if {($prima >= 0 && [conta] > $prima) || [disegnano] > $::disegnavano} {
+            # Il segnale arriva PRIMA che la finestra sia disegnata - con un
+            # profilo nuovo, come nel container, anche di un paio di secondi.
+            # Meglio restare un momento sopra il browser che sparire lasciando
+            # di nuovo lo schermo vuoto.
+            after 2000 exit
+            return
+        }
+    }
+    after 250 controlla
+}
+after 250 controlla
+TCL
+}
+
+# L'attesa compare PRIMA di preparare la copia: al primo lancio la conversione
+# dei documenti prende piu' di un secondo (nel container a ogni avvio, perche'
+# la cache nasce vuota), ed e' gia' tempo in cui non si vedrebbe niente.
+mostra_attesa "$BROWSER_SCELTO"
+prepara_copia
 
 # Senza un terminale non c'e' niente da liberare, e chi ha lanciato lghelp puo'
 # star misurando la sua vita (lgrun in modo applicazione): si resta in primo

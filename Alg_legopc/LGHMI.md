@@ -1255,7 +1255,15 @@ convertite. Immagini, `.txt` e manuali storici continuano a puntare agli
 originali in `$LEGOROOT`, che non viene toccato (nel container è in sola
 lettura). La prima volta ci vuole poco più di un secondo per una trentina di
 documenti; poi si riconverte solo ciò che è cambiato. Se la copia non si può
-costruire si apre l'originale, come prima. Fino a ottobre 2026 si convertiva
+costruire si apre l'originale, come prima.
+
+In testa all'indice, in alto a destra, la copia porta un riquadro con la
+**versione installata**: `LegoPST <VERSION>`, la versione git, numero e data di
+build, e la directory dell'installazione (`$LEGOROOT`). Si legge da `VERSION` e
+`version.h` nel momento in cui la copia viene generata, cioè a ogni apertura —
+le stesse fonti di *About LegoPST* e di `lgversion`. Nel file
+`DOCUMENTATION_INDEX.html` del repository il riquadro c'è ma è vuoto e
+nascosto: la versione non può stare scritta in un file uguale per tutti. Fino a ottobre 2026 si convertiva
 solo il documento aperto dal menù, uno alla volta: seguendo un collegamento si
 tornava al testo grezzo.
 
