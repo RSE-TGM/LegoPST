@@ -1,0 +1,119 @@
+#!/usr/bin/env bash
+#
+# lghelp - apre nel browser la documentazione principale di LegoPST.
+#
+# E' l'indice ragionato di tutta la documentazione
+# ($LEGOROOT/DOCUMENTATION_INDEX.html): lo stesso documento che lghmi apre dal
+# menu "?" -> "Annotated documentation index", e con lo stesso browser.
+#
+# Si apre una copia NAVIGABILE, tenuta nella cache dell'utente
+# (~/.cache/legopst/doc): i documenti .md che l'indice cita sono convertiti in
+# HTML e i collegamenti puntano alle pagine convertite, cosi' si leggono in
+# qualunque browser, anche senza un'estensione per il Markdown.
+#
+# Uso:
+#   lghelp            apre l'indice della documentazione
+#   lghelp -p         stampa solo il percorso della pagina, senza aprirla
+#   lghelp -w         resta in attesa finche' il browser non viene chiuso
+#
+# Il browser e' quello di $LG_BROWSER (File -> Settings di lghmi e legopc);
+# se non c'e' si prende il primo installato fra firefox, falkon, chromium,
+# chromium-browser, google-chrome, epiphany, xdg-open - la stessa lista di
+# browser_disponibile in openhelp.tcl.
+#
+# Lanciato da un terminale, il browser parte per conto suo e il terminale
+# torna subito libero. Lanciato SENZA terminale - "lgrun lghelp", un menu, uno
+# script - lghelp resta invece in primo piano finche' il browser e' aperto,
+# come con -w. Serve a "lgrun lghelp": li' il container vive quanto il
+# comando, e se lghelp uscisse subito il container si chiuderebbe portandosi
+# via il browser prima che la finestra compaia.
+#
+# Variabili d'ambiente:
+#   LEGOROOT     radice di LegoPST (dal profilo)
+#   LG_BROWSER   browser preferito (dal profilo / File -> Settings)
+#
+set -u
+
+SOLO_PATH=0
+ATTENDI=0
+case "${1:-}" in
+    -h|--help) sed -n '3,/^[^#]/p' "$0" | sed -n 's/^# \{0,1\}//p'; exit 0 ;;
+    -p|--path) SOLO_PATH=1 ;;
+    -w|--wait) ATTENDI=1 ;;
+    "") ;;
+    *) echo "lghelp: argomento non riconosciuto: $1 (vedi lghelp -h)" >&2; exit 1 ;;
+esac
+
+# Sorgia il profilo LegoPST se l'ambiente non e' gia' impostato, come
+# Alg_rt/bin/lghmi: da' LEGOROOT e LG_BROWSER (con le preferenze dell'utente).
+if [ -z "${LEGOROOT:-}" ] || [ -z "${LG_BROWSER:-}" ]; then
+    SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"          # .../Alg_rt/bin
+    : "${LEGOROOT:=$(cd "$SCRIPT_DIR/../.." && pwd)}"    # -> LEGOROOT
+    export LEGOROOT
+    set +u
+    # "$LEGOROOT" come $1: senza, il profilo erediterebbe i parametri
+    # posizionali di questo script e farebbe export LEGOROOT=<quel valore>.
+    . "$LEGOROOT/.profile_legoroot" "$LEGOROOT" >/dev/null 2>&1 || true
+    set -u
+fi
+
+DOC="${LEGOROOT:-}/DOCUMENTATION_INDEX.html"
+if [ ! -f "$DOC" ]; then
+    echo "lghelp: documento non trovato: $DOC" >&2
+    echo "        (LEGOROOT='${LEGOROOT:-}': profilo LegoPST non sorgiato?)" >&2
+    exit 1
+fi
+
+# La copia NAVIGABILE: l'indice e i documenti .md che cita, convertiti in HTML
+# con i collegamenti riscritti (lgdocindex.tcl). Un browser i .md non li rende,
+# ne mostra il sorgente, a meno di un'estensione che nel container non c'e'.
+# Se non si riesce a costruirla - manca tclsh, o il convertitore - si apre
+# l'indice originale, come prima: si vede, ma i .md restano testo grezzo.
+TIX_DIR="${LG_TIX:-$LEGOROOT/Alg_legopc/bin}"
+if command -v tclsh >/dev/null 2>&1 && [ -f "$TIX_DIR/lgdocindex.tcl" ]; then
+    NAVIGABILE="$(LEGOROOT="$LEGOROOT" tclsh "$TIX_DIR/lgdocindex.tcl" 2>/dev/null)" || NAVIGABILE=""
+    if [ -n "$NAVIGABILE" ] && [ -f "$NAVIGABILE" ]; then
+        DOC="$NAVIGABILE"
+    fi
+fi
+
+if [ "$SOLO_PATH" -eq 1 ]; then
+    echo "$DOC"
+    exit 0
+fi
+
+# Stesso ordine di browser_disponibile (openhelp.tcl): prima il preferito.
+BROWSER_SCELTO=""
+for b in "${LG_BROWSER:-}" firefox falkon chromium chromium-browser \
+         google-chrome epiphany xdg-open; do
+    if [ -n "$b" ] && command -v "$b" >/dev/null 2>&1; then
+        BROWSER_SCELTO="$b"
+        break
+    fi
+done
+
+if [ -z "$BROWSER_SCELTO" ]; then
+    echo "lghelp: nessun browser disponibile (LG_BROWSER='${LG_BROWSER:-}')." >&2
+    echo "        Il documento e' qui, da aprire a mano:" >&2
+    echo "        $DOC" >&2
+    exit 1
+fi
+
+# Senza un terminale non c'e' niente da liberare, e chi ha lanciato lghelp puo'
+# star misurando la sua vita (lgrun in modo applicazione): si resta in primo
+# piano. exec: il codice di uscita e i segnali sono quelli del browser.
+if [ "$ATTENDI" -eq 1 ] || [ ! -t 1 ]; then
+    echo "Documentazione LegoPST con $BROWSER_SCELTO (resto in attesa del browser):"
+    echo "  $DOC"
+    exec "$BROWSER_SCELTO" "$DOC"
+fi
+
+# Da terminale: in una sessione propria, cosi' il browser sopravvive alla
+# chiusura del terminale da cui lghelp e' stato lanciato, e non ci scrive.
+if command -v setsid >/dev/null 2>&1; then
+    setsid "$BROWSER_SCELTO" "$DOC" >/dev/null 2>&1 </dev/null &
+else
+    nohup "$BROWSER_SCELTO" "$DOC" >/dev/null 2>&1 </dev/null &
+fi
+echo "Documentazione LegoPST aperta con $BROWSER_SCELTO:"
+echo "  $DOC"

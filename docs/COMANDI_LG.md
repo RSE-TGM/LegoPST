@@ -314,6 +314,12 @@ backup|legocad.prelink-20260916-180429        # copie di sicurezza
 È la prima cosa da eseguire quando si segnala un problema: senza versione e numero
 di build, una segnalazione non è verificabile.
 
+### La documentazione: `lghelp`
+
+| Comando | Tipo | Scopo |
+|---|---|---|
+| `lghelp` | script | **Apre nel browser la documentazione principale**: l'indice ragionato di tutta la documentazione, [`DOCUMENTATION_INDEX.html`](../DOCUMENTATION_INDEX.html). Si apre una **copia navigabile** (in `~/.cache/legopst/doc`): i `.md` che l'indice cita sono convertiti in HTML e i collegamenti puntano alle pagine convertite, così si leggono in qualunque browser, anche senza un'estensione per il Markdown — come nel container Docker. È lo stesso documento che `lghmi` apre dal menu *? → Annotated documentation index*, con lo stesso browser: `$LG_BROWSER` (quello di *File → Settings*), altrimenti il primo installato fra `firefox`, `falkon`, `chromium`, `chromium-browser`, `google-chrome`, `epiphany`, `xdg-open`. Da un terminale il browser parte per conto suo e il terminale torna libero. **Senza terminale** — `lgrun lghelp`, un menu, uno script — `lghelp` resta invece in primo piano finché il browser è aperto, come con `lghelp -w`: in `lgrun lghelp` il container vive quanto il comando, e se `lghelp` uscisse subito il container si chiuderebbe portandosi via il browser prima che la finestra compaia. `lghelp -p` stampa solo il percorso del documento, senza aprirlo. Sta in `Alg_rt/bin/lghelp` e, come `lghmi`, sorgia il profilo da sé se manca. |
+
 ### Il terminale: `lgterm`
 
 | Comando | Tipo | Scopo |
@@ -413,6 +419,7 @@ Due nomi che si incontrano leggendo il codice e che è facile scambiare per coma
 | Voglio… | Comando |
 |---|---|
 | entrare nell'ambiente | `source .profile_legoroot`, poi `lggo` per tornarci |
+| leggere la documentazione | `lghelp` |
 | lavorare senza installare niente | `lgdock` (`-d` per la demo) |
 | disegnare schemi e modelli | `lgpc` |
 | far girare una simulazione e vederla | `lghmi` |

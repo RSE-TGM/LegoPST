@@ -163,9 +163,35 @@ proc aiuto_apri_documento {relativo} {
             "No browser available.\nCheck LG_BROWSER (currently: '$preferito')."
         return ""
     }
-    # I .md passano per il convertitore, se c'e' uno.
+    #  La copia navigabile (lgdocindex.tcl): l'indice e i .md che cita,
+    #  convertiti in HTML con i collegamenti riscritti. Se il documento chiesto
+    #  ne fa parte si apre da li', cosi' anche i collegamenti che contiene
+    #  portano a pagine leggibili e non al sorgente dei .md. Se non si riesce,
+    #  o il documento non e' fra quelli raggiunti dall'indice, si prosegue come
+    #  prima.
     set nota ""
-    if {[string tolower [file extension $doc]] eq ".md"} {
+    set navigabile ""
+    catch {
+        if {[llength [info procs ::lgdocindex::costruisci]] == 0} {
+            source [file join $env(LG_TIX) lgdocindex.tcl]
+        }
+        set root [file normalize $env(LEGOROOT)]
+        set indice_nav [lgdocindex::costruisci $root]
+        if {$indice_nav ne ""} {
+            if {[file tail $doc] eq "DOCUMENTATION_INDEX.html" \
+                    && [file normalize [file dirname $doc]] eq $root} {
+                set navigabile $indice_nav
+            } elseif {[string tolower [file extension $doc]] eq ".md"} {
+                set p [lgdocindex::pagina_di [file normalize $doc] $root [file dirname $indice_nav]]
+                if {[file isfile $p]} { set navigabile $p }
+            }
+        }
+    }
+    if {$navigabile ne ""} {
+        set doc $navigabile
+    } elseif {[string tolower [file extension $doc]] eq ".md"} {
+        # I .md fuori dalla copia navigabile passano per il convertitore, uno
+        # alla volta.
         set html [aiuto_md_in_html $doc]
         if {$html ne ""} {
             set doc $html

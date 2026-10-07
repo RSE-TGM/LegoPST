@@ -1239,6 +1239,26 @@ quel file c'è.
   Command faceplates (xstaz)                  Alg_rt/grafica/xstaz/HOWTO_faceplate.md
 ```
 
+L'indice (*Annotated documentation index*) si apre anche **da terminale, senza
+`lghmi`**, con il comando `lghelp`: stesso documento e stesso browser (vedi
+[docs/COMANDI_LG.md](../docs/COMANDI_LG.md)).
+
+**Quello che si apre è una copia navigabile.** Un browser i `.md` non li rende:
+ne mostra il sorgente, a meno di un'estensione apposta — che nel container
+Docker non c'è. Per questo l'indice e i documenti del menù non si aprono
+dall'originale ma da una copia tenuta nella cache dell'utente
+(`~/.cache/legopst/doc`), costruita da
+[`lgdocindex.tcl`](src/tix/lgdocindex.tcl): parte dall'indice, segue i
+collegamenti ai `.md` e li converte in HTML con `md2html.tcl`, riscrivendo i
+collegamenti — nell'indice e fra un documento e l'altro — verso le pagine
+convertite. Immagini, `.txt` e manuali storici continuano a puntare agli
+originali in `$LEGOROOT`, che non viene toccato (nel container è in sola
+lettura). La prima volta ci vuole poco più di un secondo per una trentina di
+documenti; poi si riconverte solo ciò che è cambiato. Se la copia non si può
+costruire si apre l'originale, come prima. Fino a ottobre 2026 si convertiva
+solo il documento aperto dal menù, uno alla volta: seguendo un collegamento si
+tornava al testo grezzo.
+
 Il **README** è la prima voce, in un gruppo suo e **in grassetto**: è il
 documento che dice *che cos'è* LegoPST — quello che si legge su GitHub — e viene
 prima di sapere dove sta tutto il resto. Il risalto lo dà un font derivato da
