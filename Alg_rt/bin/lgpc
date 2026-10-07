@@ -13,7 +13,7 @@
 #
 # Era un alias di Alg_env.sh (export LG_TIX=$LG_BIN; wish $LG_TIX/legopc.tix).
 # Un alias esiste solo nelle shell interattive che hanno sorgiato il profilo:
-# non si poteva chiamare da uno script, da un menu, da "lgrun -a". Come
+# non si poteva chiamare da uno script, da un menu, da "lgrun lgpc". Come
 # comando si puo'. L'unica differenza: l'alias cambiava LG_TIX anche nella
 # shell da cui lo si lanciava, uno script non puo' - e non serve, perche' il
 # profilo la imposta gia' a $LG_BIN.

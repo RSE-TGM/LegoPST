@@ -26,7 +26,7 @@ IMAGE_NAME="${LG_DOCKER_IMAGE:-aguagliardi/legopst:2.0}"
 # gia' con VERSION: qui restano i valori di default, che valgono solo se si usa
 # questo file cosi' com'e' dal repository.
 #
-# Servono a "update": l'installer va riscaricato DALLO STESSO branch da cui e'
+# Servono a "-update": l'installer va riscaricato DALLO STESSO branch da cui e'
 # arrivata questa copia, altrimenti chi ha installato da un branch di prova si
 # ritroverebbe su master senza che nulla glielo dica.
 REPO_HOST="github.com"
@@ -93,11 +93,15 @@ rilancia_installer() {
 show_help() {
     local CMD_NAME=$(basename "$0")
     cat << EOF
-Uso: $CMD_NAME [OPZIONI]
+Uso: $CMD_NAME [OPZIONI] [COMANDO [ARGOMENTI...]]
+
+Senza COMANDO apre una shell nel container. Con un COMANDO esegue solo
+quello: vedi "Modo applicazione" piu' sotto.
 
 Opzioni:
   -h, --help          Mostra questo help
-  -v, --version       Mostra versione
+  -v, --version       Mostra la versione di $CMD_NAME, l'immagine Docker e la
+                      versione di LegoPST che contiene
   -d, --demo          Installa una demo di legopst e lancia il container con essa
   -s, --socat         Usa socat per X11 forwarding (utile per SSH con MobaXterm)
   -p, --pull          Esegue docker pull dell'immagine prima di avviare il container
@@ -106,18 +110,22 @@ Opzioni:
                       terminale resta una shell del container. PROG puo' avere
                       argomenti, tra virgolette: -e "lghmi -staz".
                       L'output va in /tmp/lgdock_exec.log, dentro il container.
-  -a, --app PROG      Modo "applicazione": il container esegue solo
-                      PROG, senza aprire una shell nel terminale, e VIVE QUANTO
-                      PROG. Quando PROG finisce - chiuso o andato in crash - il
-                      container termina, con tutto quello che PROG ha lanciato.
-                      $CMD_NAME resta in attesa e restituisce il codice di
-                      uscita di PROG; Ctrl-C lo ferma.
+
+Modo applicazione:
+  $CMD_NAME [OPZIONI] COMANDO [ARGOMENTI...]
+                      Il container esegue solo COMANDO, senza aprire una shell
+                      nel terminale, e VIVE QUANTO LUI. Quando COMANDO finisce -
+                      chiuso o andato in crash - il container termina, con
+                      tutto quello che COMANDO ha lanciato. $CMD_NAME resta in
+                      attesa e restituisce il codice di uscita di COMANDO;
+                      Ctrl-C lo ferma. Le opzioni di $CMD_NAME vanno PRIMA del
+                      comando: quello che segue e' suo.
 
 Manutenzione:
-  update              Reinstalla $CMD_NAME all'ultima versione e aggiorna
+  -update             Reinstalla $CMD_NAME all'ultima versione e aggiorna
                       l'immagine Docker. Riscarica ed esegue l'installer dallo
                       stesso repository da cui e' stato installato.
-  uninstall           Disinstalla $CMD_NAME. Non tocca l'immagine Docker ne' i
+  -uninstall          Disinstalla $CMD_NAME. Non tocca l'immagine Docker ne' i
                       tuoi dati (~/legocad, ~/sked): dice come rimuoverli.
 
 Esempi:
@@ -126,9 +134,11 @@ Esempi:
   $CMD_NAME --socat          # Lancia container con socat per X11 (per SSH/MobaXterm)
   $CMD_NAME -d -s            # Demo + socat
   $CMD_NAME -e lghmi         # Lancia il container e apre subito lghmi
-  $CMD_NAME -a lghmi         # Solo lghmi: il container si chiude con lui
-  $CMD_NAME update           # aggiorna comando e immagine all'ultima versione
-  $CMD_NAME uninstall        # rimuove il comando
+  $CMD_NAME lghmi            # Solo lghmi: il container si chiude con lui
+  $CMD_NAME lghmi -staz      # ... con i suoi argomenti
+  $CMD_NAME -d lghmi         # ... con la demo
+  $CMD_NAME -update          # aggiorna comando e immagine all'ultima versione
+  $CMD_NAME -uninstall       # rimuove il comando
 
 Modalità X11:
   - Standard (default): X11 forwarding diretto, adatto per uso locale
@@ -137,8 +147,52 @@ Modalità X11:
 EOF
 }
 
+#  Tre versioni diverse, e prima se ne vedeva una sola:
+#    - quella di questo lanciatore (la stampiglia l'installer dal file VERSION
+#      del repository da cui lo ha scaricato);
+#    - l'immagine Docker che lancia;
+#    - il LegoPST che c'e' DENTRO l'immagine, che e' quello che gira davvero:
+#      il file VERSION e version.h (git describe, numero e data di build)
+#      scritti quando l'immagine e' stata costruita.
+#  Lanciatore e immagine si aggiornano separatamente, quindi possono non
+#  coincidere: e' proprio per questo che si mostrano entrambe.
+#  L'ultima si legge dall'immagine con un container di un attimo - ma solo se
+#  l'immagine c'e' gia': "docker run" su un'immagine assente la SCARICHEREBBE,
+#  qualche GB per rispondere a -v.
 show_version() {
-    echo "lgdock - Docker container per LegoPST v${VERSION}"
+    local CMD_NAME creata info
+    CMD_NAME=$(basename "$0")
+    echo "$CMD_NAME v${VERSION} - lanciatore del container LegoPST"
+    if ! $DOCKER_CMD image inspect "$IMAGE_NAME" >/dev/null 2>&1; then
+        echo "Immagine:  $IMAGE_NAME (non ancora scaricata)"
+        echo "LegoPST:   si vede dopo il primo avvio, o dopo '$CMD_NAME -p'"
+        return 0
+    fi
+    creata=$($DOCKER_CMD image inspect --format '{{.Created}}' "$IMAGE_NAME" 2>/dev/null | cut -c1-10)
+    echo "Immagine:  $IMAGE_NAME${creata:+ (creata il $creata)}"
+    #  Il container restituisce i quattro valori grezzi, ciascuno con la sua
+    #  etichetta; la frase si compone qui.
+    info=$($DOCKER_CMD run --rm --platform linux/amd64 --entrypoint sh "$IMAGE_NAME" -c '
+        R=/home/legoroot_fedora41
+        echo "V=$(tr -d "[:space:]" < $R/VERSION 2>/dev/null)"
+        echo "G=$(grep "define GIT_VERSION_STRING" $R/version.h 2>/dev/null | cut -d\" -f2)"
+        echo "N=$(grep "define BUILD_NUMBER" $R/version.h 2>/dev/null | tr -dc "0-9")"
+        echo "D=$(grep "define BUILD_DATE_STRING" $R/version.h 2>/dev/null | cut -d\" -f2)"' 2>/dev/null) || info=""
+    if [ -z "$info" ]; then
+        echo "LegoPST:   versione non leggibile da questa immagine"
+        return 0
+    fi
+    local v g n d riga
+    v=$(sed -n 's/^V=//p' <<< "$info")
+    g=$(sed -n 's/^G=//p' <<< "$info")
+    n=$(sed -n 's/^N=//p' <<< "$info")
+    d=$(sed -n 's/^D=//p' <<< "$info")
+    # la data arriva come AAAAMMGG
+    [[ "$d" =~ ^([0-9]{4})([0-9]{2})([0-9]{2})$ ]] && d="${BASH_REMATCH[1]}-${BASH_REMATCH[2]}-${BASH_REMATCH[3]}"
+    riga="${v:-?}"
+    [ -n "$g" ] && riga="$riga - $g"
+    [ -n "$n" ] && riga="$riga, build $n${d:+ del $d}"
+    echo "LegoPST:   $riga"
 }
 
 # =============================================================================
@@ -206,6 +260,19 @@ DO_PULL=false
 EXEC_PROG=""
 APP_PROG=""
 
+#  Il comando del modo applicazione, dagli argomenti rimasti. Un argomento solo
+#  si prende com'e': puo' essere una riga di shell tra virgolette
+#  ("cd ~/sked/X && lghmi"). Piu' argomenti si quotano uno per uno, cosi'
+#  arrivano al programma come sono stati scritti, spazi compresi.
+comando_da() {
+    if [[ $# -eq 1 ]]; then
+        APP_PROG="$1"
+    else
+        APP_PROG=$(printf '%q ' "$@")
+        APP_PROG="${APP_PROG% }"
+    fi
+}
+
 while [[ $# -gt 0 ]]; do
     case "$1" in
         -h|--help)
@@ -236,38 +303,41 @@ while [[ $# -gt 0 ]]; do
             EXEC_PROG="$2"
             shift 2
             ;;
-        -a|--app)
-            if [[ $# -lt 2 || -z "$2" ]]; then
-                echo "L'opzione $1 vuole il programma da eseguire: $1 <prog>"
-                exit 1
-            fi
-            APP_PROG="$2"
-            shift 2
-            ;;
-        update)
+        -update|--update)
             #  --pull-image: l'immagine si scarica DOPO aver installato gli
             #  script, non prima. Il nome dell'immagine sta dentro lgdock, e
             #  un aggiornamento puo' cambiarlo: scaricandola prima si tirerebbe
             #  giu' quella vecchia.
             rilancia_installer --pull-image
             ;;
-        uninstall)
+        -uninstall|--uninstall)
             rilancia_installer -u
             ;;
-        *)
+        --)
+            shift
+            [[ $# -gt 0 ]] && comando_da "$@"
+            break
+            ;;
+        -*)
             echo "Opzione sconosciuta: $1"
             echo "Usa --help per vedere le opzioni disponibili"
             exit 1
             ;;
+        *)
+            #  La prima parola che non e' un'opzione e' il comando, e tutto
+            #  quello che segue e' suo: come sudo, o "docker run immagine cmd".
+            comando_da "$@"
+            break
+            ;;
     esac
 done
 
-#  -e e -a rispondono a due idee opposte: con -e il programma parte in
-#  background e il terminale resta una shell del container; con -a non c'e'
-#  nessuna shell e il container vive quanto il programma.
+#  -e e il comando rispondono a due idee opposte: con -e il programma parte in
+#  background e il terminale resta una shell del container; con un comando non
+#  c'e' nessuna shell e il container vive quanto lui.
 if [[ -n "$EXEC_PROG" && -n "$APP_PROG" ]]; then
-    echo "Le opzioni -e e -a non si usano insieme: -e lascia una shell nel"
-    echo "terminale, -a no. Scegline una."
+    echo "-e e un comando non si usano insieme: -e lascia una shell nel"
+    echo "terminale, il comando no. Scegline uno."
     exit 1
 fi
 
@@ -628,6 +698,35 @@ ln -sfn /host_home/sked "$USER_HOME_IN_CONTAINER/sked" 2>/dev/null || true
 ln -sfn /host_home/defaults "$USER_HOME_IN_CONTAINER/defaults" 2>/dev/null || true
 chown -h "$CONT_UID:$CONT_GID" "$USER_HOME_IN_CONTAINER/host_data"
 
+# Risorse X delle applicazioni Motif (config, mmi, graphics, legocad...):
+# colori, font, scorciatoie - anche il Ctrl+C/X/V nei campi di config. Il
+# profilo le cerca in ~/risorse (XAPPLRESDIR, .profile_legoroot), e nella home
+# del container, che nasce nuova a ogni avvio, quella directory non c'era:
+# i programmi partivano con l'aspetto di default, senza un errore che lo dicesse.
+#
+# Come per defaults, stanno sull'host e qui si collegano: cosi' una modifica
+# fatta dall'utente sopravvive al container. Se l'host non le ha ancora si
+# creano ADESSO, dalla copia ufficiale dell'immagine (util2025/risorse, quella
+# che il suo Readme dice di copiare nella home): a container chiuso restano
+# come ~/risorse. Se ci sono gia' non si toccano - sono personalizzabili, e
+# l'utente puo' averle cambiate.
+RISORSE_UFFICIALI="/home/legoroot_fedora41/util2025/risorse"
+if [ ! -e /host_home/risorse ] && [ -d "$RISORSE_UFFICIALI" ]; then
+    echo "Creazione di ~/risorse (risorse X delle applicazioni) da util2025/risorse..."
+    # Gli stessi riguardi della demo: su un filesystem che non accetta i
+    # permessi Unix cp e chown possono lamentarsi, e nudi sotto set -e
+    # fermerebbero l'avvio del container per delle risorse grafiche.
+    if mkdir -p /host_home/risorse && cp -R "$RISORSE_UFFICIALI/." /host_home/risorse/; then
+        chown -R "$CONT_UID:$CONT_GID" /host_home/risorse 2>/dev/null || \
+            echo "ATTENZIONE: chown fallito su /host_home/risorse. Proseguo."
+    else
+        echo "ATTENZIONE: non riesco a creare /host_home/risorse. Proseguo senza:"
+        echo "le applicazioni useranno l'aspetto di default."
+    fi
+fi
+ln -sfn /host_home/risorse "$USER_HOME_IN_CONTAINER/risorse" 2>/dev/null || true
+chown -h "$CONT_UID:$CONT_GID" "$USER_HOME_IN_CONTAINER/risorse" 2>/dev/null || true
+
 # Configurazione .bash_profile
 BASH_PROFILE_PATH="$USER_HOME_IN_CONTAINER/.bash_profile"
 PROFILE_LEGOROOT_PATH="/home/legoroot_fedora41/.profile_legoroot"
@@ -699,7 +798,7 @@ echo "DISPLAY: $DISPLAY_VALUE"
 echo '======================================================================='
 echo ''
 
-# lgrun -a <prog>: modo "applicazione". Niente shell interattiva:
+# lgrun <comando>: modo "applicazione". Niente shell interattiva:
 # si esegue solo il programma, come farebbe la shell di login (su - ... -c
 # carica il .bash_profile, quindi DISPLAY e il profilo LegoPST), e si esce con
 # il suo codice. Questo script e' il processo 1 del container: quando esce, il
@@ -746,7 +845,7 @@ CONTAINER_SCRIPT="${CONTAINER_SCRIPT//DISPLAY_NUM_VAR/$DISPLAY_NUM}"
 # =============================================================================
 # Docker Run - Diverso per modalità standard vs socat
 # =============================================================================
-#  -it serve alla shell interattiva. In modo applicazione (-a) non c'e' nessuna
+#  -it serve alla shell interattiva. In modo applicazione non c'e' nessuna
 #  shell da pilotare: senza -t il runtime non pretende un terminale (si puo'
 #  lanciare da un menu, da uno script, con &) e inoltra i segnali al container.
 DOCKER_TTY="-it"

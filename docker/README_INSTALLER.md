@@ -172,7 +172,7 @@ scrive, cosa fare dopo e come disinstallare — prima di eseguirlo, non dopo.
    bash mette in `$0` il percorso con cui lo script è stato invocato, quindi
    attraverso il link `basename "$0"` vale già `lgrun`
 4. **Stampiglia dentro `lgdock`** la versione e le coordinate del repository da
-   cui l'installazione è venuta, che servono a `lgrun update`
+   cui l'installazione è venuta, che servono a `lgrun -update`
 5. **Configura il PATH**: aggiunge ~/.local/bin al PATH se necessario
 6. **Verifica l'installazione**: testa che tutto funzioni
 
@@ -188,7 +188,7 @@ Non installa LegoPST, non compila niente e non tocca il sistema: scrive in
 ### Aggiornare
 
 ```sh
-lgrun update
+lgrun -update
 ```
 
 Riscarica l'installer **dallo stesso branch** da cui è venuta l'installazione e
@@ -200,11 +200,11 @@ script, perché il nome dell'immagine sta dentro `lgdock` e un aggiornamento pu�
 cambiarlo — scaricandola prima si tirerebbe giù quella vecchia.
 
 Se il download dell'installer fallisce, o quel che arriva non è uno script,
-`update` **si ferma prima di toccare qualcosa**: il comando che hai continua a
+`-update` **si ferma prima di toccare qualcosa**: il comando che hai continua a
 funzionare. Se fallisce solo il `docker pull`, l'installazione resta valida e lo
 dice.
 
-> **Dettaglio da non "semplificare".** `update` sostituisce il proprio processo
+> **Dettaglio da non "semplificare".** `-update` sostituisce il proprio processo
 > con l'installer (`exec`) invece di chiamarlo. L'installer riscrive `lgdock`
 > con `curl -o`, che **tronca lo stesso inode**; bash legge uno script a pezzi
 > tenendo aperto il descrittore, quindi se il contenuto cambia sotto prosegue al
@@ -212,12 +212,20 @@ dice.
 > descrittore è già chiuso quando l'installer scrive.
 
 Rilanciare l'installer a mano continua a funzionare, e resta la strada per chi
-non ha ancora un `lgrun` che conosce `update`.
+non ha ancora un `lgrun` che conosce `-update`.
+
+> **Fino a ottobre 2026 erano `lgrun update` e `lgrun uninstall`**, parole nude.
+> Quella forma **non esiste più**: una parola nuda è il comando da eseguire nel
+> container (vedi [Modo applicazione](#modo-applicazione-lgrun-comando)), senza
+> eccezioni, quindi `lgrun update` cercherebbe un programma `update` dentro il
+> container. Un `lgrun` installato **prima** del cambio conosce invece solo la
+> forma vecchia: lì l'aggiornamento si lancia ancora con `lgrun update`, una
+> volta, e da quel momento con `lgrun -update`.
 
 ### Disinstallare
 
 ```sh
-lgrun uninstall                     # oppure, a mano:
+lgrun -uninstall                    # oppure, a mano:
 install_legopst_dock.sh -u          # ...che e' esattamente la stessa cosa
 ```
 
@@ -258,14 +266,38 @@ lgrun --demo --socat
 lgrun -e lghmi
 
 # Solo lghmi, senza shell: il container si chiude quando lo chiudi
-lgrun -a lghmi
+lgrun lghmi
 
 # Mostra help
 lgrun --help
 
-# Mostra versione
+# Mostra le versioni: lgrun, immagine Docker, LegoPST nell'immagine
 lgrun --version
 ```
+
+### Che versione ho: `-v`
+
+```
+$ lgrun -v
+lgrun v2.0 - lanciatore del container LegoPST
+Immagine:  aguagliardi/legopst:2.0 (creata il 2026-10-06)
+LegoPST:   2.0 - v2026.1-139-g75933111, build 254 del 2026-10-06
+```
+
+Sono tre versioni diverse, e fino a ottobre 2026 se ne vedeva solo la prima:
+
+- **`lgrun`**, il lanciatore: la stampiglia l'installer, dal file `VERSION` del
+  repository da cui lo scarica;
+- **l'immagine Docker** che lancia, con la data in cui è stata costruita;
+- **il LegoPST dentro l'immagine**, che è quello che gira davvero: il suo
+  `VERSION` più quello che c'è in `version.h` — la versione git
+  (`git describe`), il numero e la data di build.
+
+Lanciatore e immagine si aggiornano separatamente, quindi possono non
+coincidere: è il motivo per cui si mostrano entrambe. La terza riga si legge
+dall'immagine con un container che dura un attimo; se l'immagine **non è ancora
+stata scaricata** `-v` lo dice e non la scarica (sarebbero alcuni GB per
+rispondere a una domanda).
 
 ### Lanciare un programma all'avvio: `-e`
 
@@ -295,14 +327,25 @@ Il comando arriva al container in una variabile d'ambiente (`LGDOCK_EXEC`), non
 sostituito nel testo dello script: spazi, argomenti e virgolette arrivano
 intatti.
 
-### Modo applicazione: `-a`
+### Modo applicazione: `lgrun <comando>`
 
-`lgrun -a <prog>` (anche `--app`) esegue **solo** `<prog>` e fa vivere il
-container **quanto lui**:
+`lgrun <comando>` esegue **solo** quel comando e fa vivere il container
+**quanto lui**:
 
 ```bash
-lgrun -a lghmi
+lgrun lghmi
+lgrun lghmi -staz                  # il comando con i suoi argomenti
+lgrun -d lghmi                     # le opzioni di lgrun PRIMA del comando
+lgrun "cd ~/sked/X && lghmi"       # una riga di shell: tra virgolette
 ```
+
+La prima parola che non è un'opzione è il comando, e **tutto quello che segue è
+suo**, come con `sudo`: per questo le opzioni di `lgrun` vanno prima. Con più
+argomenti ognuno arriva al programma com'è stato scritto, spazi compresi; un
+argomento solo si prende com'è, e può essere una riga di shell. Se il comando
+comincia per `-` lo si separa con `--`.
+
+Fino a ottobre 2026 era l'opzione `-a <prog>`, che non esiste più.
 
 - **Nessuna shell del container** nel terminale: il container si prepara come
   sempre, esegue il programma con il profilo LegoPST caricato, e basta.
@@ -322,9 +365,9 @@ lgrun -a lghmi
 > ammazzata con lui, senza lo *Simulator Shutdown* ordinato del banco. Prima di
 > uscire conviene fermarla da lì.
 
-`-a` e `-e` non si usano insieme. Quale scegliere:
+`-e` e un comando non si usano insieme. Quale scegliere:
 
-| | `lgrun -e <prog>` | `lgrun -a <prog>` |
+| | `lgrun -e <prog>` | `lgrun <comando>` |
 |---|---|---|
 | nel terminale | la shell del container | niente shell: l'output del programma |
 | il programma | parte in background, una volta | è l'unica cosa che gira |

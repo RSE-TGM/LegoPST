@@ -71,7 +71,7 @@ installato. Il container porta compilatori, Motif, Tcl/Tk/Tix e X11 già a posto
 |---|---|---|
 | `lgdock` | script | **Il comando da usare.** Lancia il container LegoPST e apre un terminale bash dentro, creando dinamicamente l'utente dell'host nel container così che i file scritti restino tuoi. Opzioni: `-d`/`--demo` installa la demo (legocad e sked) nella home e parte con quella; `-s`/`--socat` usa un socket bridge per l'X11, necessario via SSH/MobaXterm; `-p`/`--pull` aggiorna l'immagine prima di partire; `-h` e `-v` per aiuto e versione. Si combinano: `lgdock -d -s`. L'immagine è una sola, `aguagliardi/legopst:2.0`; per puntare a un'altra (una build di prova) c'è la variabile `LG_DOCKER_IMAGE`. |
 | `lgdock_multi` | script | Variante **multipiattaforma**: stessa interfaccia (`-h`, `-v`, `-d`, `-s`) ma senza `--pull`, e con il rilevamento dei permessi — se `/var/run/docker.sock` esiste ma non è scrivibile dall'utente, ricade su `sudo docker` (chiedendo subito la password, invece di fallire a metà). Da usare dove `lgdock` non parte per questioni di permessi. |
-| `lgrun` | symlink | **Il comando dell'utente finale**, su una macchina che non ha LegoPST. Lo crea l'installer (`docker/install_legopst_dock.sh`) in `~/.local/bin` come **symlink a `lgdock`**, che sta fuori dal `PATH` in `~/.local/lib/legopst/`: così il comando da digitare è uno solo. Stesse opzioni di `lgdock` — l'aiuto porta il nome giusto da sé, perché `basename "$0"` attraverso il link vale `lgrun`. In più ha **`update`** e **`uninstall`** (vedi sotto). |
+| `lgrun` | symlink | **Il comando dell'utente finale**, su una macchina che non ha LegoPST. Lo crea l'installer (`docker/install_legopst_dock.sh`) in `~/.local/bin` come **symlink a `lgdock`**, che sta fuori dal `PATH` in `~/.local/lib/legopst/`: così il comando da digitare è uno solo. Stesse opzioni di `lgdock` — l'aiuto porta il nome giusto da sé, perché `basename "$0"` attraverso il link vale `lgrun`. In più ha **`-update`** e **`-uninstall`** (vedi sotto; fino a ottobre 2026 erano le parole nude `update` e `uninstall`, che ora sarebbero prese per un comando da eseguire nel container). |
 | `lgdock_socat` | script | Versione **v1.0**, solo X11 via `socat`. Superata da `lgdock --socat`, che fa lo stesso restando un comando solo. Conservata per compatibilità. |
 
 > `lgdock` e `lgdock_multi` sono alla v2.0, `lgdock_socat` alla v1.0: se ne dubiti,
@@ -82,18 +82,19 @@ installato via `install_legopst_dock.sh`:
 
 | Comando | Cosa fa |
 |---|---|
-| `lgrun update` | Reinstalla `lgrun` all'ultima versione **e aggiorna l'immagine Docker**. Riscarica l'installer e lo esegue: installazione e aggiornamento restano un solo percorso di codice, che non può divergere. |
-| `lgrun uninstall` | Disinstalla, come `install_legopst_dock.sh -u`. Non tocca l'immagine né i tuoi dati (`~/legocad`, `~/sked`): dice come rimuoverli. |
+| `lgrun -update` | Reinstalla `lgrun` all'ultima versione **e aggiorna l'immagine Docker**. Riscarica l'installer e lo esegue: installazione e aggiornamento restano un solo percorso di codice, che non può divergere. |
+| `lgrun -uninstall` | Disinstalla, come `install_legopst_dock.sh -u`. Non tocca l'immagine né i tuoi dati (`~/legocad`, `~/sked`): dice come rimuoverli. |
 | `lgrun -e <prog>` | Appena il container è pronto esegue `<prog>` al suo interno, con il profilo LegoPST già caricato e in background: il terminale resta la shell del container. `lgrun -e lghmi` apre il selettore con un solo comando. Una volta sola per container; output in `/tmp/lgdock_exec.log` nel container. Dettagli in [docker/README_INSTALLER.md](../docker/README_INSTALLER.md). |
-| `lgrun -a <prog>` | Modo "applicazione": esegue solo `<prog>`, senza shell nel terminale, e il container **vive quanto lui** - quando il programma finisce o va in crash il container si chiude, con tutto quello che aveva lanciato. `lgrun` restituisce il codice di uscita del programma. `lgrun -a lghmi`. Dettagli in [docker/README_INSTALLER.md](../docker/README_INSTALLER.md). |
+| `lgrun <comando>` | Modo "applicazione": esegue solo quel comando (con i suoi argomenti: `lgrun lghmi -staz`), senza shell nel terminale, e il container **vive quanto lui** - quando il programma finisce o va in crash il container si chiude, con tutto quello che aveva lanciato. `lgrun` restituisce il codice di uscita del programma. Le opzioni di `lgrun` vanno prima del comando. `lgrun lghmi`. Dettagli in [docker/README_INSTALLER.md](../docker/README_INSTALLER.md). |
+| `lgrun -v` | Le tre versioni: quella di `lgrun`, l'immagine Docker con la sua data, e il **LegoPST dentro l'immagine** (versione, `git describe`, numero e data di build). Se l'immagine non è ancora scaricata lo dice, senza scaricarla. |
 
 > **Da dove aggiorna.** L'installer stampiglia dentro `lgdock` le coordinate del
 > repository da cui l'installazione è venuta (`REPO_HOST`, `REPO_SLUG`,
-> `REPO_BRANCH`), come già fa con la versione. Così `update` riscarica **dallo
+> `REPO_BRANCH`), come già fa con la versione. Così `-update` riscarica **dallo
 > stesso branch**: chi ha installato da un branch di prova continua ad
 > aggiornarsi da quello, invece di saltare su `master` senza accorgersene.
 >
-> **Perché `exec`.** `update` sostituisce il proprio processo con l'installer
+> **Perché `exec`.** `-update` sostituisce il proprio processo con l'installer
 > invece di chiamarlo. L'installer riscrive `lgdock` con `curl -o`, che
 > **tronca lo stesso inode**; bash legge uno script a pezzi tenendo aperto il
 > descrittore, quindi se il contenuto cambia sotto prosegue al vecchio offset
@@ -102,7 +103,7 @@ installato via `install_legopst_dock.sh`:
 > chiamata normale.**
 >
 > Se il download fallisce o non arriva uno script (rete giù, URL che risponde
-> con altro), `update` **si ferma prima di toccare qualcosa**: il comando che
+> con altro), `-update` **si ferma prima di toccare qualcosa**: il comando che
 > hai continua a funzionare. Se invece fallisce solo il `docker pull`,
 > l'installazione resta valida e lo dice.
 
@@ -114,7 +115,7 @@ Dettagli su immagine, build e installazione: [../docker/README_INSTALLER.md](../
 
 | Comando | Tipo | Scopo |
 |---|---|---|
-| `lgpc` | script | **Lancia il CAD grafico** `legopc.tix`: disegno degli schemi, librerie di moduli, generazione dei `.i5`/`.tom`. Imposta `LG_TIX=$LG_BIN` per legopc, quindi usa sempre la versione corrente in `Alg_legopc/bin`. È il comando normale. Sta in `Alg_rt/bin/lgpc` e, come `lghmi`, sorgia il profilo da sé se manca: si può chiamare anche da uno script, da un menu, da una shell non interattiva, da `lgrun -e lgpc` / `lgrun -a lgpc`. |
+| `lgpc` | script | **Lancia il CAD grafico** `legopc.tix`: disegno degli schemi, librerie di moduli, generazione dei `.i5`/`.tom`. Imposta `LG_TIX=$LG_BIN` per legopc, quindi usa sempre la versione corrente in `Alg_legopc/bin`. È il comando normale. Sta in `Alg_rt/bin/lgpc` e, come `lghmi`, sorgia il profilo da sé se manca: si può chiamare anche da uno script, da un menu, da una shell non interattiva, da `lgrun -e lgpc` / `lgrun lgpc`. |
 | `lgpcu` | alias | Lo stesso CAD ma con il **wish "ultimo"** (`$LG_WISH`, in `tcltktix-8.3.5b/`) invece di quello di sistema. Serve solo quando il wish di sistema dà problemi con Tix. |
 | `lgpc2` | func | Lancia `wish $LG_TIX/legopc.tix` **senza reimpostare `LG_TIX`**: rispetta un `LG_TIX` già esportato a mano. L'uso previsto non è documentato da nessuna parte. Attenzione: essendo una funzione senza `"$@"`, **ignora gli argomenti** — `lgpc2 <modello>` apre legopc vuoto. |
 

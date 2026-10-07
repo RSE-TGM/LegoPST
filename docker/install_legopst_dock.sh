@@ -46,9 +46,10 @@ DOPO L'INSTALLAZIONE
   lgrun --socat      X11 attraverso un socket bridge, per SSH/MobaXterm
   lgrun --pull       aggiorna l'immagine prima di partire
   lgrun -e lghmi     appena il container e' pronto apre lghmi (o un altro programma)
-  lgrun -a lghmi     solo lghmi, senza shell: il container si chiude con lui
-  lgrun update       reinstalla all'ultima versione e aggiorna l'immagine
-  lgrun uninstall    disinstalla (come "install_legopst_dock.sh -u")
+  lgrun lghmi        solo lghmi, senza shell: il container si chiude con lui
+  lgrun -v           versione di lgrun, dell'immagine e di LegoPST
+  lgrun -update      reinstalla all'ultima versione e aggiorna l'immagine
+  lgrun -uninstall   disinstalla (come "install_legopst_dock.sh -u")
   lgrun --help       tutte le opzioni
   La prima volta Docker scarica l'immagine (qualche GB): qualche minuto, una
   volta sola.
@@ -205,7 +206,7 @@ case "${1:-}" in
         INSTALL_DIR="$HOME/.local/bin"
         LIB_DIR="$HOME/.local/lib/legopst"
         disinstalla; exit 0 ;;
-    #  Lo passa "lgrun update": installa e POI scarica l'immagine. L'ordine
+    #  Lo passa "lgrun -update": installa e POI scarica l'immagine. L'ordine
     #  conta - il nome dell'immagine sta dentro lgdock, e un aggiornamento puo'
     #  cambiarlo, quindi scaricarla prima vorrebbe dire tirare giu' la vecchia.
     --pull-image)   PULL_IMAGE=true ;;
@@ -375,7 +376,7 @@ else
     echo "⚠ File VERSION non trovato, versione placeholder mantenuta"
 fi
 
-#  Da dove e' arrivata questa copia. Serve a "lgrun update", che riscarica
+#  Da dove e' arrivata questa copia. Serve a "lgrun -update", che riscarica
 #  l'installer: senza, dovrebbe cablare master e chi installa da un branch di
 #  prova ci finirebbe sopra senza accorgersene.
 sed -i -e "s|^REPO_HOST=\".*\"|REPO_HOST=\"${REPO_HOST}\"|" \
@@ -400,7 +401,7 @@ fi
 
 #  -f: se lgrun c'e' gia' - da un'installazione precedente, involucro o link -
 #  si sostituisce. ln non tocca l'inode del target, quindi questo e' sicuro
-#  anche mentre lgrun sta girando (e' il caso di "lgrun update").
+#  anche mentre lgrun sta girando (e' il caso di "lgrun -update").
 if ln -sfn "$LGDOCK_SCRIPT" "$LGRUN_SCRIPT"; then
     echo "✓ Comando 'lgrun' creato ($LGRUN_SCRIPT -> $LGDOCK_SCRIPT)"
 else
@@ -463,7 +464,7 @@ else
 fi
 
 IMMAGINE_PRONTA=false
-#  Aggiornamento dell'immagine, chiesto da "lgrun update". Si fa QUI, dopo
+#  Aggiornamento dell'immagine, chiesto da "lgrun -update". Si fa QUI, dopo
 #  l'installazione, e leggendo il nome dall'lgdock APPENA installato: se un
 #  aggiornamento cambia immagine, e' quella nuova che va scaricata.
 if [ "$PULL_IMAGE" = true ]; then
@@ -502,8 +503,9 @@ echo "Uso:"
 echo "  lgrun              # Avvia LegoPST container"
 echo "  lgrun --demo       # Avvia con modello demo"
 echo "  lgrun --socat      # Avvia con X11 via socat (per SSH)"
-echo "  lgrun update       # Aggiorna comando e immagine all'ultima versione"
-echo "  lgrun uninstall    # Disinstalla"
+echo "  lgrun lghmi        # Solo lghmi: il container si chiude con lui"
+echo "  lgrun -update      # Aggiorna comando e immagine all'ultima versione"
+echo "  lgrun -uninstall   # Disinstalla"
 echo "  lgrun --help       # Mostra tutte le opzioni"
 echo ""
 
