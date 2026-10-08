@@ -33,6 +33,15 @@ REPO_HOST="github.com"
 REPO_SLUG="RSE-TGM/LegoPST"
 REPO_BRANCH="master"
 
+#  La release di GitHub che porta i pacchetti delle demo, uno per demo:
+#  legopst_<nome>.tgz. Li pubblica demo/publish_demo.sh. Quella standard
+#  (userstd) sta anche dentro l'immagine; le altre si scaricano da qui.
+DEMO_RELEASE="${LG_DEMO_RELEASE:-demo-2.0}"
+
+url_demo() {    # $1 = nome della demo
+    echo "https://github.com/${REPO_SLUG}/releases/download/${DEMO_RELEASE}/legopst_$1.tgz"
+}
+
 url_installer() {
     if [ "$REPO_HOST" = "github.com" ]; then
         echo "https://raw.githubusercontent.com/${REPO_SLUG}/${REPO_BRANCH}/docker/install_legopst_dock.sh"
@@ -102,7 +111,14 @@ Opzioni:
   -h, --help          Mostra questo help
   -v, --version       Mostra la versione di $CMD_NAME, l'immagine Docker e la
                       versione di LegoPST che contiene
-  -d, --demo          Installa una demo di legopst e lancia il container con essa
+  -d, --demo [NOME]   Installa una demo e lancia il container con essa. Senza
+                      NOME e' quella standard, legopst_userstd, che sta dentro
+                      l'immagine; con NOME e' legopst_NOME, scaricata dalla
+                      release delle demo su GitHub. Una demo gia' installata
+                      nella home non viene toccata. NOME vale come nome di demo
+                      solo se quella demo esiste (installata o pubblicata):
+                      altrimenti e' il COMANDO da eseguire, come in
+                      "$CMD_NAME -d lghmi". Per non lasciare dubbi: --demo=NOME.
   -s, --socat         Usa socat per X11 forwarding (utile per SSH con MobaXterm)
   -p, --pull          Esegue docker pull dell'immagine prima di avviare il container
   -dbg, --debug       Mostra tutti i messaggi dell'avvio: quelli di $CMD_NAME,
@@ -141,7 +157,8 @@ Esempi:
   $CMD_NAME -e lghmi         # Lancia il container e apre subito lghmi
   $CMD_NAME lghmi            # Solo lghmi: il container si chiude con lui
   $CMD_NAME lghmi -staz      # ... con i suoi argomenti
-  $CMD_NAME -d lghmi         # ... con la demo
+  $CMD_NAME -d lghmi         # ... con la demo standard
+  $CMD_NAME -d nucleare      # Installa la demo legopst_nucleare (dalla release)
   $CMD_NAME -update          # aggiorna comando e immagine all'ultima versione
   $CMD_NAME -uninstall       # rimuove il comando
 
@@ -260,6 +277,7 @@ fi
 # Parsing Parametri
 # =============================================================================
 RUN_DEMO=false
+DEMO_NOME="userstd"
 USE_SOCAT=false
 DO_PULL=false
 EXEC_PROG=""
@@ -291,6 +309,27 @@ while [[ $# -gt 0 ]]; do
             ;;
         -d|--demo)
             RUN_DEMO=true
+            shift
+            #  La parola che segue puo' essere il nome della demo oppure il
+            #  comando da eseguire ("lgrun -d lghmi"). E' un nome di demo se
+            #  quella demo ESISTE: gia' installata nella home, oppure
+            #  pubblicata nella release. Altrimenti resta dov'e', e il giro
+            #  successivo la prende come comando.
+            if [[ $# -gt 0 && "$1" =~ ^[A-Za-z0-9_][A-Za-z0-9_-]*$ ]]; then
+                if [[ -d "$HOME/legopst_$1" ]] || \
+                   curl -fsIL --max-time 8 -o /dev/null "$(url_demo "$1")" 2>/dev/null; then
+                    DEMO_NOME="$1"
+                    shift
+                fi
+            fi
+            ;;
+        --demo=*)
+            RUN_DEMO=true
+            DEMO_NOME="${1#--demo=}"
+            if [[ ! "$DEMO_NOME" =~ ^[A-Za-z0-9_][A-Za-z0-9_-]*$ ]]; then
+                echo "Nome di demo non valido: '$DEMO_NOME' (lettere, cifre, _ e -)"
+                exit 1
+            fi
             shift
             ;;
         -s|--socat)
@@ -403,7 +442,7 @@ echo "======================================================================="
 echo "  Avvio LegoPST Docker - Modalità: $MODE"
 echo "======================================================================="
 echo "Immagine: $IMAGE_NAME"
-echo "Demo mode: $RUN_DEMO"
+echo "Demo mode: $RUN_DEMO$([[ "$RUN_DEMO" == true ]] && echo " (legopst_$DEMO_NOME)")"
 echo "Utente: $HOST_USERNAME (UID: $HOST_USER_ID, GID: $HOST_GROUP_ID)"
 echo "Home directory: $HOST_USER_HOME"
 echo "DISPLAY: $DISPLAY"
@@ -672,14 +711,36 @@ echo "Creazione link simbolici in $USER_HOME_IN_CONTAINER..."
 mkdir -p "$USER_HOME_IN_CONTAINER"
 ln -sfn /host_home "$USER_HOME_IN_CONTAINER/host_data"
 
-# Eventuale copia del legocad demo nella home dell'utente
+# Eventuale installazione di una demo nella home dell'utente.
+#
+# La demo e' una directory legopst_<nome> con dentro legocad e sked, cioe'
+# un'area di lavoro come le altre. Il pacchetto legopst_<nome>.tgz si prende
+# dall'immagine se c'e' (quella standard, userstd, ci viaggia dentro: si
+# installa anche senza rete); altrimenti si scarica dalla release delle demo.
+DEMO_NOME="DEMO_NOME_VAR"
+DEMO_DIR="legopst_$DEMO_NOME"
 if [[ "RUN_DEMO_FLAG" == "true" ]]; then
-    if [ ! -d "/host_home/legopst_userstd" ]; then
+    if [ ! -d "/host_home/$DEMO_DIR" ]; then
         # l'estrazione dura: in modo silenzioso almeno si dica che c'e'
-        [ -n "$LGDOCK_LOG" ] && echo "LegoPST: installazione della demo in corso..." >&4
+        [ -n "$LGDOCK_LOG" ] && echo "LegoPST: installazione della demo $DEMO_DIR in corso..." >&4
         echo "=========================================="
-        echo "  Installazione Demo LegoPST"
+        echo "  Installazione Demo LegoPST: $DEMO_DIR"
         echo "=========================================="
+        DEMO_TGZ="/home/legoroot_fedora41/demo/$DEMO_DIR.tgz"
+        if [ ! -f "$DEMO_TGZ" ]; then
+            DEMO_TGZ="/tmp/$DEMO_DIR.tgz"
+            echo "Non e' nell'immagine: la scarico da"
+            echo "  DEMO_URL_VAR"
+            [ -n "$LGDOCK_LOG" ] && echo "LegoPST: la scarico dalla release delle demo..." >&4
+            if ! curl -fL --retry 3 -o "$DEMO_TGZ" "DEMO_URL_VAR"; then
+                echo ""
+                echo "ERRORE: non riesco a scaricare la demo '$DEMO_NOME'."
+                echo "        Non e' nell'immagine e la release non la porta (o manca"
+                echo "        la rete). Le demo si pubblicano con demo/publish_demo.sh."
+                rm -f "$DEMO_TGZ"
+                exit 1
+            fi
+        fi
         # --no-same-owner: NON ripristinare l'UID registrato nel tarball (che e'
         # 1000, l'UID di chi ha confezionato la demo). Estraendo da root, senza
         # questa opzione tar intesta ogni file a 1000 - che sotto rootless e'
@@ -697,7 +758,7 @@ if [[ "RUN_DEMO_FLAG" == "true" ]]; then
         # girerebbero il chown e i link a legocad/sked che stanno subito sotto:
         # la demo resterebbe senza proprietario giusto e senza link, cioe'
         # inutilizzabile, senza che nulla lo dica.
-        if ! tar --no-same-owner -xvzf /home/legoroot_fedora41/demo/legopst_userstd.tgz -C "/host_home/"; then
+        if ! tar --no-same-owner -xvzf "$DEMO_TGZ" -C "/host_home/"; then
             echo ""
             echo "ATTENZIONE: tar ha segnalato errori durante l'estrazione."
             echo "Se sono del tipo \"Cannot change mode\" sono innocui: i file ci"
@@ -705,12 +766,21 @@ if [[ "RUN_DEMO_FLAG" == "true" ]]; then
             echo "Proseguo con l'installazione."
             echo ""
         fi
+        # Il pacchetto deve contenere proprio legopst_<nome>: e' da li' che si
+        # fanno i link qui sotto. Uno confezionato da una directory con un
+        # altro nome si estrarrebbe altrove, lasciando link rotti in silenzio.
+        if [ ! -d "/host_home/$DEMO_DIR/legocad" ] || [ ! -d "/host_home/$DEMO_DIR/sked" ]; then
+            echo ""
+            echo "ERRORE: il pacchetto non contiene $DEMO_DIR/legocad e $DEMO_DIR/sked."
+            echo "        Va rifatto con demo/make_demo_tgz.sh -d $DEMO_NOME."
+            exit 1
+        fi
         # Stessa ragione dell'"if" sopra: anche il chown puo' fallire su quei
         # filesystem, e nudo sotto `set -e` ammazzerebbe l'installazione un
         # attimo prima dei link.
-        if ! chown -R "$CONT_UID:$CONT_GID" "/host_home/legopst_userstd"; then
+        if ! chown -R "$CONT_UID:$CONT_GID" "/host_home/$DEMO_DIR"; then
             echo ""
-            echo "ATTENZIONE: chown -R fallito su /host_home/legopst_userstd."
+            echo "ATTENZIONE: chown -R fallito su /host_home/$DEMO_DIR."
             echo "I file restano come li ha scritti tar. Proseguo."
             echo ""
         fi
@@ -718,38 +788,38 @@ if [[ "RUN_DEMO_FLAG" == "true" ]]; then
         echo ""
         echo "Contenuto directory demo:"
         echo "- legocad:"
-        ls -la /host_home/legopst_userstd/legocad | head -10
+        ls -la /host_home/$DEMO_DIR/legocad | head -10
         echo "- sked:"
-        ls -la /host_home/legopst_userstd/sked | head -10
+        ls -la /host_home/$DEMO_DIR/sked | head -10
         
         # Link simbolici, RELATIVI. Con il target assoluto (/host_home/...)
         # funzionerebbero solo qui dentro: /host_home e' il nome che la home ha
         # nel container, sull'host non esiste e i due link resterebbero
         # penzolanti. Relativi si risolvono giusti in tutti e due i mondi:
-        # ~/legopst_userstd/legocad sull'host, /host_home/legopst_userstd/legocad
+        # ~/legopst_<nome>/legocad sull'host, /host_home/legopst_<nome>/legocad
         # qui. Ed e' anche la convenzione delle installazioni native.
-        ln -sfn legopst_userstd/legocad /host_home/legocad 2>/dev/null || true
-        ln -sfn legopst_userstd/sked /host_home/sked 2>/dev/null || true
+        ln -sfn "$DEMO_DIR/legocad" /host_home/legocad 2>/dev/null || true
+        ln -sfn "$DEMO_DIR/sked" /host_home/sked 2>/dev/null || true
         chown -h "$CONT_UID:$CONT_GID" /host_home/legocad 2>/dev/null || true
         chown -h "$CONT_UID:$CONT_GID" /host_home/sked 2>/dev/null || true
         
         echo "=========================================="
-        echo "  Demo installata in: HOST_USER_HOME_VAR/legopst_userstd"
+        echo "  Demo installata in: HOST_USER_HOME_VAR/$DEMO_DIR"
         echo "=========================================="
         echo ""
     else
-        echo "Demo già installata in /host_home/legopst_userstd"
+        echo "Demo già installata in /host_home/$DEMO_DIR"
         # Se e' stata installata da una lgdock precedente sotto rootless, e'
         # intestata all'UID sbagliato e sull'host non si apre nemmeno.
-        DEMO_UID=$(stat -c %u /host_home/legopst_userstd/legocad 2>/dev/null || true)
+        DEMO_UID=$(stat -c %u /host_home/$DEMO_DIR/legocad 2>/dev/null || true)
         if [ -n "$DEMO_UID" ] && [ "$DEMO_UID" != "$CONT_UID" ]; then
             echo ""
             echo "ATTENZIONE: la demo presente risulta dell'UID $DEMO_UID, non $CONT_UID."
             echo "L'ha installata una versione di lgdock che non riconosceva questa"
             echo "mappatura: sull'host non e' utilizzabile. Per rifarla, da una"
             echo "shell dell'host:"
-            echo "    rm -rf ~/legopst_userstd ~/legocad ~/sked"
-            echo "    lgrun -d"
+            echo "    rm -rf ~/$DEMO_DIR ~/legocad ~/sked"
+            echo "    lgrun --demo=$DEMO_NOME"
             echo ""
         fi
     fi
@@ -927,6 +997,8 @@ CONTAINER_SCRIPT="${CONTAINER_SCRIPT//HOST_USERNAME_VAR/$HOST_USERNAME}"
 CONTAINER_SCRIPT="${CONTAINER_SCRIPT//HOST_USER_ID_VAR/$HOST_USER_ID}"
 CONTAINER_SCRIPT="${CONTAINER_SCRIPT//HOST_GROUP_ID_VAR/$HOST_GROUP_ID}"
 CONTAINER_SCRIPT="${CONTAINER_SCRIPT//RUN_DEMO_FLAG/$RUN_DEMO}"
+CONTAINER_SCRIPT="${CONTAINER_SCRIPT//DEMO_NOME_VAR/$DEMO_NOME}"
+CONTAINER_SCRIPT="${CONTAINER_SCRIPT//DEMO_URL_VAR/$(url_demo "$DEMO_NOME")}"
 CONTAINER_SCRIPT="${CONTAINER_SCRIPT//HOST_USER_HOME_VAR/$HOST_USER_HOME}"
 CONTAINER_SCRIPT="${CONTAINER_SCRIPT//USE_SOCAT_VAR/$USE_SOCAT}"
 CONTAINER_SCRIPT="${CONTAINER_SCRIPT//DISPLAY_NUM_VAR/$DISPLAY_NUM}"

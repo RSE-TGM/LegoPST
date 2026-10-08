@@ -73,15 +73,12 @@
 
 set -e
 
-# Le due soglie di GitHub, che sono cose diverse:
-#   50 MB  soglia CONSIGLIATA. Il push passa, ma il server stampa un warning
-#          ("larger than GitHub's recommended maximum file size of 50.00 MB")
-#          e suggerisce Git LFS. Fastidio, non errore.
-#  100 MB  limite DURO. Il push viene respinto e il commit non entra.
-# Nessuna delle due impedisce di produrre il pacchetto: qui si segnala e basta.
-AVVISO_MB=50
-AVVISO_BYTE=$((AVVISO_MB * 1024 * 1024))
-LIMITE_MB=100
+# Il limite che conta: 2 GiB, la dimensione massima di un allegato di una
+# release di GitHub. I pacchetti viaggiano li' (demo/publish_demo.sh), non in
+# git: le soglie dei file committati - 50 MB consigliati, 100 MB di limite duro
+# - non c'entrano piu', e fino a ottobre 2026 questo script le segnalava ancora,
+# dando per "non committabile" un pacchetto da 150 MB perfettamente pubblicabile.
+LIMITE_MB=2048
 LIMITE_BYTE=$((LIMITE_MB * 1024 * 1024))
 
 PROGRAMMA="$(basename "$0")"
@@ -133,13 +130,14 @@ COSA STAMPA
   - il pacchetto prodotto con la sua dimensione
 
   Il pacchetto viene prodotto SEMPRE, e non viene mai cancellato. Sulla sua
-  dimensione ci sono due segnalazioni, che sono le due soglie di GitHub:
+  dimensione c'e' una sola segnalazione: oltre ${LIMITE_MB} MB non entra come
+  allegato di una release di GitHub, che e' dove i pacchetti viaggiano. In git
+  non ci vanno (demo/legopst_*.tgz e' in .gitignore).
 
-    oltre ${AVVISO_MB} MB    soglia consigliata: il push passa, il server avvisa
-    oltre ${LIMITE_MB} MB   limite duro: il push verrebbe respinto
-
-  In entrambi i casi si segnala soltanto: ritagliare gli elenchi AMMESSE_* e
-  rifare il pacchetto e' una decisione di chi confeziona.
+  I symlink sono ammessi se sono RELATIVI, restano dentro il pacchetto e
+  puntano a qualcosa che c'e': funzionano identici su un'altra macchina.
+  Quelli assoluti, o che escono dal pacchetto, o rotti, vengono elencati e
+  il pacchetto e' da rifare.
 
 CODICI DI USCITA
   0  fatto (anche quando il pacchetto e' sopra le soglie: sono avvisi)
@@ -332,12 +330,6 @@ if [ -n "${MANCANTI[*]}" ]; then
     echo ""
 fi
 
-if [ "$TOTALE" -gt "$LIMITE_BYTE" ]; then
-    echo "ATTENZIONE: il contenuto non compresso supera i $LIMITE_MB MB."
-    echo "            Il pacchetto compresso potrebbe superare il limite di"
-    echo "            GitHub: si vede fra poco."
-    echo ""
-fi
 
 # ---------------------------------------------------------------------------
 # CONFEZIONAMENTO
@@ -380,13 +372,40 @@ tar czf "$DEST" -C "$RADICE" \
 # VERIFICA
 # ---------------------------------------------------------------------------
 NOMI="$(mktemp)"; DETT="$(mktemp)"
-trap 'rm -f "$NOMI" "$DETT"' EXIT
+trap 'rm -f "$NOMI" "$DETT" "${LINK_ELENCO:-}"' EXIT
 tar tzf "$DEST" > "$NOMI"
 tar --numeric-owner -tvzf "$DEST" > "$DETT"
 
 RES_PROC=$(grep -cE '/proc(/|$)' "$NOMI" || true)
 RES_OUT=$(grep -cE '/out(/|$)' "$NOMI" || true)
 LINK=$(grep -c '^l' "$DETT" || true)
+
+# I symlink: quanti sono CATTIVI. Un link relativo che resta dentro il
+# pacchetto e punta a un membro che c'e' viaggia senza problemi (le pagine di
+# globpages che puntano ai .bkg della regolazione, per dire). Quelli da
+# rifiutare sono gli altri: assoluti (cablati sulla macchina di chi
+# confeziona), che escono dalla cima del pacchetto, o che non puntano a niente.
+# Era per questi che il controllo esisteva - i "proc" sotto out/ - e contarli
+# tutti come difetto bocciava le demo che i link li usano per davvero.
+LINK_ELENCO="$(mktemp)"
+tar --numeric-owner -tvzf "$DEST" | python3 -c '
+import sys, posixpath
+membri = set(l.rstrip("\n").rstrip("/") for l in open(sys.argv[1]))
+for riga in sys.stdin:
+    if not riga.startswith("l") or " -> " not in riga:
+        continue
+    sinistra, bersaglio = riga.rstrip("\n").split(" -> ", 1)
+    nome = sinistra.split(None, 5)[5]
+    if bersaglio.startswith("/"):
+        print("assoluto      %s -> %s" % (nome, bersaglio)); continue
+    arrivo = posixpath.normpath(posixpath.join(posixpath.dirname(nome), bersaglio))
+    cima = posixpath.normpath(nome).split("/")[0]
+    if not arrivo.startswith(cima + "/"):
+        print("esce          %s -> %s" % (nome, bersaglio)); continue
+    if arrivo not in membri and "./" + arrivo.lstrip("./") not in membri:
+        print("rotto         %s -> %s" % (nome, bersaglio))
+' "$NOMI" > "$LINK_ELENCO"
+LINK_CATTIVI=$(wc -l < "$LINK_ELENCO")
 BINARI=$(grep -cE '/(lg2|foraus\.o)$' "$NOMI" || true)
 PROPRIETARI=$(awk '{print $2}' "$DETT" | sort -u | grep -cv '^0/0$' || true)
 DIM_TGZ=$(stat -c%s "$DEST")
@@ -396,7 +415,8 @@ echo "--- verifica ---"
 printf '  %-40s %10s\n' "membri totali" "$(wc -l < "$NOMI")"
 printf '  %-40s %10s  (atteso 0)\n' "membri 'proc'" "$RES_PROC"
 printf '  %-40s %10s  (atteso 0)\n' "membri 'out'" "$RES_OUT"
-printf '  %-40s %10s  (atteso 0)\n' "symlink" "$LINK"
+printf '  %-40s %10s  (quelli relativi e interni vanno bene)\n' "symlink in tutto" "$LINK"
+printf '  %-40s %10s  (atteso 0)\n' "  di cui assoluti, uscenti o rotti" "$LINK_CATTIVI"
 printf '  %-40s %10s  (atteso 0)\n' "eseguibili di build" "$BINARI"
 printf '  %-40s %10s  (atteso 0)\n' "proprietari != 0/0" "$PROPRIETARI"
 echo ""
@@ -413,30 +433,27 @@ echo ""
 # decisione e' di chi confeziona. Exit 1 solo perche' il difetto si veda anche
 # da uno script che chiami questo.
 ESITO=0
-if [ "$RES_PROC" -ne 0 ] || [ "$RES_OUT" -ne 0 ] || [ "$LINK" -ne 0 ] \
+if [ "$RES_PROC" -ne 0 ] || [ "$RES_OUT" -ne 0 ] || [ "$LINK_CATTIVI" -ne 0 ] \
    || [ "$BINARI" -ne 0 ] || [ "$PROPRIETARI" -ne 0 ]; then
     echo "ATTENZIONE: il tarball e' stato prodotto, ma contiene roba che non"
-    echo "            deve viaggiare (vedi i contatori sopra diversi da zero)."
+    echo "            deve viaggiare (vedi i contatori \"atteso 0\" diversi da zero)."
+    if [ "$LINK_CATTIVI" -ne 0 ]; then
+        echo ""
+        echo "            Symlink che su un'altra macchina non funzionerebbero:"
+        sed 's/^/              /' "$LINK_ELENCO" | head -20
+        [ "$LINK_CATTIVI" -gt 20 ] && echo "              ... e altri $((LINK_CATTIVI - 20))"
+    fi
     echo ""
     ESITO=1
 fi
 
 if [ "$DIM_TGZ" -gt "$LIMITE_BYTE" ]; then
-    echo "ATTENZIONE: il pacchetto supera i $LIMITE_MB MB ($(umana "$DIM_TGZ"))."
-    echo "            E' il limite DURO di GitHub: il push verrebbe respinto e"
-    echo "            il commit non entrerebbe. Ritaglia gli elenchi AMMESSE_*"
-    echo "            in testa a questo script e rifa' il pacchetto."
+    echo "ATTENZIONE: il pacchetto supera i $LIMITE_MB MB ($(umana "$DIM_TGZ")), il massimo"
+    echo "            per un allegato di una release di GitHub: cosi' non si"
+    echo "            puo' pubblicare. Ritaglia gli elenchi di cosa entra e"
+    echo "            rifa' il pacchetto."
     echo ""
-    echo "Il pacchetto resta dov'e', ma cosi' non si puo' committare."
-    exit "$ESITO"
-elif [ "$DIM_TGZ" -gt "$AVVISO_BYTE" ]; then
-    echo "NOTA: il pacchetto supera i $AVVISO_MB MB ($(umana "$DIM_TGZ")), la soglia"
-    echo "      CONSIGLIATA da GitHub: il push passa, ma il server stampa un"
-    echo "      warning. Il limite duro e' a $LIMITE_MB MB, e siamo sotto."
-    echo ""
-    echo "      Tieni conto che ogni versione del pacchetto resta nella storia"
-    echo "      del repository per sempre, anche quando la sostituisci."
-    echo ""
+    ESITO=1
 fi
 
 if [ "$ESITO" -eq 0 ]; then

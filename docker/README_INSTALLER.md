@@ -799,11 +799,22 @@ ci stanno dentro.
 ### I controlli che lo script fa da sé
 
 Finito il tarball lo rilegge e verifica: nessun `proc` e nessun `out` rimasti,
-nessun binario (`lg2`, `foraus.o`), nessun symlink, proprietario neutro (`0/0`)
-su tutti i file. Poi ne stampa la dimensione e lo **sha256**, e avvisa sulle due
-soglie di GitHub — 50 MB è quella *consigliata* (il push passa, con un
-avviso), 100 MB il limite duro. Al 12 settembre 2026 il pacchetto pesa circa
-53 MB, con 5444 file.
+nessun binario (`lg2`, `foraus.o`), proprietario neutro (`0/0`) su tutti i file.
+Poi ne stampa la dimensione e lo **sha256**.
+
+**I symlink** sono ammessi se sono *relativi*, restano *dentro* il pacchetto e
+puntano a qualcosa che c'è: viaggiano identici su un'altra macchina. È il caso
+delle pagine di `globpages`, che in un simulatore sono collegamenti ai `.bkg`
+della regolazione. Quelli **assoluti** (cablati sulla macchina di chi
+confeziona), che **escono** dal pacchetto o **rotti** vengono elencati uno per
+uno, e il pacchetto è da rifare. Fino a ottobre 2026 qualunque symlink bocciava
+il pacchetto: andava bene per `userstd`, che non ne ha, e fermava le demo con un
+simulatore vero.
+
+**La dimensione** ha un solo limite: **2 GB**, il massimo per un allegato di una
+release di GitHub, che è dove i pacchetti viaggiano. Le soglie dei file
+committati in git (50 MB consigliati, 100 MB di limite duro) non c'entrano più:
+i pacchetti non stanno in git (`demo/legopst_*.tgz` è in `.gitignore`).
 
 ### Pubblicare la demo: `publish_demo.sh`
 
