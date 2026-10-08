@@ -478,12 +478,19 @@ Una demo è un'area di lavoro pronta — una directory `legopst_<nome>` con dent
 La regola è sempre quella: **`-d <nome>` installa `legopst_<nome>`**, e senza
 nome vale `userstd`.
 
-- Una demo **già installata non viene toccata**: se `~/legopst_<nome>` esiste,
-  `lgrun -d <nome>` parte e basta. Per reinstallarla va prima cancellata.
-- Dopo l'installazione `~/legocad` e `~/sked` vengono fatti puntare alla demo
-  appena estratta, che diventa l'area di lavoro corrente. Con più demo
-  installate si passa dall'una all'altra come fra due aree qualunque:
-  `lgswitch`, o *File → Work area* di `lghmi`.
+- Una demo **già installata non viene riestratta**: se `~/legopst_<nome>`
+  esiste, i suoi file restano come sono. Per reinstallarla va prima cancellata.
+- **La demo chiesta per nome diventa l'area di lavoro corrente**: dopo
+  `lgrun -d nucleare`, `~/legocad` e `~/sked` puntano a `legopst_nucleare`, che
+  sia appena stata estratta o che ci fosse già. È il modo di passare da una demo
+  all'altra da riga di comando: `lgrun -d userstd` riporta sulla standard.
+  Si toccano solo i collegamenti: se `~/legocad` o `~/sked` sono directory vere
+  restano dove sono, e `lgrun` lo dice.
+- **`lgrun -d` senza nome non cambia area**, se la demo standard è già
+  installata: chi parte sempre così non viene portato via dall'area su cui sta
+  lavorando. Per tornare sulla standard si scrive il nome: `lgrun -d userstd`.
+- Da dentro, fra le aree installate si passa anche con *File → Work area* di
+  `lghmi`, che elenca tutte le `legopst_*` della home.
 - **La parola dopo `-d` può essere il nome di una demo o il comando da
   eseguire** (`lgrun -d lghmi`). Vale come nome solo se quella demo esiste,
   cioè se è già installata nella home o pubblicata nella release; altrimenti è

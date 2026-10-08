@@ -859,6 +859,20 @@ proc ultimo_sim_path {} {
         if {[stessa_directory $d [pwd]]} { return "" }
         return $d
     }
+    #  Nessun path recente in QUESTA area - una demo appena installata, un'area
+    #  appena scelta: invece di restare nella directory di lancio, che non e'
+    #  un simulatore, ci si mette sul simulatore dell'area. Quello ricordato
+    #  per lei (~/.lghmi_areas), o quello corrente del profilo, che e' gia'
+    #  dell'area perche' KSIM passa dal link ~/sked.
+    if {[info exists ::env(KSKED)] && $::env(KSKED) ne ""} {
+        foreach nome [list [sim_ricordato $::AREA_SKED] [simulatore_corrente]] {
+            if {$nome eq ""} continue
+            set d [file join $::env(KSKED) $nome]
+            if {[file exists [file join $d S01]] || [file exists [file join $d variabili.rtf]]} {
+                return $d
+            }
+        }
+    }
     return ""
 }
 
@@ -1101,6 +1115,26 @@ proc con_tilde {path} {
 #  non e' possibile: i due link devono essere quelli che il profilo usa
 #  (LG_ENTRY e KSKED) e stare nella STESSA directory, perche' lgswitch li crea
 #  entrambi nella directory corrente.
+#  L'ULTIMO link di una catena: quello la cui destinazione non e' piu' un link.
+#
+#  Di norma ~/legocad punta dritto dentro l'area (legopst_x/legocad) e la
+#  catena e' lunga uno. Nel container Docker no: ~/legocad -> /host_home/legocad
+#  -> legopst_x/legocad. Il link che lgswitch cambia, e accanto al quale stanno
+#  le aree legopst_*, e' il SECONDO: quello nella home dell'host. Fermandosi al
+#  primo la "directory dei link" risultava la home del container, dove di aree
+#  non ce n'e' nessuna - e allora il menu Work area restava vuoto, e i path
+#  recenti di un'altra area non venivano riconosciuti come tali (lghmi
+#  ripartiva dal simulatore di un'area diversa da quella corrente).
+proc link_vero {p} {
+    for {set i 0} {$i < 8} {incr i} {
+        if {[catch {file readlink $p} dest]} break
+        set dest [file join [file dirname $p] $dest]
+        if {[catch {file type $dest} tipo] || $tipo ne "link"} break
+        set p [file normalize $dest]
+    }
+    return $p
+}
+
 proc base_aree {} {
     global env
     set entry [expr {[info exists env(LG_ENTRY)] ? $env(LG_ENTRY) : ""}]
@@ -1108,6 +1142,8 @@ proc base_aree {} {
     if {$entry eq "" || $sked eq ""} {
         return [list "" "LG_ENTRY or KSKED is not set"]
     }
+    set entry [link_vero $entry]
+    set sked  [link_vero $sked]
     if {[file tail $entry] ne "legocad" || [file tail $sked] ne "sked"} {
         return [list "" "LG_ENTRY and KSKED do not end in legocad and sked"]
     }

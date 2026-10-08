@@ -278,6 +278,7 @@ fi
 # =============================================================================
 RUN_DEMO=false
 DEMO_NOME="userstd"
+DEMO_ESPLICITA=false    # true se il nome e' stato scritto: "-d nuclear", "--demo=nuclear"
 USE_SOCAT=false
 DO_PULL=false
 EXEC_PROG=""
@@ -319,12 +320,14 @@ while [[ $# -gt 0 ]]; do
                 if [[ -d "$HOME/legopst_$1" ]] || \
                    curl -fsIL --max-time 8 -o /dev/null "$(url_demo "$1")" 2>/dev/null; then
                     DEMO_NOME="$1"
+                    DEMO_ESPLICITA=true
                     shift
                 fi
             fi
             ;;
         --demo=*)
             RUN_DEMO=true
+            DEMO_ESPLICITA=true
             DEMO_NOME="${1#--demo=}"
             if [[ ! "$DEMO_NOME" =~ ^[A-Za-z0-9_][A-Za-z0-9_-]*$ ]]; then
                 echo "Nome di demo non valido: '$DEMO_NOME' (lettere, cifre, _ e -)"
@@ -809,6 +812,34 @@ if [[ "RUN_DEMO_FLAG" == "true" ]]; then
         echo ""
     else
         echo "Demo già installata in /host_home/$DEMO_DIR"
+        # Chi ha scritto il NOME della demo vuole lavorare con quella: se e'
+        # gia' installata ma l'area corrente e' un'altra, la si rende corrente.
+        # Senza, dopo aver installato due demo "lgrun -d userstd" lasciava
+        # sull'altra, e per tornare indietro bisognava rifare i link a mano.
+        # Con "lgrun -d" nudo NO: e' l'abitudine di chi parte sempre cosi', e
+        # non deve portarlo via dall'area su cui sta lavorando.
+        # Si toccano solo i link (o cio' che manca): una directory VERA al
+        # posto di ~/legocad o ~/sked e' lavoro dell'utente, e resta dov'e'.
+        if [[ "DEMO_ESPLICITA_VAR" == "true" ]]; then
+            DEMO_CAMBIATA=""
+            for n in legocad sked; do
+                if [ -L "/host_home/$n" ] || [ ! -e "/host_home/$n" ]; then
+                    if [ "$(readlink "/host_home/$n" 2>/dev/null || true)" != "$DEMO_DIR/$n" ]; then
+                        ln -sfn "$DEMO_DIR/$n" "/host_home/$n"
+                        chown -h "$CONT_UID:$CONT_GID" "/host_home/$n" 2>/dev/null || true
+                        DEMO_CAMBIATA=1
+                    fi
+                else
+                    echo "ATTENZIONE: ~/$n e' una directory vera, non un link: non la tocco."
+                    echo "            L'area di lavoro NON e' passata a $DEMO_DIR."
+                    [ -n "$LGDOCK_LOG" ] && echo "LegoPST: ~/$n e' una directory vera: l'area di lavoro resta quella." >&4
+                fi
+            done
+            if [ -n "$DEMO_CAMBIATA" ]; then
+                echo "Area di lavoro corrente: $DEMO_DIR (~/legocad e ~/sked ora puntano li')"
+                [ -n "$LGDOCK_LOG" ] && echo "LegoPST: area di lavoro -> $DEMO_DIR" >&4
+            fi
+        fi
         # Se e' stata installata da una lgdock precedente sotto rootless, e'
         # intestata all'UID sbagliato e sull'host non si apre nemmeno.
         DEMO_UID=$(stat -c %u /host_home/$DEMO_DIR/legocad 2>/dev/null || true)
@@ -998,6 +1029,7 @@ CONTAINER_SCRIPT="${CONTAINER_SCRIPT//HOST_USER_ID_VAR/$HOST_USER_ID}"
 CONTAINER_SCRIPT="${CONTAINER_SCRIPT//HOST_GROUP_ID_VAR/$HOST_GROUP_ID}"
 CONTAINER_SCRIPT="${CONTAINER_SCRIPT//RUN_DEMO_FLAG/$RUN_DEMO}"
 CONTAINER_SCRIPT="${CONTAINER_SCRIPT//DEMO_NOME_VAR/$DEMO_NOME}"
+CONTAINER_SCRIPT="${CONTAINER_SCRIPT//DEMO_ESPLICITA_VAR/$DEMO_ESPLICITA}"
 CONTAINER_SCRIPT="${CONTAINER_SCRIPT//DEMO_URL_VAR/$(url_demo "$DEMO_NOME")}"
 CONTAINER_SCRIPT="${CONTAINER_SCRIPT//HOST_USER_HOME_VAR/$HOST_USER_HOME}"
 CONTAINER_SCRIPT="${CONTAINER_SCRIPT//USE_SOCAT_VAR/$USE_SOCAT}"

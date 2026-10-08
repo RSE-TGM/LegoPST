@@ -251,6 +251,13 @@ Alla ripresa il simulatore corrente si allinea **solo in memoria**, come per la
 directory di lancio: l'avvio non è una scelta, e `~/.legosim` non si tocca. Non
 si toccano nemmeno i recenti, dove quel path è già il primo.
 
+**Se nell'area corrente non c'è nessun path recente** — una demo appena
+installata, un'area appena scelta — `lghmi` non resta nella directory di lancio:
+si mette sul **simulatore dell'area**, quello ricordato per lei
+(`~/.lghmi_areas`) o, in mancanza, quello corrente del profilo (`$KSIM`). Così
+la finestra si apre già su qualcosa di coerente con l'area, senza passare da
+*File → Current simulator*.
+
 Il meccanismo: l'helper `lghmi` aggiunge `-ultimo` agli argomenti di
 `lghmi.tcl` quando la riga di comando non dice dove lavorare, e
 `ultimo_sim_path` decide se e dove ripartire.
@@ -412,6 +419,17 @@ all'avvio, aprendo una directory con `S01` da una sessione partita in dir-scan
 non ci sarebbe niente da riempire.
 
 ## Cambiare area di lavoro (menu File, Work area)
+
+> **Nel container Docker** i collegamenti sono due in fila: `~/legocad` punta a
+> `/host_home/legocad`, che punta dentro l'area (`legopst_x/legocad`). Il
+> collegamento che conta — quello che `lgswitch` cambia, e accanto al quale
+> stanno le aree `legopst_*` — è il **secondo**, nella home dell'host. `lghmi`
+> segue la catena fino a quello (`link_vero`, in `base_aree`). Fino a ottobre
+> 2026 si fermava al primo: la "directory dei link" risultava la home del
+> container, dove di aree non ce n'è nessuna, e allora *Work area* restava
+> vuoto e i path recenti di un'altra area non venivano riconosciuti — dopo aver
+> installato una seconda demo `lghmi` ripartiva dal simulatore della prima, con
+> l'intestazione che diceva l'area nuova.
 
 È [`lgswitch`](../docs/COMANDI_LG.md#5-scelta-dellarea-di-lavoro) dentro il
 selettore. Un'**area di lavoro** è una directory `legopst_<nome>` con dentro
