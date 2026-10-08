@@ -7,8 +7,19 @@
 # a mano, e a mano ci finiva dentro roba che non deve viaggiare: questo script
 # esiste per rendere la selezione riproducibile.
 #
-#   uso:  ./make_demo_tgz.sh [DIR_SORGENTE] [TGZ_DESTINAZIONE]
+#   uso:  ./make_demo_tgz.sh [-d NOME] [DIR_SORGENTE] [TGZ_DESTINAZIONE]
 #   dflt: ~/legopst_userstd  ->  <repo>/demo/legopst_userstd.tgz
+#         con -d NOME:  ~/legopst_NOME  ->  <repo>/demo/legopst_NOME.tgz
+#
+# PIU' DEMO
+#
+#   Ogni demo ha un NOME, e tutto il resto ne discende: il pacchetto si chiama
+#   legopst_<nome>.tgz e dentro c'e' la directory legopst_<nome>. E' la regola
+#   di "lgrun -d [nome]", che cerca proprio quei due nomi: senza -d il nome e'
+#   userstd, la demo standard.
+#
+#   Gli elenchi AMMESSE_* di questo script valgono per userstd. Un'altra demo
+#   ha i suoi in demo_<nome>.conf, accanto a questo script: tre righe di shell.
 #
 # COME SI DECIDE COSA ENTRA
 #
@@ -77,14 +88,19 @@ PROGRAMMA="$(basename "$0")"
 
 aiuto() {
 cat <<FINE_AIUTO
-$PROGRAMMA - confeziona la demo di LegoPST (legopst_userstd.tgz)
+$PROGRAMMA - confeziona una demo di LegoPST (legopst_<nome>.tgz)
 
 USO
-  $PROGRAMMA [DIR_SORGENTE] [TGZ_DESTINAZIONE]
+  $PROGRAMMA [-d NOME] [DIR_SORGENTE] [TGZ_DESTINAZIONE]
   $PROGRAMMA -h | --help
 
-  DIR_SORGENTE       default: \$HOME/legopst_userstd
-  TGZ_DESTINAZIONE   default: <dir di questo script>/legopst_userstd.tgz
+  -d, --demo NOME    quale demo (default: userstd, quella di "lgrun -d").
+                     "lgrun -d NOME" installa quella confezionata con -d NOME.
+  DIR_SORGENTE       default: \$HOME/legopst_<nome>
+  TGZ_DESTINAZIONE   default: <dir di questo script>/legopst_<nome>.tgz
+
+  Dentro il pacchetto la directory si chiama SEMPRE legopst_<nome>, anche se
+  la sorgente ha un altro nome: e' quello che lgrun cerca dopo l'estrazione.
 
 COSA ENTRA NEL PACCHETTO
   Lo decidono gli elenchi AMMESSE_* in testa allo script, che SELEZIONANO:
@@ -92,6 +108,11 @@ COSA ENTRA NEL PACCHETTO
     AMMESSE_RADICE    le directory di primo livello
     AMMESSE_LEGOCAD   cosa si prende dentro legocad/
     AMMESSE_SKED      cosa si prende dentro sked/
+
+  Quelli scritti nello script sono della demo userstd. Per un'altra demo
+  stanno in demo_<nome>.conf, accanto allo script, con le stesse tre
+  variabili; se il file manca lo script lo dice e ne propone uno, con quello
+  che trova nella sorgente.
 
   Quello che c'e' nella sorgente ma non compare negli elenchi resta fuori e
   viene solo elencato a schermo: la sorgente e' una directory di lavoro, non
@@ -129,23 +150,47 @@ ESEMPI
   $PROGRAMMA
   $PROGRAMMA ~/legopst_userstd_pulita
   $PROGRAMMA ~/legopst_userstd /tmp/prova.tgz
+  $PROGRAMMA -d nucleare
+  $PROGRAMMA -d nucleare ~/legopst_nuclear_demo
 FINE_AIUTO
 }
 
-case "$1" in
-    -h|--help|-help|--aiuto)
-        aiuto
-        exit 0
-        ;;
-    -*)
-        echo "ERRORE: opzione sconosciuta: $1" >&2
-        echo "        \"$PROGRAMMA --help\" per l'uso." >&2
-        exit 1
-        ;;
+QUI="$(cd "$(dirname "$0")" && pwd)"
+DEMO="userstd"
+while [ $# -gt 0 ]; do
+    case "$1" in
+        -h|--help|-help|--aiuto)
+            aiuto
+            exit 0
+            ;;
+        -d|--demo)
+            DEMO="${2:-}"
+            [ -n "$DEMO" ] || { echo "ERRORE: $1 vuole il nome della demo." >&2; exit 1; }
+            shift 2
+            ;;
+        --demo=*)
+            DEMO="${1#--demo=}"
+            shift
+            ;;
+        -*)
+            echo "ERRORE: opzione sconosciuta: $1" >&2
+            echo "        \"$PROGRAMMA --help\" per l'uso." >&2
+            exit 1
+            ;;
+        *)  break ;;
+    esac
+done
+# lo stesso alfabeto che accetta lgrun: il nome finisce in un nome di file,
+# in un URL e in un comando
+case "$DEMO" in
+    ""|-*|*[!A-Za-z0-9_-]*)
+        echo "ERRORE: nome di demo non valido: '$DEMO' (lettere, cifre, _ e -)." >&2
+        exit 1 ;;
 esac
+CIMA="legopst_$DEMO"     # la directory DENTRO il pacchetto, e il nome del .tgz
 
-SORGENTE="${1:-$HOME/legopst_userstd}"
-DEST="${2:-$(cd "$(dirname "$0")" && pwd)/legopst_userstd.tgz}"
+SORGENTE="${1:-$HOME/$CIMA}"
+DEST="${2:-$QUI/$CIMA.tgz}"
 
 if [ ! -d "$SORGENTE" ]; then
     echo "ERRORE: directory sorgente non trovata: $SORGENTE" >&2
@@ -156,6 +201,7 @@ SORGENTE="$(cd "$SORGENTE" && pwd)"
 RADICE="$(dirname "$SORGENTE")"
 NOME="$(basename "$SORGENTE")"
 
+echo "Demo:         $DEMO  (dentro il pacchetto: $CIMA/)"
 echo "Sorgente:     $SORGENTE"
 echo "Destinazione: $DEST"
 echo ""
@@ -163,9 +209,38 @@ echo ""
 # ---------------------------------------------------------------------------
 # COSA FA PARTE DELLA DEMO
 # ---------------------------------------------------------------------------
+# Questi sono gli elenchi della demo STANDARD, userstd.
 AMMESSE_RADICE="legocad sked"
 AMMESSE_LEGOCAD="libgraph libut libut_reg MDC_GV collet ctrcoll r_MDC0"
 AMMESSE_SKED="duetask"
+
+# Un'altra demo ha i suoi in demo_<nome>.conf: un file di shell che ridefinisce
+# le stesse variabili. Per userstd il file non serve, ma se c'e' vale lui.
+# Per le altre e' OBBLIGATORIO: usare per sbaglio gli elenchi di userstd
+# confezionerebbe una demo vuota, o con i modelli sbagliati, senza un errore.
+CONF="$QUI/demo_$DEMO.conf"
+if [ -f "$CONF" ]; then
+    echo "Elenchi:      $CONF"
+    # shellcheck disable=SC1090
+    . "$CONF"
+elif [ "$DEMO" != "userstd" ]; then
+    echo "" >&2
+    echo "ERRORE: manca $CONF" >&2
+    echo "        Dice cosa entra nella demo '$DEMO'. Eccone uno di partenza, con" >&2
+    echo "        TUTTO quello che c'e' adesso in $SORGENTE:" >&2
+    echo "        togli quello che non deve viaggiare, poi rilancia." >&2
+    echo "" >&2
+    elenco() { find "$1" -mindepth 1 -maxdepth 1 -type d ! -name proc ! -name out -printf '%f\n' 2>/dev/null | sort | tr '\n' ' ' | sed 's/ $//'; }
+    {
+        echo "# demo_$DEMO.conf - cosa entra nella demo '$DEMO' (make_demo_tgz.sh -d $DEMO)"
+        echo "AMMESSE_RADICE=\"legocad sked\""
+        echo "AMMESSE_LEGOCAD=\"$(elenco "$SORGENTE/legocad")\""
+        echo "AMMESSE_SKED=\"$(elenco "$SORGENTE/sked")\""
+    } | sed 's/^/    /' >&2
+    echo "" >&2
+    exit 1
+fi
+echo ""
 
 # Un livello e' un CONTENITORE se ha un elenco di ammesse proprio: di lui si
 # confeziona solo la directory in se', e poi si scende. Altrimenti e' una
@@ -284,9 +359,19 @@ fi
 # accanto e non e' ammesso. Poi --recursion riapre la ricorsione per i
 # sottoalberi veri. Le opzioni di tar valgono per i nomi che le seguono:
 # l'ordine qui sotto e' voluto.
+#
+# --transform: dentro il pacchetto la directory si chiama legopst_<nome>, come
+# la cerca lgrun, anche quando la sorgente ha un altro nome (una copia pulita,
+# un'area di lavoro chiamata diversamente). flags=r: solo i nomi dei membri.
 echo "Confeziono..."
+TRASFORMA=()
+if [ "$NOME" != "$CIMA" ]; then
+    TRASFORMA=(--transform "flags=r;s|^\./$NOME\(/\|\$\)|./$CIMA\1|")
+    echo "(la sorgente si chiama $NOME: nel pacchetto diventa $CIMA)"
+fi
 tar czf "$DEST" -C "$RADICE" \
     --owner=0 --group=0 --numeric-owner \
+    "${TRASFORMA[@]}" \
     --exclude='*/proc' --exclude='*/out' \
     --no-recursion "./$NOME" "${CONTENITORI[@]/#/./$NOME/}" \
     --recursion "${MEMBRI[@]/#/./$NOME/}"

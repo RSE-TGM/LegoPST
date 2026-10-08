@@ -43,6 +43,7 @@ COSA FA, IN CONCRETO
 DOPO L'INSTALLAZIONE
   lgrun              avvia il container e apre un terminale bash dentro
   lgrun --demo       ci mette anche un modello di esempio (legocad e sked)
+  lgrun -d NOME      un'altra demo: legopst_NOME, scaricata dalla release
   lgrun --socat      X11 attraverso un socket bridge, per SSH/MobaXterm
   lgrun --pull       aggiorna l'immagine prima di partire
   lgrun -e lghmi     appena il container e' pronto apre lghmi (o un altro programma)

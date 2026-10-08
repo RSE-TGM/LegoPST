@@ -253,8 +253,11 @@ Dopo l'installazione, usa il comando `lgrun`:
 # Avvia LegoPST (modalità standard)
 lgrun
 
-# Avvia con modello demo
+# Avvia con la demo standard (legopst_userstd)
 lgrun --demo
+
+# Avvia con un'altra demo (legopst_nucleare), scaricata dalla release
+lgrun -d nucleare
 
 # Avvia con X11 via socat (utile per SSH/MobaXterm)
 lgrun --socat
@@ -461,6 +464,34 @@ esisteva affatto: la home nasce nuova a ogni avvio e nessuno la copiava.
 
 In un'installazione nativa si copiano a mano, come dice
 `util2025/risorse/Readme.md`: `cp -a $LEGOROOT/util2025/risorse $HOME`.
+
+### Le demo: `lgrun -d [nome]`
+
+Una demo è un'area di lavoro pronta — una directory `legopst_<nome>` con dentro
+`legocad` e `sked` — che `lgrun` installa nella home.
+
+| Comando | Cosa installa | Da dove |
+|---|---|---|
+| `lgrun -d` | `~/legopst_userstd`, la demo standard | dall'immagine Docker: funziona anche senza rete |
+| `lgrun -d nucleare` | `~/legopst_nucleare` | scaricata dalla release delle demo su GitHub (`demo-2.0`, allegato `legopst_nucleare.tgz`) |
+
+La regola è sempre quella: **`-d <nome>` installa `legopst_<nome>`**, e senza
+nome vale `userstd`.
+
+- Una demo **già installata non viene toccata**: se `~/legopst_<nome>` esiste,
+  `lgrun -d <nome>` parte e basta. Per reinstallarla va prima cancellata.
+- Dopo l'installazione `~/legocad` e `~/sked` vengono fatti puntare alla demo
+  appena estratta, che diventa l'area di lavoro corrente. Con più demo
+  installate si passa dall'una all'altra come fra due aree qualunque:
+  `lgswitch`, o *File → Work area* di `lghmi`.
+- **La parola dopo `-d` può essere il nome di una demo o il comando da
+  eseguire** (`lgrun -d lghmi`). Vale come nome solo se quella demo esiste,
+  cioè se è già installata nella home o pubblicata nella release; altrimenti è
+  il comando. Per non lasciare dubbi c'è `--demo=<nome>`, che è sempre un nome:
+  se la demo non esiste, `lgrun` lo dice e si ferma.
+
+Come si prepara e si pubblica una demo nuova è spiegato in
+[Confezionamento della demo](#confezionamento-della-demo).
 
 ## Primo Avvio
 
@@ -690,7 +721,16 @@ repack.
 cd demo
 ./make_demo_tgz.sh                                    # ~/legopst_userstd -> demo/legopst_userstd.tgz
 ./make_demo_tgz.sh <dir_sorgente> <tgz_destinazione>  # per scegliere altro
+./make_demo_tgz.sh -d nucleare                        # ~/legopst_nucleare -> demo/legopst_nucleare.tgz
+./make_demo_tgz.sh -d nucleare ~/legopst_nuclear      # da una sorgente con un altro nome
 ```
+
+Ogni demo ha un **nome**, e tutto il resto ne discende: il pacchetto si chiama
+`legopst_<nome>.tgz` e dentro c'è la directory `legopst_<nome>` — i due nomi
+che `lgrun -d <nome>` cerca. Senza `-d` il nome è `userstd`. La directory dentro
+il pacchetto si chiama così **anche se la sorgente ha un altro nome**: lo script
+la rinomina mentre confeziona, e `lgrun` controlla di trovarla dopo
+l'estrazione.
 
 ### Cosa entra
 
@@ -708,6 +748,22 @@ simulatori — e non deve essere pulita per poter confezionare la demo.
 
 Quando la demo cambia davvero si aggiornano **quegli elenchi**: sono la
 definizione di cosa la demo contiene.
+
+Gli elenchi scritti nello script sono della demo **`userstd`**. Un'altra demo
+ha i suoi in **`demo/demo_<nome>.conf`**, un file di shell con le stesse tre
+variabili:
+
+```sh
+# demo_nucleare.conf
+AMMESSE_RADICE="legocad sked"
+AMMESSE_LEGOCAD="libgraph libut libut_reg PWRN1PSS SLB1_NI2 r_SLB1_0"
+AMMESSE_SKED="SLaurent_0"
+```
+
+Per le demo diverse da `userstd` il file è obbligatorio: usare per sbaglio gli
+elenchi di `userstd` confezionerebbe una demo vuota senza un errore. Se manca,
+lo script si ferma e ne **propone uno di partenza** con tutto quello che trova
+nella sorgente: si copia, si toglie quello che non deve viaggiare, si rilancia.
 
 ### Cosa si esclude, dentro ciò che entra
 
@@ -758,19 +814,26 @@ sempre. Tutta la procedura sta in un comando:
 
 ```bash
 cd demo
-./publish_demo.sh          # confeziona, pubblica, verifica
-./publish_demo.sh -n       # prova: dice cosa farebbe, senza toccare niente
+./publish_demo.sh               # la demo standard: confeziona, pubblica, verifica
+./publish_demo.sh -d nucleare   # un'altra demo
+./publish_demo.sh -n            # prova: dice cosa farebbe, senza toccare niente
 ```
+
+La release è **una sola** e porta un allegato per demo (`legopst_<nome>.tgz`);
+le sue note elencano le demo pubblicate con il loro sha256.
 
 Cosa fa, in ordine:
 
 1. rifà il pacchetto con `make_demo_tgz.sh` (`--no-build` per pubblicare quello
    che c'è già);
-2. crea la release se manca, e sostituisce l'allegato `legopst_userstd.tgz`. Se
-   quello pubblicato ha già lo stesso sha256 si ferma: non c'è niente da fare;
+2. crea la release se manca, e sostituisce l'allegato `legopst_<nome>.tgz`. Se
+   quello pubblicato ha già lo stesso sha256 non carica niente, ma i passi
+   successivi li fa lo stesso;
 3. **lo riscarica** e ne confronta lo sha256 con quello locale;
-4. scrive tag e sha256 nelle righe `ARG DEMO_RELEASE` / `ARG DEMO_SHA256` di
-   `docker/Dockerfile_LegoPST`;
+4. **solo per la demo standard**, scrive tag e sha256 nelle righe
+   `ARG DEMO_RELEASE` / `ARG DEMO_SHA256` di `docker/Dockerfile_LegoPST`: è
+   l'unica che viaggia dentro l'immagine. Le altre non richiedono nessuna
+   ricostruzione — `lgrun -d <nome>` le scarica dalla release;
 5. dice cosa resta da fare: commit, ricostruzione dell'immagine, `lgrun -update`.
 
 Prima di pubblicare chiede conferma (`-y` per saltarla).

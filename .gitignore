@@ -169,10 +169,12 @@ docker/repo_info.conf
 Alg_rt/lg_fmu/*/example/legoclix_*_bundle/
 __pycache__/
 
-# Pacchetto demo: viaggia come allegato di una release di GitHub, non in git.
+# Pacchetti demo: viaggiano come allegati di una release di GitHub, non in git.
 # Un .tgz e' gia' compresso, e git non riesce a fare delta fra due versioni:
-# ne conserva una copia intera ciascuna, per sempre. Lo confeziona e lo
-# pubblica demo/publish_demo.sh; il Dockerfile lo scarica al build.
-# (Finche' il file e' ancora tracciato questa riga non ha effetto: lo toglie
-# dall'indice "git rm --cached", che publish_demo.sh ricorda di fare.)
-demo/legopst_userstd.tgz
+# ne conserva una copia intera ciascuna, per sempre - e oltre i 100 MB GitHub
+# rifiuta il push. Li confeziona e li pubblica demo/publish_demo.sh; quello
+# standard il Dockerfile lo scarica al build, gli altri li scarica "lgrun -d".
+# (legopst_userstd.tgz e' ancora tracciato, e finche' lo e' questa riga non lo
+# riguarda: lo toglie dall'indice "git rm --cached", che publish_demo.sh
+# ricorda di fare.)
+demo/legopst_*.tgz

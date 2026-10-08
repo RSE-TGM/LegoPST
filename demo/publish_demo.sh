@@ -6,12 +6,17 @@
 #
 #   1. confeziona il pacchetto         (demo/make_demo_tgz.sh)
 #   2. crea la release, se non c'e'    (tag demo-2.0, titolo "Demo LegoPST 2.0")
-#   3. ci carica legopst_userstd.tgz   (sostituendo l'allegato precedente)
+#   3. ci carica legopst_<nome>.tgz    (sostituendo l'allegato precedente)
 #   4. lo riscarica e ne confronta lo sha256 con quello locale
-#   5. se il Dockerfile scarica la demo dalla release, ci aggiorna lo sha256
+#   5. per la demo standard: aggiorna lo sha256 nel Dockerfile
+#
+# La release e' una sola e porta un allegato per demo. "lgrun -d" installa
+# userstd, che viaggia anche dentro l'immagine Docker (per questo, e solo per
+# lei, c'e' il passo 5); "lgrun -d <nome>" scarica legopst_<nome>.tgz da qui.
 #
 #   uso:  ./publish_demo.sh [opzioni]
 #
+#     -d, --demo NOME   quale demo pubblicare (default: userstd)
 #     -n, --dry-run     dice cosa farebbe, senza confezionare ne' pubblicare
 #     -y, --yes         non chiede conferma prima di pubblicare
 #         --no-build    non rifa' il pacchetto: pubblica il .tgz che c'e' gia'
@@ -48,8 +53,7 @@ set -o pipefail
 PROGRAMMA="$(basename "$0")"
 QUI="$(cd "$(dirname "$0")" && pwd)"
 RADICE_REPO="$(cd "$QUI/.." && pwd)"
-TGZ="$QUI/legopst_userstd.tgz"
-NOME_ASSET="legopst_userstd.tgz"
+DEMO="userstd"
 DOCKERFILE="$RADICE_REPO/docker/Dockerfile_LegoPST"
 
 TAG="demo-2.0"
@@ -63,6 +67,8 @@ while [ $# -gt 0 ]; do
         -n|--dry-run)  PROVA=true ;;
         -y|--yes)      SENZA_CONFERMA=true ;;
         --no-build)    CONFEZIONA=false ;;
+        -d|--demo)     DEMO="${2:?$1 vuole il nome della demo}"; shift ;;
+        --demo=*)      DEMO="${1#--demo=}" ;;
         -t|--tag)      TAG="${2:?$1 vuole il tag}"; shift ;;
         --title)       TITOLO="${2:?$1 vuole il titolo}"; shift ;;
         -h|--help)     sed -n '3,/^[^#]/p' "$0" | sed -n 's/^# \{0,1\}//p'; exit 0 ;;
@@ -72,6 +78,12 @@ while [ $# -gt 0 ]; do
 done
 
 muori() { echo "ERRORE: $*" >&2; exit 1; }
+
+case "$DEMO" in
+    ""|-*|*[!A-Za-z0-9_-]*) muori "nome di demo non valido: '$DEMO' (lettere, cifre, _ e -)." ;;
+esac
+NOME_ASSET="legopst_$DEMO.tgz"
+TGZ="$QUI/$NOME_ASSET"
 
 command -v curl >/dev/null 2>&1    || muori "curl non trovato."
 command -v python3 >/dev/null 2>&1 || muori "python3 non trovato (serve a leggere le risposte di GitHub)."
@@ -92,6 +104,7 @@ URL_ASSET="https://github.com/$SLUG/releases/download/$TAG/$NOME_ASSET"
 
 echo "Repository:  $SLUG"
 echo "Release:     $TAG  (\"$TITOLO\")"
+echo "Demo:        $DEMO"
 echo "Pacchetto:   $TGZ"
 $PROVA && echo "Modo:        PROVA (-n): non si confeziona e non si pubblica niente"
 echo ""
@@ -103,10 +116,10 @@ if $PROVA; then
     $CONFEZIONA && echo "[prova] rifarei il pacchetto con make_demo_tgz.sh"
 elif $CONFEZIONA; then
     echo "--- 1. confeziono il pacchetto ---"
-    "$QUI/make_demo_tgz.sh"
+    "$QUI/make_demo_tgz.sh" -d "$DEMO"
     echo ""
 fi
-[ -f "$TGZ" ] || muori "$TGZ non c'e'. Lancia senza --no-build, o prima make_demo_tgz.sh."
+[ -f "$TGZ" ] || muori "$TGZ non c'e'. Lancia senza --no-build, o prima make_demo_tgz.sh -d $DEMO."
 SHA_LOCALE="$(sha256sum "$TGZ" | cut -d' ' -f1)"
 DIM="$(stat -c%s "$TGZ")"
 echo "sha256:      $SHA_LOCALE"
@@ -118,6 +131,7 @@ echo ""
 # ---------------------------------------------------------------------------
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
+GIA_PUBBLICATO=false
 
 # campo <file json> <espressione python su d>
 campo() { python3 -c 'import sys,json
@@ -146,11 +160,16 @@ for a in d["assets"]:
         print((a.get("digest") or "").replace("sha256:",""))' "$TMP/rel.json" "$NOME_ASSET")"
     if [ -n "$SHA_REMOTO" ] && [ "$SHA_REMOTO" = "$SHA_LOCALE" ]; then
         echo ""
-        echo "L'allegato pubblicato ha gia' questo sha256: niente da aggiornare."
-        exit 0
+        echo "L'allegato pubblicato ha gia' questo sha256: non c'e' niente da caricare."
+        GIA_PUBBLICATO=true
     fi
 fi
 echo ""
+
+#  Se e' gia' pubblicato si salta tutta la parte che scrive su GitHub (e quindi
+#  non serve nemmeno autenticarsi), ma il resto si fa lo stesso: il Dockerfile
+#  puo' non essere ancora allineato a quello che sta nella release.
+if ! $GIA_PUBBLICATO; then
 
 # ---------------------------------------------------------------------------
 # Con chi ci si presenta
@@ -187,7 +206,7 @@ if $PROVA; then
     [ -n "$ID_ASSET" ] && echo "[prova] cancellerei l'allegato attuale"
     echo "[prova] caricherei $NOME_ASSET ($((DIM / 1024 / 1024)) MB)"
     echo "[prova] lo riscaricherei da $URL_ASSET per confrontare lo sha256"
-    if grep -q '^ARG DEMO_SHA256=' "$DOCKERFILE" 2>/dev/null; then
+    if [ "$DEMO" = userstd ] && grep -q '^ARG DEMO_SHA256=' "$DOCKERFILE" 2>/dev/null; then
         echo "[prova] aggiornerei ARG DEMO_SHA256 in docker/Dockerfile_LegoPST"
     fi
     exit 0
@@ -201,10 +220,24 @@ if ! $SENZA_CONFERMA; then
     echo ""
 fi
 
-NOTE="Pacchetto demo di LegoPST, confezionato da demo/make_demo_tgz.sh.
-E' quello che 'lgrun -d' installa nella home dell'utente.
-
-sha256: $SHA_LOCALE"
+#  Le note della release elencano le demo con il loro sha256. Si aggiorna la
+#  riga di QUESTA demo e si lasciano le altre com'erano.
+NOTE="$(python3 - "$TMP/rel.json" "$NOME_ASSET" "$SHA_LOCALE" "$DEMO" <<'PY'
+import sys, json, re
+rel, asset, sha, demo = sys.argv[1:5]
+testa = ("Pacchetti demo di LegoPST, confezionati da demo/make_demo_tgz.sh.\n"
+         "`lgrun -d` installa legopst_userstd, `lgrun -d <nome>` installa legopst_<nome>.\n")
+righe = {}
+try:
+    corpo = json.load(open(rel)).get("body") or ""
+    for m in re.finditer(r"^- (legopst_[A-Za-z0-9_-]+\.tgz)  sha256: ([0-9a-f]{64})", corpo, re.M):
+        righe[m.group(1)] = m.group(2)
+except Exception:
+    pass
+righe[asset] = sha
+print(testa + "\n" + "\n".join("- %s  sha256: %s" % (k, righe[k]) for k in sorted(righe)))
+PY
+)"
 
 # ---------------------------------------------------------------------------
 # 2-3. release e allegato
@@ -280,32 +313,45 @@ done
 echo "identico: $URL_ASSET"
 echo ""
 
+fi   # ! GIA_PUBBLICATO
+
 # ---------------------------------------------------------------------------
-# 5. il Dockerfile, se la demo la prende da qui
+# 5. il Dockerfile: solo per la demo standard, l'unica che sta nell'immagine
 # ---------------------------------------------------------------------------
-if grep -q '^ARG DEMO_SHA256=' "$DOCKERFILE" 2>/dev/null; then
+if $PROVA; then
+    if [ "$DEMO" = userstd ] && grep -q '^ARG DEMO_SHA256=' "$DOCKERFILE" 2>/dev/null \
+       && [ "$(sed -n 's/^ARG DEMO_SHA256=//p' "$DOCKERFILE")" != "$SHA_LOCALE" ]; then
+        echo "[prova] scriverei tag e sha256 in docker/Dockerfile_LegoPST"
+    else
+        echo "[prova] niente da fare."
+    fi
+    exit 0
+fi
+
+n=1
+echo "COSA RESTA DA FARE"
+#  Il pacchetto non deve stare in git: viaggia nella release. Toglierlo
+#  dall'indice lo lascia su disco, dove serve per rifarlo.
+if git -C "$RADICE_REPO" ls-files --error-unmatch "demo/$NOME_ASSET" >/dev/null 2>&1; then
+    echo "  $n. togliere il pacchetto da git (resta su disco):"
+    echo "         git rm --cached demo/$NOME_ASSET"
+    n=$((n + 1))
+fi
+if [ "$DEMO" != userstd ]; then
+    echo "  $n. niente da ricostruire: \"lgrun -d $DEMO\" la scarica da questa release."
+    echo "     Chi l'ha gia' installata la tiene: per avere la nuova deve prima"
+    echo "     cancellare ~/legopst_$DEMO."
+elif grep -q '^ARG DEMO_SHA256=' "$DOCKERFILE" 2>/dev/null; then
     VECCHIO="$(sed -n 's/^ARG DEMO_SHA256=//p' "$DOCKERFILE")"
     if [ "$VECCHIO" != "$SHA_LOCALE" ]; then
         sed -i "s/^ARG DEMO_SHA256=.*/ARG DEMO_SHA256=$SHA_LOCALE/" "$DOCKERFILE"
         sed -i "s/^ARG DEMO_RELEASE=.*/ARG DEMO_RELEASE=$TAG/" "$DOCKERFILE"
-        echo "docker/Dockerfile_LegoPST aggiornato con il nuovo sha256."
-    fi
-    echo ""
-    echo "COSA RESTA DA FARE"
-    n=1
-    #  Il pacchetto non deve piu' stare in git: ora viaggia nella release.
-    #  Toglierlo dall'indice lo lascia su disco, dove serve per rifarlo.
-    if git -C "$RADICE_REPO" ls-files --error-unmatch "demo/$NOME_ASSET" >/dev/null 2>&1; then
-        echo "  $n. togliere il pacchetto da git (resta su disco):"
-        echo "         git rm --cached demo/$NOME_ASSET"
-        n=$((n + 1))
+        echo "  (docker/Dockerfile_LegoPST aggiornato con il nuovo sha256)"
     fi
     echo "  $n. committare (docker/Dockerfile_LegoPST porta lo sha256 della demo nuova) e fare push"
     echo "  $((n + 1)). ricostruire e pubblicare l'immagine:  cd docker && ./BuildImage -y --push"
     echo "  $((n + 2)). sulle altre macchine:                 lgrun -update"
 else
-    echo "NOTA: l'immagine Docker prende ancora la demo dalla copia che sta in git"
-    echo "      (demo/$NOME_ASSET), non da questa release. La release ora c'e':"
-    echo "      per farla usare all'immagine va cambiato il Dockerfile - vedi"
-    echo "      docker/README_INSTALLER.md, 'Confezionamento della demo'."
+    echo "  $n. l'immagine Docker prende ancora la demo dalla copia nel repository:"
+    echo "     il Dockerfile non ha le righe ARG DEMO_RELEASE / ARG DEMO_SHA256."
 fi
