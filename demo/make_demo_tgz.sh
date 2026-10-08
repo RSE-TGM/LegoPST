@@ -317,6 +317,9 @@ printf '  %-40s %10s  (atteso 0)\n' "proprietari != 0/0" "$PROPRIETARI"
 echo ""
 echo "--- pacchetto ---"
 printf '  %-40s %10s\n' "$(basename "$DEST")" "$(umana "$DIM_TGZ")"
+# L'impronta: serve a chi pubblica il pacchetto (per esempio come allegato di
+# una release) e a chi lo scarica, per sapere che e' proprio questo.
+printf '  %-40s %s\n' "sha256" "$(sha256sum "$DEST" | cut -d' ' -f1)"
 echo ""
 
 # Il pacchetto e' gia' scritto e resta dov'e': qui non si blocca niente, si

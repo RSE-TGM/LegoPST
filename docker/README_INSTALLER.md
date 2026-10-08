@@ -683,36 +683,129 @@ lgrun -d
 
 Il tarball `demo/legopst_userstd.tgz` si costruisce con
 [`demo/make_demo_tgz.sh`](../demo/make_demo_tgz.sh), non a mano: lo script esiste
-proprio perché l'esclusione qui sotto non si perda al prossimo repack.
+perché la selezione sia riproducibile e le esclusioni non si perdano al prossimo
+repack.
 
-**Dalla demo si esclude `*/proc`**, cioè la directory di *build* di ogni task:
+```bash
+cd demo
+./make_demo_tgz.sh                                    # ~/legopst_userstd -> demo/legopst_userstd.tgz
+./make_demo_tgz.sh <dir_sorgente> <tgz_destinazione>  # per scegliere altro
+```
+
+### Cosa entra
+
+Lo script **seleziona**: entra solo quello che è scritto nei tre elenchi in testa
+al file, e tutto il resto della directory sorgente resta fuori (viene solo
+elencato a schermo). La sorgente di default, `~/legopst_userstd`, è una
+directory di lavoro — ci si accumulano prove, copie di salvataggio, altri
+simulatori — e non deve essere pulita per poter confezionare la demo.
+
+| Elenco | Contenuto |
+|---|---|
+| `AMMESSE_RADICE` | `legocad`, `sked` |
+| `AMMESSE_LEGOCAD` | `libgraph`, `libut`, `libut_reg`, `MDC_GV`, `collet`, `ctrcoll`, `r_MDC0` |
+| `AMMESSE_SKED` | `duetask` |
+
+Quando la demo cambia davvero si aggiornano **quegli elenchi**: sono la
+definizione di cosa la demo contiene.
+
+### Cosa si esclude, dentro ciò che entra
+
+Due directory, **a qualunque profondità** (anche nei bundle FMU annidati, che
+hanno le loro):
+
+**`*/proc`** — la directory di *build* di ogni task:
 
 - contiene l'**eseguibile della task** (`lg2`) e gli oggetti compilati
   (`foraus.o`), binari costruiti sulla macchina di confezionamento contro le
   *sue* librerie: su un'altra macchina non valgono niente. Chi usa la demo rifà
   la task con i propri eseguibili e librerie, e `proc/` viene ricreata lì;
-- è il grosso del pacchetto: 47 MB non compressi, da 20 MB a 17 MB compressi;
+- è il grosso del pacchetto;
 - sotto `out/` il `proc` non è nemmeno una directory ma un **symlink**, che
   `net_sked` ricrea da solo a ogni avvio di task — e prima lo cancella apposta,
   per non lasciarne uno stantìo (`sked_start.c`, `unlink()` poi `symlink()`).
   Quelli confezionati erano per giunta **assoluti e cablati sulla home di chi
   aveva fatto il pacchetto**, quindi rotti su qualunque altra macchina.
 
+**`*/out`** — la directory di *output* della corsa: `lg5.out`, `lg5c.out`,
+`f21.dat`, più il symlink `proc` di cui sopra. È roba prodotta da una corsa sulla
+macchina di confezionamento, non materiale di partenza. `sked_start.c` la ricrea
+da sé a ogni avvio, con `mkdir()` sia di `./out` sia di `./out/<modello>` per
+ogni modello del simulatore, e tollera che esistano già. Confezionarla
+significherebbe spedire i risultati di una corsa altrui e i symlink rotti che
+ci stanno dentro.
+
 > **Non "aggiustare" quei symlink creando una directory vera al loro posto.**
 > `net_sked` fa `unlink()` e poi `symlink()`: su una directory l'`unlink`
 > fallisce, il `symlink` fallisce con `EEXIST` e si finisce su `exit(1)` — la
 > task non parte. **Assente** è lo stato giusto.
 
-Resta invece `out/` con `f21.dat`, `lg5.out`, `lg5c.out`: `f21.dat` viene letto a
-runtime (`sked_start.c`, `sked_fine.c`, `lg5sim.for`), quindi si esclude
-`*/proc`, non `*/out`.
+### I controlli che lo script fa da sé
 
-> Dopo aver rigenerato il tarball **va ricostruita l'immagine Docker**: il
-> `Dockerfile_LegoPST` copia l'intero repository (`COPY /LegoPST
-> /home/legoroot_fedora41`) e la demo viaggia lì dentro. Senza rebuild, `lgrun -d`
-> continua a estrarre il tarball vecchio. L'immagine si costruisce con
-> `make -f Makefile.mk docker` dalla radice del repository (o `docker/BuildImage -y`):
-> il `make` normale non la tocca.
+Finito il tarball lo rilegge e verifica: nessun `proc` e nessun `out` rimasti,
+nessun binario (`lg2`, `foraus.o`), nessun symlink, proprietario neutro (`0/0`)
+su tutti i file. Poi ne stampa la dimensione e lo **sha256**, e avvisa sulle due
+soglie di GitHub — 50 MB è quella *consigliata* (il push passa, con un
+avviso), 100 MB il limite duro. Al 12 settembre 2026 il pacchetto pesa circa
+53 MB, con 5444 file.
+
+### Pubblicare la demo: `publish_demo.sh`
+
+Il pacchetto viaggia come **allegato di una release di GitHub** ("Demo LegoPST
+2.0", tag `demo-2.0`), non dentro git. Un `.tgz` è già compresso: git non riesce
+a fare delta fra due versioni e ne conserva una copia intera ciascuna, per
+sempre. Tutta la procedura sta in un comando:
+
+```bash
+cd demo
+./publish_demo.sh          # confeziona, pubblica, verifica
+./publish_demo.sh -n       # prova: dice cosa farebbe, senza toccare niente
+```
+
+Cosa fa, in ordine:
+
+1. rifà il pacchetto con `make_demo_tgz.sh` (`--no-build` per pubblicare quello
+   che c'è già);
+2. crea la release se manca, e sostituisce l'allegato `legopst_userstd.tgz`. Se
+   quello pubblicato ha già lo stesso sha256 si ferma: non c'è niente da fare;
+3. **lo riscarica** e ne confronta lo sha256 con quello locale;
+4. scrive tag e sha256 nelle righe `ARG DEMO_RELEASE` / `ARG DEMO_SHA256` di
+   `docker/Dockerfile_LegoPST`;
+5. dice cosa resta da fare: commit, ricostruzione dell'immagine, `lgrun -update`.
+
+Prima di pubblicare chiede conferma (`-y` per saltarla).
+
+**Autenticazione.** Leggere la release non richiede niente; per scriverci serve
+un'identità. Lo script usa `gh`, il client di GitHub, se è installato e ha fatto
+il login — è la strada comoda, e si prepara una volta sola:
+
+```bash
+sudo dnf install gh      # Arch: sudo pacman -S github-cli
+gh auth login
+```
+
+Senza `gh` usa un token: `$GITHUB_TOKEN`, `$GH_TOKEN`, il file
+`~/.config/legopst/github_token` (da tenere a `chmod 600`), oppure lo chiede a
+terminale senza mostrarlo né salvarlo. Il token si crea su github.com →
+*Settings → Developer settings → Personal access tokens*, con il permesso di
+scrittura sui contenuti del repository.
+
+**Come lo prende l'immagine.** Il `Dockerfile_LegoPST`, subito dopo aver copiato
+il repository, guarda `ARG DEMO_RELEASE`: se è valorizzato scarica il pacchetto
+da quella release e ne controlla lo sha256 (un download troncato, o un allegato
+sostituito, fanno fallire il build); se è vuoto usa la copia che sta nel
+repository, come prima. Le due righe `ARG` le scrive `publish_demo.sh` e sono
+anche il registro di *quale* demo sta in un'immagine. `lgdock` non cambia: cerca
+il pacchetto sempre nello stesso posto.
+
+> Dopo aver pubblicato una demo nuova **va ricostruita l'immagine Docker**
+> (`docker/BuildImage -y --push`, da `docker/`): la demo sta dentro l'immagine,
+> e senza rebuild `lgrun -d` continua a estrarre quella vecchia.
+
+> **La storia di git non si alleggerisce.** Le versioni del pacchetto già
+> committate (circa 88 MB) restano: toglierlo da git ferma la crescita, non la
+> riavvolge. Per recuperarle servirebbe riscrivere la storia, che su un
+> repository condiviso non conviene.
 
 ## Disinstallazione
 

@@ -168,3 +168,11 @@ docker/repo_info.conf
 # automaticamente dai .fmu, ~120 MB. I .fmu SI' sono tracciati: sono la sorgente.
 Alg_rt/lg_fmu/*/example/legoclix_*_bundle/
 __pycache__/
+
+# Pacchetto demo: viaggia come allegato di una release di GitHub, non in git.
+# Un .tgz e' gia' compresso, e git non riesce a fare delta fra due versioni:
+# ne conserva una copia intera ciascuna, per sempre. Lo confeziona e lo
+# pubblica demo/publish_demo.sh; il Dockerfile lo scarica al build.
+# (Finche' il file e' ancora tracciato questa riga non ha effetto: lo toglie
+# dall'indice "git rm --cached", che publish_demo.sh ricorda di fare.)
+demo/legopst_userstd.tgz

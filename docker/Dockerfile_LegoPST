@@ -151,6 +151,40 @@ ENV LANG=en_US.UTF-8 \
 # Crea le directory e copia i file
 RUN mkdir -p /home/legoroot_fedora41
 COPY /LegoPST /home/legoroot_fedora41
+
+# Il pacchetto della demo (quello che "lgrun -d" estrae nella home dell'utente).
+#
+# Puo' arrivare da due posti, e lgdock.sh lo cerca sempre nello stesso:
+#   - da una RELEASE di GitHub, se DEMO_RELEASE e' valorizzato: lo si scarica
+#     qui e se ne controlla lo sha256, cosi' un download troncato o un allegato
+#     sostituito fanno fallire il build invece di finire nell'immagine;
+#   - dalla copia che sta nel repository (demo/legopst_userstd.tgz), arrivata
+#     con il COPY qui sopra, se DEMO_RELEASE e' vuoto.
+#
+# Le due righe ARG le scrive demo/publish_demo.sh dopo aver pubblicato il
+# pacchetto e averlo riscaricato per controllo: non vanno toccate a mano.
+# Sono anche il registro di QUALE demo sta in questa immagine.
+#
+# Perche' una release: un .tgz e' gia' compresso, git non riesce a fare delta
+# fra due versioni e se le tiene tutte intere nella storia, per sempre. Il
+# repository e' pubblico: per scaricare basta curl, senza credenziali.
+ARG DEMO_RELEASE=demo-2.0
+ARG DEMO_SHA256=6c32cfaeaf5ffc586745b7d0afd967cd5b76570df5bc6b49321d2c0f29ad7bf5
+RUN if [ -n "$DEMO_RELEASE" ]; then \
+        echo "demo: scarico la release $DEMO_RELEASE" && \
+        mkdir -p /home/legoroot_fedora41/demo && \
+        curl -fL --retry 3 \
+            -o /home/legoroot_fedora41/demo/legopst_userstd.tgz \
+            "https://github.com/RSE-TGM/LegoPST/releases/download/${DEMO_RELEASE}/legopst_userstd.tgz" && \
+        echo "${DEMO_SHA256}  /home/legoroot_fedora41/demo/legopst_userstd.tgz" | sha256sum -c - ; \
+    elif [ -f /home/legoroot_fedora41/demo/legopst_userstd.tgz ]; then \
+        echo "demo: uso la copia nel repository" ; \
+    else \
+        echo "ERRORE: nessun pacchetto demo. DEMO_RELEASE e' vuoto e demo/legopst_userstd.tgz non c'e':" ; \
+        echo "        pubblicalo con demo/publish_demo.sh, o rifallo con demo/make_demo_tgz.sh." ; \
+        exit 1 ; \
+    fi
+
 WORKDIR /home/legoroot_fedora41/gdbm-install
 RUN make -f Makefile.mk
 
