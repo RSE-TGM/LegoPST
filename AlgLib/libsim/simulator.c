@@ -36,6 +36,8 @@ int   ReadSimulator(int);
 #define FSNAP "snapshot.dat"
 #define FBKTK "backtrack.dat"
 #define FF22C "f22circ.dat"
+/* dove finisce un f22circ.dat incompatibile, messo da parte da ControlParam */
+#define FF22C_SCARTATO "f22circ.dat.incompatibile"
 #define WARN  "WARNING"
 #define SEVR  "SEVERE"
 char nome_proc[50];
@@ -475,6 +477,56 @@ printf("\t\t ControlParam da f22circ.dat %d %d %d %d %d %d %d\n",
 */
       fclose(fp);
       ef22 = ConfrontoPar(hdfile,processo,file);
+      }
+/*
+   Un f22circ.dat incompatibile non ferma piu' l'avvio: lo si mette da parte
+   e la simulazione parte, perche' net_prepf22 ne crea uno nuovo quando non
+   lo trova.
+
+   Il file porta nell'intestazione i parametri con cui e' nato (numero di
+   campioni, numero di variabili). Se non sono quelli in uso - la task
+   lanciata prima da una FMU e poi da legopc, un Simulator cambiato, una
+   demo confezionata con dentro la corsa di un altro - ConfrontoPar lo segna
+   SEVERE, e fino a ottobre 2026 l'avvio finiva con
+       Errori in fase di Startup (sk=4 disp=4 monit=4 shm=0)
+   lasciando una directory in cui la simulazione non partiva piu' finche'
+   qualcuno non cancellava il file a mano, senza che niente dicesse quale.
+
+   Si puo' fare perche' f22circ.dat e' solo la registrazione circolare per i
+   grafici: non e' uno stato da cui si riparte. snapshot.dat e backtrack.dat
+   invece lo sono, e per loro l'errore resta - buttarli e' una decisione di
+   chi usa il simulatore, non di questa funzione.
+
+   Lo fa il PRIMO processo che se ne accorge, chiunque sia: dispatcher,
+   net_sked, il banco e net_prepf22 passano tutti di qui prima di aprire il
+   file. rename() e' atomica: chi arriva dopo non trova piu' niente e
+   prosegue. Rinominato e non cancellato, cosi' le vecchie registrazioni si
+   possono ancora recuperare; una copia messa da parte in precedenza viene
+   sostituita.
+*/
+    if( ef22!=0 )
+      {
+      if( rename(FF22C,FF22C_SCARTATO)==0 )
+         {
+         fpedf = fopen(PAREDF,"a");
+         if( fpedf!=NULL )
+            {
+            fprintf(fpedf,"RIMEDIO: %s incompatibile rinominato in %s: "
+                          "ne verra' creato uno nuovo\n",FF22C,FF22C_SCARTATO);
+            fclose(fpedf);
+            }
+         printf("%s: %s non compatibile con i parametri in uso: "
+                "rinominato in %s, ne verra' creato uno nuovo\n",
+                nome_proc,FF22C,FF22C_SCARTATO);
+         ef22 = 0;
+         }
+      else if( (fp = fopen(FF22C,"r"))==NULL )
+         {
+         /* gia' messo da parte da un altro processo, un attimo fa */
+         ef22 = 0;
+         }
+      else
+         fclose(fp);
       }
     errorifile = esnap + 2*ebktk + 4*ef22;
 /*

@@ -41,3 +41,27 @@ Nell'editor *Options → Edit* i due comandi persistono/ripristinano l'intera st
 - **Load** ([`activateCB_optionSetMenuLoadpb`](optionSet.c#L192)): `read_options()` **rilegge `.bi_options`** (ultimo stato salvato) nella struttura in memoria → **scarta le modifiche non salvate**, poi chiude l'editor. In precedenza dopo `DistruggiInterfaccia` veniva richiamato `aggiorna_opzioni(&options)`, che ricopiava i widget della pagina corrente dentro `options` vanificando il reload sulla pagina visualizzata: **richiamo rimosso** (fix), ora il Load ripristina l'intera struttura in modo completo.
 
 Il copia widget→struttura avviene invece nel bottone *Apply* ([`activateCB_pushButton6`](optionSet.c#L165) → `aggiorna_opzioni`): **Save non lo richiama**, quindi il flusso è *modifica campi → Apply → Save*.
+
+## Avvio: i file delle registrazioni e i parametri del `Simulator`
+
+All'avvio `dispatcher`, `net_sked`, il banco e `net_prepf22` passano tutti da
+`ControlParam` ([AlgLib/libsim/simulator.c](../../../AlgLib/libsim/simulator.c)),
+che confronta i parametri in uso — quelli del file `Simulator`: numero di
+snapshot, di backtrack, di campioni, di variabili… — con quelli scritti
+nell'intestazione di `snapshot.dat`, `backtrack.dat` e `f22circ.dat`. Le
+differenze finiscono in **`parametri.out`**, nella directory del simulatore:
+`WARNING` quelle tollerate, `SEVERE` quelle che contano. È il primo file da
+guardare quando il banco stampa `Errori in fase di Startup (sk=N disp=N
+monit=N shm=N)`: `N` vale 1 per `snapshot.dat`, 2 per `backtrack.dat`, 4 per
+`f22circ.dat`, sommati.
+
+**`f22circ.dat` incompatibile non ferma più l'avvio** (da ottobre 2026). È solo
+la registrazione circolare per i grafici, non uno stato da cui si riparte: il
+primo processo che lo trova con parametri diversi lo rinomina in
+`f22circ.dat.incompatibile` e prosegue, e `net_prepf22` ne crea uno nuovo. Lo
+dice sullo stdout e in `parametri.out` (`RIMEDIO: ...`). Prima la simulazione
+non partiva più finché qualcuno non cancellava il file a mano — capitava dopo
+una corsa FMU della stessa task, o cambiando il `Simulator`.
+
+Per `snapshot.dat` e `backtrack.dat` l'errore **resta**: contengono gli stati
+salvati, e scartarli è una decisione di chi usa il simulatore.

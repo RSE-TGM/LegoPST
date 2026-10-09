@@ -812,8 +812,11 @@ valori delle variabili nel tempo, quelli dei grafici.
   `Errori in fase di Startup (sk=4 disp=4 monit=4 shm=0)`, e in `parametri.out`
   la riga `SEVERE : f22circ.dat -num_camp_cr 14400 Simulator:[7200]`. È successo
   con una demo in cui il file veniva da una corsa FMU, che allora usava
-  parametri diversi da quelli del `Simulator` della task. Su una demo già
-  installata basta rinominare il file: viene ricreato.
+  parametri diversi da quelli del `Simulator` della task. Da ottobre 2026 il
+  simulatore si difende da sé — un `f22circ.dat` incompatibile viene messo da
+  parte (`f22circ.dat.incompatibile`) e ricreato, invece di fermare l'avvio —
+  ma la demo resta pulita lo stesso: chi la installa con un'immagine precedente
+  quella difesa non ce l'ha.
 
 > **Non "aggiustare" quei symlink creando una directory vera al loro posto.**
 > `net_sked` fa `unlink()` e poi `symlink()`: su una directory l'`unlink`
