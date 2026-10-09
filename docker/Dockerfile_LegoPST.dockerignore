@@ -62,3 +62,11 @@ LegoPST/Alg_rt/lg_fmu/lg_cosim/example
 # Residui di WSL: flussi NTFS che si portano dietro i file arrivati da Windows
 # (gli stessi che rompevano fmpy nei bundle FMU, vedi Alg_rt/lg_fmu/USAGE.md).
 LegoPST/**/*:Zone.Identifier
+
+# I pacchetti delle demo non entrano nel contesto: quello standard il
+# Dockerfile lo scarica dalla release (ARG DEMO_RELEASE), gli altri li scarica
+# "lgrun -d <nome>". Una copia rimasta in demo/ dopo make_demo_tgz.sh finiva
+# nell'immagine per intero - 150 MB per la demo nuclear - senza servire a niente.
+LegoPST/demo/legopst_*.tgz
+# ...tranne quello standard: e' il ripiego del Dockerfile quando DEMO_RELEASE e' vuoto
+!LegoPST/demo/legopst_userstd.tgz

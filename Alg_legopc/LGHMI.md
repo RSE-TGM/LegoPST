@@ -830,6 +830,19 @@ senza `xterm` non c'è. Lo stesso vale per `config -c compreg` e `-c creatask`.
 
 ### `Tools → Edit model (legopc)`
 
+> **`legopc` non eredita il Sim path di `lghmi`.** Il Sim path del selettore è
+> la directory del simulatore composto, dove le HMI leggono i dati vivi;
+> `legopc` invece simula la **singola task**, nella directory della task, ed è
+> lì che *Show Value* e le HMI aperte da *HMI & Plots* devono guardare. Per
+> questo `legopc` viene lanciato **senza `LG_SIM_PATH`** (`env -u`, in
+> `avvia_legopc`) e usa il suo default, la directory del modello. Fino a
+> ottobre 2026 la ereditava: aperto da un selettore posizionato su un
+> simulatore, cercava i valori della task nella directory del simulatore, e
+> `viewval` si fermava perché la topologia non era quella (*servono N byte,
+> cioè la dimensione di variabili.rtf*). La simulazione partiva, ma non si
+> vedeva niente. Lanciato a mano con `lgpc` il problema non c'è: lì la
+> variabile non è impostata.
+
 Apre il **CAD** sul modello della task selezionata, oppure vuoto se non c'è
 selezione. I controlli e il lancio stanno in
 [`src/tix/lgedit.tcl`](src/tix/lgedit.tcl) (`modifica_task`), condivisi con il

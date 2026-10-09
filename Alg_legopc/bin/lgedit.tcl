@@ -314,16 +314,28 @@ proc modifica_task {dir vuoto} {
 #  legopc.tix tiene del suo argomento SOLO il basename (file tail), e lo risolve
 #  sulla directory corrente: per questo si fa cd nella task e si passa il nome
 #  nudo, esattamente come lghmi fa per draw2gr.
+#
+#  SENZA LG_SIM_PATH (env -u). Quella variabile e' il Sim path di chi lancia:
+#  per lghmi la directory del simulatore composto, dove le HMI leggono i dati
+#  vivi. legopc la prenderebbe come la SUA directory di simulazione
+#  (animate.tcl, ::anima_sim_path) e la passerebbe alle HMI che apre da "HMI &
+#  Plots" - ma legopc simula la SINGOLA task, nella directory della task, e
+#  li' deve guardare. Con il Sim path ereditato, Show Value e le HMI cercavano
+#  i valori nella directory del simulatore: viewval si ferma, perche' la
+#  topologia non e' quella della task ("servono N byte, cioe' la dimensione di
+#  variabili.rtf"). Senza la variabile legopc usa il suo default, la directory
+#  del modello. Non c'e' un caso in cui servirebbe ereditarla: mentre la
+#  simulazione di lghmi gira, legopc non si apre affatto (modifica_task).
 proc avvia_legopc {dir tom} {
     set lpc [file join $::env(LG_TIX) legopc.tix]
     if {$dir eq ""} {
         set etichetta "legopc"
         set log [file join /tmp "lghmi_legopc.log"]
-        set sh "exec wish [list $lpc] >[list $log] 2>&1"
+        set sh "exec env -u LG_SIM_PATH wish [list $lpc] >[list $log] 2>&1"
     } else {
         set etichetta "legopc on '[file tail $dir]'"
         set log [file join /tmp "lghmi_legopc_[file tail $dir].log"]
-        set sh "cd [list $dir] && exec wish [list $lpc] [list $tom] >[list $log] 2>&1"
+        set sh "cd [list $dir] && exec env -u LG_SIM_PATH wish [list $lpc] [list $tom] >[list $log] 2>&1"
     }
     if {[catch {exec setsid sh -c $sh &} err]} {
         if {[catch {exec sh -c $sh &} err2]} {
