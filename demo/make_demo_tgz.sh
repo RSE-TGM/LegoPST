@@ -67,9 +67,24 @@
 #            risultati di una corsa altrui e i symlink rotti che ci stanno
 #            dentro.
 #
-# Le due esclusioni valgono a QUALUNQUE profondita': i bundle FMU annidati
-# (legoclix_<task>_bundle/resources/bundle/task/<task>/) hanno le loro proc/ e
-# out/, e vanno via anche quelle.
+#   f22circ.dat
+#            il file CIRCOLARE delle registrazioni di una corsa: i valori
+#            delle variabili nel tempo, quelli che si vedono nei grafici. E'
+#            il risultato di una simulazione fatta sulla macchina di
+#            confezionamento, e chi usa la demo lo rifa' al primo avvio:
+#            net_prepf22 lo crea se manca. Non e' solo peso inutile (per un
+#            simulatore sono decine di MB): e' anche un GUASTO in attesa. Nella
+#            sua intestazione ci sono i parametri con cui e' stato creato -
+#            numero di campioni, numero di variabili - e all'avvio dispatcher,
+#            net_sked e net_monit li confrontano con quelli del file Simulator.
+#            Se non coincidono la simulazione non parte:
+#                Errori in fase di Startup (sk=4 disp=4 monit=4 shm=0)
+#            E' successo con una demo in cui il file veniva da una corsa FMU,
+#            che usava parametri diversi da quelli del Simulator della task.
+#
+# Le esclusioni valgono a QUALUNQUE profondita': i bundle FMU annidati
+# (legoclix_<task>_bundle/resources/bundle/task/<task>/) hanno le loro proc/,
+# out/ e f22circ.dat, e vanno via anche quelli.
 
 set -e
 
@@ -121,6 +136,11 @@ COSA ENTRA NEL PACCHETTO
              sulla macchina di confezionamento, inutili altrove)
     */out    directory di output della corsa (lg5.out, f21.dat e il symlink
              proc con path assoluto). net_sked le ricrea da se' a ogni avvio.
+    f22circ.dat
+             le registrazioni di una corsa fatta da chi confeziona. Si
+             ricrea da solo al primo avvio; lasciato, puo' impedire alla
+             simulazione di partire se i suoi parametri non sono quelli del
+             file Simulator.
 
 COSA STAMPA
   - le directory ammesse, una per riga, con la loro dimensione
@@ -302,10 +322,10 @@ fi
 # ---------------------------------------------------------------------------
 # du con le stesse esclusioni del tar, altrimenti i numeri non corrispondono a
 # quello che finisce davvero nel pacchetto.
-misura() { du -sb --exclude=proc --exclude=out "$1" | cut -f1; }
+misura() { du -sb --exclude=proc --exclude=out --exclude=f22circ.dat "$1" | cut -f1; }
 umana()  { numfmt --to=iec --format='%.1f' "$1"; }
 
-echo "--- contenuto della demo (proc/ e out/ escluse) ---"
+echo "--- contenuto della demo (proc/, out/ e f22circ.dat esclusi) ---"
 TOTALE=0
 for m in "${MEMBRI[@]}"; do
     dim="$(misura "$SORGENTE/$m")"
@@ -364,7 +384,7 @@ fi
 tar czf "$DEST" -C "$RADICE" \
     --owner=0 --group=0 --numeric-owner \
     "${TRASFORMA[@]}" \
-    --exclude='*/proc' --exclude='*/out' \
+    --exclude='*/proc' --exclude='*/out' --exclude='*/f22circ.dat' \
     --no-recursion "./$NOME" "${CONTENITORI[@]/#/./$NOME/}" \
     --recursion "${MEMBRI[@]/#/./$NOME/}"
 
@@ -378,6 +398,7 @@ tar --numeric-owner -tvzf "$DEST" > "$DETT"
 
 RES_PROC=$(grep -cE '/proc(/|$)' "$NOMI" || true)
 RES_OUT=$(grep -cE '/out(/|$)' "$NOMI" || true)
+RES_F22=$(grep -cE '/f22circ\.dat$' "$NOMI" || true)
 LINK=$(grep -c '^l' "$DETT" || true)
 
 # I symlink: quanti sono CATTIVI. Un link relativo che resta dentro il
@@ -415,6 +436,7 @@ echo "--- verifica ---"
 printf '  %-40s %10s\n' "membri totali" "$(wc -l < "$NOMI")"
 printf '  %-40s %10s  (atteso 0)\n' "membri 'proc'" "$RES_PROC"
 printf '  %-40s %10s  (atteso 0)\n' "membri 'out'" "$RES_OUT"
+printf '  %-40s %10s  (atteso 0)\n' "f22circ.dat" "$RES_F22"
 printf '  %-40s %10s  (quelli relativi e interni vanno bene)\n' "symlink in tutto" "$LINK"
 printf '  %-40s %10s  (atteso 0)\n' "  di cui assoluti, uscenti o rotti" "$LINK_CATTIVI"
 printf '  %-40s %10s  (atteso 0)\n' "eseguibili di build" "$BINARI"
@@ -433,7 +455,8 @@ echo ""
 # decisione e' di chi confeziona. Exit 1 solo perche' il difetto si veda anche
 # da uno script che chiami questo.
 ESITO=0
-if [ "$RES_PROC" -ne 0 ] || [ "$RES_OUT" -ne 0 ] || [ "$LINK_CATTIVI" -ne 0 ] \
+if [ "$RES_PROC" -ne 0 ] || [ "$RES_OUT" -ne 0 ] || [ "$RES_F22" -ne 0 ] \
+   || [ "$LINK_CATTIVI" -ne 0 ] \
    || [ "$BINARI" -ne 0 ] || [ "$PROPRIETARI" -ne 0 ]; then
     echo "ATTENZIONE: il tarball e' stato prodotto, ma contiene roba che non"
     echo "            deve viaggiare (vedi i contatori \"atteso 0\" diversi da zero)."

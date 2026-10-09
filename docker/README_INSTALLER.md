@@ -774,8 +774,8 @@ nella sorgente: si copia, si toglie quello che non deve viaggiare, si rilancia.
 
 ### Cosa si esclude, dentro ciò che entra
 
-Due directory, **a qualunque profondità** (anche nei bundle FMU annidati, che
-hanno le loro):
+Due directory e un file, **a qualunque profondità** (anche nei bundle FMU
+annidati, che hanno i loro):
 
 **`*/proc`** — la directory di *build* di ogni task:
 
@@ -798,6 +798,23 @@ ogni modello del simulatore, e tollera che esistano già. Confezionarla
 significherebbe spedire i risultati di una corsa altrui e i symlink rotti che
 ci stanno dentro.
 
+**`f22circ.dat`** — il file circolare delle registrazioni di una corsa: i
+valori delle variabili nel tempo, quelli dei grafici.
+
+- è il risultato di una simulazione fatta da chi confeziona, e chi usa la demo
+  lo rifà al primo avvio: `net_prepf22` lo crea se manca (verificato, sia per
+  la task singola sia per il simulatore composto);
+- pesa: per un simulatore sono decine di MB;
+- soprattutto, **lasciato può impedire alla simulazione di partire**. Nella sua
+  intestazione ci sono i parametri con cui è stato creato (numero di campioni,
+  numero di variabili), e all'avvio `dispatcher`, `net_sked` e `net_monit` li
+  confrontano con quelli del file `Simulator`. Se non coincidono:
+  `Errori in fase di Startup (sk=4 disp=4 monit=4 shm=0)`, e in `parametri.out`
+  la riga `SEVERE : f22circ.dat -num_camp_cr 14400 Simulator:[7200]`. È successo
+  con una demo in cui il file veniva da una corsa FMU, che allora usava
+  parametri diversi da quelli del `Simulator` della task. Su una demo già
+  installata basta rinominare il file: viene ricreato.
+
 > **Non "aggiustare" quei symlink creando una directory vera al loro posto.**
 > `net_sked` fa `unlink()` e poi `symlink()`: su una directory l'`unlink`
 > fallisce, il `symlink` fallisce con `EEXIST` e si finisce su `exit(1)` — la
@@ -805,7 +822,8 @@ ci stanno dentro.
 
 ### I controlli che lo script fa da sé
 
-Finito il tarball lo rilegge e verifica: nessun `proc` e nessun `out` rimasti,
+Finito il tarball lo rilegge e verifica: nessun `proc`, `out` o `f22circ.dat`
+rimasti,
 nessun binario (`lg2`, `foraus.o`), proprietario neutro (`0/0`) su tutti i file.
 Poi ne stampa la dimensione e lo **sha256**.
 

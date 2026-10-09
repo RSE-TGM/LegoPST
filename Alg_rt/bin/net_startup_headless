@@ -113,15 +113,37 @@ command -v initav >/dev/null 2>&1 && initav 2>/dev/null || true
 command -v dispatcher >/dev/null 2>&1 || { echo "ERR: dispatcher non in PATH" >&2; exit 2; }
 command -v net_sked   >/dev/null 2>&1 || { echo "ERR: net_sked non in PATH"   >&2; exit 3; }
 
-# --- Parametri (default Simulator.tpl) --------------------------------
-SNAP_S=60
-BACK_T=30
-CAMPIO=14400
-NUM_VA=10000
-PERTUR=50
-SPARE_=1
-PERTCL=0
-TIME_BACK_T=120.0
+# --- Parametri: dal file Simulator della task, se c'e' -------------------
+# Gli stessi che usa startup (e quindi legopc) quando lancia questa task: i
+# file delle registrazioni - f22circ.dat, snapshot.dat, backtrack.dat - portano
+# nell'intestazione i parametri con cui sono stati creati, e all'avvio
+# dispatcher, net_sked e net_monit li confrontano con quelli in uso
+# (ControlParam, libsim/simulator.c). Fino a ottobre 2026 qui si usavano SEMPRE
+# i default (14400 campioni, 10000 variabili), anche con un Simulator che ne
+# diceva altri: dopo una corsa FMU nella directory restava un f22circ.dat da
+# 14400/10000, e la simulazione della stessa task da legopc - che legge
+# Simulator, per esempio 7200/1000 - si fermava con
+#     Errori in fase di Startup (sk=4 disp=4 monit=4 shm=0)
+# e in parametri.out "SEVERE : f22circ.dat -num_camp_cr 14400 Simulator:[7200]".
+# I default restano per la task che un Simulator non ce l'ha.
+#
+# leggi_sim <CHIAVE> <default>: la riga "*Simulator.CHIAVE: valore", non i
+# commenti che la nominano.
+leggi_sim() {
+    local v=""
+    if [ -r Simulator ]; then
+        v=$(sed -n "s/^[[:space:]]*\*Simulator\.$1[[:space:]]*:[[:space:]]*\([0-9.][0-9.]*\).*/\1/p" Simulator | head -1)
+    fi
+    echo "${v:-$2}"
+}
+SNAP_S=$(leggi_sim MAX_SNAP_SHOT   60)
+BACK_T=$(leggi_sim MAX_BACK_TRACK  30)
+CAMPIO=$(leggi_sim MAX_CAMPIONI    14400)
+NUM_VA=$(leggi_sim NUM_VAR         10000)
+PERTUR=$(leggi_sim MAX_PERTUR      50)
+SPARE_=$(leggi_sim SPARE_SNAP      1)
+PERTCL=$(leggi_sim PERT_CLEAR      0)
+TIME_BACK_T=$(leggi_sim TIME_BACK_TRACK 120.0)
 
 # --- Lancio dispatcher + net_sked in background -----------------------
 # Stdout/err ridiretti a file nel cwd; setsid stacca dal controlling tty
