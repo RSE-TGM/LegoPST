@@ -1052,13 +1052,21 @@ LGDOCK_DEBUG=0
 FILTRO_PID=""
 if [[ -n "$HOST_LOG" ]]; then
     exec 1>&5
-    #  Gli avvisi del runtime (le righe "WARN[0000] ..." di Podman: cgroup,
-    #  mount non condiviso) escono sullo stderr di questo comando. Si tolgono
-    #  quelle e solo quelle: tutto il resto dello stderr - gli errori del
-    #  runtime, l'avanzamento se l'immagine va scaricata, lo stderr del comando
-    #  in modo applicazione - passa com'e'.
+    #  Gli avvisi del runtime (cgroup, mount non condiviso...) escono sullo
+    #  stderr di questo comando. Podman li scrive in DUE formati, secondo la
+    #  versione e la distribuzione:
+    #      WARN[0000] The cgroupv2 manager is set to systemd ...
+    #      time="2026-10-09T12:53:07+02:00" level=warning msg="The cgroupv2 ..."
+    #  e con lo shim podman-docker c'e' in testa la riga "Emulate Docker CLI
+    #  using podman...". Si tolgono queste e solo queste: tutto il resto dello
+    #  stderr - gli errori del runtime (anche level=error), l'avanzamento se
+    #  l'immagine va scaricata ("Copying blob ..."), lo stderr del comando in
+    #  modo applicazione - passa com'e'.
     exec 6>&2
-    exec 2> >(grep --line-buffered -v '^WARN\[' >&6)
+    exec 2> >(grep --line-buffered -v -E \
+                  -e '^WARN\[' \
+                  -e '^time="[^"]*" level=(warning|info) ' \
+                  -e '^Emulate Docker CLI using podman' >&6)
     FILTRO_PID=$!
 fi
 

@@ -342,9 +342,14 @@ Il silenzio non nasconde gli errori:
 - i messaggi dell'avvio non vengono buttati ma **tenuti da parte**: se `lgrun` o
   la preparazione del container si fermano con un errore, vengono mostrati
   tutti, come con `-dbg`;
-- dello stderr si tolgono solo le righe `WARN[...]` del runtime: gli errori di
-  Docker/Podman (immagine non trovata, permessi) e l'avanzamento di un
-  download dell'immagine passano;
+- dello stderr si tolgono solo gli **avvisi** del runtime — che Podman scrive
+  in due formati, `WARN[0000] ...` oppure `time="..." level=warning msg="..."`,
+  più la riga *Emulate Docker CLI using podman* dello shim `podman-docker`.
+  Gli errori di Docker/Podman (immagine non trovata, permessi, `level=error`)
+  passano, e passa l'avanzamento di un download dell'immagine: le righe
+  `Trying to pull ...` e `Copying blob sha256:...` sono gli strati
+  dell'immagine che arrivano, e si vedono solo quando l'immagine in locale
+  manca o ne è stata pubblicata una nuova;
 - lo stderr e il codice di uscita del comando lanciato arrivano com'erano;
 - con `-d` la riga *installazione della demo in corso* si vede comunque, perché
   l'estrazione dura.
