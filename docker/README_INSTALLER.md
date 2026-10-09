@@ -358,6 +358,26 @@ Tutti i messaggi citati nel resto di questo documento — il banner
 `=== Modalita' rootless rilevata ===`, gli avvisi `WARN[...]` — si vedono quindi
 **con `-dbg`**.
 
+### Quando viene scaricata l'immagine
+
+Solo in due casi, e mai da sola a ogni avvio:
+
+- **non c'è ancora** su questa macchina: `lgrun` lo dice e la scarica, una volta;
+- la si vuole **aggiornare**: `lgrun -p`, oppure `lgrun -update` (che aggiorna
+  anche `lgrun`).
+
+In tutti gli altri avvii si usa l'immagine che c'è, senza toccare la rete: il
+container parte con `--pull=never`. Fino a ottobre 2026 la decisione era
+lasciata al runtime, e alcune versioni di Podman — con `--platform`, che serve
+per chiedere l'immagine amd64 sui Mac ARM — tornavano dal registry **a ogni
+`lgrun`**: una fila di `Trying to pull...` / `Copying blob sha256:...` ogni
+volta, pur avendo l'immagine sul disco, e senza rete il container non partiva.
+
+Le righe `Copying blob` sono gli **strati** dell'immagine: un'immagine è fatta
+di pezzi sovrapposti (il sistema di base, i pacchetti, LegoPST), ognuno
+identificato dall'impronta del suo contenuto. Vedere quelle righe è normale
+quando si scarica; non lo è vederle a ogni avvio.
+
 ### Lanciare un programma all'avvio: `-e`
 
 `lgrun -e <prog>` (anche `--exec`) esegue `<prog>` dentro il container appena è
