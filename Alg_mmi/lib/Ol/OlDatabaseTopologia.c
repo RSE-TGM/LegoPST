@@ -423,8 +423,9 @@ alla shared maemory e' avvenuto correttamente
 		database->oldatabaseTopologia.shmvar = shmvar;
 		}
 	
-	/* se il database non esiste carica il file */
-	if (esiste_sh == 0)
+	/* se il database non esiste carica il file; lo stesso se esiste ma
+	   non lo usa nessun altro (residuo di una sessione finita) */
+	if (esiste_sh == 0 || sim_shvar_da_caricare ())
         {
             if (fread (database->oldatabaseTopologia.id, 
 			size , 1, fp) < 0)

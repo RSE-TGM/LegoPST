@@ -31,6 +31,7 @@ static char SccsID[] = "@(#)shrmem.c	5.2\t3/13/96";
 # include <errno.h>
 # include <stdio.h>
 #include <unistd.h>
+#include <signal.h>
 #include <Rt/RtMemory.h>
 #include <string.h>
 
@@ -103,6 +104,49 @@ static void diagnostica_shm(const char *fase, int key, int size, int errsv)
     fflush(stderr);
 }
 
+/* ------------------------------------------------------------------------
+   Un segmento ORFANO alla chiave richiesta, di dimensione sbagliata.
+
+   Capita quando una sessione precedente (un altro modello, o lo stesso
+   prima che variabili.rtf cambiasse dimensione) e' finita senza togliere
+   la sua shared memory: il segmento resta, nessuno lo usa, e chi arriva
+   dopo con una dimensione diversa non riesce ne' ad agganciarlo ne' a
+   crearne uno nuovo. Era il caso di kCompStaz dentro kUpSim, subito dopo
+   che kUpSim stesso aveva rigenerato un variabili.rtf piu' grande.
+
+   Un segmento cosi' non serve a nessuno e lo si toglie, cosi' il chiamante
+   puo' ricrearlo. Le condizioni sono strette, perche' un segmento in uso
+   NON va toccato (e' la topologia di una simulazione viva):
+     - nessun processo agganciato oltre a `miei` (0, o 1 se il chiamante
+       lo ha gia' agganciato);
+     - il processo che lo ha creato non esiste piu'.
+   Ritorna 1 se lo ha rimosso, 0 altrimenti (e allora resta l'errore).
+   ------------------------------------------------------------------------ */
+static int rimuovi_shm_orfana(int key, int size, int miei)
+{
+    int idesist;
+    struct shmid_ds info;
+
+    idesist = shmget(key, 0, 0);
+    if (idesist < 0 || shmctl(idesist, IPC_STAT, &info) != 0)
+        return 0;
+    if ((int) info.shm_nattch > miei)
+        return 0;
+    if (info.shm_cpid != getpid() &&
+        (kill(info.shm_cpid, 0) == 0 || errno == EPERM))
+        return 0;
+    if (shmctl(idesist, IPC_RMID, &info) != 0)
+        return 0;
+    fflush(stdout);
+    fprintf(stderr,
+            "AVVISO: alla chiave %d c'era un segmento orfano di %d byte (shmid %d,\n"
+            "        nessun processo agganciato, creato dal pid %d che non esiste\n"
+            "        piu'): ne servono %d. Rimosso e ricreato.\n",
+            key, (int) info.shm_segsz, idesist, (int) info.shm_cpid, size);
+    fflush(stderr);
+    return 1;
+}
+
 char *crea_shrmem(key,size,shmid)
 int key;
 int size;
@@ -110,18 +154,29 @@ int *shmid;            /* identificativo shm solo per ULTRIX e AIX */
 {
   char *ind;                            /* variabile spare           */
   int *appo;
+  int ritentato = 0;                    /* un orfano si toglie una volta sola */
   /* ** Creazione della memoria condivisa ************************** */
 /*
 Controllo se la shmem esiste gia'
 */
 
+riprova:
   *shmid   = shmget(key, size+sizeof(int), 0777 | IPC_CREAT | IPC_EXCL);
   if((*shmid) < 0) /* shm  esiste gia'*/
         {
         *shmid   = shmget(key, size+sizeof(int), 0777 | IPC_CREAT );
         if((*shmid) <0)
                 {
+                int errsv = errno;
 
+                /* piu' piccolo di quanto serve: se e' un orfano lo si rifa' */
+                if(!ritentato && errsv == EINVAL &&
+                   rimuovi_shm_orfana(key, size + (int) sizeof(int), 0))
+                        {
+                        ritentato = 1;
+                        goto riprova;
+                        }
+                errno = errsv;
                 diagnostica_shm("aggancio a segmento esistente", key,
                                 size + (int) sizeof(int), errno);
                 return(NULL); 
@@ -141,6 +196,15 @@ Modifica dovuta alla parte di integrazione Scada
 		appo=(int *)ind;
                 if(!(*appo==size))
                         {
+                        /* piu' grande di quanto serve, ma di un altro modello:
+                           se oltre a noi non lo usa nessuno lo si rifa' */
+                        if(!ritentato &&
+                           rimuovi_shm_orfana(key, size + (int) sizeof(int), 1))
+                                {
+                                shmdt(ind);
+                                ritentato = 1;
+                                goto riprova;
+                                }
                         fflush(stdout);
                         fprintf(stderr,
                                 "ERRORE: il segmento alla chiave %d (shmid %d) e' stato creato per\n"

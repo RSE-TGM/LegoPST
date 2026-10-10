@@ -2552,8 +2552,8 @@ proc aggiorna_menu_tools {} {
     set stato [expr {$nome ne "" ? "normal" : "disabled"}]
     set quale [expr {$nome ne "" ? $nome : "no simulator"}]
 
-    #  Ordine: Edit model, lgmkstaz, kUpSim, kCompile, killsim, Terminal. I due editor
-    #  stanno in cima e accanto. Le varianti di
+    #  Ordine: Edit model, kCompile regulation, lgmkstaz, kUpSim, killsim,
+    #  Terminal. In cima quello che agisce sulla task selezionata. Le varianti di
     #  kUpSim e di kCompile stanno in un sottomenu ciascuno: il menu resta
     #  corto e le varianti restano vicine. Il simulatore corrente si sceglie
     #  dal menu File (Current simulator, riempi_menu_simulatori): qui si
@@ -2567,8 +2567,27 @@ proc aggiorna_menu_tools {} {
     .mb.tools add command -command lancia_legopc \
         -label "Edit model (legopc) - on the selected task, or empty"
 
-    #  Accanto a Edit model perche' e' l'altro editor: legopc disegna il
-    #  modello, lgmkstaz le pagine di faceplate. Sempre attiva anche senza
+    #  Le tre compilazioni della sola task di REGOLAZIONE selezionata. Subito
+    #  sotto Edit model perche' sono le due voci che agiscono "sulla task
+    #  selezionata" - quella il modello di processo, questa la regolazione - e
+    #  l'etichetta lo dice allo stesso modo. Spente senza il riquadro delle
+    #  regolazioni (-noreg), perche' agiscono sulla voce selezionata li'
+    #  dentro, e senza simulatore corrente: kCompile comincia con kTest, che
+    #  senza KSIMNAME esce NOK e ferma tutto.
+    set sreg [expr {($::mostra_reg && $nome ne "") ? "normal" : "disabled"}]
+    if {![winfo exists .mb.tools.kcompile]} { menu .mb.tools.kcompile -tearoff 0 }
+    .mb.tools.kcompile delete 0 end
+    .mb.tools.kcompile add command -state $sreg -command [list lancia_kcompile Regolation] \
+        -label "1. kCompile Regolation - compile the regulation schemes"
+    .mb.tools.kcompile add command -state $sreg -command [list lancia_kcompile Task] \
+        -label "2. kCompile Task - build the task executable"
+    .mb.tools.kcompile add command -state $sreg -command [list lancia_kcompile Page] \
+        -label "3. kCompile Page - compile the pages mmi animates"
+    .mb.tools add cascade -label "kCompile regulation - on the selected task" \
+        -menu .mb.tools.kcompile -state $sreg
+
+    #  L'altro editor: legopc disegna il modello, lgmkstaz le pagine di
+    #  faceplate. Sempre attiva anche senza
     #  simulatore corrente: gli basta un r01.dat.
     .mb.tools add command -command lancia_lgmkstaz \
         -label "lgmkstaz - build/edit faceplate pages (r01.dat)"
@@ -2586,22 +2605,6 @@ proc aggiorna_menu_tools {} {
         -label "kUpSim -n - preview: show the steps without running them"
     .mb.tools add cascade -label "kUpSim" -menu .mb.tools.kupsim -state $stato
 
-    #  Le tre compilazioni della sola task di regolazione selezionata: accanto a
-    #  kUpSim perche' sono compilazioni (l'editor invece sta sul pulsante del
-    #  suo riquadro, dove c'e' la lista su cui agisce). Spente senza il riquadro
-    #  delle regolazioni (-noreg), perche' agiscono sulla voce selezionata li'
-    #  dentro, e senza simulatore corrente: kCompile comincia con kTest, che
-    #  senza KSIMNAME esce NOK e ferma tutto.
-    set sreg [expr {($::mostra_reg && $nome ne "") ? "normal" : "disabled"}]
-    if {![winfo exists .mb.tools.kcompile]} { menu .mb.tools.kcompile -tearoff 0 }
-    .mb.tools.kcompile delete 0 end
-    .mb.tools.kcompile add command -state $sreg -command [list lancia_kcompile Regolation] \
-        -label "1. kCompile Regolation - compile the regulation schemes"
-    .mb.tools.kcompile add command -state $sreg -command [list lancia_kcompile Task] \
-        -label "2. kCompile Task - build the task executable"
-    .mb.tools.kcompile add command -state $sreg -command [list lancia_kcompile Page] \
-        -label "3. kCompile Page - compile the pages mmi animates"
-    .mb.tools add cascade -label "kCompile" -menu .mb.tools.kcompile -state $sreg
     .mb.tools add separator
 
     #  killsim: ripulisce i residui di una simulazione andata male. Prima di

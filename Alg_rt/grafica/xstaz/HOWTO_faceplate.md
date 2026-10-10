@@ -2290,6 +2290,25 @@ Se alla chiave `SHR_USR_KEY + 5` c'è già la topologia di **un altro modello**,
 ================================================================
 ```
 
+Da ottobre 2026 questo errore compare solo se il segmento è **in uso**, cioè
+se c'è davvero un'altra sessione viva: allora va chiusa quella. Se invece il
+segmento è un **orfano** (nessun processo agganciato, e il processo che l'ha
+creato non esiste più) non serve fare niente: viene tolto e ricreato, e resta
+soltanto una riga di avviso.
+
+```
+AVVISO: alla chiave 10000005 c'era un segmento orfano di 353708 byte (shmid 39,
+        nessun processo agganciato, creato dal pid 117133 che non esiste
+        piu'): ne servono 761004. Rimosso e ricreato.
+```
+
+Era il caso tipico di `kUpSim` dopo una modifica al modello: `variabili.rtf`
+cambia dimensione e il segmento lasciato dalla sessione precedente non va più
+bene. Per lo stesso motivo, quando `compstaz` è l'unico agganciato alla
+topologia la ricarica sempre da `variabili.rtf`, anche se un segmento della
+dimensione giusta c'era già: potrebbe essere un residuo con il contenuto
+vecchio.
+
 Fino alla revisione di agosto 2026 lo stesso caso produceva soltanto
 `ERRORE:shmget-EINVAL` e poi un **SIGSEGV**, perché il `NULL` restituito da
 `crea_shrmem()` non veniva controllato dal chiamante. Se ti capita di vedere

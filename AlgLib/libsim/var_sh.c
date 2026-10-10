@@ -106,6 +106,7 @@ extern sqlite3 *db;
 extern S02 s02_;
 
 char *sim_shvar(int,int);
+int sim_shvar_da_caricare(void);
 
 char **cdim2(int,int);
 int **idim2(int,int);
@@ -693,8 +694,9 @@ buf_var = (struct stat *) malloc (sizeof (struct stat));
 	}
 	*p_ind = ind;
 
-	/* carica il file nella shared memory */
-	if (esiste_sh == 0)
+	/* carica il file nella shared memory: se non c'era, o se c'era ma
+	   non la usa nessun altro (residuo di una sessione finita) */
+	if (esiste_sh == 0 || sim_shvar_da_caricare ())
 	{
 	    /* fp_var = fopen( "variabili.rtf", "r"); */
 	    if (fread (ind, (int) (buf_var -> st_size), 1, fp_var) < 0)

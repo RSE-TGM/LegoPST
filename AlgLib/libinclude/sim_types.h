@@ -716,6 +716,7 @@ void cfree2(char**);
 void ifree2(int**);
 void distruggi_var (int);
 void sim_shvar_free(void);
+int sim_shvar_da_caricare(void);
 void output_ascii_big (char*);
 void output_ascii_big (char*);
 int GetParLego(void);

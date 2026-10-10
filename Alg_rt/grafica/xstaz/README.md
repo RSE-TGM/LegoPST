@@ -459,6 +459,15 @@ inquadratura: le altre pagine tornano identiche al pixel.
   (dimensione, processi agganciati, pid del creatore), e il chiamante esce con
   un messaggio invece di schiantarsi. Dettagli e rimedi nel capitolo 11 del
   [HOWTO](HOWTO_faceplate.md).
+  Da ottobre 2026 l'errore resta solo se il segmento è **in uso**. Un segmento
+  **orfano** (nessun processo agganciato, e chi l'ha creato non esiste più) di
+  dimensione sbagliata viene rimosso e ricreato con un `AVVISO`: capitava a
+  `kCompStaz` dentro `kUpSim`, subito dopo che `kUpSim` aveva rigenerato un
+  `variabili.rtf` di dimensione diversa. E quando chi aggancia la topologia è
+  l'unico a usarla, la ricarica da `variabili.rtf` invece di fidarsi di quel
+  che trova (`sim_shvar_da_caricare()` in
+  [sim_shvar.c](../../../AlgLib/libsim/sim_shvar.c)): prima un residuo della
+  stessa dimensione veniva preso per buono, con il contenuto vecchio.
 - **I valori non si aggiornavano affatto** (corretto in agosto 2026): display
   fermi sulla loro etichetta iniziale `----`, led spenti, indicatori immobili.
   Erano due difetti in fila.

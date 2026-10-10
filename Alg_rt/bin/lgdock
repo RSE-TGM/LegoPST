@@ -194,7 +194,7 @@ show_version() {
     echo "Immagine:  $IMAGE_NAME${creata:+ (creata il $creata)}"
     #  Il container restituisce i quattro valori grezzi, ciascuno con la sua
     #  etichetta; la frase si compone qui.
-    info=$($DOCKER_CMD run --rm --platform linux/amd64 --entrypoint sh "$IMAGE_NAME" -c '
+    info=$($DOCKER_CMD run --rm --pull=never --platform linux/amd64 --entrypoint sh "$IMAGE_NAME" -c '
         R=/home/legoroot_fedora41
         echo "V=$(tr -d "[:space:]" < $R/VERSION 2>/dev/null)"
         echo "G=$(grep "define GIT_VERSION_STRING" $R/version.h 2>/dev/null | cut -d\" -f2)"
@@ -459,6 +459,30 @@ if [[ "$DO_PULL" == true ]]; then
     echo "Esecuzione: $DOCKER_CMD pull $IMAGE_NAME"
     $DOCKER_CMD pull $IMAGE_NAME >&$FD_VISTA
     echo ""
+fi
+
+# =============================================================================
+# L'immagine c'e'? Se no la si scarica QUI, una volta
+# =============================================================================
+#  E poi il container si avvia con --pull=never, cioe' "usa quella che hai".
+#
+#  Lasciando decidere al runtime, alcune versioni di Podman riscaricano a ogni
+#  avvio: con --platform (che serve sui Mac ARM, dove l'immagine amd64 va
+#  chiesta esplicitamente) non si fidano dell'immagine locale e tornano dal
+#  registry tutte le volte. Il risultato era un "Trying to pull... Copying
+#  blob..." a ogni lgrun, con l'attesa e la rete che si porta dietro - e senza
+#  rete, un container che non partiva pur avendo l'immagine sul disco.
+#
+#  Scaricarla e' una decisione che si prende in due casi soli: non c'e' (qui),
+#  o la si vuole aggiornare (-p, o "-update"). Mai da sola a ogni avvio.
+if ! $DOCKER_CMD image inspect "$IMAGE_NAME" >/dev/null 2>&1; then
+    echo "LegoPST: l'immagine $IMAGE_NAME non c'e' ancora su questa macchina: la scarico (qualche GB, una volta sola)..." >&$FD_VISTA
+    if ! $DOCKER_CMD pull --platform linux/amd64 "$IMAGE_NAME" >&$FD_VISTA; then
+        echo "" >&2
+        echo "ERRORE: non riesco a scaricare l'immagine $IMAGE_NAME." >&2
+        echo "        Controlla la rete e il nome dell'immagine, poi riprova." >&2
+        exit 1
+    fi
 fi
 
 # =============================================================================
@@ -1052,13 +1076,21 @@ LGDOCK_DEBUG=0
 FILTRO_PID=""
 if [[ -n "$HOST_LOG" ]]; then
     exec 1>&5
-    #  Gli avvisi del runtime (le righe "WARN[0000] ..." di Podman: cgroup,
-    #  mount non condiviso) escono sullo stderr di questo comando. Si tolgono
-    #  quelle e solo quelle: tutto il resto dello stderr - gli errori del
-    #  runtime, l'avanzamento se l'immagine va scaricata, lo stderr del comando
-    #  in modo applicazione - passa com'e'.
+    #  Gli avvisi del runtime (cgroup, mount non condiviso...) escono sullo
+    #  stderr di questo comando. Podman li scrive in DUE formati, secondo la
+    #  versione e la distribuzione:
+    #      WARN[0000] The cgroupv2 manager is set to systemd ...
+    #      time="2026-10-09T12:53:07+02:00" level=warning msg="The cgroupv2 ..."
+    #  e con lo shim podman-docker c'e' in testa la riga "Emulate Docker CLI
+    #  using podman...". Si tolgono queste e solo queste: tutto il resto dello
+    #  stderr - gli errori del runtime (anche level=error), l'avanzamento se
+    #  l'immagine va scaricata ("Copying blob ..."), lo stderr del comando in
+    #  modo applicazione - passa com'e'.
     exec 6>&2
-    exec 2> >(grep --line-buffered -v '^WARN\[' >&6)
+    exec 2> >(grep --line-buffered -v -E \
+                  -e '^WARN\[' \
+                  -e '^time="[^"]*" level=(warning|info) ' \
+                  -e '^Emulate Docker CLI using podman' >&6)
     FILTRO_PID=$!
 fi
 
@@ -1068,6 +1100,7 @@ if [[ "$USE_SOCAT" == true ]]; then
 
     $DOCKER_CMD run --rm $DOCKER_TTY \
         --platform linux/amd64 \
+        --pull=never \
         -e DISPLAY=":${DISPLAY_NUM}" \
         -e XAUTHORITY="/tmp/.Xauthority" \
         -e LGDOCK_EXEC="$EXEC_PROG" \
@@ -1087,6 +1120,7 @@ else
 
      $DOCKER_CMD run --rm $DOCKER_TTY \
         --platform linux/amd64 \
+        --pull=never \
         -e DISPLAY="$DISPLAY" \
         -e LGDOCK_EXEC="$EXEC_PROG" \
         -e LGDOCK_APP="$APP_PROG" \

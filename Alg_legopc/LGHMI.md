@@ -773,17 +773,22 @@ Le voci, in quest'ordine:
 
 ```
 Edit model (legopc) - on the selected task, or empty
+kCompile regulation - on the selected task   >   le tre compilazioni della regolazione
 lgmkstaz - build/edit faceplate pages (r01.dat)
 --------
-kUpSim                 >   le tre varianti di kUpSim
-kCompile               >   le tre compilazioni della regolazione
+kUpSim                                       >   le tre varianti di kUpSim
 --------
 killsim - clean up leftovers of a previous simulation
 Terminal - shell in the current directory
 ```
 
-I **due editor** stanno in cima e accanto: `legopc` disegna il modello,
-[`lgmkstaz`](LGMKSTAZ.md) le pagine di faceplate (`r01.dat`). Entrambi sono
+In cima stanno le due voci che agiscono **sulla task selezionata** nelle liste:
+*Edit model* sul modello di processo, *kCompile regulation* sulla regolazione —
+e l'etichetta lo dice allo stesso modo. Fino a ottobre 2026 il sottomenu si
+chiamava solo `kCompile` e stava più sotto, accanto a `kUpSim`.
+
+I **due editor** sono `legopc`, che disegna il modello, e
+[`lgmkstaz`](LGMKSTAZ.md), per le pagine di faceplate (`r01.dat`). Entrambi sono
 sempre attivi, anche senza simulatore corrente — a `lgmkstaz` basta un
 `r01.dat`, che cerca nella directory corrente del selettore. Si aprono come
 processi indipendenti: chiuderli non chiude `lghmi`, e viceversa.
@@ -1022,11 +1027,11 @@ Tre azioni, tutte sulla task **selezionata in quel riquadro**:
 | dove | azione | come gira |
 |---|---|---|
 | doppio clic, `Invio`, tasto destro | `config` — l'editor | processo indipendente (`setsid`), log in `/tmp`: è una GUI Motif, non un batch |
-| `Tools → kCompile` | `1. kCompile Regolation` | nel **visore di log** |
-| `Tools → kCompile` | `2. kCompile Task` | nel **visore di log** |
-| `Tools → kCompile` | `3. kCompile Page` | nel **visore di log** |
+| `Tools → kCompile regulation` | `1. kCompile Regolation` | nel **visore di log** |
+| `Tools → kCompile regulation` | `2. kCompile Task` | nel **visore di log** |
+| `Tools → kCompile regulation` | `3. kCompile Page` | nel **visore di log** |
 
-Il sottomenu `kCompile` è **spento** con `-noreg`: le sue voci agiscono su una
+Il sottomenu `kCompile regulation` è **spento** con `-noreg`: le sue voci agiscono su una
 selezione che senza quel riquadro non esiste.
 
 > **L'ordine conta, ed è il motivo per cui le etichette sono numerate.**
