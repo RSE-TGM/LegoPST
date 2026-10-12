@@ -46,6 +46,6 @@ all:  $(LEGORT_BIN)/net_operator
 
 
 $(LEGORT_BIN)/net_operator: $(OGGETTI) $(LIBUTIL)
-	cc -o $(LEGORT_BIN)/net_operator -g $(LINKER_OPTIONS) $(OGGETTI) \
+	$(CC) -o $(LEGORT_BIN)/net_operator -g $(LINKER_OPTIONS) $(OGGETTI) \
         $(LIBUTIL) $(C_LIB) -lm $(SQLITE_LIB)  -lsqlite3
 

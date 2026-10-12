@@ -69,12 +69,12 @@ libstaz_r.a: $(OGGETTI1)
 	@echo libstaz_r.a is now up-to-date
 
 $(LEGORT_BIN)/xstaz: $(OGGETTI2) $(LIBUTIL) libstaz_r.a
-	cc -o $(LEGORT_BIN)/xstaz $(OGGETTI2) $(LINKER_OPTIONS) libstaz_r.a \
+	$(CC) -o $(LEGORT_BIN)/xstaz $(OGGETTI2) $(LINKER_OPTIONS) libstaz_r.a \
 	$(LIBUTIL) $(C_LIB) $(LIBSVIL)  -lX11 $(STUB_LIBS)  $(OTHER_LIB) -lm
 
 $(LEGORT_BIN)/stazpag: stazpag.c
 	$(CC) $(CFLAGS) stazpag.c
-	cc -o $(LEGORT_BIN)/stazpag stazpag.o
+	$(CC) -o $(LEGORT_BIN)/stazpag stazpag.o
 
 $(LEGORT_BIN)/trypag: trypag.c
 	$(CC) -o $(LEGORT_BIN)/trypag trypag.c libstaz_r.a \

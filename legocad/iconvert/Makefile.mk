@@ -69,7 +69,7 @@ makefile:Makefile
 	make inc
 
 $(LEGOCAD_BIN)/iconvert: $(OGGETTI) $(LIBUTIL)
-	cc -o $(LEGOCAD_BIN)/iconvert  $(OGGETTI) \
+	$(CC) -o $(LEGOCAD_BIN)/iconvert  $(OGGETTI) \
 	-lm $(LIBUTIL) $(LIBSVIL) -lX11
 
 inc: 

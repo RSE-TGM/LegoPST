@@ -71,5 +71,5 @@ libstaz_c.a: $(OGGETTI1)
 	@echo libstaz_c.a is now up-to-date
 
 $(LEGORT_BIN)/compstaz: $(OGGETTI2) $(LIBUTIL) libstaz_c.a
-	cc -o $(LEGORT_BIN)/compstaz $(LINKER_OPTIONS) $(OGGETTI2) \
+	$(CC) -o $(LEGORT_BIN)/compstaz $(LINKER_OPTIONS) $(OGGETTI2) \
 	-lm  $(LIBUTIL) -lX11 $(OTHER_LIB) libstaz_c.a $(LIBSVIL)

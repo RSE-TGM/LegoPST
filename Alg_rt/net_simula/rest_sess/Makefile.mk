@@ -50,5 +50,5 @@ CFLAGS=$(CFLAGSINCLUDE)
 all:  $(LEGORT_BIN)/restsess
 
 $(LEGORT_BIN)/restsess: $(OGGETTI) $(LIBUTIL)
-	cc -g -o $(LEGORT_BIN)/restsess $(LINKER_OPTIONS) $(OGGETTI) \
+	$(CC) -g -o $(LEGORT_BIN)/restsess $(LINKER_OPTIONS) $(OGGETTI) \
         $(LIBSVIL) $(LIBUTIL) $(C_LIB) $(OTHER_LIB) $(F_LIB)

@@ -72,5 +72,5 @@ OGGETTI = oplogich.o op_io.o oparitm.o oplstarg.o errori.o \
 all: $(SCADA_BIN)/compila
 
 $(SCADA_BIN)/compila: $(OGGETTI) $(LIBUTIL)
-	cc -o $(SCADA_BIN)/compila  $(OGGETTI) \
+	$(CC) -o $(SCADA_BIN)/compila  $(OGGETTI) \
 	$(LIBUTIL) -lm

@@ -60,9 +60,9 @@ makefile:Makefile
 	make inc
 
 $(LEGOMMI_BIN)/conv_r: $(OGGETTI) $(LIBUTIL)
-	cc -o $(LEGOMMI_BIN)/conv_r $(LINKER_OPTIONS) $(OGGETTI) \
+	$(CC) -o $(LEGOMMI_BIN)/conv_r $(LINKER_OPTIONS) $(OGGETTI) \
 	$(LIBSVIL) $(LIBUTIL) $(X_LIB) -lXm -lX11 $(STUB_LIBS) $(C_LIB) -lm -lsqlite3
 
 $(LEGOMMI_BIN)/crea_rego_lib: $(OGGETTI_LIB) $(LIBUTIL) $(LIBUTIL_LIB)
-	cc -o $(LEGOMMI_BIN)/crea_rego_lib $(LINKER_OPTIONS) $(OGGETTI_LIB) \
+	$(CC) -o $(LEGOMMI_BIN)/crea_rego_lib $(LINKER_OPTIONS) $(OGGETTI_LIB) \
 	$(LIBSVIL) $(LIBUTIL_LIB) $(LIBUTIL) $(X_LIB) -lXm -lX11 $(STUB_LIBS) $(C_LIB) -lm  -lsqlite3

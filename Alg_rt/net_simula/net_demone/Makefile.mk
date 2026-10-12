@@ -48,5 +48,5 @@ all: $(LEGORT_BIN)/demone
 makefile:Makefile
 
 $(LEGORT_BIN)/demone: $(OGGETTI) $(LIBUTIL)
-	cc -o $(LEGORT_BIN)/demone $(LINKER_OPTIONS) $(OGGETTI) \
+	$(CC) -o $(LEGORT_BIN)/demone $(LINKER_OPTIONS) $(OGGETTI) \
         $(LIBUTIL) $(C_LIB) $(OTHER_LIB)

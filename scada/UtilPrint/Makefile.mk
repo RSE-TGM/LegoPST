@@ -46,5 +46,5 @@ makefile:Makefile
 	make inc
 
 $(SCADA_BIN)/UtilPrint: $(OGGETTI) $(LIBUTIL)
-	cc -o $(SCADA_BIN)/UtilPrint  $(OGGETTI) \
+	$(CC) -o $(SCADA_BIN)/UtilPrint  $(OGGETTI) \
         $(LIBUTIL)

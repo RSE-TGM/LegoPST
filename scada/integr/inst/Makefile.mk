@@ -107,4 +107,4 @@ $(SCADA_BIN)/SortTable: SortTable.sh
 
 
 .c.o:
-	cc -c $(CFLAGS) $< -o $@
+	$(CC) -c $(CFLAGS) $< -o $@

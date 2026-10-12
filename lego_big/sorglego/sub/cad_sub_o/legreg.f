@@ -1,11 +1,9 @@
-
-
 C*********************************************************************
-C Fortran PreCompile: legreg.pf
-C Subsystem: 1
-C Description:
-C %created_by: lomgr %
-C %date_created: Thu May 13 10:34:23 2004 %
+C       Fortran PreCompile:             legreg.pf
+C       Subsystem:              1
+C       Description:
+C       %created_by:    lomgr %
+C       %date_created:  Thu May 13 10:34:23 2004 %
 C
 C**********************************************************************
 
@@ -14,72 +12,65 @@ C
 C Procedura contenete la variabile per l identificazione della versione
 C
       BLOCK DATA BDD_legreg_pf
-      CHARACTER*80 RepoID
+      CHARACTER*80  RepoID
       COMMON /CM_legreg_pf / RepoID
       DATA RepoID/'@(#)1,pfsrc,legreg.pf,2'/
       END
 C**********************************************************************
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-C C
-C LEGO unificato per singola / doppia precisione C
-C e per diverse piattaforme operative C
-C C
-C Attivata versione singola precisione per sistema operativo Unix C
-C C
+C                                                                      C
+C           LEGO unificato per singola / doppia precisione             C
+C                 e per diverse piattaforme operative                  C
+C                                                                      C
+C   Attivata versione singola precisione per sistema operativo Unix    C
+C                                                                      C
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 
       SUBROUTINE LEGREG(IGO,NEQSIS,NBL,ISLB,NUSTA,NUSCI,IPDATI,DATI,
-     $ IP,TN,CDT,XYU,RN,ICONV,SIVAR,MX1,IPVRS,TOLL,RNO,XYO,JACYES,
-     $ NITERJ,NJACMX,IPS,IPVRT,
-
-     $ NVART,CNXYU,VARI,NPVRT,MX4,NINGR,SYTVAR,MX6,
-
-     $ XY,UU,NU,IPI,IPVRI,FJ,RIGA, NEQAL,TEMPO,AJAC,MX5,NOBLC,
+     $     IP,TN,CDT,XYU,RN,ICONV,SIVAR,MX1,IPVRS,TOLL,RNO,XYO,JACYES,
+     $     NITERJ,NJACMX,IPS,IPVRT,
+     $     NVART,CNXYU,VARI,NPVRT,MX4,NINGR,SYTVAR,MX6,
+     $     XY,UU,NU,IPI,IPVRI,FJ,RIGA, NEQAL,TEMPO,AJAC,MX5,NOBLC,
 C*********************** TAVOLE ***************************************
-     $ MX3,RNI,IRJ,ICJ,IKMA28,IWMA28,WMA28,NZMAX,MXCOL,
-     $ MXROW,NOSUB)
+     $     MX3,RNI,IRJ,ICJ,IKMA28,IWMA28,WMA28,NZMAX,MXCOL,
+     $     MXROW,NOSUB)
 C*********************** TAVOLE ***************************************
       CHARACTER*8 SIVAR(MX1)
       DIMENSION ISLB(*),NUSTA(*),NUSCI(*),IPDATI(*),DATI(*),IP(*),
-     $ TN(*),XYU(*),RN(*),ICONV(*),IPVRS(*),TOLL(*),
-     $ RNO(*),XYO(*),IPS(*),IPVRT(*),XY(*),UU(*),IPI(*),IPVRI(*),
-
-     $ CNXYU(*),NINGR(*),SYTVAR(MX6,2),VARI(MX4,2),
-
-     $ FJ(*),RIGA(*), AJAC(MX5,MX5),NOBLC(MX3,2),
-     $ RNI(*),IRJ(*),ICJ(*),IKMA28(*),IWMA28(*),WMA28(*)
+     $     TN(*),XYU(*),RN(*),ICONV(*),IPVRS(*),TOLL(*),
+     $     RNO(*),XYO(*),IPS(*),IPVRT(*),XY(*),UU(*),IPI(*),IPVRI(*),
+     $     CNXYU(*),NINGR(*),SYTVAR(MX6,2),VARI(MX4,2),
+     $     FJ(*),RIGA(*), AJAC(MX5,MX5),NOBLC(MX3,2),
+     $     RNI(*),IRJ(*),ICJ(*),IKMA28(*),IWMA28(*),WMA28(*)
 C*********************** TAVOLE ***************************************
       DIMENSION NOSUB(*)
 C*********************** TAVOLE ***************************************
 C
-
 C
        include '../../main/lg_parameter.fh'
 C
-
-C RISOLVE IL SISTEMA ALGEBRICO COL METODO DI NEWTON-RAPHSON SMORZ.
+C      RISOLVE IL SISTEMA ALGEBRICO COL METODO DI NEWTON-RAPHSON SMORZ.
 C
-C IGO=1 SISTEMA RISOLTO
-C IGO=-1 SISTEMA NON RISOLTO
+C      IGO=1   SISTEMA RISOLTO
+C      IGO=-1  SISTEMA NON RISOLTO
 C
-C DESCRIZIONE DEI VETTORI
-C - MATRICE JACOBIANA - FJ,IRJ,ICJ
-C - RESIDUI-SOLUZIONI - TN, RN ,RNO, XY ,XYO
-C - INGRESSI - UU
-C - TOLLERANZE - TOLL
-C - MATRICE COLLEG. DIRETTA - IPVRS
-C - MATRICI COLLEG. INVERSE - IPS,IPVRT , IPI,IPVRI
-C - VETTORI IN INGRESSO TIPICI- ISLB,NUSTA,NUSCI,IP,XYU,
-C IPDATI,DATI,SIVAR
-C - VETTORI DI COMODO - RIGA,ICONV,AJAC(MX5,MX5)
-C - IKMA28,IWMA28,WMA28
+C     DESCRIZIONE  DEI VETTORI
+C       - MATRICE JACOBIANA -   FJ,IRJ,ICJ
+C       - RESIDUI-SOLUZIONI - TN,   RN ,RNO, XY ,XYO
+C       - INGRESSI  -          UU
+C       - TOLLERANZE -           TOLL
+C       - MATRICE COLLEG. DIRETTA -  IPVRS
+C       - MATRICI COLLEG. INVERSE -  IPS,IPVRT , IPI,IPVRI
+C       - VETTORI IN INGRESSO TIPICI- ISLB,NUSTA,NUSCI,IP,XYU,
+C                                      IPDATI,DATI,SIVAR
+C       - VETTORI DI COMODO  -  RIGA,ICONV,AJAC(MX5,MX5)
+C       -                    IKMA28,IWMA28,WMA28
 C
-
       PARAMETER (N00XT=N008)
       DIMENSION IRESBL(N003),IBLEQZ(N003)
 C
 C
-      INTEGER WR_PIPE
+      INTEGER  WR_PIPE
       CHARACTER*8 BLOCCO
       CHARACTER*8 SYMVAR(100)
       CHARACTER*50 SIGNEQ(N00XT)
@@ -89,9 +80,8 @@ C
 C
       CHARACTER*180 MESG
 C_______ REGISTRAZIONE SU FILE [.PROC]F11.DAT INFORMAZIONI RIGUARDANTI
-C IL TRATTAMENTO DELL OUTPUT DI LG3
+C        IL TRATTAMENTO DELL OUTPUT DI LG3
 C
-
 C
 C
       MMX1=MX1
@@ -104,10 +94,9 @@ C
       IGO=1
 C
 C
-
 C____ COSTRUZIONE DEI VETTORI PUNTATORI CHE DEFINISCONO LA CORRISPONDENZA
-C FRA LE EQUAZIONI DEL SISTEMA E I BLOCCHI (IRESBL) E IL NUMERO D ORDINE
-C DELL EQUAZIONE ALL INTERNO DEL BLOCCO (IBLEQZ)
+C     FRA LE EQUAZIONI DEL SISTEMA E I BLOCCHI (IRESBL) E IL NUMERO D ORDINE
+C     DELL EQUAZIONE ALL INTERNO DEL BLOCCO (IBLEQZ)
       K=0
       DO I=1,NBL
         NE=NUSTA(I)+NUSCI(I)
@@ -122,22 +111,22 @@ C
 C_____ REGISTRAZIONE INFORMAZIONI "HEADER"
 C
       OPEN(UNIT=11,FILE='proc/f11.dat',STATUS='UNKNOWN',
-     $ FORM='UNFORMATTED')
+     $     FORM='UNFORMATTED')
       REWIND 11
       WRITE(11)NEQSIS,NPVRT,NU,NVART
       WRITE(11)(SIVAR(I),XY(I),
-     $ IRESBL(I),IBLEQZ(I),I=1,NEQSIS)
+     $         IRESBL(I),IBLEQZ(I),I=1,NEQSIS)
       WRITE(11)(IPS(I),I=1,NEQSIS+1)
       WRITE(11)(IPVRT(I),I=1,NPVRT)
       WRITE(11)(VARI(I,1),VARI(I,2),UU(I),I=1,NU)
       WRITE(11)(CNXYU(I),IPVRS(I),I=1,NVART)
 C
 C_____ SCRITTURA DI NEQSIS RECORD CONTENENTI LE INFORMAZIONI
-C RELATIVE AL SIGNIFICATO DELLE EQUAZIONI DEL SISTEMA
+C      RELATIVE AL SIGNIFICATO DELLE EQUAZIONI DEL SISTEMA
 C
       DO I=1,NBL
-         K =ISLB(I)
-         IPD =IPDATI(I)
+         K     =ISLB(I)
+         IPD   =IPDATI(I)
          NSTATI=NUSTA(I)
          NUSCIT=NUSCI(I)
          NINGRE=NINGR(I)
@@ -162,21 +151,20 @@ C
             ENDDO
          ENDDO
 C
-C CALL MODD1(K,BLOCCO,NEQUAZ,NSTATI,NUSCIT,NINGRE,SYMVAR,XYU,IXYU,
-C $ DATI,IPD,SIGNEQ,UNITEQ,COSNOR,ITOPVA,MXT)
+C         CALL MODD1(K,BLOCCO,NEQUAZ,NSTATI,NUSCIT,NINGRE,SYMVAR,XYU,IXYU,
+C     $              DATI,IPD,SIGNEQ,UNITEQ,COSNOR,ITOPVA,MXT)
 C
 C_____ SCRITTURA SU FILE 11 INFO-EQUAZIONI
 C
-C WRITE(11)NEQUAZ,NVARBL
+C        WRITE(11)NEQUAZ,NVARBL
          DO II=1,NEQUAZ
             WRITE(11)NVARBL,SIGNEQ(II),UNITEQ(II),COSNOR(II),
-     $ (ITOPVA(II,J),J=1,NVARBL)
+     $               (ITOPVA(II,J),J=1,NVARBL)
          ENDDO
       ENDDO
 C
 C_____ FINE REGISTRAZIONE INFORMAZIONI "HEADER"
 C
-
 C
 C
   999 ITERT=0
@@ -187,12 +175,12 @@ C
       IBETA=0
       VARR=0.
       IVAR=0
-C*** CALCOLO RESIDUI
+C***           CALCOLO  RESIDUI
     1 ICONVE=1
       CALL RESREG(NBL,ISLB,NUSTA,NUSCI,IPDATI,DATI,IP,TN,CDT,XYU,
-     $ RN,ICONV,SIVAR,MMX1,NEQSIS,IPVRS,TOLL,ICONVE,NOBLC,MMX3,
+     $      RN,ICONV,SIVAR,MMX1,NEQSIS,IPVRS,TOLL,ICONVE,NOBLC,MMX3,
 C*********************** TAVOLE ***************************************
-     $ RNI,NOSUB)
+     $            RNI,NOSUB)
 C*********************** TAVOLE ***************************************
 C Calcolo della norma.
       VAR=0.
@@ -201,19 +189,17 @@ C Calcolo della norma.
    10 CONTINUE
       VAR=SQRT(VAR)
       VAR=VAR/NEQSIS
-
 C
 C_______ REGISTRAZIONE SU FILE [.PROC]F11.DAT INFORMAZIONI RIGUARDANTI
-C IL TRATTAMENTO DELL OUTPUT DI LG3
-C__________ RESIDUI ====>RECORD FLAG =IRC11 =1
+C        IL TRATTAMENTO DELL OUTPUT DI LG3
+C__________ RESIDUI  ====>RECORD FLAG =IRC11 =1
 C
       IRC11=1
       WRITE(11)IRC11
       WRITE(11)(XY(I),RN(I),ICONV(I),I=1,NEQSIS),
-     $ ITERT,ICONVE,VAR
+     $         ITERT,ICONVE,VAR
 C_____________________________________________________________________
 C
-
       IF(ICONVE.EQ.1)GO TO 100
       IF(ITERT.EQ.0)GO TO 15
       IF(IVAR.EQ.1)GO TO 15
@@ -238,18 +224,17 @@ C
       ITER=0
    35 JAC=JAC+1
       JOK=1
-C*** CALCOLO JACOBIANO
+C***              CALCOLO  JACOBIANO
       CALL LEGBL1(NEQSIS,IPS,IPVRT,XYO,XYU)
-      CALL LEGBL1(NU ,IPI,IPVRI,UU,XYU)
+      CALL LEGBL1(NU    ,IPI,IPVRI,UU,XYU)
       CALL JACREG(NBL,ISLB,IPDATI,IP,XYU,DATI,IPVRS,NUSCI,NUSTA,
-     $ NZMAX,NZTER,IRJ,ICJ, FJ,NEQSIS, RIGA,AJAC,
+     $            NZMAX,NZTER,IRJ,ICJ, FJ,NEQSIS, RIGA,AJAC,
 C*********************** TAVOLE ***************************************
-     $ MMX5,NOBLC,MMX3,RNI,NOSUB)
+     $            MMX5,NOBLC,MMX3,RNI,NOSUB)
 C*********************** TAVOLE ***************************************
-
 C
 C_______ REGISTRAZIONE SU FILE [.PROC]F11.DAT INFORMAZIONI RIGUARDANTI
-C IL TRATTAMENTO DELL OUTPUT DI LG3
+C        IL TRATTAMENTO DELL OUTPUT DI LG3
 C__________ JACOBIANO ====>RECORD FLAG =IRC11 =3
 C
       IRC11=3
@@ -263,15 +248,12 @@ C 1400 FORMAT(1X,'Jacobian matrix computed at iteration # ',I4,'\0')
       WRITE(*,*) 'JAC. CALC. 2'
 C_____________________________________________________________________
 C
-
 C
-C FATTORIZZAZIONE
+C     FATTORIZZAZIONE
 C
       CALL MA28A(NEQSIS,NZTER,FJ,MXCOL,IRJ,MXROW,ICJ,UPIV,
-     $ IKMA28,IWMA28,WMA28,IFLAG)
-
+     $           IKMA28,IWMA28,WMA28,IFLAG)
       WRITE(11)IFLAG
-
       IF(IFLAG.EQ.0)GO TO 45
       CALL ER28A(IFLAG)
       IF(IFLAG.LE.2)GOTO 45
@@ -280,7 +262,7 @@ C
    45 ITER=ITER+1
       ITERT=ITERT+1
 C
-C RISOLUZIONE A/I SISTEMA
+C     RISOLUZIONE A/I SISTEMA
 C
       DO 47 I=1,NEQSIS
       TN(I)=RN(I)
@@ -288,7 +270,7 @@ C
       CALL MA28C(NEQSIS,FJ,MXCOL,ICJ,IKMA28,TN,WMA28,MTMA28)
 C
 C_______ REGISTRAZIONE SU FILE [.PROC]F11.DAT INFORMAZIONI RIGUARDANTI
-C IL TRATTAMENTO DELL OUTPUT DI LG3
+C        IL TRATTAMENTO DELL OUTPUT DI LG3
 C__________ SOLUZIONI SISTEMA LINEARE====>RECORD FLAG =IRC11 =2
 C
       IRC11=2
@@ -315,14 +297,14 @@ C
       IVAR=0
       GO TO 1
 C
-C DIFFICOLTA DI CONVERGENZA
+C     DIFFICOLTA  DI CONVERGENZA
 C
    65 CALL SSWTCH(2,LL)
       IF(LL.NE.1)GO TO 70
 C
       WRITE(MESG,1410)VAR,VARR
  1410 FORMAT(1X,'Convergence problem N(I)= ',E15.8,1X,
-     $ '  N(I-1) =',E15.8)
+     $   '  N(I-1) =',E15.8)
       ID=WR_PIPE(0,MESG)
    70 DO 80 I=1,NEQSIS
       RN(I)= RNO(I)
@@ -333,15 +315,15 @@ C$$$$$$$$$$$$$$$$$$$$$
       IF(JOK.EQ.0)GO TO 31
       KBETA=KBETA+1
 C
-C CORREZIONI DELLE SOLUZIONI CON BETA
+C     CORREZIONI DELLE SOLUZIONI CON BETA
 C
-      DO 90 I=1,NEQSIS
+      DO  90 I=1,NEQSIS
       XY(I)= XYO(I) +BETA*(XY(I)-XYO(I))
    90 CONTINUE
 C_____________________________________________________________________
 C
 C_______ REGISTRAZIONE SU FILE [.PROC]F11.DAT INFORMAZIONI RIGUARDANTI
-C IL TRATTAMENTO DELL OUTPUT DI LG3
+C        IL TRATTAMENTO DELL OUTPUT DI LG3
 C__________ SMORZAMENTO DELLE SOLUZIONI====>RECORD FLAG =IRC11 =4
 C
       IRC11=4
@@ -355,7 +337,7 @@ C
       IF(KBETA.LE.5)GO TO 1
       IVAR=1
       IBETA=IBETA+1
-C IF(IBETA.LE.2)GO TO 1
+C     IF(IBETA.LE.2)GO TO 1
 C
       IGO=-1
 C
@@ -371,7 +353,7 @@ C
       RMAX=RA
    95 CONTINUE
 C_______ REGISTRAZIONE SU FILE [.PROC]F11.DAT INFORMAZIONI RIGUARDANTI
-C IL TRATTAMENTO DELL OUTPUT DI LG3
+C        IL TRATTAMENTO DELL OUTPUT DI LG3
 C__________ SEGNALA NON CONVERGENZA ===>RECORD FLAG =IRC11 =6
 C
       IRC11=6
@@ -380,13 +362,13 @@ C
       ID=WR_PIPE(2,' ')
 C_____________________________________________________________________
 C
-C IL SISTEMA EST RISOLTO
+C     IL SISTEMA EST RISOLTO
 C
   100 CONTINUE
       CALL LEGBL1(NEQSIS,IPS,IPVRT,XY,XYU)
       CALL LEGBL1(NU,IPI,IPVRI,UU,XYU)
 C_______ REGISTRAZIONE SU FILE [.PROC]F11.DAT INFORMAZIONI RIGUARDANTI
-C IL TRATTAMENTO DELL OUTPUT DI LG3
+C        IL TRATTAMENTO DELL OUTPUT DI LG3
 C__________ TROVATE LE SOLUZIONI====>RECORD FLAG =IRC11 =7
 C
       IRC11=7
@@ -396,17 +378,17 @@ C
       WRITE(*,*) 'END CONV. 1'
       WRITE(MESG,1401)ITERT+1,JAC
  1401 FORMAT(1X,'Number of iterations ',I4,' with ',I4,
-     $ ' jacobian matrix computed.')
+     $       ' jacobian matrix computed.')
       ID=WR_PIPE(0,MESG)
       ID=WR_PIPE(1,' ')
 C_____________________________________________________________________
       RETURN
 C
-C SUPERAMENTO NUM.MAX.JACOB.
+C     SUPERAMENTO NUM.MAX.JACOB.
 C
   150 CONTINUE
       IRC11=5
       WRITE(11)IRC11
       GO TO 99
       END
-C
+C            

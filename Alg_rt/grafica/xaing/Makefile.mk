@@ -49,6 +49,6 @@ all:  $(LEGORT_BIN)/xaing
 
 
 $(LEGORT_BIN)/xaing: $(OGGETTI) $(LIBUTIL)
-	cc -o $(LEGORT_BIN)/xaing $(LINKER_OPTIONS) $(OGGETTI) \
+	$(CC) -o $(LEGORT_BIN)/xaing $(LINKER_OPTIONS) $(OGGETTI) \
 	-lm  $(LIBUTIL) -lXm -lX11 $(STUB_LIBS) $(C_LIB) $(OTHER_LIB)  $(LIBSVIL)
 

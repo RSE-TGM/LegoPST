@@ -51,5 +51,5 @@ makefile:Makefile
 	make inc
 
 $(LEGORT_BIN)/net_prepf22: $(OGGETTI) $(LIBUTIL)
-	cc -o $(LEGORT_BIN)/net_prepf22 $(LINKER_OPTIONS) $(OGGETTI) \
+	$(CC) -o $(LEGORT_BIN)/net_prepf22 $(LINKER_OPTIONS) $(OGGETTI) \
         $(LIBUTIL) $(OTHER_LIB) $(LIBSVIL)

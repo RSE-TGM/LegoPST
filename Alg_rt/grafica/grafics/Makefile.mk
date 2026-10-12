@@ -51,7 +51,7 @@ all:  $(LEGORT_UID)/grafics.uid $(LEGORT_BIN)/grafics
 
 
 $(LEGORT_BIN)/grafics: $(OGGETTI) $(LIBUTIL)
-	cc -o $(LEGORT_BIN)/grafics $(LINKER_OPTIONS) $(OGGETTI) \
+	$(CC) -o $(LEGORT_BIN)/grafics $(LINKER_OPTIONS) $(OGGETTI) \
 	-lm $(LIBSVIL) $(LIBUTIL) -lX11 $(STUB_LIBS) -lc $(OTHER_LIB)
 
 $(LEGORT_UID)/grafics.uid: grafics.uil$(MOTIF_VER)

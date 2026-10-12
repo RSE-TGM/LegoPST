@@ -40,10 +40,10 @@ OGGETTI_RFORMS  = read_forms.o
 
 all: $(LEGOMMI_BIN)/forme  $(LEGOMMI_BIN)/crea_regforms $(LEGOMMI_BIN)/read_forms
 $(LEGOMMI_BIN)/forme: $(OGGETTI_FORMS) 
-	cc $(CFLAGS) -o $(LEGOMMI_BIN)/forme $(OGGETTI_FORMS)
+	$(CC) $(CFLAGS) -o $(LEGOMMI_BIN)/forme $(OGGETTI_FORMS)
 
 $(LEGOMMI_BIN)/crea_regforms: $(OGGETTI_ALLFORMS) 
-	cc $(CFLAGS) -o $(LEGOMMI_BIN)/crea_regforms $(OGGETTI_ALLFORMS)
+	$(CC) $(CFLAGS) -o $(LEGOMMI_BIN)/crea_regforms $(OGGETTI_ALLFORMS)
 
 $(LEGOMMI_BIN)/read_forms: $(OGGETTI_RFORMS) 
-	cc $(CFLAGS) -o $(LEGOMMI_BIN)/read_forms $(OGGETTI_RFORMS)
+	$(CC) $(CFLAGS) -o $(LEGOMMI_BIN)/read_forms $(OGGETTI_RFORMS)

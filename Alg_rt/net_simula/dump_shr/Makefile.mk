@@ -41,5 +41,5 @@ makefile:Makefile
 	make inc
 
 $(LEGORT_BIN)/dump_shr: $(OGGETTI) $(LIBUTIL)
-	cc  -o $(LEGORT_BIN)/dump_shr $(OGGETTI) \
+	$(CC)  -o $(LEGORT_BIN)/dump_shr $(OGGETTI) \
         $(LIBUTIL) $(OTHER_LIB)

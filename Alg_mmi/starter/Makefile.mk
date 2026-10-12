@@ -31,7 +31,7 @@ makefile:Makefile
 	make inc
 
 $(LEGOMMI_BIN)/starter: $(OGGETTI) $(LIBUTIL)
-	cc -o $(LEGOMMI_BIN)/starter $(LINKER_OPTIONS) $(OGGETTI) \
+	$(CC) -o $(LEGOMMI_BIN)/starter $(LINKER_OPTIONS) $(OGGETTI) \
         $(LIBUTIL) -lm
 inc: 
 	$(DEPEND) -s "# DO NOT DELETE" -- $(CFLAGS) -- $(SORGENTI)

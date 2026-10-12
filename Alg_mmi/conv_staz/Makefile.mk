@@ -65,6 +65,6 @@ makefile:Makefile
 
 
 $(LEGOMMI_BIN)/convstaz: $(OGGETTI) $(LIBUTIL) 
-	cc -o $(LEGOMMI_BIN)/convstaz $(OGGETTI) \
+	$(CC) -o $(LEGOMMI_BIN)/convstaz $(OGGETTI) \
 	-lm $(LIBSVIL) $(LIBUTIL) -lX11 
 

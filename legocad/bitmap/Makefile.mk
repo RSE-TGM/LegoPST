@@ -69,7 +69,7 @@ makefile:Makefile
 
 
 $(LEGOCAD_BIN)/bitmap: $(OGGETTI) $(LIBUTIL)
-	cc -o $@  $(OGGETTI)\
+	$(CC) -o $@  $(OGGETTI)\
 	-lm $(LIBSVIL) $(LIBUTIL) -lX11 
 
 inc: 

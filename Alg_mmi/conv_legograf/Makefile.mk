@@ -46,5 +46,5 @@ all:  $(LEGOMMI_BIN)/conv_l
 
 
 $(LEGOMMI_BIN)/conv_l: $(OGGETTI) $(LIBUTIL)
-	cc -o $(LEGOMMI_BIN)/conv_l $(OGGETTI) \
+	$(CC) -o $(LEGOMMI_BIN)/conv_l $(OGGETTI) \
         $(LIBUTIL) -lm

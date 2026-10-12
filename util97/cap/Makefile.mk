@@ -19,23 +19,23 @@ CCOPT = $(C_FLAGS) -DRANDSEED1=0x1111 -DRANDSEED2=0x2222 -DRANDSEED3=0x3333
 all:	../bin/CAPinfo ../bin_private/CAPmngr ../bin_private/CAPtest ../bin_private/CAP_AZ ../bin_private/CAP_ZA ../bin_private/CAP_en ../bin_private/CAP_de
 
 ../bin/CAPinfo: CAPinfo.c
-	cc $(CCOPT) -o $@ CAPinfo.c -lCAP
+	$(CC) $(CCOPT) -o $@ CAPinfo.c -lCAP
 
 ../bin_private/CAPmngr: CAPmngr.c
-	cc $(CCOPT) -o $@ CAPmngr.c -lCAP
+	$(CC) $(CCOPT) -o $@ CAPmngr.c -lCAP
 
 ../bin_private/CAPtest: CAPtest.c
-	cc $(CCOPT) -o $@ CAPtest.c -lCAP
+	$(CC) $(CCOPT) -o $@ CAPtest.c -lCAP
 
 ../bin_private/CAP_AZ:  AZ.c
-	cc $(CCOPT) -o $@ AZ.c
+	$(CC) $(CCOPT) -o $@ AZ.c
 
 ../bin_private/CAP_ZA:  ZA.c
-	cc $(CCOPT) -o $@ ZA.c
+	$(CC) $(CCOPT) -o $@ ZA.c
 
 ../bin_private/CAP_en:  en.c
-	cc $(CCOPT) -o $@ en.c
+	$(CC) $(CCOPT) -o $@ en.c
 
 ../bin_private/CAP_de:  de.c
-	cc $(CCOPT) -o $@ de.c
+	$(CC) $(CCOPT) -o $@ de.c
 

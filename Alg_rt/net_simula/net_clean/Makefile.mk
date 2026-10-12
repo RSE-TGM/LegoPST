@@ -43,5 +43,5 @@ all:  $(LEGORT_BIN)/killsim
 
 
 $(LEGORT_BIN)/killsim: $(OGGETTI) $(LIBUTIL)
-	cc -o $(LEGORT_BIN)/killsim $(LINKER_OPTIONS) $(OGGETTI) \
+	$(CC) -o $(LEGORT_BIN)/killsim $(LINKER_OPTIONS) $(OGGETTI) \
         $(LIBUTIL) $(OTHER_LIB) -lc

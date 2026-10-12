@@ -60,18 +60,18 @@ makefile:Makefile
 	make inc
 
 $(LEGORT_BIN)/agg_manovra: $(OGGETTI) $(LIBUTIL)
-	cc -o $(LEGORT_BIN)/agg_manovra $(OGGETTI) \
+	$(CC) -o $(LEGORT_BIN)/agg_manovra $(OGGETTI) \
         $(LIBUTIL) $(C_LIB) -lm
 
 $(LEGORT_BIN)/agg_manovra_stato: $(OGGETTI_STATO) $(LIBUTIL)
-	cc -o $(LEGORT_BIN)/agg_manovra_stato $(OGGETTI_STATO) \
+	$(CC) -o $(LEGORT_BIN)/agg_manovra_stato $(OGGETTI_STATO) \
         $(LIBUTIL) $(C_LIB) $(OTHER_LIB)
 
 $(LEGORT_BIN)/agg_manovra_pert: $(OGGETTI_PERT) $(LIBUTIL)
-	cc -o $(LEGORT_BIN)/agg_manovra_pert $(OGGETTI_PERT) \
+	$(CC) -o $(LEGORT_BIN)/agg_manovra_pert $(OGGETTI_PERT) \
         $(LIBUTIL) $(C_LIB) -lm
 
 $(LEGORT_BIN)/bm: bm.o  $(LIBUTIL)
-	cc -o $(LEGORT_BIN)/bm bm.o \
+	$(CC) -o $(LEGORT_BIN)/bm bm.o \
 	$(LIBUTIL) $(C_LIB) -lm
 

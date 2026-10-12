@@ -255,7 +255,7 @@ if [[ $BUNDLE -eq 1 ]]; then
     #     Path risolti per introspezione cosi' regge cambi di distro/percorsi.
     WISH_BIN="$(readlink -f "$(command -v wish8.6 || command -v wish)" 2>/dev/null || true)"
     [[ -x "$WISH_BIN" ]] || { echo "ERR: wish (Tcl/Tk/Tix) non trovato sul build host" >&2; exit 4; }
-    TCL_LIB_DIR="$(echo 'puts [info library]' | tclsh 2>/dev/null)"   # es. /usr/share/tcl8.6
+    TCL_LIB_DIR="$(echo 'puts [info library]' | "$(command -v tclsh8.6 || command -v tclsh)" 2>/dev/null)"   # es. /usr/share/tcl8.6
     TK_LIB_DIR=""
     for d in "${TCL_LIB_DIR%/*}/tk8.6" /usr/share/tk8.6 /usr/lib64/tk8.6 /usr/lib/tk8.6; do
         [[ -d "$d" ]] && { TK_LIB_DIR="$d"; break; }

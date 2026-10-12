@@ -331,11 +331,11 @@ proc avvia_legopc {dir tom} {
     if {$dir eq ""} {
         set etichetta "legopc"
         set log [file join /tmp "lghmi_legopc.log"]
-        set sh "exec env -u LG_SIM_PATH wish [list $lpc] >[list $log] 2>&1"
+        set sh "exec env -u LG_SIM_PATH [list [info nameofexecutable]] [list $lpc] >[list $log] 2>&1"
     } else {
         set etichetta "legopc on '[file tail $dir]'"
         set log [file join /tmp "lghmi_legopc_[file tail $dir].log"]
-        set sh "cd [list $dir] && exec env -u LG_SIM_PATH wish [list $lpc] [list $tom] >[list $log] 2>&1"
+        set sh "cd [list $dir] && exec env -u LG_SIM_PATH [list [info nameofexecutable]] [list $lpc] [list $tom] >[list $log] 2>&1"
     }
     if {[catch {exec setsid sh -c $sh &} err]} {
         if {[catch {exec sh -c $sh &} err2]} {

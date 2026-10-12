@@ -47,5 +47,5 @@ makefile:Makefile
 	make inc
 
 $(LEGORT_BIN)/net_read: $(OGGETTI) $(LIBUTIL)
-	cc -o $(LEGORT_BIN)/net_read $(LINKER_OPTIONS) $(OGGETTI) \
+	$(CC) -o $(LEGORT_BIN)/net_read $(LINKER_OPTIONS) $(OGGETTI) \
         $(LIBUTIL) $(OTHER_LIB)

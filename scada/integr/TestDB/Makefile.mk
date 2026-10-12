@@ -54,5 +54,5 @@ all:  $(SCADA_BIN)/testdb
 
 
 $(SCADA_BIN)/testdb: $(OGGETTI) $(LIBUTIL)
-	cc -o $(SCADA_BIN)/testdb  $(OGGETTI) \
+	$(CC) -o $(SCADA_BIN)/testdb  $(OGGETTI) \
         $(LIBUTIL) $(THREAD_LIB) -lm

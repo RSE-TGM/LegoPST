@@ -63,11 +63,11 @@ $(LIB): $(OBJS)
 # .so con visibility=hidden + esplicito -fvisibility=default sulle entry FMI2
 # (FMI2_Export e' gia' __attribute__((visibility("default"))), ok cosi'.)
 $(SO): $(OBJS)
-	cc -shared -o $@ $(OBJS) \
+	$(CC) -shared -o $@ $(OBJS) \
 	    -Wl,--start-group $(LIBS_RT) -Wl,--end-group $(OTHER_LIB)
 
 %.o: %.c
-	cc $(CFLAGS) -c $<
+	$(CC) $(CFLAGS) -c $<
 
 clean:
 	rm -f *.o $(LIB) $(SO)

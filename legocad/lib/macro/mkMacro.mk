@@ -64,7 +64,7 @@ OGGETTI = block_wdg.o draw.o files.o macro.o macro_wdg.o symb_wdg.o popup.o
 all: $(LEGOCAD_BIN)/macro
 $(LEGOCAD_BIN)/macro:$(OGGETTI) 
 	@echo inizio compilazione macro
-	cc -o $(LEGOCAD_BIN)/macro  $(OGGETTI)\
+	$(CC) -o $(LEGOCAD_BIN)/macro  $(OGGETTI)\
          -lm $(LIBUTIL) $(LIBSVIL)  -lX11
 	@echo fine compilazione macro
 

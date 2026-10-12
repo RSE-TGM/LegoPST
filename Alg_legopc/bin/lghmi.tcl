@@ -556,7 +556,7 @@ proc launch_hmi {} {
         set sh "exec env -u LG_SIM_PATH -u SHR_USR_KEY bash [list $launcher] [list $dir] >[list $log] 2>&1"
     } else {
         set opz [expr {[hmi_con_edit $dir] ? " -edit" : ""}]
-        set sh "cd [list $dir] && exec wish [list $d2g] 1 f22circ$opz >[list $log] 2>&1"
+        set sh "cd [list $dir] && exec [list [info nameofexecutable]] [list $d2g] 1 f22circ$opz >[list $log] 2>&1"
     }
     if {[catch {exec setsid sh -c $sh &} err]} {
         # fallback senza setsid: resta comunque orfano (sopravvive) alla chiusura

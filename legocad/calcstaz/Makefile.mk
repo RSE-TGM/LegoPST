@@ -71,7 +71,7 @@ all:  $(LEGOCAD_UID)/calcstaz.uid $(LEGOCAD_BIN)/calcstaz $(INTERFACES)
 #
 
 $(LEGOCAD_BIN)/calcstaz: $(OGGETTI) $(LIBUTIL)
-	cc -o $(LEGOCAD_BIN)/calcstaz  $(OGGETTI) \
+	$(CC) -o $(LEGOCAD_BIN)/calcstaz  $(OGGETTI) \
 	-lm $(LIBSVIL) $(LIBUTIL) -lX11
 
 $(LEGOCAD_UID)/calcstaz.uid: calcstaz.uil$(MOTIF_VER)
@@ -82,6 +82,6 @@ remove_attr:
 get_gui_builder:
 	@echo GUI:$(GUI_BUILD):$(CFLAGS)
 .c.o:
-	cc $(CFLAGS) $< -o $@
+	$(CC) $(CFLAGS) $< -o $@
 
 

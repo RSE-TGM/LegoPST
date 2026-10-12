@@ -49,6 +49,6 @@ all:  $(SCADA_BIN)/starter_tpl
 
 
 $(SCADA_BIN)/starter_tpl: $(OGGETTI) $(LIBUTIL)
-	cc -o $(SCADA_BIN)/starter_tpl $(OGGETTI) \
+	$(CC) -o $(SCADA_BIN)/starter_tpl $(OGGETTI) \
         $(LIBUTIL) -lm
 

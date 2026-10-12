@@ -55,7 +55,7 @@ makefile:Makefile
 	make inc
 
 $(SCADA_BIN)/ConvAscii: $(OGGETTI) $(LIBUTIL)
-	cc -o $(SCADA_BIN)/ConvAscii  $(OGGETTI) \
+	$(CC) -o $(SCADA_BIN)/ConvAscii  $(OGGETTI) \
         $(LIBUTIL) -lm
 
 dep:
@@ -69,7 +69,7 @@ inc:
 	echo "#*************************************************" >> Makefile
 	cat Makefile.tpl >> Makefile
 	echo "#     START DEPEND" >> Makefile
-	cc -M $(CFLAGS) $(SORGENTI) >> Makefile
+	$(CC) -M $(CFLAGS) $(SORGENTI) >> Makefile
 	echo "#     END   DEPEND" >> Makefile
                                                            
 

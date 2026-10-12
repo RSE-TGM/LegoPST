@@ -52,7 +52,7 @@ all:  $(LEGORT_UID)/graphics.uid $(LEGORT_BIN)/graphics
 
 
 $(LEGORT_BIN)/graphics: $(OGGETTI) $(LIBUTIL)
-	cc -o $(LEGORT_BIN)/graphics $(LINKER_OPTIONS) $(OGGETTI) \
+	$(CC) -o $(LEGORT_BIN)/graphics $(LINKER_OPTIONS) $(OGGETTI) \
 	$(LIBUTIL) $(LIBSVIL) -lX11 $(STUB_LIBS) -lc $(OTHER_LIB)
 
 $(LEGORT_UID)/graphics.uid: graphics.uil

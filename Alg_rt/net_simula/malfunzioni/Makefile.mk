@@ -44,7 +44,7 @@ all:  $(LEGORT_BIN)/mkListaMalf $(LEGORT_BIN)/creaMalf
 
 
 $(LEGORT_BIN)/mkListaMalf: $(OGGETTI) $(LIBUTIL)
-	cc -o $(LEGORT_BIN)/mkListaMalf $(LINKER_OPTIONS) $(OGGETTI) \
+	$(CC) -o $(LEGORT_BIN)/mkListaMalf $(LINKER_OPTIONS) $(OGGETTI) \
         $(LIBUTIL) $(C_LIB) $(OTHER_LIB)
 $(LEGORT_BIN)/creaMalf:creaMalf.sh
 	cp creaMalf.sh $(LEGORT_BIN)/creaMalf ; chmod 755 $(LEGORT_BIN)/creaMalf

@@ -66,7 +66,7 @@ all:  $(LEGOCAD_UID)/edicole.uid $(LEGOCAD_BIN)/edicole
 
 
 $(LEGOCAD_BIN)/edicole: $(OGGETTI) $(LIBUTIL)
-	cc -o $(LEGOCAD_BIN)/edicole  $(OGGETTI) \
+	$(CC) -o $(LEGOCAD_BIN)/edicole  $(OGGETTI) \
 	-lm $(LIBSVIL) $(LIBUTIL) -lX11
 
 $(LEGOCAD_UID)/edicole.uid: edicole.uil$(MOTIF_VER)

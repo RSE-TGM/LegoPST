@@ -93,116 +93,116 @@ CFLAGS= $(CFLAGSINCLUDE) -DLEGOCAD -DSAVEPERT
 all:  $(LEGORT_BIN)/cad_sked $(LEGORT_BIN)/net_sked
 
 $(LEGORT_BIN)/cad_sked: $(CAD_OGGETTI) $(LIBUTIL)
-	cc -o $(LEGORT_BIN)/cad_sked $(LINKER_OPTIONS) $(CAD_OGGETTI) \
+	$(CC) -o $(LEGORT_BIN)/cad_sked $(LINKER_OPTIONS) $(CAD_OGGETTI) \
         $(LIBUTIL) $(LIBSVIL) $(C_LIB) $(OTHER_LIB) $(F_LIB)
 $(LEGORT_BIN)/net_sked: $(NET_OGGETTI) $(LIBUTIL)
-	cc -o $(LEGORT_BIN)/net_sked $(LINKER_OPTIONS) $(NET_OGGETTI) \
+	$(CC) -o $(LEGORT_BIN)/net_sked $(LINKER_OPTIONS) $(NET_OGGETTI) \
         $(LIBUTIL) $(LIBSVIL) $(C_LIB) $(OTHER_LIB) $(F_LIB)
 
 $(PATHCADOBJ)/sked.o: sked.c
-	cc $(CFLAGS) sked.c -o $@
+	$(CC) $(CFLAGS) sked.c -o $@
 $(PATHCADOBJ)/sked_prolog.o: sked_prolog.c
-	cc $(CFLAGS) sked_prolog.c  -o $@
+	$(CC) $(CFLAGS) sked_prolog.c  -o $@
 $(PATHCADOBJ)/sked_timer.o: sked_timer.c
-	cc $(CFLAGS) sked_timer.c -o $@
+	$(CC) $(CFLAGS) sked_timer.c -o $@
 $(PATHCADOBJ)/sked_fine.o: sked_fine.c
-	cc $(CFLAGS) sked_fine.c -o $@
+	$(CC) $(CFLAGS) sked_fine.c -o $@
 $(PATHCADOBJ)/sked_start.o: sked_start.c
-	cc $(CFLAGS) sked_start.c -o $@
+	$(CC) $(CFLAGS) sked_start.c -o $@
 $(PATHCADOBJ)/sked_task.o: sked_task.c
-	cc $(CFLAGS) sked_task.c -o $@
+	$(CC) $(CFLAGS) sked_task.c -o $@
 $(PATHCADOBJ)/sked_ingressi.o: sked_ingressi.c
-	cc $(CFLAGS) sked_ingressi.c -o $@
+	$(CC) $(CFLAGS) sked_ingressi.c -o $@
 $(PATHCADOBJ)/sked_perturba.o: sked_perturba.c
-	cc $(CFLAGS) sked_perturba.c -o $@
+	$(CC) $(CFLAGS) sked_perturba.c -o $@
 $(PATHCADOBJ)/sked_pacchetti.o: sked_pacchetti.c
-	cc $(CFLAGS) sked_pacchetti.c -o $@
+	$(CC) $(CFLAGS) sked_pacchetti.c -o $@
 $(PATHCADOBJ)/sked_startup.o: sked_startup.c
-	cc $(CFLAGS) sked_startup.c -o $@
+	$(CC) $(CFLAGS) sked_startup.c -o $@
 $(PATHCADOBJ)/sked_pf22.o: sked_pf22.c
-	cc $(CFLAGS) sked_pf22.c -o $@
+	$(CC) $(CFLAGS) sked_pf22.c -o $@
 $(PATHCADOBJ)/sked_statistiche.o: sked_statistiche.c
-	cc $(CFLAGS) sked_statistiche.c -o $@
+	$(CC) $(CFLAGS) sked_statistiche.c -o $@
 $(PATHCADOBJ)/sked_errore.o: sked_errore.c
-	cc $(CFLAGS) sked_errore.c -o $@
+	$(CC) $(CFLAGS) sked_errore.c -o $@
 $(PATHCADOBJ)/sked_snapshot.o: sked_snapshot.c
-	cc $(CFLAGS) sked_snapshot.c -o $@
+	$(CC) $(CFLAGS) sked_snapshot.c -o $@
 $(PATHCADOBJ)/sked_legograf.o: sked_legograf.c
-	cc $(CFLAGS) sked_legograf.c -o $@
+	$(CC) $(CFLAGS) sked_legograf.c -o $@
 $(PATHCADOBJ)/sked_s02.o: sked_s02.c
-	cc $(CFLAGS) sked_s02.c -o $@
+	$(CC) $(CFLAGS) sked_s02.c -o $@
 $(PATHCADOBJ)/sked_aggiornamento.o: sked_aggiornamento.c
-	cc $(CFLAGS) sked_aggiornamento.c -o $@
+	$(CC) $(CFLAGS) sked_aggiornamento.c -o $@
 $(PATHCADOBJ)/sked_stato.o: sked_stato.c
-	cc $(CFLAGS) sked_stato.c -o $@
+	$(CC) $(CFLAGS) sked_stato.c -o $@
 $(PATHCADOBJ)/sked_banco.o: sked_banco.c
-	cc $(CFLAGS) sked_banco.c -o $@
+	$(CC) $(CFLAGS) sked_banco.c -o $@
 $(PATHCADOBJ)/sked_slave.o: sked_slave.c
-	cc $(CFLAGS) sked_slave.c -o $@
+	$(CC) $(CFLAGS) sked_slave.c -o $@
 $(PATHCADOBJ)/sked_next.o: sked_next.c
-	cc $(CFLAGS) sked_next.c -o $@
+	$(CC) $(CFLAGS) sked_next.c -o $@
 $(PATHCADOBJ)/sked_backtrack.o: sked_backtrack.c
-	cc $(CFLAGS) sked_backtrack.c -o $@
+	$(CC) $(CFLAGS) sked_backtrack.c -o $@
 $(PATHCADOBJ)/sked_tempo_iniziale.o: sked_tempo_iniziale.c
-	cc $(CFLAGS) sked_tempo_iniziale.c -o $@
+	$(CC) $(CFLAGS) sked_tempo_iniziale.c -o $@
 $(PATHCADOBJ)/sked_replay.o: sked_replay.c
-	cc $(CFLAGS) sked_replay.c -o $@
+	$(CC) $(CFLAGS) sked_replay.c -o $@
 $(PATHCADOBJ)/sked_snapshot_piac.o: sked_snapshot_piac.c
-	cc $(CFLAGS) sked_snapshot_piac.c -o $@
+	$(CC) $(CFLAGS) sked_snapshot_piac.c -o $@
 $(PATHCADOBJ)/sked_backtrack_piac.o: sked_backtrack_piac.c
-	cc $(CFLAGS) sked_backtrack_piac.c -o $@
+	$(CC) $(CFLAGS) sked_backtrack_piac.c -o $@
 
 $(PATHNETOBJ)/sked.o: sked.c
-	cc $(CFLAGSINCLUDE) sked.c -o $@
+	$(CC) $(CFLAGSINCLUDE) sked.c -o $@
 $(PATHNETOBJ)/sked_prolog.o: sked_prolog.c
-	cc $(CFLAGSINCLUDE) sked_prolog.c  -o $@
+	$(CC) $(CFLAGSINCLUDE) sked_prolog.c  -o $@
 $(PATHNETOBJ)/sked_timer.o: sked_timer.c
-	cc $(CFLAGSINCLUDE) sked_timer.c -o $@
+	$(CC) $(CFLAGSINCLUDE) sked_timer.c -o $@
 $(PATHNETOBJ)/sked_fine.o: sked_fine.c
-	cc $(CFLAGSINCLUDE) sked_fine.c -o $@
+	$(CC) $(CFLAGSINCLUDE) sked_fine.c -o $@
 $(PATHNETOBJ)/sked_start.o: sked_start.c
-	cc $(CFLAGSINCLUDE) sked_start.c -o $@
+	$(CC) $(CFLAGSINCLUDE) sked_start.c -o $@
 $(PATHNETOBJ)/sked_task.o: sked_task.c
-	cc $(CFLAGSINCLUDE) sked_task.c -o $@
+	$(CC) $(CFLAGSINCLUDE) sked_task.c -o $@
 $(PATHNETOBJ)/sked_ingressi.o: sked_ingressi.c
-	cc $(CFLAGSINCLUDE) sked_ingressi.c -o $@
+	$(CC) $(CFLAGSINCLUDE) sked_ingressi.c -o $@
 $(PATHNETOBJ)/sked_perturba.o: sked_perturba.c
-	cc $(CFLAGSINCLUDE) sked_perturba.c -o $@
+	$(CC) $(CFLAGSINCLUDE) sked_perturba.c -o $@
 $(PATHNETOBJ)/sked_pacchetti.o: sked_pacchetti.c
-	cc $(CFLAGSINCLUDE) sked_pacchetti.c -o $@
+	$(CC) $(CFLAGSINCLUDE) sked_pacchetti.c -o $@
 $(PATHNETOBJ)/sked_startup.o: sked_startup.c
-	cc $(CFLAGSINCLUDE) sked_startup.c -o $@
+	$(CC) $(CFLAGSINCLUDE) sked_startup.c -o $@
 $(PATHNETOBJ)/sked_pf22.o: sked_pf22.c
-	cc $(CFLAGSINCLUDE) sked_pf22.c -o $@
+	$(CC) $(CFLAGSINCLUDE) sked_pf22.c -o $@
 $(PATHNETOBJ)/sked_statistiche.o: sked_statistiche.c
-	cc $(CFLAGSINCLUDE) sked_statistiche.c -o $@
+	$(CC) $(CFLAGSINCLUDE) sked_statistiche.c -o $@
 $(PATHNETOBJ)/sked_errore.o: sked_errore.c
-	cc $(CFLAGSINCLUDE) sked_errore.c -o $@
+	$(CC) $(CFLAGSINCLUDE) sked_errore.c -o $@
 $(PATHNETOBJ)/sked_snapshot.o: sked_snapshot.c
-	cc $(CFLAGSINCLUDE) sked_snapshot.c -o $@
+	$(CC) $(CFLAGSINCLUDE) sked_snapshot.c -o $@
 $(PATHNETOBJ)/sked_legograf.o: sked_legograf.c
-	cc $(CFLAGSINCLUDE) sked_legograf.c -o $@
+	$(CC) $(CFLAGSINCLUDE) sked_legograf.c -o $@
 $(PATHNETOBJ)/sked_s02.o: sked_s02.c
-	cc $(CFLAGSINCLUDE) sked_s02.c -o $@
+	$(CC) $(CFLAGSINCLUDE) sked_s02.c -o $@
 $(PATHNETOBJ)/sked_aggiornamento.o: sked_aggiornamento.c
-	cc $(CFLAGSINCLUDE) sked_aggiornamento.c -o $@
+	$(CC) $(CFLAGSINCLUDE) sked_aggiornamento.c -o $@
 $(PATHNETOBJ)/sked_stato.o: sked_stato.c
-	cc $(CFLAGSINCLUDE) sked_stato.c -o $@
+	$(CC) $(CFLAGSINCLUDE) sked_stato.c -o $@
 $(PATHNETOBJ)/sked_banco.o: sked_banco.c
-	cc $(CFLAGSINCLUDE) sked_banco.c -o $@
+	$(CC) $(CFLAGSINCLUDE) sked_banco.c -o $@
 $(PATHNETOBJ)/sked_slave.o: sked_slave.c
-	cc $(CFLAGSINCLUDE) sked_slave.c -o $@
+	$(CC) $(CFLAGSINCLUDE) sked_slave.c -o $@
 $(PATHNETOBJ)/sked_next.o: sked_next.c
-	cc $(CFLAGSINCLUDE) sked_next.c -o $@
+	$(CC) $(CFLAGSINCLUDE) sked_next.c -o $@
 $(PATHNETOBJ)/sked_backtrack.o: sked_backtrack.c
-	cc $(CFLAGSINCLUDE) sked_backtrack.c -o $@
+	$(CC) $(CFLAGSINCLUDE) sked_backtrack.c -o $@
 $(PATHNETOBJ)/sked_tempo_iniziale.o: sked_tempo_iniziale.c
-	cc $(CFLAGSINCLUDE) sked_tempo_iniziale.c -o $@
+	$(CC) $(CFLAGSINCLUDE) sked_tempo_iniziale.c -o $@
 $(PATHNETOBJ)/sked_replay.o: sked_replay.c
-	cc $(CFLAGSINCLUDE) sked_replay.c -o $@
+	$(CC) $(CFLAGSINCLUDE) sked_replay.c -o $@
 $(PATHNETOBJ)/sked_snapshot_piac.o: sked_snapshot_piac.c
-	cc $(CFLAGSINCLUDE) sked_snapshot_piac.c -o $@
+	$(CC) $(CFLAGSINCLUDE) sked_snapshot_piac.c -o $@
 $(PATHNETOBJ)/sked_backtrack_piac.o: sked_backtrack_piac.c
-	cc $(CFLAGSINCLUDE) sked_backtrack_piac.c -o $@
+	$(CC) $(CFLAGSINCLUDE) sked_backtrack_piac.c -o $@
 
 

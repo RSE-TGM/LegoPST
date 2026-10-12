@@ -49,8 +49,8 @@ all:  $(LEGORT_BIN)/net_prova
 
 
 $(LEGORT_BIN)/net_prova: $(OGGETTI) $(LIBUTIL)
-	cc -o $(LEGORT_BIN)/net_prova $(LINKER_OPTIONS) $(OGGETTI) \
+	$(CC) -o $(LEGORT_BIN)/net_prova $(LINKER_OPTIONS) $(OGGETTI) \
         $(LIBUTIL) $(C_LIB) $(OTHER_LIB)
 
 ./net_prova.o: net_prova.c
-	cc $(CFLAGS) net_prova.c -o $@
+	$(CC) $(CFLAGS) net_prova.c -o $@

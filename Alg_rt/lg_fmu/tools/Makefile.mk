@@ -46,20 +46,20 @@ BINS = probe_attach probe_step probe_init gen_modeldescription
 all: $(BINS)
 
 probe_attach: probe_attach.o $(LIBS)
-	cc -o $@ probe_attach.o -Wl,--start-group $(LIBS) -Wl,--end-group $(OTHER_LIB)
+	$(CC) -o $@ probe_attach.o -Wl,--start-group $(LIBS) -Wl,--end-group $(OTHER_LIB)
 
 probe_step: probe_step.o $(LIBS)
-	cc -o $@ probe_step.o -Wl,--start-group $(LIBS) -Wl,--end-group $(OTHER_LIB)
+	$(CC) -o $@ probe_step.o -Wl,--start-group $(LIBS) -Wl,--end-group $(OTHER_LIB)
 
 probe_init: probe_init.o $(LIBS)
-	cc -o $@ probe_init.o -Wl,--start-group $(LIBS) -Wl,--end-group $(OTHER_LIB)
+	$(CC) -o $@ probe_init.o -Wl,--start-group $(LIBS) -Wl,--end-group $(OTHER_LIB)
 
 gen_modeldescription: gen_modeldescription.o $(LIB_FMU) $(LIBS)
-	cc -o $@ gen_modeldescription.o \
+	$(CC) -o $@ gen_modeldescription.o \
 	    -Wl,--start-group $(LIB_FMU) $(LIBS) -Wl,--end-group $(OTHER_LIB)
 
 %.o: %.c
-	cc $(CFLAGS) -c $<
+	$(CC) $(CFLAGS) -c $<
 
 clean:
 	rm -f *.o $(BINS)

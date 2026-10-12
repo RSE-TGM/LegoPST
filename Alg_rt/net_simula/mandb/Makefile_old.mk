@@ -56,9 +56,9 @@ $(LEGORT_UID)/mandb.uid: mandb.uil$(MOTIF_VER)
 	$(UIL) -o $(LEGORT_UID)/mandb.uid mandb.uil$(MOTIF_VER) $(UIL_INCLUDE) 
 
 $(LEGORT_BIN)/mandb: $(OGGETTI1) $(LIBUTIL)
-	cc -o $(LEGORT_BIN)/mandb $(LINKER_OPTIONS) $(OGGETTI1)\
+	$(CC) -o $(LEGORT_BIN)/mandb $(LINKER_OPTIONS) $(OGGETTI1)\
         $(LIBSVIL) $(LIBUTIL) -lX11 $(STUB_LIBS) $(C_LIB) $(OTHER_LIB) 
 
 $(LEGORT_BIN)/acqmandb: $(OGGETTI2) $(LIBUTIL)
-	cc -o $(LEGORT_BIN)/acqmandb $(LINKER_OPTIONS) $(OGGETTI2) \
+	$(CC) -o $(LEGORT_BIN)/acqmandb $(LINKER_OPTIONS) $(OGGETTI2) \
         $(LIBUTIL) $(OTHER_LIB) $(LIBSVIL)

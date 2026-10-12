@@ -124,7 +124,7 @@ inc:
 	echo "#*************************************************" >> Makefile
 	cat Makefile.tpl >> Makefile
 	echo "#     START DEPEND" >> Makefile
-	cc -M $(CCFLAGS) $(SRCS) >> Makefile
+	$(CC) -M $(CCFLAGS) $(SRCS) >> Makefile
 	echo "#     END   DEPEND" >> Makefile
 
 

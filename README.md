@@ -206,6 +206,11 @@ sudo dnf install -y --setopt=install_weak_deps=False \
     adwaita-cursor-theme && \
 sudo dnf clean all
 
+# Fedora 42 and later: the same list works. Two things differ from Fedora 41,
+# and LegoPST handles both by itself:
+#  - gcc is 15+ and defaults to C23: .profile_legoroot sets CC="gcc -std=gnu17";
+#  - "wish" is Tcl/Tk 9, which cannot load Tix: the tix package pulls in tk8,
+#    and lgpc/lghmi/lgmkstaz pick wish8.6 when it is there.
 
 ```
 

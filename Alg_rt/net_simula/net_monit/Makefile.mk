@@ -78,69 +78,69 @@ $(LEGORT_UID)/net_monit.uid: monit.uil
 	$(UIL) $(UIL_INCLUDE) -o $(LEGORT_UID)/net_monit.uid monit.uil
 
 $(LEGORT_BIN)/cad_monit: $(CAD_OGGETTI) $(LIBUTIL)
-	cc -o $(LEGORT_BIN)/cad_monit  $(LINKER_OPTIONS) $(CAD_OGGETTI) \
+	$(CC) -o $(LEGORT_BIN)/cad_monit  $(LINKER_OPTIONS) $(CAD_OGGETTI) \
         $(LIBSVIL) $(LIBUTIL) -lX11 $(STUB_LIBS) $(C_LIB) $(OTHER_LIB)
 $(LEGORT_BIN)/net_monit: $(NET_OGGETTI) $(LIBUTIL)
-	cc -o $(LEGORT_BIN)/net_monit $(LINKER_OPTIONS) $(NET_OGGETTI) \
+	$(CC) -o $(LEGORT_BIN)/net_monit $(LINKER_OPTIONS) $(NET_OGGETTI) \
         $(LIBSVIL) $(LIBUTIL) -lX11 $(STUB_LIBS) $(C_LIB) $(OTHER_LIB)
 #$(CAD_OGGETTI):$(SORGENTI)
 #	@echo $<  
 #	cc -c $(CFLAGS) $< -o $@
 $(PATHCADOBJ)/monit.o :monit.c
-	cc $(CFLAGS) monit.c -o $@
+	$(CC) $(CFLAGS) monit.c -o $@
 $(PATHCADOBJ)/monit_aggancia.o :monit_aggancia.c
-	cc $(CFLAGS) monit_aggancia.c -o $@
+	$(CC) $(CFLAGS) monit_aggancia.c -o $@
 $(PATHCADOBJ)/monit_aggiorna.o :monit_aggiorna.c
-	cc $(CFLAGS) monit_aggiorna.c -o $@
+	$(CC) $(CFLAGS) monit_aggiorna.c -o $@
 $(PATHCADOBJ)/monit_stat.o :monit_stat.c
-	cc $(CFLAGS) monit_stat.c -o $@
+	$(CC) $(CFLAGS) monit_stat.c -o $@
 $(PATHCADOBJ)/monit_variabili.o :monit_variabili.c
-	cc $(CFLAGS) monit_variabili.c -o $@
+	$(CC) $(CFLAGS) monit_variabili.c -o $@
 $(PATHCADOBJ)/monit_snapshot.o :monit_snapshot.c
-	cc $(CFLAGS) monit_snapshot.c -o $@
+	$(CC) $(CFLAGS) monit_snapshot.c -o $@
 $(PATHCADOBJ)/monit_perturba.o :monit_perturba.c
-	cc $(CFLAGS) monit_perturba.c -o $@
+	$(CC) $(CFLAGS) monit_perturba.c -o $@
 $(PATHCADOBJ)/monit_staz.o :monit_staz.c
-	cc $(CFLAGS) monit_staz.c -o $@
+	$(CC) $(CFLAGS) monit_staz.c -o $@
 $(PATHCADOBJ)/monit_data.o :monit_data.c
-	cc $(CFLAGS) monit_data.c -o $@
+	$(CC) $(CFLAGS) monit_data.c -o $@
 $(PATHCADOBJ)/monit_frem.o :monit_frem.c
-	cc $(CFLAGS) monit_frem.c -o $@
+	$(CC) $(CFLAGS) monit_frem.c -o $@
 $(PATHCADOBJ)/monit_malf.o :monit_malf.c
-	cc $(CFLAGS) monit_malf.c -o $@
+	$(CC) $(CFLAGS) monit_malf.c -o $@
 $(PATHCADOBJ)/monit_mffr.o :monit_mffr.c
-	cc $(CFLAGS) monit_mffr.c -o $@
+	$(CC) $(CFLAGS) monit_mffr.c -o $@
 $(PATHCADOBJ)/monit_var_malf.o :monit_var_malf.c
-	cc $(CFLAGS) monit_var_malf.c -o $@
+	$(CC) $(CFLAGS) monit_var_malf.c -o $@
 $(PATHCADOBJ)/monit_var_frem.o :monit_var_frem.c
-	cc $(CFLAGS) monit_var_frem.c -o $@
+	$(CC) $(CFLAGS) monit_var_frem.c -o $@
 
 $(PATHNETOBJ)/monit.o :monit.c
-	cc $(CFLAGSINCLUDE) monit.c -o $@
+	$(CC) $(CFLAGSINCLUDE) monit.c -o $@
 $(PATHNETOBJ)/monit_aggancia.o :monit_aggancia.c
-	cc $(CFLAGSINCLUDE) monit_aggancia.c -o $@
+	$(CC) $(CFLAGSINCLUDE) monit_aggancia.c -o $@
 $(PATHNETOBJ)/monit_aggiorna.o :monit_aggiorna.c
-	cc $(CFLAGSINCLUDE) monit_aggiorna.c -o $@
+	$(CC) $(CFLAGSINCLUDE) monit_aggiorna.c -o $@
 $(PATHNETOBJ)/monit_stat.o :monit_stat.c
-	cc $(CFLAGSINCLUDE) monit_stat.c -o $@
+	$(CC) $(CFLAGSINCLUDE) monit_stat.c -o $@
 $(PATHNETOBJ)/monit_variabili.o :monit_variabili.c
-	cc $(CFLAGSINCLUDE) monit_variabili.c -o $@
+	$(CC) $(CFLAGSINCLUDE) monit_variabili.c -o $@
 $(PATHNETOBJ)/monit_snapshot.o :monit_snapshot.c
-	cc $(CFLAGSINCLUDE) monit_snapshot.c -o $@
+	$(CC) $(CFLAGSINCLUDE) monit_snapshot.c -o $@
 $(PATHNETOBJ)/monit_perturba.o :monit_perturba.c
-	cc $(CFLAGSINCLUDE) monit_perturba.c -o $@
+	$(CC) $(CFLAGSINCLUDE) monit_perturba.c -o $@
 $(PATHNETOBJ)/monit_staz.o :monit_staz.c
-	cc $(CFLAGSINCLUDE) monit_staz.c -o $@
+	$(CC) $(CFLAGSINCLUDE) monit_staz.c -o $@
 $(PATHNETOBJ)/monit_data.o :monit_data.c
-	cc $(CFLAGSINCLUDE) monit_data.c -o $@
+	$(CC) $(CFLAGSINCLUDE) monit_data.c -o $@
 $(PATHNETOBJ)/monit_frem.o :monit_frem.c
-	cc $(CFLAGSINCLUDE) monit_frem.c -o $@
+	$(CC) $(CFLAGSINCLUDE) monit_frem.c -o $@
 $(PATHNETOBJ)/monit_malf.o :monit_malf.c
-	cc $(CFLAGSINCLUDE) monit_malf.c -o $@
+	$(CC) $(CFLAGSINCLUDE) monit_malf.c -o $@
 $(PATHNETOBJ)/monit_mffr.o :monit_mffr.c
-	cc $(CFLAGSINCLUDE) monit_mffr.c -o $@
+	$(CC) $(CFLAGSINCLUDE) monit_mffr.c -o $@
 $(PATHNETOBJ)/monit_var_malf.o :monit_var_malf.c
-	cc $(CFLAGSINCLUDE) monit_var_malf.c -o $@
+	$(CC) $(CFLAGSINCLUDE) monit_var_malf.c -o $@
 $(PATHNETOBJ)/monit_var_frem.o :monit_var_frem.c
-	cc $(CFLAGSINCLUDE) monit_var_frem.c -o $@
+	$(CC) $(CFLAGSINCLUDE) monit_var_frem.c -o $@
 

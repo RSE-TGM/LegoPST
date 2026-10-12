@@ -12,22 +12,22 @@ C_FLAGS=-g -DLINUX   -DXOPEN_CATALOG -DUNIX -Dmmap=_mmap_32_  \
 all: ../bin/dbmrea ../bin/dbm2sql ../bin/dbmftc ../bin/dbmftc2 ../bin/dbmins ../bin/dbmins_mul ../bin/mk_reg_int_conn_db ../bin/mk_name_punt_db
 
 ../bin/dbmrea: dbmrea.c
-	cc -g $(C_FLAGS) -o $@ dbmrea.c -lgdbm_compat -lgdbm
+	$(CC) -g $(C_FLAGS) -o $@ dbmrea.c -lgdbm_compat -lgdbm
 
 ../bin/dbm2sql: dbm2sql.c
-	cc -g $(C_FLAGS) -o $@ dbm2sql.c -lgdbm_compat -lgdbm -lsqlite3
+	$(CC) -g $(C_FLAGS) -o $@ dbm2sql.c -lgdbm_compat -lgdbm -lsqlite3
 
 ../bin/dbmftc: dbmftc.c
-	cc -g $(C_FLAGS) -o $@ dbmftc.c -lgdbm_compat -lgdbm
+	$(CC) -g $(C_FLAGS) -o $@ dbmftc.c -lgdbm_compat -lgdbm
 
 ../bin/dbmftc2: dbmftc2.c
-	cc -g $(C_FLAGS) -o $@ dbmftc2.c -lgdbm_compat -lgdbm
+	$(CC) -g $(C_FLAGS) -o $@ dbmftc2.c -lgdbm_compat -lgdbm
 
 ../bin/dbmins: dbmins.c
-	cc -g $(C_FLAGS) -o $@ dbmins.c -lgdbm_compat -lgdbm
+	$(CC) -g $(C_FLAGS) -o $@ dbmins.c -lgdbm_compat -lgdbm
 
 ../bin/dbmins_mul: dbmins_mul.c
-	cc -g $(C_FLAGS) -o $@ dbmins_mul.c -lgdbm_compat -lgdbm
+	$(CC) -g $(C_FLAGS) -o $@ dbmins_mul.c -lgdbm_compat -lgdbm
 
 ../bin/mk_reg_int_conn_db:mk_reg_int_conn_db.sh
 	cp mk_reg_int_conn_db.sh $@

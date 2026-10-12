@@ -53,28 +53,28 @@ FFILES = $(SORGENTI5)
 #all:  $(LEGOMMI_BIN)/modpag  $(LEGOMMI_BIN)/modallpag $(LEGOMMI_BIN)/chgpag $(LEGOMMI_BIN)/chgtask $(LEGOMMI_BIN)/chgcompiled $(LEGOMMI_BIN)/chgvar $(LEGOMMI_BIN)/creasuperlist $(LEGOMMI_BIN)/UP_SCHEMA_F01
 all: $(LEGOMMI_BIN)/chgcompiled $(LEGOMMI_BIN)/cleanloc
 $(LEGOMMI_BIN)/modpag: $(OGGETTI1)
-	cc -o $(LEGOMMI_BIN)/modpag $(LINKER_OPTIONS) $(OGGETTI1) 
+	$(CC) -o $(LEGOMMI_BIN)/modpag $(LINKER_OPTIONS) $(OGGETTI1) 
          
 $(LEGOMMI_BIN)/modallpag: $(OGGETTI2)
-	cc -o $(LEGOMMI_BIN)/modallpag $(LINKER_OPTIONS) $(OGGETTI2) 
+	$(CC) -o $(LEGOMMI_BIN)/modallpag $(LINKER_OPTIONS) $(OGGETTI2) 
 
 $(LEGOMMI_BIN)/chgpag: $(OGGETTI3)
-	cc -o $(LEGOMMI_BIN)/chgpag $(LINKER_OPTIONS) $(OGGETTI3) 
+	$(CC) -o $(LEGOMMI_BIN)/chgpag $(LINKER_OPTIONS) $(OGGETTI3) 
 
 $(LEGOMMI_BIN)/chgtask: $(OGGETTI4)
-	cc -o $(LEGOMMI_BIN)/chgtask $(LINKER_OPTIONS) $(OGGETTI4) 
+	$(CC) -o $(LEGOMMI_BIN)/chgtask $(LINKER_OPTIONS) $(OGGETTI4) 
 
 $(LEGOMMI_BIN)/chgcompiled: $(OGGETTI6)
-	cc -o $(LEGOMMI_BIN)/chgcompiled $(LINKER_OPTIONS) $(OGGETTI6)
+	$(CC) -o $(LEGOMMI_BIN)/chgcompiled $(LINKER_OPTIONS) $(OGGETTI6)
 
 $(LEGOMMI_BIN)/creasuperlist: $(OGGETTI7)
-	cc -o $(LEGOMMI_BIN)/creasuperlist $(LINKER_OPTIONS) $(OGGETTI7)
+	$(CC) -o $(LEGOMMI_BIN)/creasuperlist $(LINKER_OPTIONS) $(OGGETTI7)
 
 $(LEGOMMI_BIN)/chgvar: $(OGGETTI8)
-	cc -o $(LEGOMMI_BIN)/chgvar $(LINKER_OPTIONS) $(OGGETTI8)
+	$(CC) -o $(LEGOMMI_BIN)/chgvar $(LINKER_OPTIONS) $(OGGETTI8)
 
 $(LEGOMMI_BIN)/cleanloc: $(OGGETTI9)
-	cc -o $(LEGOMMI_BIN)/cleanloc $(LINKER_OPTIONS) $(OGGETTI9)
+	$(CC) -o $(LEGOMMI_BIN)/cleanloc $(LINKER_OPTIONS) $(OGGETTI9)
 
 $(LEGOMMI_BIN)/UP_SCHEMA_F01: $(OGGETTI5)
 	gfortran -O  -o $(LEGOMMI_BIN)/UP_SCHEMA_F01 $(OGGETTI5)

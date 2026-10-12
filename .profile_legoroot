@@ -242,6 +242,16 @@ export XAPPLRESDIR=~/risorse
 #
 #########################################################
 #
+#  Compilatore C. Da GCC 15 (Fedora 42 e successive) lo standard di default e'
+#  C23 (-std=gnu23), in cui "void f()" vuol dire "void f(void)": i sorgenti
+#  K&R di LegoPST, che dichiarano le funzioni senza argomenti e poi le chiamano
+#  con argomenti, non compilano piu'. Si fissa quindi lo standard a gnu17, che
+#  e' il default di GCC 8..14: sulle macchine con quei compilatori non cambia
+#  niente, su quelle nuove si torna al comportamento di prima. Lo standard va
+#  in CC e non in un flag, perche' i makefile non hanno una variabile di flag
+#  C comune a tutti: per questo le ricette devono chiamare $(CC) e mai "cc".
+#  Chi vuole un altro compilatore esporta CC prima di caricare questo file.
+export CC="${CC:-gcc -std=gnu17}"
 export FC=gfortran
 #export F_FLAGS='-g -fno-second-underscore -fdollar-ok -fno-automatic -finit-local-zero -fPIE -std=legacy  -ffixed-line-length-132'
 export F_FLAGS='-g -fno-second-underscore -fdollar-ok -fno-automatic -finit-local-zero -fPIE -std=legacy'

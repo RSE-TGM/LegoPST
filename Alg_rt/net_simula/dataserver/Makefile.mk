@@ -47,7 +47,7 @@ all: $(LEGORT_BIN)/DataServer $(LEGORT_BIN)/view.template
 
 
 $(LEGORT_BIN)/DataServer: $(OGGETTI_DS)
-	cc $(CFLAGS) $(OGGETTI_DS) $(LIBUTIL)  -o $(LEGORT_BIN)/DataServer
+	$(CC) $(CFLAGS) $(OGGETTI_DS) $(LIBUTIL)  -o $(LEGORT_BIN)/DataServer
 
 $(LEGORT_BIN)/view.template:view.template
 	cp view.template $(LEGORT_BIN)/view.template

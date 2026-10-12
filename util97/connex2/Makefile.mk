@@ -12,7 +12,7 @@ CCOPT = $(C_FLAGS) -D_POSIX_SOURCE -D_POSIX_C_SOURCE=2 -DTASK_COUNT=100 -DVAR_CO
 
 all: ../bin/connex2 ../bin/al_sim.conf.example
 ../bin/connex2: connex2.c
-	cc $(CCOPT) -o $@ connex2.c
+	$(CC) $(CCOPT) -o $@ connex2.c
 
 ../bin/al_sim.conf.example: al_sim.conf
 	cp -f al_sim.conf $@

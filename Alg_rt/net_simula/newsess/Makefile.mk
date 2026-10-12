@@ -51,7 +51,7 @@ CFLAGS=$(CFLAGSINCLUDE)
 all:  $(LEGORT_BIN)/nsession $(LEGORT_BIN)/f22_to_ascii
 
 $(LEGORT_BIN)/nsession: $(OGGETTI) $(LIBUTIL)
-	cc -g -o $(LEGORT_BIN)/nsession $(LINKER_OPTIONS) $(OGGETTI) \
+	$(CC) -g -o $(LEGORT_BIN)/nsession $(LINKER_OPTIONS) $(OGGETTI) \
         $(LIBSVIL) $(LIBUTIL) $(C_LIB) $(OTHER_LIB) $(F_LIB)
 $(LEGORT_BIN)/f22_to_ascii: f22_to_ascii.sh
 	cp f22_to_ascii.sh $(LEGORT_BIN)/f22_to_ascii

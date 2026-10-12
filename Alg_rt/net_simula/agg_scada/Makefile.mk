@@ -50,5 +50,5 @@ all:  $(LEGORT_BIN)/agg_scada
 
 
 $(LEGORT_BIN)/agg_scada: $(OGGETTI) $(LIBUTIL)
-	cc $(CFLAGS) -o $(LEGORT_BIN)/agg_scada $(OGGETTI) \
+	$(CC) $(CFLAGS) -o $(LEGORT_BIN)/agg_scada $(OGGETTI) \
         $(LIBUTIL) $(OTHER_LIB) $(PRIVATE_LIB) $(LIBSVIL)

@@ -162,7 +162,7 @@ struct msgbuf
 #	include <errno.h>
 #	include <signal.h>
 #	include <fcntl.h>
-#	include <termio.h>
+#	include <termios.h>	/* termio.h non esiste piu' da glibc 2.42 */
 #endif /* _STREAM_DRIVER */
 
 #include <X11/Intrinsic.h>
@@ -857,7 +857,7 @@ DESCRIPTION:	Set the stream.
 static int set_stream(m_stream, echo)
 	int		m_stream, echo;
 {
-	struct termio	term;
+	struct termios	term;
 	char *slavename;
 	extern char *ptsname();
 	int	s_stream;

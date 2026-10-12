@@ -50,5 +50,5 @@ makefile:Makefile
 	make inc
 
 $(LEGORT_BIN)/net_updbase: $(OGGETTI) $(LIBUTIL)
-	cc  -o $(LEGORT_BIN)/net_updbase $(LINKER_OPTIONS) $(OGGETTI) \
+	$(CC)  -o $(LEGORT_BIN)/net_updbase $(LINKER_OPTIONS) $(OGGETTI) \
         $(LIBUTIL) $(OTHER_LIB)

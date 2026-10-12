@@ -58,10 +58,10 @@ all: $(PATHBIN)/viewval $(OGGETTI) $(PATHBIN)/viewval_legacy $(OGGETTI_LEGACY) $
 
 
 $(PATHBIN)/viewval: $(OGGETTI)
-	cc $(CFLAGS) $(OGGETTI) $(LIBSVIL) $(LIBUTIL) $(STUB_LIBS) -o $(PATHBIN)/viewval
+	$(CC) $(CFLAGS) $(OGGETTI) $(LIBSVIL) $(LIBUTIL) $(STUB_LIBS) -o $(PATHBIN)/viewval
 
 $(PATHBIN)/viewval_legacy: $(OGGETTI_LEGACY)
-	cc $(CFLAGS) $(OGGETTI_LEGACY) $(LIBSVIL) $(LIBUTIL) $(STUB_LIBS) -o $(PATHBIN)/viewval_legacy
+	$(CC) $(CFLAGS) $(OGGETTI_LEGACY) $(LIBSVIL) $(LIBUTIL) $(STUB_LIBS) -o $(PATHBIN)/viewval_legacy
 
 $(PATHBIN)/umis: main_umis.o
-	cc $(CFLAGS) main_umis.o $(LEGORT_LIB)/libsim.a $(LEGOROOT_LIB)/libutil.a -o $(PATHBIN)/umis
+	$(CC) $(CFLAGS) main_umis.o $(LEGORT_LIB)/libsim.a $(LEGOROOT_LIB)/libutil.a -o $(PATHBIN)/umis

@@ -47,10 +47,15 @@ if [ -z "${LG_BIN:-}" ] || [ ! -f "$LG_BIN/legopc.tix" ]; then
     exit 1
 fi
 
-if ! command -v wish >/dev/null 2>&1; then
+# Serve il wish di Tcl/Tk 8.6: Tix esiste solo per Tcl 8. Dove "wish" e' gia'
+# Tcl/Tk 9 (Fedora 42 e successive) quello giusto si chiama wish8.6 (pacchetto
+# tk8); dove wish e' ancora l'8.6 (Fedora 41) i due nomi sono lo stesso
+# programma.
+WISH="$(command -v wish8.6 || command -v wish8 || command -v wish)"
+if [ -z "$WISH" ]; then
     echo "lgpc: 'wish' (Tcl/Tk) non trovato nel PATH." >&2
     exit 1
 fi
 
 export LG_TIX="$LG_BIN"
-exec wish "$LG_TIX/legopc.tix" "$@"
+exec "$WISH" "$LG_TIX/legopc.tix" "$@"

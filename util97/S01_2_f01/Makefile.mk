@@ -9,5 +9,5 @@ C_FLAGS=-g -DLINUX   -DXOPEN_CATALOG -DUNIX -Dmmap=_mmap_32_  \
 # Makefile							1997-05-16
 
 ../bin/S01_2_f01: S01_2_f01.c
-	cc $(C_FLAGS) -o ../bin/S01_2_f01 S01_2_f01.c
+	$(CC) $(C_FLAGS) -o ../bin/S01_2_f01 S01_2_f01.c
 

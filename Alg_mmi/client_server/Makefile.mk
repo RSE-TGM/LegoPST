@@ -49,14 +49,14 @@ all:  $(LEGOMMI_BIN)/demone_mmi $(LEGOMMI_BIN)/client_mmi \
 	$(LEGOMMI_BIN)/server_mmi
 
 $(LEGOMMI_BIN)/demone_mmi: $(OGGETTI_DEMONE) $(LIBUTIL)
-	cc  -o $(LEGOMMI_BIN)/demone_mmi $(LINKER_OPTIONS) $(OGGETTI_DEMONE) \
+	$(CC)  -o $(LEGOMMI_BIN)/demone_mmi $(LINKER_OPTIONS) $(OGGETTI_DEMONE) \
 	$(LIBUTIL) $(OTHER_LIB)
 
 $(LEGOMMI_BIN)/client_mmi: $(OGGETTI_CLIENT) $(LIBUTIL)
-	cc  -o $(LEGOMMI_BIN)/client_mmi $(LINKER_OPTIONS) $(OGGETTI_CLIENT) \
+	$(CC)  -o $(LEGOMMI_BIN)/client_mmi $(LINKER_OPTIONS) $(OGGETTI_CLIENT) \
 	$(LIBUTIL) $(OTHER_LIB)
 
 $(LEGOMMI_BIN)/server_mmi: $(OGGETTI_SERVER) $(LIBUTIL)
-	cc  -o $(LEGOMMI_BIN)/server_mmi $(LINKER_OPTIONS) $(OGGETTI_SERVER) \
+	$(CC)  -o $(LEGOMMI_BIN)/server_mmi $(LINKER_OPTIONS) $(OGGETTI_SERVER) \
 	$(LIBUTIL) $(OTHER_LIB)
 

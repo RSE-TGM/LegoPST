@@ -74,23 +74,23 @@ all:  $(LEGOMMI_BIN)/gen_topologia  $(LEGOMMI_BIN)/gen_f14  \
 	$(LEGOMMI_BIN)/gen_f14task 
 
 $(LEGOMMI_BIN)/gen_topologia: $(OGGETTI_TOP) $(LIBUTIL)
-	cc  -o $(LEGOMMI_BIN)/gen_topologia $(OGGETTI_TOP) \
+	$(CC)  -o $(LEGOMMI_BIN)/gen_topologia $(OGGETTI_TOP) \
 	$(LIBUTIL) $(X_LIBS) -lm $(C_LIB)
 
 $(LEGOMMI_BIN)/gen_f14: $(OGGETTI_G14) $(LIBUTIL)
-	cc  -o $(LEGOMMI_BIN)/gen_f14 $(OGGETTI_G14) \
+	$(CC)  -o $(LEGOMMI_BIN)/gen_f14 $(OGGETTI_G14) \
         $(LIBUTIL) $(X_LIBS) -lm $(C_LIB)
 
 $(LEGOMMI_BIN)/gen_f01task: $(OGGETTI_01TASK) $(LIBUTIL)
-	cc  -o $(LEGOMMI_BIN)/gen_f01task $(OGGETTI_01TASK) \
+	$(CC)  -o $(LEGOMMI_BIN)/gen_f01task $(OGGETTI_01TASK) \
         $(LIBUTIL) $(X_LIBS) -lm $(C_LIB)
 
 $(LEGOMMI_BIN)/gen_f14task: $(OGGETTI_14TASK) $(LIBUTIL)
-	cc  -o $(LEGOMMI_BIN)/gen_f14task $(OGGETTI_14TASK) \
+	$(CC)  -o $(LEGOMMI_BIN)/gen_f14task $(OGGETTI_14TASK) \
         $(LIBUTIL) $(X_LIBS) -lm $(C_LIB)
 
 $(LEGOMMI_BIN)/gen_stazionario: $(OGGETTI_STZRG) $(LIBUTIL)
-	cc  -o $(LEGOMMI_BIN)/gen_stazionario $(OGGETTI_STZRG) \
+	$(CC)  -o $(LEGOMMI_BIN)/gen_stazionario $(OGGETTI_STZRG) \
         $(LIBUTIL) $(X_LIBS) -lm $(C_LIB)
 
 # Prima dell'uso di .pf

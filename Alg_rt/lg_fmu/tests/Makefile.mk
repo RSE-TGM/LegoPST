@@ -37,10 +37,10 @@ BINS = test_var_mapping
 all: $(BINS)
 
 test_var_mapping: test_var_mapping.o $(LIBS)
-	cc -o $@ test_var_mapping.o -Wl,--start-group $(LIBS) -Wl,--end-group $(OTHER_LIB)
+	$(CC) -o $@ test_var_mapping.o -Wl,--start-group $(LIBS) -Wl,--end-group $(OTHER_LIB)
 
 %.o: %.c
-	cc $(CFLAGS) -c $<
+	$(CC) $(CFLAGS) -c $<
 
 clean:
 	rm -f *.o $(BINS)

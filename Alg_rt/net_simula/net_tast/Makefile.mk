@@ -46,5 +46,5 @@ all:  $(LEGORT_BIN)/net_tast
 
 
 $(LEGORT_BIN)/net_tast: $(OGGETTI) $(LIBUTIL)
-	cc -o $(LEGORT_BIN)/net_tast -g $(LINKER_OPTIONS) $(OGGETTI) \
+	$(CC) -o $(LEGORT_BIN)/net_tast -g $(LINKER_OPTIONS) $(OGGETTI) \
         $(LIBUTIL) $(C_LIB) -lm

@@ -142,7 +142,7 @@ all: ./libscada.a $(SCADA_BIN)/scada
 .c.a:;
 
 $(SCADA_BIN)/scada: $(OGGETTI) $(LIB)
-	cc -o $(SCADA_BIN)/scada  $(OGGETTI) $(LIB) $(X_LIBS) -lm $(THREAD_LIB)
+	$(CC) -o $(SCADA_BIN)/scada  $(OGGETTI) $(LIB) $(X_LIBS) -lm $(THREAD_LIB)
 
 taggcfg.o: aggcfg/taggcfg.c
 	$(CC) -c $(CFLAGS) aggcfg/taggcfg.c

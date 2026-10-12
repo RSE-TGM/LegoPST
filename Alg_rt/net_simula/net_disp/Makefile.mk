@@ -46,6 +46,6 @@ all:  $(LEGORT_BIN)/dispatcher
 
 
 $(LEGORT_BIN)/dispatcher: $(OGGETTI) $(LIBUTIL)
-	cc -o $(LEGORT_BIN)/dispatcher $(LINKER_OPTIONS) $(OGGETTI) \
+	$(CC) -o $(LEGORT_BIN)/dispatcher $(LINKER_OPTIONS) $(OGGETTI) \
         $(LIBUTIL) $(C_LIB) $(OTHER_LIB) 
 
