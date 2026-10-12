@@ -168,8 +168,8 @@ ESEMPI
   $PROGRAMMA
   $PROGRAMMA ~/legopst_userstd_pulita
   $PROGRAMMA ~/legopst_userstd /tmp/prova.tgz
-  $PROGRAMMA -d nucleare
-  $PROGRAMMA -d nucleare ~/legopst_nuclear_demo
+  $PROGRAMMA -d nuclear
+  $PROGRAMMA -d nuclear ~/legopst_nuclear_demo
 FINE_AIUTO
 }
 
