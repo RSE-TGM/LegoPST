@@ -525,6 +525,29 @@ nome vale `userstd`.
 Come si prepara e si pubblica una demo nuova è spiegato in
 [Confezionamento della demo](#confezionamento-della-demo).
 
+#### Le pagine dell'MMI seguono la home del container
+
+I file dell'MMI portano scritta per esteso la home di chi ha confezionato la
+demo: `kGlobContext` mette nel `Context.ctx` `*simulator:`, `*pages:` e le
+librerie come percorsi assoluti (`/home/<chi ha confezionato>/sked/...`). Nel
+container quella home non esiste: `mmi` non troverebbe né pagine né librerie, e
+`lghmi` — che applica le stesse regole — lascia **spento il pulsante `mmi`**, con
+`mmi: no compiled page (.rtf) in ...` nella barra di stato.
+
+`lgrun -d [nome]` lo sistema da sé, all'installazione e a ogni avvio successivo
+con `-d`: nei `Context.ctx` e negli `ApplDb.res` dei simulatori della demo
+sostituisce la home d'origine con quella corrente, e in `kMmi.cfg` l'utente.
+La home d'origine la legge dalla riga `*simulator:` del `Context.ctx` globale, e
+interviene **solo se quella home qui non esiste**: una demo già allineata resta
+com'è. Per una demo installata prima di questa correzione basta rilanciare
+`lgrun -d <nome>`.
+
+Vale per le demo, non per un'area di lavoro propria portata da un'altra macchina
+(lì si rigenerano con `kUpSim`, o con `kGlobContext` e `kMmiConfig`). Poiché i
+file vengono riscritti nella directory della demo, che sta nella home dell'host,
+usare la stessa demo anche **fuori** dal container richiede lo stesso
+riallineamento da quella parte.
+
 ## Primo Avvio
 
 Al primo avvio, Docker scaricherà automaticamente l'immagine LegoPST (circa 2-3 GB).
@@ -814,6 +837,31 @@ annidati, che hanno i loro):
   per non lasciarne uno stantìo (`sked_start.c`, `unlink()` poi `symlink()`).
   Quelli confezionati erano per giunta **assoluti e cablati sulla home di chi
   aveva fatto il pacchetto**, quindi rotti su qualunque altra macchina.
+
+**Le `proc/` si possono includere, se lo si chiede.** Senza `proc/` chi installa
+la demo deve ricompilare ogni task prima di poter simulare: fino ad allora manca
+`proc/f04.dat`, e `net_compi`/`kNetCompi` si fermano su
+`error opening file f04.dat`. Per una demo pronta all'uso:
+
+```bash
+./make_demo_tgz.sh -d nuclear -p        # -p, --con-proc: per questa volta
+```
+
+oppure, perché valga a ogni confezionamento (anche da `publish_demo.sh`), nel
+`demo_<nome>.conf`:
+
+```bash
+CON_PROC=1
+```
+
+Il prezzo è quello detto sopra: gli eseguibili delle task (`lg2`, `lg3`,
+`lg5sk`) sono quelli della macchina di confezionamento, e funzionano dove le
+librerie sono compatibili — nel container, se si confeziona da una macchina
+allineata all'immagine. Altrove la task va ricompilata comunque. Il peso in più
+è modesto (per la demo `nuclear` da 37 a 43 MB). `out/` e `f22circ.dat` restano
+fuori in ogni caso, e con `out/` i symlink `proc` che ci stanno dentro. Con le
+`proc/` chieste la verifica finale le conta invece di segnalarle, e avvisa se
+non trova nemmeno un `proc/f04.dat` (task non compilate nella sorgente).
 
 **`*/out`** — la directory di *output* della corsa: `lg5.out`, `lg5c.out`,
 `f21.dat`, più il symlink `proc` di cui sopra. È roba prodotta da una corsa sulla

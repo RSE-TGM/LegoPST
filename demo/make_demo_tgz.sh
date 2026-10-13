@@ -7,7 +7,7 @@
 # a mano, e a mano ci finiva dentro roba che non deve viaggiare: questo script
 # esiste per rendere la selezione riproducibile.
 #
-#   uso:  ./make_demo_tgz.sh [-d NOME] [DIR_SORGENTE] [TGZ_DESTINAZIONE]
+#   uso:  ./make_demo_tgz.sh [-d NOME] [-p] [DIR_SORGENTE] [TGZ_DESTINAZIONE]
 #   dflt: ~/legopst_userstd  ->  <repo>/demo/legopst_userstd.tgz
 #         con -d NOME:  ~/legopst_NOME  ->  <repo>/demo/legopst_NOME.tgz
 #
@@ -57,6 +57,19 @@
 #            l'unlink fallisce, il symlink fallisce con EEXIST e si va su
 #            exit(1) - la task non parte. Assente e' lo stato giusto.
 #
+#            SI PUO' CHIEDERE DI INCLUDERLA: opzione -p (--con-proc), oppure
+#            CON_PROC=1 nel demo_<nome>.conf, che vale per quella demo ogni
+#            volta che la si confeziona (anche da publish_demo.sh). Il motivo
+#            e' l'uso: senza proc/ la demo non parte finche' ogni task non e'
+#            stata ricompilata, e net_compi/kNetCompi si fermano su
+#            "error opening file f04.dat". Con proc/ dentro la demo e' pronta.
+#            Il prezzo e' il motivo 1 qui sopra: gli eseguibili delle task sono
+#            quelli della macchina di confezionamento, e funzionano solo dove
+#            le librerie sono compatibili - cioe' nel container, se si
+#            confeziona da una macchina allineata all'immagine. Altrove la task
+#            va ricompilata comunque. Il motivo 3 non si ripresenta: i "proc"
+#            sotto out/ restano fuori insieme a out/, che si esclude sempre.
+#
 #   */out    la directory di OUTPUT della corsa: ci finiscono lg5.out, lg5c.out
 #            e f21.dat, piu' il symlink proc di cui sopra. E' roba prodotta da
 #            una corsa sulla macchina di confezionamento, non materiale di
@@ -103,11 +116,13 @@ cat <<FINE_AIUTO
 $PROGRAMMA - confeziona una demo di LegoPST (legopst_<nome>.tgz)
 
 USO
-  $PROGRAMMA [-d NOME] [DIR_SORGENTE] [TGZ_DESTINAZIONE]
+  $PROGRAMMA [-d NOME] [-p] [DIR_SORGENTE] [TGZ_DESTINAZIONE]
   $PROGRAMMA -h | --help
 
   -d, --demo NOME    quale demo (default: userstd, quella di "lgrun -d").
                      "lgrun -d NOME" installa quella confezionata con -d NOME.
+  -p, --con-proc     include anche le directory proc/ delle task (vedi sotto).
+                     Lo stesso si ottiene con CON_PROC=1 in demo_<nome>.conf.
   DIR_SORGENTE       default: \$HOME/legopst_<nome>
   TGZ_DESTINAZIONE   default: <dir di questo script>/legopst_<nome>.tgz
 
@@ -136,11 +151,24 @@ COSA ENTRA NEL PACCHETTO
              sulla macchina di confezionamento, inutili altrove)
     */out    directory di output della corsa (lg5.out, f21.dat e il symlink
              proc con path assoluto). net_sked le ricrea da se' a ogni avvio.
+             out/ si scarta SEMPRE, anche con -p.
     f22circ.dat
              le registrazioni di una corsa fatta da chi confeziona. Si
              ricrea da solo al primo avvio; lasciato, puo' impedire alla
              simulazione di partire se i suoi parametri non sono quelli del
              file Simulator.
+
+LE proc/ NEL PACCHETTO (-p, oppure CON_PROC=1 nel .conf)
+  Senza proc/ la demo e' piu' leggera e non dipende dalla macchina di chi la
+  confeziona, ma chi la installa deve ricompilare ogni task prima di poter
+  simulare: fino ad allora manca proc/f04.dat, e net_compi/kNetCompi si
+  fermano su "error opening file f04.dat".
+  Con proc/ la demo e' pronta all'uso. In cambio pesa di piu', e gli
+  eseguibili delle task sono quelli compilati qui: valgono dove le librerie
+  sono compatibili (il container, se questa macchina e' allineata
+  all'immagine). Su una macchina diversa la task va ricompilata lo stesso.
+  Nel .conf la scelta resta scritta e vale a ogni confezionamento, anche
+  da publish_demo.sh; -p la forza per una volta.
 
 COSA STAMPA
   - le directory ammesse, una per riga, con la loro dimensione
@@ -175,6 +203,7 @@ FINE_AIUTO
 
 QUI="$(cd "$(dirname "$0")" && pwd)"
 DEMO="userstd"
+PROC_DA_CLI=""           # -p sulla riga di comando: vince sul .conf
 while [ $# -gt 0 ]; do
     case "$1" in
         -h|--help|-help|--aiuto)
@@ -188,6 +217,10 @@ while [ $# -gt 0 ]; do
             ;;
         --demo=*)
             DEMO="${1#--demo=}"
+            shift
+            ;;
+        -p|--con-proc|--proc)
+            PROC_DA_CLI=1
             shift
             ;;
         -*)
@@ -231,6 +264,8 @@ echo ""
 AMMESSE_RADICE="legocad sked"
 AMMESSE_LEGOCAD="libgraph libut libut_reg MDC_GV collet ctrcoll r_MDC0"
 AMMESSE_SKED="duetask"
+# 1 = le proc/ delle task entrano nel pacchetto (vedi in testa, "*/proc")
+CON_PROC=0
 
 # Un'altra demo ha i suoi in demo_<nome>.conf: un file di shell che ridefinisce
 # le stesse variabili. Per userstd il file non serve, ma se c'e' vale lui.
@@ -254,9 +289,22 @@ elif [ "$DEMO" != "userstd" ]; then
         echo "AMMESSE_RADICE=\"legocad sked\""
         echo "AMMESSE_LEGOCAD=\"$(elenco "$SORGENTE/legocad")\""
         echo "AMMESSE_SKED=\"$(elenco "$SORGENTE/sked")\""
+        echo "# 1 = le proc/ delle task entrano nel pacchetto: demo pronta all'uso, ma"
+        echo "# piu' pesante e con gli eseguibili di questa macchina"
+        echo "CON_PROC=0"
     } | sed 's/^/    /' >&2
     echo "" >&2
     exit 1
+fi
+[ -n "$PROC_DA_CLI" ] && CON_PROC=1
+case "$CON_PROC" in 1|si|SI|yes|YES|y|Y) CON_PROC=1 ;; *) CON_PROC=0 ;; esac
+if [ "$CON_PROC" -eq 1 ]; then
+    echo "proc/:        INCLUSE (demo pronta all'uso, con gli eseguibili di questa macchina)"
+    ESCLUDI_NOMI=(out f22circ.dat)
+    COSA_ESCLUSA="out/ e f22circ.dat esclusi, proc/ incluse"
+else
+    ESCLUDI_NOMI=(proc out f22circ.dat)
+    COSA_ESCLUSA="proc/, out/ e f22circ.dat esclusi"
 fi
 echo ""
 
@@ -322,10 +370,10 @@ fi
 # ---------------------------------------------------------------------------
 # du con le stesse esclusioni del tar, altrimenti i numeri non corrispondono a
 # quello che finisce davvero nel pacchetto.
-misura() { du -sb --exclude=proc --exclude=out --exclude=f22circ.dat "$1" | cut -f1; }
+misura() { du -sb "${ESCLUDI_NOMI[@]/#/--exclude=}" "$1" | cut -f1; }
 umana()  { numfmt --to=iec --format='%.1f' "$1"; }
 
-echo "--- contenuto della demo (proc/, out/ e f22circ.dat esclusi) ---"
+echo "--- contenuto della demo ($COSA_ESCLUSA) ---"
 TOTALE=0
 for m in "${MEMBRI[@]}"; do
     dim="$(misura "$SORGENTE/$m")"
@@ -384,7 +432,7 @@ fi
 tar czf "$DEST" -C "$RADICE" \
     --owner=0 --group=0 --numeric-owner \
     "${TRASFORMA[@]}" \
-    --exclude='*/proc' --exclude='*/out' --exclude='*/f22circ.dat' \
+    "${ESCLUDI_NOMI[@]/#/--exclude=*/}" \
     --no-recursion "./$NOME" "${CONTENITORI[@]/#/./$NOME/}" \
     --recursion "${MEMBRI[@]/#/./$NOME/}"
 
@@ -434,12 +482,24 @@ DIM_TGZ=$(stat -c%s "$DEST")
 echo ""
 echo "--- verifica ---"
 printf '  %-40s %10s\n' "membri totali" "$(wc -l < "$NOMI")"
-printf '  %-40s %10s  (atteso 0)\n' "membri 'proc'" "$RES_PROC"
+if [ "$CON_PROC" -eq 1 ]; then
+    # chieste apposta: si contano, ma non sono un difetto. Devono pero' esserci
+    # davvero, altrimenti la demo "pronta all'uso" non lo e'.
+    F04=$(grep -cE '/proc/f04\.dat$' "$NOMI" || true)
+    printf '  %-40s %10s  (incluse su richiesta)\n' "membri 'proc'" "$RES_PROC"
+    printf '  %-40s %10s  (uno per task compilata)\n' "  di cui proc/f04.dat" "$F04"
+else
+    printf '  %-40s %10s  (atteso 0)\n' "membri 'proc'" "$RES_PROC"
+fi
 printf '  %-40s %10s  (atteso 0)\n' "membri 'out'" "$RES_OUT"
 printf '  %-40s %10s  (atteso 0)\n' "f22circ.dat" "$RES_F22"
 printf '  %-40s %10s  (quelli relativi e interni vanno bene)\n' "symlink in tutto" "$LINK"
 printf '  %-40s %10s  (atteso 0)\n' "  di cui assoluti, uscenti o rotti" "$LINK_CATTIVI"
-printf '  %-40s %10s  (atteso 0)\n' "eseguibili di build" "$BINARI"
+if [ "$CON_PROC" -eq 1 ]; then
+    printf '  %-40s %10s  (inclusi con le proc/)\n' "eseguibili di build" "$BINARI"
+else
+    printf '  %-40s %10s  (atteso 0)\n' "eseguibili di build" "$BINARI"
+fi
 printf '  %-40s %10s  (atteso 0)\n' "proprietari != 0/0" "$PROPRIETARI"
 echo ""
 echo "--- pacchetto ---"
@@ -455,6 +515,8 @@ echo ""
 # decisione e' di chi confeziona. Exit 1 solo perche' il difetto si veda anche
 # da uno script che chiami questo.
 ESITO=0
+# con le proc/ chieste, i loro membri e i loro eseguibili non sono difetti
+if [ "$CON_PROC" -eq 1 ]; then RES_PROC=0; BINARI=0; fi
 if [ "$RES_PROC" -ne 0 ] || [ "$RES_OUT" -ne 0 ] || [ "$RES_F22" -ne 0 ] \
    || [ "$LINK_CATTIVI" -ne 0 ] \
    || [ "$BINARI" -ne 0 ] || [ "$PROPRIETARI" -ne 0 ]; then
@@ -475,6 +537,14 @@ if [ "$DIM_TGZ" -gt "$LIMITE_BYTE" ]; then
     echo "            per un allegato di una release di GitHub: cosi' non si"
     echo "            puo' pubblicare. Ritaglia gli elenchi di cosa entra e"
     echo "            rifa' il pacchetto."
+    echo ""
+    ESITO=1
+fi
+
+if [ "$CON_PROC" -eq 1 ] && [ "${F04:-0}" -eq 0 ]; then
+    echo "ATTENZIONE: le proc/ sono state chieste ma nel pacchetto non c'e' nessun"
+    echo "            proc/f04.dat: nella sorgente le task non sono compilate, e"
+    echo "            la demo non sarebbe comunque pronta all'uso."
     echo ""
     ESITO=1
 fi
