@@ -177,7 +177,7 @@ dagli schemi), Command Mode, Set Sim path, unità di misura:
 
 | Comando | Tipo | Scopo |
 |---|---|---|
-| `lghmi` | script | **Selettore grafico delle task**: apre una finestra con l'elenco delle task e, scegliendone una, lancia la HMI `draw2gr` in un processo indipendente. Ha anche una **modalità faceplate** (`-staz`) che elenca le stazioni di comando compilate in `r02.dat` e apre quella scelta con `xstaz`, avviandolo se serve — utile con `net_startup`, che monta il banco e non ha il dialogo delle stazioni di `net_monit`. Dalla stessa finestra si lancia `net_startup` e si segue il log della simulazione, e si cambia area di lavoro (*File → Work area*, che usa `lgswitch`). |
+| `lghmi` | script | **Selettore grafico delle task**: apre una finestra con l'elenco delle task e, scegliendone una, lancia la HMI `draw2gr` in un processo indipendente. Ha anche una **modalità faceplate** (`-staz`) che elenca le stazioni di comando compilate in `r02.dat` e apre quella scelta con `xstaz`, avviandolo se serve — utile con `net_startup`, che monta il banco e non ha il dialogo delle stazioni di `net_monit`. Dalla stessa finestra si lancia `net_startup` e si segue il log della simulazione, si cambia area di lavoro (*File → Work area*, che usa `lgswitch`) e si scarica una demo passandoci subito (*File → Install demo…*, che usa `lgdemo`). |
 | `lgmkstaz` | script | **Builder grafico delle pagine di faceplate**: apre un `r01.dat` (quello della directory corrente se non si passa nulla, come `compstaz`) e lo costruisce a video — griglia con l'origine in basso a sinistra, libreria dei 54 tipi da cui piazzare col mouse, selezione a rettangolo di più stazioni, trascinamento, copia/incolla, annulla e ripeti, pannello delle proprietà generato dalla grammatica degli oggetti e collegato alle variabili vere del modello (`variabili.edf`). Le stazioni si vedono con le **immagini reali** di `xstaz`, con sopra le scritte di quella stazione. Da `Verifica → Compila e verifica...` lancia `compstaz` per davvero su una copia scratch, con una chiave SHM isolata, e da lì apre l'**anteprima nel vero `xstaz`**. Si raggiunge anche da `lghmi`, *Tools → lgmkstaz*. Guida: [LGMKSTAZ.md](../Alg_legopc/LGMKSTAZ.md). |
 
 Opzioni principali:
@@ -317,6 +317,7 @@ backup|legocad.prelink-20260916-180429        # copie di sicurezza
 | `lgdemo <nome>` | installa la demo `<nome>` in `~/legopst_<nome>` |
 | `lgdemo -l` | elenca soltanto |
 | `lgdemo -y <nome>` | non chiede conferma se la demo c'è già |
+| `lgdemo --esito <file> …` | a installazione riuscita scrive in `<file>` il nome dell'area: per chi lo lancia da un programma |
 | `lgdemo -h` | aiuto |
 
 Se `~/legopst_<nome>` **esiste già** lo segnala e chiede conferma. Confermando,
@@ -328,6 +329,13 @@ pacchetto rovinato lasciano tutto com'era.
 
 `lgdemo` non tocca i link `~/legocad` e `~/sked`: dopo l'installazione si passa
 alla demo con `cd ~ ; lgswitch legopst_<nome>`.
+
+Lo stesso comando si lancia da `lghmi`, *File → Install demo...*: apre `lgdemo`
+in un terminale e, **a installazione riuscita, `lghmi` passa da solo all'area
+appena installata** (gli stessi controlli di *File → Work area*: se qualcosa
+lavora ancora sull'area corrente lo dice e non commuta). Per questo `lghmi`
+lancia `lgdemo --esito <file>`, che a cose fatte scrive nel file il nome
+dell'area.
 
 ---
 
@@ -453,7 +461,7 @@ Due nomi che si incontrano leggendo il codice e che è facile scambiare per coma
 | comandare la simulazione da uno schema (faceplate, valori) | `lgpc` → *Add elements ▸ Faceplate / Set value*, poi *Show Value* in `lghmi`/draw2gr |
 | ricompilare tutto dopo una modifica | `lgupsim` (`lgupsimx` senza MMI) |
 | cambiare area di lavoro | `lgswitch`, oppure `lghmi` → *File → Work area* |
-| scaricare una demo pronta | `lgdemo` (elenco e scelta), `lgdemo <nome>` |
+| scaricare una demo pronta | `lgdemo` (elenco e scelta), `lgdemo <nome>`, oppure `lghmi` → *File → Install demo...* |
 | sapere che versione sto usando | `lgversion` |
 | usare un terminale diverso da xterm | legopc o `lghmi` → *File → Settings* → *Terminal* (`lgterm --list` per vedere quale si usa) |
 | portare un'applicazione su Windows | `python3 util2025/lglinux2win.py` |

@@ -412,6 +412,9 @@ proc riempi_staz {} {
 #  In modalita' S01 le prende dal file per TIPO (lettera R): e' il dato
 #  autorevole, e parse_s01 sa gia' leggerlo perche' lo fa per i faceplate.
 #  Fuori da S01 ricade sul prefisso r_ sotto $TASKROOT.
+#  Come per le task di processo, la prima della lista parte selezionata: i
+#  comandi sulle regolazioni (Edit, compreg, creatask) hanno subito su cosa
+#  lavorare, senza il passaggio obbligato di un clic.
 proc riempi_reg {} {
     global TASKROOT s01mode S01FILE ITEMS_REG LB_REG
     $LB_REG delete 0 end
@@ -428,6 +431,7 @@ proc riempi_reg {} {
             return "no regulation task (R) in the S01"
         }
         $LB_REG selection clear 0 end
+        $LB_REG selection set 0
         return "[llength $ITEMS_REG] regulation tasks (S01)"
     }
 
@@ -439,6 +443,7 @@ proc riempi_reg {} {
     }
     if {[llength $tasks] == 0} { return "no r_* task in $TASKROOT" }
     $LB_REG selection clear 0 end
+    $LB_REG selection set 0
     return "[llength $tasks] regulation tasks"
 }
 
@@ -967,8 +972,18 @@ proc aggiorna_menu_file {} {
     #  Le applicazioni di base: stesso dialogo e stessa posizione che in
     #  legopc (in fondo al menu File, prima dell'uscita). Non si spegne con
     #  -insim: scegliere l'editor o il terminale non tocca la simulazione.
-    if {[llength [info procs lancia_settings]] > 0} {
-        .mb.file add separator
+    #  Prima di Settings sta Install demo: lgdemo scarica un'area gia' pronta e
+    #  lghmi ci passa. Spenta con -insim come Work area: reinstallare una demo
+    #  sposta la directory dell'area, e li' sopra gira la simulazione. Dove
+    #  lgdemo non c'e' (bundle FMU) la voce non compare.
+    set con_demo     [expr {[comando_lgdemo] ne ""}]
+    set con_settings [expr {[llength [info procs lancia_settings]] > 0}]
+    if {$con_demo || $con_settings} { .mb.file add separator }
+    if {$con_demo} {
+        .mb.file add command -label "Install demo...   (lgdemo: download a ready-made work area and switch to it)" \
+            -command installa_demo -state $stato
+    }
+    if {$con_settings} {
         .mb.file add command -label "Settings..." -command lancia_settings
     }
     .mb.file add separator
@@ -1155,6 +1170,108 @@ proc base_aree {} {
         return [list "" "lgswitch not found"]
     }
     return [list $base ""]
+}
+
+#  Lo script lgdemo dell'installazione corrente, cercato come lgswitch qui
+#  sotto e per la stessa ragione.
+proc comando_lgdemo {} {
+    global env
+    set cand {}
+    if {[info exists env(UTIL97)]}   { lappend cand [file join $env(UTIL97) bin lgdemo] }
+    if {[info exists env(LEGOROOT)]} { lappend cand [file join $env(LEGOROOT) util97 bin lgdemo] }
+    foreach c $cand {
+        if {[file executable $c]} { return $c }
+    }
+    set c [auto_execok lgdemo]
+    return [expr {$c ne "" ? [lindex $c 0] : ""}]
+}
+
+#  File -> Install demo: lgdemo in un terminale, senza argomenti, cosi' elenca
+#  le demo pubblicate e chiede quale installare.
+#
+#  In un terminale e non in un dialogo di lghmi perche' lgdemo fa domande (quale
+#  demo, e la conferma se c'e' gia') e mostra l'avanzamento dello scaricamento:
+#  rifarle qui vorrebbe dire tenere due copie delle stesse regole. La finestra
+#  resta aperta a comando finito (-H), per leggere com'e' andata.
+#
+#  A installazione riuscita lghmi passa all'area appena installata. Come lo
+#  sa: lgdemo --esito <file> scrive li' il nome dell'area, e SOLO se e' andata
+#  a buon fine; qui si aspetta che il file compaia (attendi_demo). Non si
+#  aspetta la fine del terminale: con -H resta aperto finche' non si preme
+#  Invio, e certi terminali ridanno subito il controllo a chi li lancia.
+proc installa_demo {} {
+    global env DEMO_ATTESA
+    set esito [file join /tmp "lghmi_lgdemo_[pid].esito"]
+    file delete -force $esito
+    set lgdemo [comando_lgdemo]
+    if {$lgdemo eq ""} {
+        tk_messageBox -icon error -title "Install demo" -parent . -message "lgdemo not found."
+        return
+    }
+    if {[auto_execok lgterm] ne ""} {
+        set cmd [list lgterm -t "lgdemo - install a LegoPST demo" -g 100x30 -H -- $lgdemo --esito $esito]
+    } else {
+        set t [expr {[info exists env(LG_XTERM)] && $env(LG_XTERM) ne "" ? $env(LG_XTERM) : "xterm"}]
+        if {[auto_execok $t] eq ""} {
+            tk_messageBox -icon error -title "Install demo" -parent . -message \
+                "No terminal found ('$t' is not installed).\nRun 'lgdemo' from a shell instead."
+            return
+        }
+        set cmd [list $t -e sh -c "[list $lgdemo --esito $esito]; printf '\\nPress Enter to close '; read x"]
+    }
+    #  Il terminale parte dalla HOME, non dalla directory di lghmi: quella sta
+    #  dentro l'area corrente (il simulatore), e il terminale - che con -H
+    #  resta aperto ad aspettare Invio - risulterebbe "al lavoro" sull'area
+    #  proprio quando cambia_area controlla chi la usa ancora. Bloccava lui
+    #  la commutazione che doveva provocare. lgdemo lavora comunque sulla HOME.
+    set qui [pwd]
+    catch {cd $env(HOME)}
+    set fallito [catch {exec {*}$cmd &} err]
+    catch {cd $qui}
+    if {$fallito} {
+        tk_messageBox -icon error -title "Install demo" -parent . \
+            -message "Cannot open the terminal:\n$err"
+        return
+    }
+    .status configure -text "lgdemo opened in a terminal: lghmi will switch to the demo once it is installed"
+    #  una sola attesa alla volta: un secondo Install demo sostituisce il primo
+    if {[info exists DEMO_ATTESA]} { after cancel $DEMO_ATTESA }
+    set DEMO_ATTESA [after 1000 [list attendi_demo $esito [expr {[clock seconds] + 3600}]]]
+}
+
+#  Aspetta l'esito di lgdemo, guardando una volta al secondo. Smette dopo
+#  un'ora: chi ha chiuso il terminale senza installare niente non lascia
+#  un'attesa appesa per tutta la vita di lghmi.
+proc attendi_demo {esito scadenza} {
+    global DEMO_ATTESA
+    unset -nocomplain DEMO_ATTESA
+    if {![file exists $esito]} {
+        if {[clock seconds] < $scadenza} {
+            set DEMO_ATTESA [after 1000 [list attendi_demo $esito $scadenza]]
+        }
+        return
+    }
+    set nome ""
+    catch { set f [open $esito r]; set nome [string trim [gets $f]]; close $f }
+    file delete -force $esito
+    if {![regexp {^legopst_[A-Za-z0-9_-]+$} $nome]} return
+    demo_installata $nome
+}
+
+#  lgdemo ha installato l'area <nome>: lghmi ci passa.
+proc demo_installata {nome} {
+    global insim
+    if {$insim} return
+    set st [aggiorna_area]
+    if {[dict get $st nome] eq $nome} {
+        #  Reinstallata l'area in cui si era gia'. I link puntano allo stesso
+        #  nome, ma la directory e' un'altra - quella di prima e' stata messa
+        #  da parte da lgdemo, e lghmi ci stava dentro: ci si riallinea.
+        set sim [riallinea_dopo_switch]
+        .status configure -text "Demo $nome reinstalled   |   [expr {$sim ne "" ? "simulator: $sim" : "no simulator"}]"
+        return
+    }
+    cambia_area $nome 0
 }
 
 #  Lo script lgswitch dell'installazione corrente (util97/bin), o "" se non
@@ -1466,7 +1583,11 @@ proc riempi_menu_aree {} {
 
 #  Voce del sottomenu: passa all'area <nome>. Il radiobutton ha gia' spostato
 #  la spunta: ogni rinuncia la rimette dov'era (aggiorna_area).
-proc cambia_area {nome} {
+#  conferma 0: chi chiama ha gia' avuto il si' dell'utente (Install demo), e la
+#  domanda finale si salta. I controlli restano tutti, e la domanda si fa lo
+#  stesso se al posto dei link c'e' una directory vera da rinominare: quella
+#  non e' una cosa che chi ha chiesto una demo si aspetta.
+proc cambia_area {nome {conferma 1}} {
     global insim
     set st [aggiorna_area]
     if {$insim} return
@@ -1558,7 +1679,8 @@ proc cambia_area {nome} {
     append msg "\nShells already open keep the simulator they started with (KSIM),\n"
     append msg "which now names a directory of $nome: open new ones after the switch.\n"
     append msg "\nThis launcher will then list the tasks of $nome, with no Set Sim path."
-    if {[tk_messageBox -icon question -type yesno -default no -parent . \
+    if {($conferma || [llength $rinomina] > 0) && \
+        [tk_messageBox -icon question -type yesno -default no -parent . \
              -title "Work area" -message $msg] ne "yes"} {
         .status configure -text "Work area: not switched."
         return

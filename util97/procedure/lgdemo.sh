@@ -16,6 +16,9 @@
 #
 #     -l, --list        elenca le demo pubblicate ed esce, senza chiedere niente
 #     -y, --yes         non chiede conferma se la demo e' gia' installata
+#         --esito FILE  a installazione riuscita scrive in FILE il nome
+#                       dell'area (legopst_NOME). Serve a chi lancia lgdemo
+#                       da un programma: lghmi lo usa per passare alla demo
 #     -h, --help        questo aiuto
 #
 # SE LA DEMO C'E' GIA'
@@ -54,7 +57,10 @@ DEMO_RELEASE="${LG_DEMO_RELEASE:-demo-2.0}"
 API="https://api.github.com/repos/$REPO_SLUG/releases/tags/$DEMO_RELEASE"
 
 if [ -t 1 ]; then
-    GREEN='\033[0;32m' ; YELLOW='\033[1;33m' ; RED='\033[0;31m' ; NC='\033[0m'
+    #  Colori che si leggono su fondo chiaro come su fondo scuro: il terminale
+    #  in cui lghmi apre lgdemo e' spesso un xterm bianco, e li' il giallo
+    #  non si vede. Gli avvisi sono in magenta, non in giallo.
+    GREEN='\033[0;32m' ; YELLOW='\033[0;35m' ; RED='\033[0;31m' ; NC='\033[0m'
 else
     GREEN='' ; YELLOW='' ; RED='' ; NC=''
 fi
@@ -65,11 +71,14 @@ avviso() { echo -e "${YELLOW}ATTENZIONE:${NC} $*" >&2; }
 SOLO_LISTA=false
 SENZA_CONFERMA=false
 NOME=""
+FILE_ESITO=""
 
 while [ $# -gt 0 ]; do
     case "$1" in
         -l|--list)  SOLO_LISTA=true ;;
         -y|--yes)   SENZA_CONFERMA=true ;;
+        --esito)    FILE_ESITO="${2:?$1 vuole il nome del file}"; shift ;;
+        --esito=*)  FILE_ESITO="${1#--esito=}" ;;
         -h|--help)  sed -n '3,/^[^#]/p' "$0" | sed -n 's/^# \{0,1\}//p'; exit 0 ;;
         -*)         echo "$PROGRAMMA: opzione non riconosciuta: $1 (vedi -h)" >&2; exit 1 ;;
         *)          [ -z "$NOME" ] || { echo "$PROGRAMMA: una demo alla volta (vedi -h)" >&2; exit 1; }
@@ -354,9 +363,13 @@ echo "  simulatori:  $(ls "$DEST/sked" 2>/dev/null | tr '\n' ' ')"
 echo ""
 if [ -L "$HOME/legocad" ] && [ "$(readlink -f "$HOME/legocad")" = "$(readlink -f "$DEST/legocad")" ]; then
     echo "~/legocad e ~/sked puntano gia' a questa area: e' pronta."
+elif [ -n "$FILE_ESITO" ]; then
+    echo "Il programma che ha lanciato lgdemo passa ora a questa area."
 else
     echo "Per lavorarci, punta ~/legocad e ~/sked a questa area:"
     echo "    cd ~ ; lgswitch $DIR_DEMO"
 fi
 [ -n "${DA_PARTE:-}" ] && echo "Quando sei sicuro di non volerla piu':  rm -rf $DA_PARTE"
+#  Per ultimo, a cose fatte: chi aspetta questo file lo prende per "installata".
+[ -n "$FILE_ESITO" ] && { printf '%s\n' "$DIR_DEMO" > "$FILE_ESITO" || true; }
 exit 0

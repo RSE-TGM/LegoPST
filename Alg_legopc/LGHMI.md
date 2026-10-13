@@ -100,6 +100,9 @@ Nella finestra:
   altrimenti la X chiude per sempre: vedi sotto.
 - **File → Logs ▸** → gli **altri log** che `lghmi` scrive in `/tmp`: uno per ogni
   HMI lanciata, più `mmi` e `xstaz`: vedi sotto.
+- **File → Install demo…** → scarica una **demo**, cioè un'area di lavoro già
+  pronta, con `lgdemo`, e a installazione riuscita **ci passa**:
+  [vedi sotto](#file--install-demo--scaricare-una-demo-e-passarci).
 - **File → Settings…** → le **applicazioni di base** (editor, browser, editor di
   icone, viewer PDF, terminale): è lo stesso dialogo di `legopc`, sulle stesse
   preferenze: [vedi sotto](#file--settings--le-applicazioni-di-base).
@@ -338,6 +341,7 @@ vengono **disabilitati**:
 | pulsante *net_startup* | comincia con `killsim`: ammazzerebbe proprio la simulazione da cui è stato lanciato, e il banco con lei |
 | menu *Edit* delle HMI | le HMI lanciate da qui partono **senza** `-edit`: la simulazione è in corso, e il modello non va toccato (vedi [il menu Edit delle HMI](#il-menu-edit-delle-hmi-draw2gr--edit)) |
 | *File → Work area* | cambierebbe l'area sotto la simulazione in corso (vedi [Work area](#cambiare-area-di-lavoro-menu-file-work-area)) |
+| *File → Install demo* | come *Work area*, e in più reinstallare una demo **sposta la directory** dell'area, su cui gira la simulazione |
 | *Tools → killsim* | come *net_startup*: ammazzerebbe la simulazione da cui è stato lanciato (vedi [Tools → killsim](#tools--killsim--ripulire-i-residui-di-una-simulazione)) |
 
 Le voci di menù nascono disabilitate e il pulsante resta spento; la riga di
@@ -509,6 +513,48 @@ si aggiorna quando si sceglie un simulatore da `File → Current simulator` e
 quando si lascia un'area. Sta nella home, come `~/.legosim`, e non dentro le
 aree, che si copiano e si impacchettano. Se la nuova area non ha simulatori, le
 voci di `Tools` si spengono e la riga di stato lo dice.
+
+## `File → Install demo…` — scaricare una demo e passarci
+
+La voce sta in fondo al menu File, subito prima di *Settings*. Apre in un
+terminale **`lgdemo`** (vedi [COMANDI_LG.md](../docs/COMANDI_LG.md), sezione 5),
+che elenca le demo pubblicate nella release *Demo LegoPST 2.0* di GitHub, segna
+quelle già installate e chiede quale installare; se la demo c'è già lo dice e
+chiede conferma, e quella esistente viene **messa da parte**, non cancellata
+(`~/old.legopst_<nome>.<data>-<ora>`).
+
+È un terminale e non un dialogo di `lghmi` perché `lgdemo` fa domande e mostra
+l'avanzamento dello scaricamento: rifarle qui vorrebbe dire tenere due copie
+delle stesse regole. La finestra resta aperta a comando finito, per leggere
+com'è andata.
+
+**A installazione riuscita `lghmi` passa all'area appena installata**, con la
+stessa procedura di [*File → Work area*](#cambiare-area-di-lavoro-menu-file-work-area):
+
+- i **controlli restano tutti**: se qualcosa lavora ancora sull'area corrente
+  lo elenca e non commuta. La demo resta installata, e ci si passa poi da
+  *File → Work area*;
+- la **domanda finale si salta**, perché la scelta è già stata fatta nel
+  terminale. Si fa lo stesso se al posto di `~/legocad` o `~/sked` c'è una
+  directory vera, che verrebbe rinominata: non è una cosa che chi ha chiesto una
+  demo si aspetta;
+- se la demo reinstallata è **l'area già in uso** i link puntano già lì, ma la
+  directory è un'altra: `lghmi` si riallinea come [dopo uno switch](#dopo-lo-switch).
+
+Come `lghmi` sa com'è andata: lancia `lgdemo --esito <file>`, e `lgdemo` scrive
+in quel file il nome dell'area **solo** a installazione riuscita; `lghmi` guarda
+il file una volta al secondo (`attendi_demo`) e smette dopo un'ora. Non aspetta
+la fine del terminale, che resta aperto finché non si preme Invio.
+
+> **Il terminale parte dalla HOME**, non dalla directory di `lghmi`. Quella sta
+> dentro l'area corrente (è la directory del simulatore), e un terminale aperto
+> lì risulta «al lavoro» sull'area: restando in attesa di Invio, era lui a
+> bloccare la commutazione che doveva provocare. `lgdemo` lavora comunque sulla
+> HOME.
+
+La voce è spenta con [`-insim`](#lanciato-dal-banco--lopzione--insim) e non
+compare dove `lgdemo` non c'è (il bundle FMU). Codice: `installa_demo`,
+`attendi_demo`, `demo_installata` e il secondo argomento di `cambia_area`.
 
 ## La fascia in alto: i due lanci e il contesto
 
@@ -1022,7 +1068,10 @@ file, che è il dato autorevole (`parse_s01` lo sa già leggere, lo fa per i
 faceplate); fuori da `S01` dal **prefisso `r_`**, la stessa convenzione che usa
 `kCompile`, che «entra in ogni `r_*` sotto legocad».
 
-Tre azioni, tutte sulla task **selezionata in quel riquadro**:
+Tre azioni, tutte sulla task **selezionata in quel riquadro**. La **prima
+della lista parte selezionata**, come nel riquadro delle task di processo, e lo
+ridiventa a ogni ricarica (Refresh, cambio di simulatore o di area): le azioni
+hanno subito su cosa lavorare.
 
 | dove | azione | come gira |
 |---|---|---|

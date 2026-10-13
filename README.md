@@ -343,6 +343,7 @@ there:
 - **command faceplates** (`xstaz`), which open even with no simulation running - handy
   while building and configuring the stations;
 - *File -> Work area*: switch work area, the `lgswitch` above;
+- *File -> Install demo...*: download a ready-made work area, the `lgdemo` above (in a terminal), and switch to it once installed;
 - *File -> Current simulator*: the simulator you are looking at is the one you work on,
   the one `KSIM` and every `k*` command refer to;
 - *Tools*: edit the model, the `kUpSim` and `kCompile` submenus, and a terminal opened
