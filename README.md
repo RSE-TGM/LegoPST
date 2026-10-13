@@ -2,7 +2,7 @@
 
 
 ![Version](https://img.shields.io/badge/version-2.0-blue)
-![Platform](https://img.shields.io/badge/platform-Fedora%2041%2FWSL/Docker-orange)
+![Platform](https://img.shields.io/badge/platform-Fedora%2041%20|%2044%2FWSL/Docker-orange)
 ![Language](https://img.shields.io/badge/language-C%2FC%2B%2B%2FFortran-green)
 ![GUI](https://img.shields.io/badge/GUI-X11%2FMotif%2FTcl,Tk,Tix-red)
 
@@ -29,7 +29,7 @@ LegoPST provides a robust, modular framework for modeling the complex interactio
 
 ## 🚀 Install and Run
 The quickest way to run LegoPST is to [launch it in a Docker container](#option-1-quick-start---docker-container-execution), without installing the package and without having a machine running the Fedora 41 Linux distribution. In this case the host machine can be a generic Linux distribution running on a X86-64, Intel or AMD platform.
-Alternatively, if you want a stable installation on your Fedora 41 machine, you can [download and install directly into your Fedora](#option-2-running-into-a-fully-configured-linux-fedora-41-distribution).
+Alternatively, if you want a stable installation on your Fedora machine (41 is the reference release, 44 is supported too), you can [download and install directly into your Fedora](#option-2-running-into-a-fully-configured-linux-fedora-41-distribution).
 
 
 ### Option 1: Quick Start - Docker Container Execution
@@ -158,12 +158,12 @@ Data persists even after closing the container.
 ### Option 2: Running into a fully configured linux Fedora 41 distribution
 #### Prerequisites
 
-Fedora 41 running into a :
+Fedora 41 (the reference release, the one in the Docker image) or Fedora 44, running into a :
 - bare-metal
 - virtual machine on-premis or in cloud
 - Windows WSL 2
 ```bash
-# Fedora 41 dependencies
+# Fedora 41 / Fedora 44 dependencies (the same list for both)
 
 sudo dnf update -y && \
 sudo dnf install -y --setopt=install_weak_deps=False \
@@ -206,12 +206,6 @@ sudo dnf install -y --setopt=install_weak_deps=False \
     adwaita-cursor-theme && \
 sudo dnf clean all
 
-# Fedora 42 and later: the same list works. Two things differ from Fedora 41,
-# and LegoPST handles both by itself:
-#  - gcc is 15+ and defaults to C23: .profile_legoroot sets CC="gcc -std=gnu17";
-#  - "wish" is Tcl/Tk 9, which cannot load Tix: the tix package pulls in tk8,
-#    and lgpc/lghmi/lgmkstaz pick wish8.6 when it is there.
-
 ```
 
 > **`ImageMagick`** gives `legopc` and `draw2gr` their **PNG export** (they look
@@ -232,6 +226,22 @@ sudo dnf clean all
 > **Optional, only for the FMU features**: `python3` with `fmpy` (a virtualenv is
 > enough) to run an exported FMU, and Docker to test a bundle in a clean container.
 > See [Alg_rt/lg_fmu/USAGE.md](Alg_rt/lg_fmu/USAGE.md).
+
+#### Fedora 44 compatibility
+
+The same sources and the same package list build on Fedora 44 (GCC 16, glibc 2.43,
+Tcl/Tk 9) as on Fedora 41: there is one codebase, with no per-release branches or
+switches. Three things changed in the newer toolchain, and LegoPST handles each of
+them by itself:
+
+| What changed after Fedora 41 | How LegoPST copes |
+|------------------------------|-------------------|
+| GCC 15+ compiles C23 by default, where `void f()` means `void f(void)`: the K&R sources no longer compile | `.profile_legoroot` exports `CC="gcc -std=gnu17"` (the default of GCC 8–14, so nothing changes on Fedora 41) and every makefile recipe calls `$(CC)`, never a bare `cc` |
+| glibc 2.42+ dropped `<termio.h>` | the one source that used it now includes `<termios.h>` |
+| `wish` is Tcl/Tk 9, which cannot load Tix | the `tix` package pulls in `tk8`; `lgpc`, `lghmi` and `lgmkstaz` run `wish8.6` when it exists, and fall back to `wish` |
+
+To use another C compiler, export `CC` before sourcing `.profile_legoroot`. When adding a
+makefile, call `$(CC)` in the recipes, or the C standard setting is lost.
 
 #### Download LegoPST package and set up user environment
 
@@ -263,6 +273,11 @@ tar xzf $LEGOROOT/demo/legopst_userstd.tgz
 # Points ~/legocad and ~/sked at it
 lgswitch legopst_userstd
 ```
+
+Other demos are published as attachments of the *Demo LegoPST 2.0* release on GitHub:
+`lgdemo` lists them and installs the one you pick, `lgdemo <name>` installs
+`~/legopst_<name>` directly. If that area is already there it says so and asks before
+going on, and the existing one is set aside, not deleted.
 
 `lgswitch` with no argument lists the areas it finds in the current directory and asks
 which one to use; `lgswitch -l` prints the current state without changing anything.
@@ -523,7 +538,7 @@ The system uses hierarchical configuration:
 - **Recursive Makefiles**: Modular build
 - **Static Libraries**: Optimized linking
 - **Version Management**: The project version is defined in the `VERSION` file at the repository root. The build system (`Makefile.mk`) reads this file and injects the version into all scripts (`lgdock`, `lgrun`). The file `version.h` is auto-generated at build time with git commit hash and build number for C/Fortran code.
-- **Target**: Linux x86_64 (Fedora 41 is the reference platform)
+- **Target**: Linux x86_64 (Fedora 41 is the reference platform; Fedora 44 is supported, see [Fedora 44 compatibility](#fedora-44-compatibility))
 
 ### Other features
 

@@ -305,6 +305,30 @@ backup|legocad.prelink-20260916-180429        # copie di sicurezza
 > suggerendo come rimediare. È il caso più insidioso, perché tutto sembra
 > funzionare.
 
+### Procurarsi un'area già pronta: `lgdemo`
+
+| Comando | Tipo | Scopo |
+|---|---|---|
+| `lgdemo` | script | **Scarica e installa nella home una demo**, cioè un'area di lavoro già pronta `~/legopst_<nome>`. Le demo sono gli allegati `legopst_<nome>.tgz` della release *Demo LegoPST 2.0* (tag `demo-2.0`) del repository GitHub, le stesse che `lgrun -d <nome>` installa nel container; le pubblica `demo/publish_demo.sh`. |
+
+| Invocazione | Effetto |
+|---|---|
+| `lgdemo` | elenca le demo pubblicate, segnando quelle già installate, e chiede quale installare |
+| `lgdemo <nome>` | installa la demo `<nome>` in `~/legopst_<nome>` |
+| `lgdemo -l` | elenca soltanto |
+| `lgdemo -y <nome>` | non chiede conferma se la demo c'è già |
+| `lgdemo -h` | aiuto |
+
+Se `~/legopst_<nome>` **esiste già** lo segnala e chiede conferma. Confermando,
+quella che c'è non viene cancellata: è messa da parte come
+`~/old.legopst_<nome>.<data>-<ora>` e la demo nuova prende il suo posto. Il
+pacchetto è scaricato, confrontato con lo sha256 pubblicato ed estratto in una
+directory provvisoria *prima* di toccare la home, quindi un errore di rete o un
+pacchetto rovinato lasciano tutto com'era.
+
+`lgdemo` non tocca i link `~/legocad` e `~/sked`: dopo l'installazione si passa
+alla demo con `cd ~ ; lgswitch legopst_<nome>`.
+
 ---
 
 ## 6. Versione e diagnosi dell'ambiente
@@ -429,6 +453,7 @@ Due nomi che si incontrano leggendo il codice e che è facile scambiare per coma
 | comandare la simulazione da uno schema (faceplate, valori) | `lgpc` → *Add elements ▸ Faceplate / Set value*, poi *Show Value* in `lghmi`/draw2gr |
 | ricompilare tutto dopo una modifica | `lgupsim` (`lgupsimx` senza MMI) |
 | cambiare area di lavoro | `lgswitch`, oppure `lghmi` → *File → Work area* |
+| scaricare una demo pronta | `lgdemo` (elenco e scelta), `lgdemo <nome>` |
 | sapere che versione sto usando | `lgversion` |
 | usare un terminale diverso da xterm | legopc o `lghmi` → *File → Settings* → *Terminal* (`lgterm --list` per vedere quale si usa) |
 | portare un'applicazione su Windows | `python3 util2025/lglinux2win.py` |
