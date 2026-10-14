@@ -100,8 +100,9 @@ Nella finestra:
   altrimenti la X chiude per sempre: vedi sotto.
 - **File → Logs ▸** → gli **altri log** che `lghmi` scrive in `/tmp`: uno per ogni
   HMI lanciata, più `mmi` e `xstaz`: vedi sotto.
-- **File → Install demo…** → scarica una **demo**, cioè un'area di lavoro già
-  pronta, con `lgdemo`, e a installazione riuscita **ci passa**:
+- **File → Install demo…** → in una finestra con l'elenco delle **demo** (aree
+  di lavoro già pronte), la loro descrizione e l'avanzamento, ne installa una e
+  a installazione riuscita **ci passa**:
   [vedi sotto](#file--install-demo--scaricare-una-demo-e-passarci).
 - **File → Settings…** → le **applicazioni di base** (editor, browser, editor di
   icone, viewer PDF, terminale): è lo stesso dialogo di `legopc`, sulle stesse
@@ -516,52 +517,67 @@ voci di `Tools` si spengono e la riga di stato lo dice.
 
 ## `File → Install demo…` — scaricare una demo e passarci
 
-La voce sta in fondo al menu File, subito prima di *Settings*. Apre in un
-terminale **`lgdemo`** (vedi [COMANDI_LG.md](../docs/COMANDI_LG.md), sezione 5),
-che elenca le demo pubblicate nella release *Demo LegoPST 2.0* di GitHub, segna
-quelle già installate e chiede quale installare; se la demo c'è già lo dice e
-chiede conferma, e quella esistente viene **messa da parte**, non cancellata
-(`~/old.legopst_<nome>.<data>-<ora>`).
+La voce sta in fondo al menu File, subito prima di *Settings*, e apre una
+**finestra di `lghmi`**:
 
-È un terminale e non un dialogo di `lghmi` perché `lgdemo` fa domande e mostra
-l'avanzamento dello scaricamento: rifarle qui vorrebbe dire tenere due copie
-delle stesse regole. La finestra resta aperta a comando finito, per leggere
-com'è andata.
+- l'**elenco delle demo** pubblicate nella release *Demo LegoPST 2.0* di GitHub,
+  con dimensione e stato: *not installed*, *installed*, *installed (current work
+  area)*;
+- sotto, la **descrizione** della demo selezionata (vedi sotto da dove viene) e
+  **dove** verrà installata (*Install into*);
+- *Install* (o doppio clic) la installa: una **barra di avanzamento** con MB e
+  percentuale durante lo scaricamento, poi le fasi *Checking the sha256*,
+  *Extracting*, *Aligning the MMI pages*, *Installing*. Intanto *Install* e
+  *Refresh* sono spenti e *Close* diventa **Cancel**;
+- **Details** apre l'output completo di `lgdemo`.
 
-**A installazione riuscita `lghmi` passa all'area appena installata**, con la
-stessa procedura di [*File → Work area*](#cambiare-area-di-lavoro-menu-file-work-area):
+L'**unica conferma** è per reinstallare una demo che c'è già: quella esistente
+viene **messa da parte**, non cancellata (`old.legopst_<nome>.<data>-<ora>`), e
+il dialogo dice se è l'area in uso. Gli errori (rete, limite di richieste di
+GitHub, sha256 sbagliato) compaiono in rosso nella finestra, con i dettagli
+aperti. *Cancel*, o la chiusura della finestra, termina `lgdemo`, che pulisce da
+sé directory provvisoria e scaricamento: la demo eventualmente già installata
+resta com'era.
+
+**A installazione riuscita la finestra si chiude e `lghmi` passa all'area
+appena installata**, con la stessa procedura di
+[*File → Work area*](#cambiare-area-di-lavoro-menu-file-work-area), e lo dice
+nella barra di stato (*Demo installed in …*):
 
 - i **controlli restano tutti**: se qualcosa lavora ancora sull'area corrente
   lo elenca e non commuta. La demo resta installata, e ci si passa poi da
   *File → Work area*;
-- la **domanda finale si salta**, perché la scelta è già stata fatta nel
-  terminale. Si fa lo stesso se al posto di `~/legocad` o `~/sked` c'è una
+- la **domanda finale si salta**, perché la scelta è già stata fatta nella
+  finestra. Si fa lo stesso se al posto di `~/legocad` o `~/sked` c'è una
   directory vera, che verrebbe rinominata: non è una cosa che chi ha chiesto una
   demo si aspetta;
 - se la demo reinstallata è **l'area già in uso** i link puntano già lì, ma la
   directory è un'altra: `lghmi` si riallinea come [dopo uno switch](#dopo-lo-switch).
 
-Come `lghmi` sa com'è andata: lancia `lgdemo --esito <file>`, e `lgdemo` scrive
-in quel file il nome dell'area **solo** a installazione riuscita; `lghmi` guarda
-il file una volta al secondo (`attendi_demo`) e smette dopo un'ora. Non aspetta
-la fine del terminale, che resta aperto finché non si preme Invio.
+**Le regole restano in `lgdemo`.** La finestra non sa scaricare né installare:
+lancia `lgdemo --machine` (vedi [COMANDI_LG.md](../docs/COMANDI_LG.md),
+sezione 5) in una pipe letta con `fileevent`, così `lghmi` non si ferma mentre
+scarica, e ne interpreta le righe `LGDEMO ...` (elenco, fasi, avanzamento,
+esito). Dove installare, sha256, estrazione provvisoria, messa da parte e
+allineamento dei `Context.ctx` sono una cosa sola per la finestra, per `lgdemo`
+da shell e, nel container, per `lgrun -d`. Fino a ottobre 2026 la voce apriva
+`lgdemo` in un terminale.
 
-> **Il terminale parte dalla HOME**, non dalla directory di `lghmi`. Quella sta
-> dentro l'area corrente (è la directory del simulatore), e un terminale aperto
-> lì risulta «al lavoro» sull'area: restando in attesa di Invio, era lui a
-> bloccare la commutazione che doveva provocare. `lgdemo` installa comunque
-> nella directory delle aree, che `lghmi` gli passa con `--base`.
+**La descrizione** è l'etichetta (*label*) dell'allegato sulla release:
+`publish_demo.sh` la scrive dalla riga `DESCRIZIONE=` del `demo_<nome>.conf`.
+Chi installa non ha il `.conf`, e la legge da lì.
 
 **Dove finisce la demo.** `lghmi` passa a `lgdemo` la directory delle aree di
 lavoro (`base_aree`, la stessa in cui *Work area* le cerca), con `--base`. In
 nativo è la home; nel container di `lgrun` è `/host_home`, la home dell'host.
 Prima `lgdemo` installava sempre in `$HOME`, che nel container è effimera: la
 demo spariva all'uscita, e `lghmi` non la trovava fra le aree per passarci.
-La voce quindi resta attiva anche nel container. Nel bundle FMU non c'è.
+La voce quindi resta attiva anche nel container.
 
 La voce è spenta con [`-insim`](#lanciato-dal-banco--lopzione--insim) e non
-compare dove `lgdemo` non c'è (il bundle FMU). Codice: `installa_demo`,
-`attendi_demo`, `demo_installata` e il secondo argomento di `cambia_area`.
+compare dove `lgdemo` non c'è (il bundle FMU). Codice: `installa_demo` e le
+`demo_*` (`demo_esegui`, `demo_leggi`, `demo_fine`...), `demo_installata` e il
+secondo argomento di `cambia_area`.
 
 ## La fascia in alto: i due lanci e il contesto
 

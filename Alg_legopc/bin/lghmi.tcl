@@ -980,7 +980,7 @@ proc aggiorna_menu_file {} {
     set con_settings [expr {[llength [info procs lancia_settings]] > 0}]
     if {$con_demo || $con_settings} { .mb.file add separator }
     if {$con_demo} {
-        .mb.file add command -label "Install demo...   (lgdemo: download a ready-made work area and switch to it)" \
+        .mb.file add command -label "Install demo...   (download a ready-made work area and switch to it)" \
             -command installa_demo -state $stato
     }
     if {$con_settings} {
@@ -1186,85 +1186,345 @@ proc comando_lgdemo {} {
     return [expr {$c ne "" ? [lindex $c 0] : ""}]
 }
 
-#  File -> Install demo: lgdemo in un terminale, senza nome di demo, cosi' elenca
-#  le demo pubblicate e chiede quale installare.
+# --- File -> Install demo: la finestra delle demo -------------------------
 #
-#  In un terminale e non in un dialogo di lghmi perche' lgdemo fa domande (quale
-#  demo, e la conferma se c'e' gia') e mostra l'avanzamento dello scaricamento:
-#  rifarle qui vorrebbe dire tenere due copie delle stesse regole. La finestra
-#  resta aperta a comando finito (-H), per leggere com'e' andata.
+#  Una finestra di lghmi, non un terminale: l'elenco delle demo pubblicate con
+#  la loro descrizione e lo stato (installata, area in uso), una barra di
+#  avanzamento durante lo scaricamento, e i dettagli a richiesta.
 #
-#  A installazione riuscita lghmi passa all'area appena installata. Come lo
-#  sa: lgdemo --esito <file> scrive li' il nome dell'area, e SOLO se e' andata
-#  a buon fine; qui si aspetta che il file compaia (attendi_demo). Non si
-#  aspetta la fine del terminale: con -H resta aperto finche' non si preme
-#  Invio, e certi terminali ridanno subito il controllo a chi li lancia.
+#  Le regole restano tutte in lgdemo (dove installare, sha256, estrazione
+#  provvisoria, messa da parte di quella che c'e', allineamento dei
+#  Context.ctx): qui lo si lancia nel suo MODO MACCHINA (--machine) e se ne
+#  leggono le righe "LGDEMO ..." (vedi lgdemo -h). Il resto dell'output va nei
+#  dettagli. lgdemo gira in una pipe letta con fileevent: lghmi non si ferma
+#  mentre scarica, e Cancel lo termina (lgdemo pulisce da se').
+#
+#  Dove installare: la directory delle aree di lavoro (base_aree), la stessa in
+#  cui cambia_area cerchera' poi la demo. Di solito e' la home, ma nel
+#  container di lgrun no: la' la home e' effimera e le aree stanno in
+#  /host_home. Se la base non si ricava decide lgdemo, con la stessa regola.
+#
+#  Unica conferma: reinstallare una demo che c'e' gia' (quella che c'e' viene
+#  messa da parte). A installazione riuscita la finestra si chiude, lghmi passa
+#  all'area nuova e lo dice nella barra di stato.
+#
+#  Stato in DEMOWIN: chan (la pipe), modo (list|install), nome, base, errore,
+#  fatto (legopst_<nome> a installazione riuscita), annullato, e per ogni demo
+#  info(<nome>) = {byte sha stato descrizione}.
+
 proc installa_demo {} {
-    global env DEMO_ATTESA
-    set esito [file join /tmp "lghmi_lgdemo_[pid].esito"]
-    file delete -force $esito
+    global DEMOWIN
+    if {[winfo exists .demo]} { raise .demo; focus .demo; return }
     set lgdemo [comando_lgdemo]
     if {$lgdemo eq ""} {
         tk_messageBox -icon error -title "Install demo" -parent . -message "lgdemo not found."
         return
     }
-    #  Dove installare: la directory delle aree di lavoro, la stessa in cui
-    #  cambia_area cerchera' poi la demo. Di solito e' la home, ma nel container
-    #  di lgrun no: la' la home e' effimera e le aree stanno in /host_home, e
-    #  lgdemo che installava in $HOME perdeva la demo all'uscita, oltre a
-    #  metterla dove lghmi non la trovava. Se la base non si ricava, decide
-    #  lgdemo con la stessa regola.
-    set argomenti [list --esito $esito]
-    lassign [base_aree] base _
-    if {$base ne ""} { lappend argomenti --base $base }
-    if {[auto_execok lgterm] ne ""} {
-        set cmd [list lgterm -t "lgdemo - install a LegoPST demo" -g 100x30 -H -- $lgdemo {*}$argomenti]
-    } else {
-        set t [expr {[info exists env(LG_XTERM)] && $env(LG_XTERM) ne "" ? $env(LG_XTERM) : "xterm"}]
-        if {[auto_execok $t] eq ""} {
-            tk_messageBox -icon error -title "Install demo" -parent . -message \
-                "No terminal found ('$t' is not installed).\nRun 'lgdemo' from a shell instead."
-            return
-        }
-        set cmd [list $t -e sh -c "[list $lgdemo {*}$argomenti]; printf '\\nPress Enter to close '; read x"]
-    }
-    #  Il terminale parte dalla HOME, non dalla directory di lghmi: quella sta
-    #  dentro l'area corrente (il simulatore), e il terminale - che con -H
-    #  resta aperto ad aspettare Invio - risulterebbe "al lavoro" sull'area
-    #  proprio quando cambia_area controlla chi la usa ancora. Bloccava lui
-    #  la commutazione che doveva provocare. lgdemo installa in $base, non qui.
-    set qui [pwd]
-    catch {cd $env(HOME)}
-    set fallito [catch {exec {*}$cmd &} err]
-    catch {cd $qui}
-    if {$fallito} {
-        tk_messageBox -icon error -title "Install demo" -parent . \
-            -message "Cannot open the terminal:\n$err"
-        return
-    }
-    .status configure -text "lgdemo opened in a terminal: lghmi will switch to the demo once it is installed"
-    #  una sola attesa alla volta: un secondo Install demo sostituisce il primo
-    if {[info exists DEMO_ATTESA]} { after cancel $DEMO_ATTESA }
-    set DEMO_ATTESA [after 1000 [list attendi_demo $esito [expr {[clock seconds] + 3600}]]]
+    array unset DEMOWIN
+    set DEMOWIN(lgdemo) $lgdemo
+    set DEMOWIN(chan) ""
+    lassign [base_aree] DEMOWIN(base) _
+
+    set w .demo
+    toplevel $w
+    wm title $w "Install a LegoPST demo"
+    wm transient $w .
+    wm protocol $w WM_DELETE_WINDOW demo_chiudi
+
+    frame $w.cima
+    label $w.cima.l -text "Demos published on GitHub" -anchor w -font {-weight bold}
+    button $w.cima.r -text "Refresh" -command demo_leggi_elenco
+    pack $w.cima.r -side right
+    pack $w.cima.l -side left -fill x -expand 1
+
+    frame $w.el
+    ttk::treeview $w.el.t -columns {size status} -height 6 -selectmode browse \
+        -yscrollcommand [list $w.el.s set]
+    $w.el.t heading #0 -text "Name" -anchor w
+    $w.el.t heading size -text "Size" -anchor e
+    $w.el.t heading status -text "Status" -anchor w
+    $w.el.t column #0 -width 140 -stretch 0
+    $w.el.t column size -width 70 -anchor e -stretch 0
+    $w.el.t column status -width 260 -stretch 1
+    scrollbar $w.el.s -command [list $w.el.t yview]
+    pack $w.el.s -side right -fill y
+    pack $w.el.t -side left -fill both -expand 1
+    bind $w.el.t <<TreeviewSelect>> demo_selezione
+    bind $w.el.t <Double-1> demo_installa
+
+    label $w.descr -anchor nw -justify left -wraplength 520 -height 2
+    label $w.dove -anchor w -text "Install into: [expr {$DEMOWIN(base) ne "" ? $DEMOWIN(base) : "(decided by lgdemo)"}]"
+    ttk::progressbar $w.pb -mode determinate -maximum 100
+    label $w.fase -anchor w -justify left -wraplength 520
+
+    frame $w.det
+    text $w.det.t -height 10 -width 80 -wrap word -state disabled \
+        -yscrollcommand [list $w.det.s set]
+    scrollbar $w.det.s -command [list $w.det.t yview]
+    pack $w.det.s -side right -fill y
+    pack $w.det.t -side left -fill both -expand 1
+
+    frame $w.bot
+    button $w.bot.det -text "Details >" -relief flat -command demo_dettagli
+    button $w.bot.chiudi -text "Close" -width 9 -command demo_chiudi
+    button $w.bot.inst -text "Install" -width 9 -state disabled -command demo_installa
+    pack $w.bot.det -side left
+    pack $w.bot.chiudi $w.bot.inst -side right -padx 2
+
+    pack $w.cima -fill x -padx 8 -pady {8 2}
+    pack $w.el -fill both -expand 1 -padx 8
+    pack $w.descr $w.dove -fill x -padx 8 -pady {4 0}
+    pack $w.pb -fill x -padx 8 -pady {8 0}
+    pack $w.fase -fill x -padx 8 -pady 2
+    pack $w.bot -fill x -padx 8 -pady {4 8}
+    #  i dettagli si aprono sopra i pulsanti (demo_dettagli)
+
+    demo_leggi_elenco
 }
 
-#  Aspetta l'esito di lgdemo, guardando una volta al secondo. Smette dopo
-#  un'ora: chi ha chiuso il terminale senza installare niente non lascia
-#  un'attesa appesa per tutta la vita di lghmi.
-proc attendi_demo {esito scadenza} {
-    global DEMO_ATTESA
-    unset -nocomplain DEMO_ATTESA
-    if {![file exists $esito]} {
-        if {[clock seconds] < $scadenza} {
-            set DEMO_ATTESA [after 1000 [list attendi_demo $esito $scadenza]]
+#  Lancia lgdemo --machine con <argomenti> e ne legge l'output.
+proc demo_esegui {modo argomenti} {
+    global DEMOWIN
+    set DEMOWIN(modo) $modo
+    set DEMOWIN(errore) ""
+    set DEMOWIN(fatto) ""
+    set DEMOWIN(annullato) 0
+    set cmd [list $DEMOWIN(lgdemo) --machine]
+    if {$DEMOWIN(base) ne ""} { lappend cmd --base $DEMOWIN(base) }
+    lappend cmd {*}$argomenti
+    if {[catch {open |[concat $cmd [list 2>@1]] r} ch]} {
+        demo_errore "Cannot run lgdemo: $ch"
+        return 0
+    }
+    fconfigure $ch -blocking 0 -buffering line
+    set DEMOWIN(chan) $ch
+    fileevent $ch readable [list demo_leggi $ch]
+    demo_pulsanti
+    return 1
+}
+
+proc demo_leggi_elenco {} {
+    global DEMOWIN
+    if {$DEMOWIN(chan) ne ""} return
+    .demo.el.t delete [.demo.el.t children {}]
+    array unset DEMOWIN info,*
+    .demo.descr configure -text ""
+    .demo.pb configure -mode indeterminate
+    .demo.pb start 15
+    .demo.fase configure -text "Reading the list of demos..." -foreground black
+    demo_dettagli_pulisci
+    demo_esegui list {--list}
+}
+
+#  Una riga (o la fine) dell'output di lgdemo.
+proc demo_leggi {ch} {
+    global DEMOWIN
+    if {![winfo exists .demo]} { catch {close $ch}; return }
+    while {[gets $ch riga] >= 0} {
+        if {![regexp {^LGDEMO (\S+) ?(.*)$} $riga -> cosa resto]} {
+            demo_dettagli_scrivi $riga
+            continue
         }
+        switch -- $cosa {
+            BASE {
+                set DEMOWIN(base) $resto
+                .demo.dove configure -text "Install into: $resto"
+            }
+            DEMO     { demo_aggiungi $resto }
+            PHASE    { demo_fase $resto }
+            PROGRESS { demo_avanzamento {*}$resto }
+            DONE     { set DEMOWIN(fatto) [lindex $resto 0]; set DEMOWIN(dove) [lindex $resto 1] }
+            ERROR    { set DEMOWIN(errore) $resto }
+        }
+    }
+    if {[eof $ch]} {
+        fileevent $ch readable {}
+        catch {close $ch}
+        set DEMOWIN(chan) ""
+        demo_fine
+    }
+}
+
+proc demo_aggiungi {campi} {
+    global DEMOWIN
+    lassign [split $campi |] nome byte sha stato descr
+    if {$nome eq ""} return
+    set DEMOWIN(info,$nome) [list $byte $sha $stato $descr]
+    switch -- $stato {
+        current   { set testo "installed (current work area)" }
+        installed { set testo "installed" }
+        default   { set testo "not installed" }
+    }
+    .demo.el.t insert {} end -id $nome -text $nome -values [list [demo_mb $byte] $testo]
+}
+
+proc demo_mb {byte} {
+    if {![string is digit -strict $byte]} { return "?" }
+    return "[expr {($byte + 524288) / 1048576}]M"
+}
+
+proc demo_selezione {} {
+    global DEMOWIN
+    set sel [.demo.el.t selection]
+    set descr ""
+    if {$sel ne "" && [info exists DEMOWIN(info,$sel)]} {
+        set descr [lindex $DEMOWIN(info,$sel) 3]
+        if {$descr eq ""} { set descr "(no description)" }
+    }
+    .demo.descr configure -text $descr
+    demo_pulsanti
+}
+
+#  Stato dei pulsanti: durante un lavoro di lgdemo Install e Refresh sono
+#  spenti e Close diventa Cancel.
+proc demo_pulsanti {} {
+    global DEMOWIN
+    if {![winfo exists .demo]} return
+    set occupato [expr {$DEMOWIN(chan) ne ""}]
+    set sel [.demo.el.t selection]
+    .demo.bot.inst configure -state [expr {!$occupato && $sel ne "" ? "normal" : "disabled"}]
+    .demo.cima.r configure -state [expr {$occupato ? "disabled" : "normal"}]
+    .demo.bot.chiudi configure -text [expr {$occupato && $DEMOWIN(modo) eq "install" ? "Cancel" : "Close"}]
+}
+
+proc demo_installa {} {
+    global DEMOWIN insim
+    if {$DEMOWIN(chan) ne "" || $insim} return
+    set nome [.demo.el.t selection]
+    if {$nome eq "" || ![info exists DEMOWIN(info,$nome)]} return
+    set stato [lindex $DEMOWIN(info,$nome) 2]
+    if {$stato ne "absent"} {
+        set msg "The demo '$nome' is already installed:\n[file join $DEMOWIN(base) legopst_$nome]\n\n"
+        if {$stato eq "current"} {
+            append msg "It is the work area in use: lghmi will switch to the new copy.\n\n"
+        }
+        append msg "The installed copy is not deleted: it is set aside as\nold.legopst_$nome.<date>-<time>, and the new one takes its place.\n\nInstall it again?"
+        if {[tk_messageBox -icon question -type yesno -default no -parent .demo \
+                 -title "Install demo" -message $msg] ne "yes"} return
+    }
+    set DEMOWIN(nome) $nome
+    demo_dettagli_pulisci
+    .demo.pb stop
+    .demo.pb configure -mode determinate -value 0
+    .demo.fase configure -text "Starting..." -foreground black
+    demo_esegui install [list -y $nome]
+}
+
+proc demo_fase {fase} {
+    global DEMOWIN
+    set n "legopst_$DEMOWIN(nome).tgz"
+    switch -- $fase {
+        download { set t "Downloading $n..." }
+        check    { set t "Checking the sha256 of $n..." }
+        extract  { set t "Extracting..." }
+        align    { set t "Aligning the MMI pages to this home..." }
+        install  { set t "Installing..." }
+        default  { set t "$fase..." }
+    }
+    if {$fase ne "download"} {
+        .demo.pb configure -mode indeterminate
+        .demo.pb start 15
+    }
+    .demo.fase configure -text $t -foreground black
+}
+
+proc demo_avanzamento {fatti totale} {
+    global DEMOWIN
+    if {![string is digit -strict $fatti]} return
+    set n "legopst_$DEMOWIN(nome).tgz"
+    if {[string is digit -strict $totale] && $totale > 0} {
+        .demo.pb stop
+        .demo.pb configure -mode determinate -value [expr {min(100.0, 100.0 * $fatti / $totale)}]
+        .demo.fase configure -text "Downloading $n...   [demo_mb $fatti] of [demo_mb $totale]   ([expr {min(100, 100 * $fatti / $totale)}]%)"
+    } else {
+        .demo.pb configure -mode indeterminate
+        .demo.pb start 15
+        .demo.fase configure -text "Downloading $n...   [demo_mb $fatti]"
+    }
+}
+
+#  lgdemo ha finito: com'e' andata.
+proc demo_fine {} {
+    global DEMOWIN
+    if {![winfo exists .demo]} return
+    .demo.pb stop
+    if {$DEMOWIN(modo) eq "list"} {
+        .demo.pb configure -mode determinate -value 0
+        if {$DEMOWIN(errore) ne ""} {
+            demo_errore "Cannot read the list of demos: $DEMOWIN(errore)"
+        } elseif {[llength [.demo.el.t children {}]] == 0} {
+            demo_errore "No demo is published."
+        } else {
+            .demo.fase configure -text "Select a demo and press Install." -foreground black
+            set prima [lindex [.demo.el.t children {}] 0]
+            .demo.el.t selection set $prima
+            .demo.el.t focus $prima
+        }
+        demo_pulsanti
         return
     }
-    set nome ""
-    catch { set f [open $esito r]; set nome [string trim [gets $f]]; close $f }
-    file delete -force $esito
-    if {![regexp {^legopst_[A-Za-z0-9_-]+$} $nome]} return
-    demo_installata $nome
+    if {$DEMOWIN(fatto) ne ""} {
+        set nome $DEMOWIN(fatto)
+        set dove [expr {[info exists DEMOWIN(dove)] ? $DEMOWIN(dove) : $nome}]
+        destroy .demo
+        demo_installata $nome
+        set prima [.status cget -text]
+        .status configure -text "Demo installed in $dove   |   $prima"
+        return
+    }
+    .demo.pb configure -mode determinate -value 0
+    if {$DEMOWIN(annullato)} {
+        .demo.fase configure -text "Cancelled: nothing was installed." -foreground black
+    } else {
+        demo_errore [expr {$DEMOWIN(errore) ne "" ? $DEMOWIN(errore) : "lgdemo stopped without saying why: see the details."}]
+    }
+    demo_pulsanti
+}
+
+#  Un errore: in rosso nella finestra, con i dettagli aperti.
+proc demo_errore {msg} {
+    if {![winfo exists .demo]} return
+    .demo.fase configure -text "ERROR: $msg" -foreground "#b00000"
+    if {![winfo ismapped .demo.det]} { demo_dettagli }
+}
+
+proc demo_dettagli {} {
+    if {[winfo ismapped .demo.det]} {
+        pack forget .demo.det
+        .demo.bot.det configure -text "Details >"
+    } else {
+        pack .demo.det -fill both -expand 1 -padx 8 -pady 2 -before .demo.bot
+        .demo.bot.det configure -text "Details v"
+    }
+}
+
+proc demo_dettagli_scrivi {riga} {
+    .demo.det.t configure -state normal
+    .demo.det.t insert end "$riga\n"
+    .demo.det.t see end
+    .demo.det.t configure -state disabled
+}
+
+proc demo_dettagli_pulisci {} {
+    .demo.det.t configure -state normal
+    .demo.det.t delete 1.0 end
+    .demo.det.t configure -state disabled
+}
+
+#  Close, o Cancel durante un'installazione: si termina lgdemo, che pulisce
+#  da se' (directory provvisoria, scaricamento in corso). Chiudere la finestra
+#  durante un'installazione la annulla.
+proc demo_chiudi {} {
+    global DEMOWIN
+    if {$DEMOWIN(chan) ne ""} {
+        set DEMOWIN(annullato) 1
+        foreach p [pid $DEMOWIN(chan)] { catch {exec kill -TERM $p} }
+        if {$DEMOWIN(modo) eq "install"} {
+            .demo.fase configure -text "Cancelling..." -foreground black
+            return
+        }
+    }
+    destroy .demo
 }
 
 #  lgdemo ha installato l'area <nome>: lghmi ci passa.

@@ -9,6 +9,7 @@
 #   3. ci carica legopst_<nome>.tgz    (sostituendo l'allegato precedente)
 #   4. lo riscarica e ne confronta lo sha256 con quello locale
 #   5. per la demo standard: aggiorna lo sha256 nel Dockerfile
+#   6. scrive la descrizione della demo come etichetta dell'allegato
 #
 # La release e' una sola e porta un allegato per demo. "lgrun -d" installa
 # userstd, che viaggia anche dentro l'immagine Docker (per questo, e solo per
@@ -43,6 +44,19 @@
 #          mkdir -p ~/.config/legopst
 #          echo 'ghp_...' > ~/.config/legopst/github_token
 #          chmod 600 ~/.config/legopst/github_token
+#
+# LA DESCRIZIONE
+#
+#   Una riga che dice cos'e' la demo, nel demo_<nome>.conf accanto a questo
+#   script:
+#       DESCRIZIONE="PWR 900 MWe Saint Laurent B1 - three tasks"
+#   Diventa l'etichetta (label) dell'allegato sulla release, ed e' da li' che
+#   la leggono lgdemo e la finestra Install demo di lghmi: chi installa non ha
+#   il .conf. Sulla pagina della release GitHub mostra l'etichetta al posto
+#   del nome del file. Solo ASCII: lghmi la mostra in Tk.
+#   Se cambia solo la descrizione non si ricarica niente: con --no-build e il
+#   pacchetto gia' pubblicato si aggiorna soltanto l'etichetta.
+#   Senza la riga DESCRIZIONE l'etichetta che c'e' resta com'e'.
 #
 # Il repository e' quello di "origin". Leggere la release non richiede niente:
 # con -n si puo' provare lo script anche senza credenziali.
@@ -85,6 +99,17 @@ esac
 NOME_ASSET="legopst_$DEMO.tgz"
 TGZ="$QUI/$NOME_ASSET"
 
+#  La descrizione, dal .conf della demo. Il .conf e' shell (lo legge anche
+#  make_demo_tgz.sh): lo si legge in una subshell, per prenderne solo questa.
+CONF="$QUI/demo_$DEMO.conf"
+DESCRIZIONE=""
+if [ -f "$CONF" ]; then
+    DESCRIZIONE="$( . "$CONF" >/dev/null 2>&1; printf '%s' "${DESCRIZIONE:-}" )"
+fi
+case "$DESCRIZIONE" in
+    *[![:print:]]*|*[![:ascii:]]*) muori "DESCRIZIONE in $CONF: solo caratteri ASCII stampabili (lghmi la mostra in Tk)." ;;
+esac
+
 command -v curl >/dev/null 2>&1    || muori "curl non trovato."
 command -v python3 >/dev/null 2>&1 || muori "python3 non trovato (serve a leggere le risposte di GitHub)."
 
@@ -105,6 +130,7 @@ URL_ASSET="https://github.com/$SLUG/releases/download/$TAG/$NOME_ASSET"
 echo "Repository:  $SLUG"
 echo "Release:     $TAG  (\"$TITOLO\")"
 echo "Demo:        $DEMO"
+echo "Descrizione: ${DESCRIZIONE:-(nessuna: manca DESCRIZIONE= in $(basename "$CONF"))}"
 echo "Pacchetto:   $TGZ"
 $PROVA && echo "Modo:        PROVA (-n): non si confeziona e non si pubblica niente"
 echo ""
@@ -137,6 +163,57 @@ GIA_PUBBLICATO=false
 campo() { python3 -c 'import sys,json
 d=json.load(open(sys.argv[1]))
 print(eval(sys.argv[2]))' "$1" "$2" 2>/dev/null; }
+
+# ---------------------------------------------------------------------------
+# Con chi ci si presenta: la prima volta che serve scrivere su GitHub. Prepara
+# USA_GH, oppure TOKEN e il file di intestazioni INTEST per chiama().
+# ---------------------------------------------------------------------------
+AUTENTICATO=false
+autenticati() {
+    $AUTENTICATO && return 0
+    AUTENTICATO=true
+    USA_GH=false
+    TOKEN=""
+    if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
+        USA_GH=true
+        echo "Autenticazione: gh ($(gh api user -q .login 2>/dev/null || echo '?'))"
+    else
+        TOKEN="${GITHUB_TOKEN:-${GH_TOKEN:-}}"
+        FILE_TOKEN="$HOME/.config/legopst/github_token"
+        if [ -z "$TOKEN" ] && [ -r "$FILE_TOKEN" ]; then
+            TOKEN="$(tr -d '[:space:]' < "$FILE_TOKEN")"
+        fi
+        if [ -n "$TOKEN" ]; then
+            echo "Autenticazione: token"
+        elif $PROVA; then
+            echo "Autenticazione: nessuna trovata (ne' gh ne' un token). Per pubblicare"
+            echo "                davvero ne servira' una: vedi $PROGRAMMA -h."
+        elif [ -t 0 ]; then
+            echo "Non trovo ne' gh autenticato ne' un token (vedi $PROGRAMMA -h)."
+            printf "Token di GitHub (non viene mostrato ne' salvato): "
+            read -r -s TOKEN; echo ""
+            [ -n "$TOKEN" ] || muori "nessun token: non posso pubblicare."
+        else
+            muori "ne' gh autenticato ne' un token (GITHUB_TOKEN, o $FILE_TOKEN). Vedi $PROGRAMMA -h."
+        fi
+    fi
+    if [ -n "$TOKEN" ]; then
+        #  Il token viaggia in un file di intestazioni, non sulla riga di
+        #  comando, dove chiunque sulla macchina lo leggerebbe con ps.
+        INTEST="$TMP/h"
+        ( umask 077; printf 'Authorization: Bearer %s\nAccept: application/vnd.github+json\nX-GitHub-Api-Version: 2022-11-28\n' "$TOKEN" > "$INTEST" )
+    fi
+    echo ""
+}
+
+# chiama <metodo> <url> [opzioni curl...]: risposta in $TMP/r.json, stato in $STATO
+chiama() {
+    local metodo="$1" url="$2"; shift 2
+    STATO="$(curl -sS -X "$metodo" -H @"$INTEST" -o "$TMP/r.json" -w '%{http_code}' "$@" "$url")"
+}
+spiega() { python3 -c 'import sys,json
+try: print(json.load(open(sys.argv[1])).get("message",""))
+except Exception: pass' "$TMP/r.json"; }
 
 HTTP="$(curl -sS -o "$TMP/rel.json" -w '%{http_code}' "$API/releases/tags/$TAG" || true)"
 case "$HTTP" in
@@ -171,41 +248,14 @@ echo ""
 #  puo' non essere ancora allineato a quello che sta nella release.
 if ! $GIA_PUBBLICATO; then
 
-# ---------------------------------------------------------------------------
-# Con chi ci si presenta
-# ---------------------------------------------------------------------------
-USA_GH=false
-TOKEN=""
-if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
-    USA_GH=true
-    echo "Autenticazione: gh ($(gh api user -q .login 2>/dev/null || echo '?'))"
-else
-    TOKEN="${GITHUB_TOKEN:-${GH_TOKEN:-}}"
-    FILE_TOKEN="$HOME/.config/legopst/github_token"
-    if [ -z "$TOKEN" ] && [ -r "$FILE_TOKEN" ]; then
-        TOKEN="$(tr -d '[:space:]' < "$FILE_TOKEN")"
-    fi
-    if [ -n "$TOKEN" ]; then
-        echo "Autenticazione: token"
-    elif $PROVA; then
-        echo "Autenticazione: nessuna trovata (ne' gh ne' un token). Per pubblicare"
-        echo "                davvero ne servira' una: vedi $PROGRAMMA -h."
-    elif [ -t 0 ]; then
-        echo "Non trovo ne' gh autenticato ne' un token (vedi $PROGRAMMA -h)."
-        printf "Token di GitHub (non viene mostrato ne' salvato): "
-        read -r -s TOKEN; echo ""
-        [ -n "$TOKEN" ] || muori "nessun token: non posso pubblicare."
-    else
-        muori "ne' gh autenticato ne' un token (GITHUB_TOKEN, o $FILE_TOKEN). Vedi $PROGRAMMA -h."
-    fi
-fi
-echo ""
+autenticati
 
 if $PROVA; then
     $ESISTE || echo "[prova] creerei la release $TAG (\"$TITOLO\")"
     [ -n "$ID_ASSET" ] && echo "[prova] cancellerei l'allegato attuale"
     echo "[prova] caricherei $NOME_ASSET ($((DIM / 1024 / 1024)) MB)"
     echo "[prova] lo riscaricherei da $URL_ASSET per confrontare lo sha256"
+    [ -n "$DESCRIZIONE" ] && echo "[prova] scriverei l'etichetta: \"$DESCRIZIONE\""
     if [ "$DEMO" = userstd ] && grep -q '^ARG DEMO_SHA256=' "$DOCKERFILE" 2>/dev/null; then
         echo "[prova] aggiornerei ARG DEMO_SHA256 in docker/Dockerfile_LegoPST"
     fi
@@ -252,20 +302,6 @@ if $USA_GH; then
     fi
     gh release upload "$TAG" "$TGZ" --repo "$SLUG" --clobber
 else
-    #  Il token viaggia in un file di intestazioni, non sulla riga di comando,
-    #  dove chiunque sulla macchina lo leggerebbe con ps.
-    INTEST="$TMP/h"
-    ( umask 077; printf 'Authorization: Bearer %s\nAccept: application/vnd.github+json\nX-GitHub-Api-Version: 2022-11-28\n' "$TOKEN" > "$INTEST" )
-
-    # chiama <metodo> <url> [opzioni curl...]: risposta in $TMP/r.json, stato in $STATO
-    chiama() {
-        local metodo="$1" url="$2"; shift 2
-        STATO="$(curl -sS -X "$metodo" -H @"$INTEST" -o "$TMP/r.json" -w '%{http_code}' "$@" "$url")"
-    }
-    spiega() { python3 -c 'import sys,json
-try: print(json.load(open(sys.argv[1])).get("message",""))
-except Exception: pass' "$TMP/r.json"; }
-
     CORPO="$TMP/corpo.json"
     python3 -c 'import sys,json
 json.dump({"tag_name":sys.argv[1],"name":sys.argv[2],"body":sys.argv[3]}, open(sys.argv[4],"w"))' \
@@ -314,6 +350,43 @@ echo "identico: $URL_ASSET"
 echo ""
 
 fi   # ! GIA_PUBBLICATO
+
+# ---------------------------------------------------------------------------
+# 6. la descrizione, come etichetta dell'allegato
+# ---------------------------------------------------------------------------
+#  Si rilegge la release: l'allegato puo' essere appena stato caricato, e il
+#  suo id e' nuovo. Se l'etichetta e' gia' quella non si scrive niente.
+if [ -n "$DESCRIZIONE" ]; then
+    curl -sS -o "$TMP/rel2.json" "$API/releases/tags/$TAG" || true
+    read -r ID_ETI ETI_REMOTA < <(python3 -c 'import sys,json
+try:
+    d=json.load(open(sys.argv[1]))
+    a=[a for a in d["assets"] if a["name"]==sys.argv[2]][0]
+    print(a["id"], a.get("label") or "")
+except Exception:
+    print("")' "$TMP/rel2.json" "$NOME_ASSET")
+    if [ -z "$ID_ETI" ]; then
+        $PROVA || muori "non trovo l'allegato $NOME_ASSET nella release per scriverne l'etichetta."
+        echo "[prova] l'allegato non c'e' ancora: ne scriverei l'etichetta dopo averlo caricato"
+    elif [ "$ETI_REMOTA" = "$DESCRIZIONE" ]; then
+        echo "Descrizione gia' pubblicata."
+    elif $PROVA; then
+        echo "[prova] scriverei l'etichetta: \"$DESCRIZIONE\" (ora: \"${ETI_REMOTA}\")"
+    else
+        autenticati
+        echo "--- scrivo la descrizione ---"
+        if $USA_GH; then
+            gh api -X PATCH "repos/$SLUG/releases/assets/$ID_ETI" -f label="$DESCRIZIONE" >/dev/null \
+                || muori "non riesco a scrivere l'etichetta dell'allegato."
+        else
+            python3 -c 'import sys,json; json.dump({"label":sys.argv[1]}, open(sys.argv[2],"w"))' "$DESCRIZIONE" "$TMP/eti.json"
+            chiama PATCH "$API/releases/assets/$ID_ETI" -H 'Content-Type: application/json' --data-binary @"$TMP/eti.json"
+            [ "$STATO" = 200 ] || muori "non riesco a scrivere l'etichetta dell'allegato ($STATO): $(spiega)"
+        fi
+        echo "descrizione: $DESCRIZIONE"
+    fi
+    echo ""
+fi
 
 # ---------------------------------------------------------------------------
 # 5. il Dockerfile: solo per la demo standard, l'unica che sta nell'immagine

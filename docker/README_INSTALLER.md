@@ -820,6 +820,21 @@ elenchi di `userstd` confezionerebbe una demo vuota senza un errore. Se manca,
 lo script si ferma e ne **propone uno di partenza** con tutto quello che trova
 nella sorgente: si copia, si toglie quello che non deve viaggiare, si rilancia.
 
+Nello stesso file sta la **descrizione** della demo, una riga sola e solo
+ASCII:
+
+```sh
+DESCRIZIONE="PWR 900 MWe Saint Laurent B1 - nuclear island, steam supply and plant control (3 tasks)"
+```
+
+`make_demo_tgz.sh` la ignora; `publish_demo.sh` la scrive come **etichetta**
+(*label*) dell'allegato sulla release, ed è da lì che la leggono `lgdemo` e la
+finestra *File → Install demo* di `lghmi`, perché chi installa il `.conf` non
+ce l'ha. Sulla pagina della release GitHub mostra l'etichetta al posto del nome
+del file. Se cambia solo la descrizione non serve ricaricare niente:
+`./publish_demo.sh -d <nome> --no-build` trova il pacchetto già pubblicato e
+aggiorna soltanto l'etichetta.
+
 ### Cosa si esclude, dentro ciò che entra
 
 Due directory e un file, **a qualunque profondità** (anche nei bundle FMU

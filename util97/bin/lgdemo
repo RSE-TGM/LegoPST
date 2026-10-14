@@ -21,6 +21,7 @@
 #                       da un programma: lghmi lo usa per passare alla demo
 #         --base DIR    la directory delle aree di lavoro, dove installare.
 #                       Senza, la si ricava dai link (vedi DOVE SI INSTALLA)
+#         --machine     uscita per un programma (lghmi), vedi MODO MACCHINA
 #     -h, --help        questo aiuto
 #
 # DOVE SI INSTALLA
@@ -38,6 +39,31 @@
 #   la base e' la directory che lo contiene. E' la regola di lghmi
 #   (base_aree), che la passa con --base. Se ~/legocad non e' un link, la
 #   base e' la home.
+#
+# LA DESCRIZIONE
+#
+#   Ogni demo puo' avere una riga di descrizione: e' l'etichetta (label)
+#   dell'allegato sulla release, che publish_demo.sh scrive dalla riga
+#   DESCRIZIONE= del demo_<nome>.conf. lgdemo la mostra nell'elenco.
+#
+# MODO MACCHINA (--machine)
+#
+#   Per chi lancia lgdemo da un programma e ne mostra l'avanzamento (la
+#   finestra Install demo di lghmi). Niente colori e niente domande: la demo
+#   va indicata per nome, e se c'e' gia' serve -y (la conferma la chiede il
+#   programma). Su stdout, oltre ai messaggi soliti, righe che cominciano
+#   con "LGDEMO ":
+#
+#     con --list, una riga per demo:
+#       LGDEMO DEMO <nome>|<byte>|<sha256>|<stato>|<descrizione>
+#       stato: current (e' l'area in uso), installed, absent
+#     durante l'installazione:
+#       LGDEMO BASE <dir>                 dove si installa
+#       LGDEMO PHASE <fase>               download, check, extract, align, install
+#       LGDEMO PROGRESS <scaricati> <totale>   due volte al secondo; totale 0
+#                                         se non si conosce
+#       LGDEMO DONE <legopst_nome> <directory>   a installazione riuscita
+#       LGDEMO ERROR <motivo>             prima di uscire con errore
 #
 # SE LA DEMO C'E' GIA'
 #
@@ -66,15 +92,21 @@
 #                     RSE-TGM/LegoPST)
 #   GITHUB_TOKEN      facoltativo: GitHub concede 60 interrogazioni l'ora a chi
 #                     non si presenta, e con un token il limite sparisce
+#   LG_DEMO_API       per uno specchio, o per le prove: l'indirizzo da cui
+#                     leggere la release (default: l'API di GitHub)
+#   LG_DEMO_DOWNLOAD  idem: l'indirizzo sotto cui stanno i legopst_<nome>.tgz
 
 set -o pipefail
 
 PROGRAMMA="$(basename "$0")"
 REPO_SLUG="${LG_DEMO_REPO:-RSE-TGM/LegoPST}"
 DEMO_RELEASE="${LG_DEMO_RELEASE:-demo-2.0}"
-API="https://api.github.com/repos/$REPO_SLUG/releases/tags/$DEMO_RELEASE"
+API="${LG_DEMO_API:-https://api.github.com/repos/$REPO_SLUG/releases/tags/$DEMO_RELEASE}"
+SCARICA_DA="${LG_DEMO_DOWNLOAD:-https://github.com/$REPO_SLUG/releases/download/$DEMO_RELEASE}"
+MACCHINA=false
+for a in "$@"; do [ "$a" = "--machine" ] && MACCHINA=true; done
 
-if [ -t 1 ]; then
+if [ -t 1 ] && ! $MACCHINA; then
     #  Colori che si leggono su fondo chiaro come su fondo scuro: il terminale
     #  in cui lghmi apre lgdemo e' spesso un xterm bianco, e li' il giallo
     #  non si vede. Gli avvisi sono in magenta, non in giallo.
@@ -83,7 +115,13 @@ else
     GREEN='' ; YELLOW='' ; RED='' ; NC=''
 fi
 
-muori() { echo -e "${RED}ERRORE:${NC} $*" >&2; exit 1; }
+#  Le righe per il programma che ci ha lanciato (MODO MACCHINA in testa).
+proto() { $MACCHINA && echo "LGDEMO $*"; return 0; }
+muori() {
+    $MACCHINA && echo "LGDEMO ERROR $(printf '%s' "$*" | head -1)"
+    echo -e "${RED}ERRORE:${NC} $*" >&2
+    exit 1
+}
 avviso() { echo -e "${YELLOW}ATTENZIONE:${NC} $*" >&2; }
 
 SOLO_LISTA=false
@@ -100,9 +138,10 @@ while [ $# -gt 0 ]; do
         --esito=*)  FILE_ESITO="${1#--esito=}" ;;
         --base)     BASE="${2:?$1 vuole una directory}"; shift ;;
         --base=*)   BASE="${1#--base=}" ;;
+        --machine)  ;;      # gia' letta sopra: serve prima dei colori
         -h|--help)  sed -n '3,/^[^#]/p' "$0" | sed -n 's/^# \{0,1\}//p'; exit 0 ;;
-        -*)         echo "$PROGRAMMA: opzione non riconosciuta: $1 (vedi -h)" >&2; exit 1 ;;
-        *)          [ -z "$NOME" ] || { echo "$PROGRAMMA: una demo alla volta (vedi -h)" >&2; exit 1; }
+        -*)         muori "opzione non riconosciuta: $1 (vedi -h)" ;;
+        *)          [ -z "$NOME" ] || muori "una demo alla volta (vedi -h)"
                     NOME="$1" ;;
     esac
     shift
@@ -132,15 +171,17 @@ if [ "$BASE" = "$(cd "$HOME" && pwd)" ]; then MOSTRA_BASE="~"; else MOSTRA_BASE=
 
 TMP=""          # file provvisori, fuori dalla base
 PROVV=""        # directory provvisoria di estrazione, DENTRO la base
+CURL_PID=""     # lo scaricamento in corso, nel modo macchina
 pulisci() {
+    [ -n "$CURL_PID" ] && kill "$CURL_PID" 2>/dev/null
     [ -n "$TMP" ] && rm -rf "$TMP"
     [ -n "$PROVV" ] && rm -rf "$PROVV"
 }
 trap pulisci EXIT
-trap 'echo; echo "$PROGRAMMA: interrotto." >&2; exit 130' INT TERM
+trap 'echo; proto ERROR "interrotto"; echo "$PROGRAMMA: interrotto." >&2; exit 130' INT TERM
 TMP="$(mktemp -d "${TMPDIR:-/tmp}/lgdemo.XXXXXX")" || muori "non riesco a creare una directory provvisoria."
 
-#  Le demo pubblicate, una per riga:  <nome>|<byte>|<sha256>
+#  Le demo pubblicate, una per riga:  <nome>|<byte>|<sha256>|<descrizione>
 #
 #  Si leggono dalla descrizione della release che da' GitHub. E' JSON, ma qui
 #  non lo si interpreta con python o jq, che su una installazione ridotta
@@ -148,11 +189,13 @@ TMP="$(mktemp -d "${TMPDIR:-/tmp}/lgdemo.XXXXXX")" || muori "non riesco a creare
 #  servono tre chiavi che arrivano sempre nello stesso ordine (name, size,
 #  digest, e in fondo browser_download_url che chiude l'allegato).
 #  Lo sha256 puo' mancare (allegati vecchi): in quel caso il campo resta vuoto.
+#  La descrizione e' l'etichetta (label) dell'allegato, che viene subito dopo
+#  il nome; senza etichetta GitHub scrive null, e il campo resta vuoto.
 #
 #  Ritorna 1 se la release non si riesce a leggere; il perche' lo dice su stderr.
 ELENCO=""
 leggi_elenco() {
-    local http riga nome="" byte="" sha=""
+    local http riga nome="" byte="" sha="" eti=""
     local -a intest=(-H "Accept: application/vnd.github+json")
     [ -n "${GITHUB_TOKEN:-}" ] && intest+=(-H "Authorization: Bearer $GITHUB_TOKEN")
     http="$(curl -sS --connect-timeout 15 --max-time 60 "${intest[@]}" \
@@ -168,13 +211,18 @@ leggi_elenco() {
     while IFS= read -r riga; do
         case "$riga" in
             *'"name": "legopst_'*'.tgz"'*)
-                nome="${riga#*\"name\": \"legopst_}"; nome="${nome%%.tgz\"*}"; byte=""; sha="" ;;
+                nome="${riga#*\"name\": \"legopst_}"; nome="${nome%%.tgz\"*}"; byte=""; sha=""; eti="" ;;
+            *'"label": "'*)
+                if [ -n "$nome" ]; then
+                    eti="${riga#*\"label\": \"}"; eti="${eti%\"*}"
+                    eti="${eti//\\\"/\"}"; eti="${eti//\\\\/\\}"; eti="${eti//|//}"
+                fi ;;
             *'"size": '*)
                 [ -n "$nome" ] && { byte="${riga#*\"size\": }"; byte="${byte%%[!0-9]*}"; } ;;
             *'"digest": "sha256:'*)
                 [ -n "$nome" ] && { sha="${riga#*\"digest\": \"sha256:}"; sha="${sha%%\"*}"; } ;;
             *'"browser_download_url": '*)
-                [ -n "$nome" ] && ELENCO+="$nome|$byte|$sha"$'\n'
+                [ -n "$nome" ] && ELENCO+="$nome|$byte|$sha|$eti"$'\n'
                 nome="" ;;
         esac
     done < "$TMP/rel.json"
@@ -190,18 +238,31 @@ dimensione() {      # $1 = byte -> "54M"
     fi
 }
 
-#  Stampa l'elenco numerato. Accanto a ogni demo dice se e' gia' installata.
+#  Lo stato di una demo nella base: current, installed o absent.
+stato_demo() {
+    local d="$BASE/legopst_$1"
+    if [ ! -e "$d" ]; then echo absent; return; fi
+    if [ -L "$BASE/legocad" ] && [ "$(readlink -f "$BASE/legocad")" = "$(readlink -f "$d/legocad")" ]; then
+        echo current
+    else
+        echo installed
+    fi
+}
+
+#  Stampa l'elenco numerato. Accanto a ogni demo dice se e' gia' installata,
+#  e sotto la sua descrizione.
 mostra_elenco() {
-    local n=0 nome byte sha nota
+    local n=0 nome byte sha eti nota
     echo "Demo pubblicate (release '$DEMO_RELEASE' di $REPO_SLUG):"
     echo ""
-    while IFS='|' read -r nome byte sha; do
+    while IFS='|' read -r nome byte sha eti; do
         [ -n "$nome" ] || continue
         n=$((n + 1))
         nota=""
         [ -e "$BASE/legopst_$nome" ] && nota="${YELLOW}gia' installata in $MOSTRA_BASE/legopst_$nome${NC}"
         printf '  %2d) %-20s %6s   ' "$n" "$nome" "$(dimensione "$byte")"
         echo -e "$nota"
+        [ -n "$eti" ] && printf '      %s\n' "$eti"
     done <<< "$ELENCO"
     echo ""
 }
@@ -216,6 +277,14 @@ fi
 if [ -z "$NOME" ] || $SOLO_LISTA; then
     $ELENCO_LETTO || muori "non riesco a leggere l'elenco delle demo: $(cat "$TMP/elenco.err")"
     [ -n "$ELENCO" ] || muori "la release '$DEMO_RELEASE' non ha nessun allegato legopst_<nome>.tgz."
+    if $MACCHINA; then
+        $SOLO_LISTA || muori "nel modo macchina la demo va indicata per nome."
+        proto BASE "$BASE"
+        while IFS='|' read -r nome byte sha eti; do
+            [ -n "$nome" ] && proto DEMO "$nome|$byte|$sha|$(stato_demo "$nome")|$eti"
+        done <<< "$ELENCO"
+        exit 0
+    fi
     mostra_elenco
     $SOLO_LISTA && exit 0
     [ -t 0 ] || muori "nessuna demo indicata e nessun terminale a cui chiederla: usa '$PROGRAMMA NOME'."
@@ -243,12 +312,13 @@ NOME="${NOME#legopst_}"
 
 DIR_DEMO="legopst_$NOME"
 DEST="$BASE/$DIR_DEMO"
-URL="https://github.com/$REPO_SLUG/releases/download/$DEMO_RELEASE/$DIR_DEMO.tgz"
+URL="$SCARICA_DA/$DIR_DEMO.tgz"
 BYTE="" ; SHA=""
 
 if $ELENCO_LETTO; then
     RIGA="$(printf '%s\n' "$ELENCO" | grep "^$NOME|" || true)"
     if [ -z "$RIGA" ]; then
+        proto ERROR "la demo '$NOME' non c'e' nella release '$DEMO_RELEASE'."
         echo -e "${RED}ERRORE:${NC} la demo '$NOME' non c'e' nella release '$DEMO_RELEASE'." >&2
         [ -n "$ELENCO" ] && { echo "" >&2; mostra_elenco >&2; }
         exit 1
@@ -289,11 +359,29 @@ fi
 # --- 3. scarico e controllo ---------------------------------------------------
 
 TGZ="$TMP/$DIR_DEMO.tgz"
+proto BASE "$BASE"
+proto PHASE download
 echo "Scarico $DIR_DEMO.tgz$([ -n "$BYTE" ] && echo " ($(dimensione "$BYTE"))")"
 echo "  $URL"
-BARRA="-sS" ; [ -t 2 ] && BARRA="-#"
-curl -fL $BARRA --retry 3 --connect-timeout 15 -o "$TGZ" "$URL" \
-    || muori "non riesco a scaricare la demo '$NOME' ($URL)."
+if $MACCHINA; then
+    #  Nessuna barra di curl: l'avanzamento lo si misura dalla dimensione del
+    #  file, e lo si dice con le righe PROGRESS.
+    curl -fL -sS --retry 3 --connect-timeout 15 -o "$TGZ" "$URL" 2>"$TMP/curl.err" &
+    CURL_PID=$!
+    while kill -0 "$CURL_PID" 2>/dev/null; do
+        proto PROGRESS "$(stat -c%s "$TGZ" 2>/dev/null || echo 0)" "${BYTE:-0}"
+        sleep 0.5
+    done
+    wait "$CURL_PID"; esito_curl=$?
+    CURL_PID=""
+    [ "$esito_curl" -eq 0 ] || muori "non riesco a scaricare la demo '$NOME' ($URL): $(head -1 "$TMP/curl.err" 2>/dev/null)"
+    proto PROGRESS "$(stat -c%s "$TGZ")" "${BYTE:-0}"
+else
+    BARRA="-sS" ; [ -t 2 ] && BARRA="-#"
+    curl -fL $BARRA --retry 3 --connect-timeout 15 -o "$TGZ" "$URL" \
+        || muori "non riesco a scaricare la demo '$NOME' ($URL)."
+fi
+proto PHASE check
 
 if [ -n "$SHA" ] && command -v sha256sum >/dev/null 2>&1; then
     SHA_SCARICATO="$(sha256sum "$TGZ" | cut -d' ' -f1)"
@@ -311,6 +399,7 @@ fi
 #  Nella base, non in /tmp: cosi' metterla al suo posto e' una rinomina sullo
 #  stesso disco, che o riesce tutta o non riesce.
 PROVV="$(mktemp -d "$BASE/.lgdemo.XXXXXX")" || muori "non riesco a creare una directory provvisoria in $BASE."
+proto PHASE extract
 echo "Estraggo..."
 #  --no-same-owner: i file sono di chi installa, non di chi ha confezionato.
 tar --no-same-owner -xzf "$TGZ" -C "$PROVV" || muori "il pacchetto non si estrae (disco pieno? file rovinato?)."
@@ -380,7 +469,9 @@ allinea_demo_alla_home() {
     return 0
 }
 #  LC_ALL=C: quei file non sono UTF-8, e vanno trattati byte per byte.
+proto PHASE align
 ( export LC_ALL=C; allinea_demo_alla_home "$PROVV/$DIR_DEMO" )
+proto PHASE install
 
 # --- 5. la metto al suo posto -------------------------------------------------
 
@@ -407,7 +498,7 @@ echo "  simulatori:  $(ls "$DEST/sked" 2>/dev/null | tr '\n' ' ')"
 echo ""
 if [ -L "$BASE/legocad" ] && [ "$(readlink -f "$BASE/legocad")" = "$(readlink -f "$DEST/legocad")" ]; then
     echo "$MOSTRA_BASE/legocad e $MOSTRA_BASE/sked puntano gia' a questa area: e' pronta."
-elif [ -n "$FILE_ESITO" ]; then
+elif [ -n "$FILE_ESITO" ] || $MACCHINA; then
     echo "Il programma che ha lanciato lgdemo passa ora a questa area."
 else
     echo "Per lavorarci, punta legocad e sked a questa area:"
@@ -416,4 +507,5 @@ fi
 [ -n "${DA_PARTE:-}" ] && echo "Quando sei sicuro di non volerla piu':  rm -rf $DA_PARTE"
 #  Per ultimo, a cose fatte: chi aspetta questo file lo prende per "installata".
 [ -n "$FILE_ESITO" ] && { printf '%s\n' "$DIR_DEMO" > "$FILE_ESITO" || true; }
+proto DONE "$DIR_DEMO" "$DEST"
 exit 0

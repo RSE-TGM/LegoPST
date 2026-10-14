@@ -318,6 +318,7 @@ backup|legocad.prelink-20260916-180429        # copie di sicurezza
 | `lgdemo -l` | elenca soltanto |
 | `lgdemo -y <nome>` | non chiede conferma se la demo c'è già |
 | `lgdemo --esito <file> …` | a installazione riuscita scrive in `<file>` il nome dell'area: per chi lo lancia da un programma |
+| `lgdemo --machine …` | uscita per un programma: righe `LGDEMO ...` con elenco, fasi, avanzamento ed esito, niente domande (la usa `lghmi`; il formato è in `lgdemo -h`) |
 | `lgdemo --base <dir> …` | installa in `<dir>` invece che nella base ricavata dai link |
 | `lgdemo -h` | aiuto |
 
@@ -342,13 +343,16 @@ pacchetto rovinato lasciano tutto com'era.
 `lgdemo` non tocca i link `legocad` e `sked`: dopo l'installazione si passa
 alla demo con `cd <base> ; lgswitch legopst_<nome>` (in nativo `cd ~`).
 
-Lo stesso comando si lancia da `lghmi`, *File → Install demo...*: apre `lgdemo`
-in un terminale e, **a installazione riuscita, `lghmi` passa da solo all'area
-appena installata** (gli stessi controlli di *File → Work area*: se qualcosa
+Ogni demo ha una **descrizione**, che `lgdemo` mostra sotto il nome: è
+l'etichetta dell'allegato sulla release, scritta da `publish_demo.sh` dalla riga
+`DESCRIZIONE=` del `demo_<nome>.conf`.
+
+Le stesse cose si fanno da `lghmi`, *File → Install demo...*, in una finestra:
+elenco con descrizione e stato, barra di avanzamento, dettagli a richiesta. **A
+installazione riuscita `lghmi` passa da solo all'area appena installata** (gli stessi controlli di *File → Work area*: se qualcosa
 lavora ancora sull'area corrente lo dice e non commuta). Per questo `lghmi`
-lancia `lgdemo --esito <file> --base <aree>`: a cose fatte `lgdemo` scrive nel
-file il nome dell'area, e la installa dove `lghmi` la cercherà, anche nel
-container.
+lancia `lgdemo --machine --base <aree>`: ne legge l'avanzamento e l'esito, e la
+demo finisce dove `lghmi` la cercherà, anche nel container.
 
 ---
 
