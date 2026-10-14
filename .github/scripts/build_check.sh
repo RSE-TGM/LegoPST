@@ -29,6 +29,17 @@ BASE_FILE="$RADICE/.github/build_warnings_baseline"
 echo "Radice:  $RADICE"
 echo "Log:     $LOG"
 
+# Tutti i file con la STESSA data. Il checkout di GitHub scrive i file in un
+# ordine qualunque, con la data del momento: un prodotto tracciato in git
+# (regopatch.jar, un eseguibile costruito direttamente da un .c) puo' cosi'
+# risultare piu' vecchio del suo sorgente, e make prova a rifarlo. Il build
+# cambiava da una run all'altra: una volta si fermava su javac (che
+# nell'immagine non c'e'), un'altra contava 19 warning in piu'. Con le date
+# uguali si compila quello che dipende dai .o - cancellati qui sotto, quindi
+# tutto il codice C e Fortran delle librerie e dei programmi - e il risultato
+# e' sempre lo stesso, come sulle macchine di sviluppo.
+ORA=$(date +%s)
+find . -path ./.git -prune -o -print0 | xargs -0 touch -h -d "@$ORA"
 find . -path ./.git -prune -o -name '*.o' -type f -print0 | xargs -0 rm -f
 # shellcheck disable=SC1091
 source ./.profile_legoroot >/dev/null 2>&1
@@ -55,6 +66,14 @@ if [ "$RC" -ne 0 ] || [ "$ERRORI" -ne 0 ]; then
     echo ""
     echo "ERRORE: la compilazione non e' andata a buon fine. Primi errori:"
     grep -a -B2 ' error:\|\*\*\* ' "$LOG" | head -40
+    # Su GitHub i primi errori diventano annotazioni della run: si vedono in
+    # cima alla pagina, e si leggono anche dall'API pubblica, senza dover
+    # scaricare il log (che richiede di essere autenticati).
+    if [ -n "${GITHUB_ACTIONS:-}" ]; then
+        grep -a ' error:\|\*\*\* ' "$LOG" | head -10 | while IFS= read -r riga; do
+            echo "::error::${riga//%/%25}"
+        done
+    fi
     ESITO=1
 elif [ "$WARNING" -gt "$BASE" ]; then
     echo ""
@@ -65,5 +84,23 @@ elif [ "$WARNING" -lt "$BASE" ]; then
     echo ""
     echo "I warning sono scesi da $BASE a $WARNING: aggiornare la soglia con"
     echo "    echo $WARNING > .github/build_warnings_baseline"
+fi
+# Il riepilogo nella pagina della run (GitHub Actions)
+if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
+    {
+        echo "### Build da zero"
+        echo ""
+        echo "| make | errori | warning | soglia |"
+        echo "|---|---|---|---|"
+        echo "| uscita $RC | $ERRORI | $WARNING | $BASE |"
+        echo ""
+        echo '```'
+        grep -aoE '\[-W[a-z0-9=-]+\]' "$LOG" | sort | uniq -c | sort -rn | head -12
+        if [ "$ESITO" -eq 1 ]; then
+            echo ""
+            grep -a -B2 ' error:\|\*\*\* ' "$LOG" | head -40
+        fi
+        echo '```'
+    } >> "$GITHUB_STEP_SUMMARY"
 fi
 exit $ESITO
