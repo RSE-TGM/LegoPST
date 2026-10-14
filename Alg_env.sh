@@ -480,8 +480,6 @@ lg_pick LG_XTERM      xterm konsole gnome-terminal xfce4-terminal tilix lxtermin
 
 unset -f lg_pick
 #  ---------------------------------------------------------------------------
-export PATH=$LG_BASE/tcltktix/bin:$PATH
-export LD_LIBRARY_PATH=$LG_BASE/tcltktix/lib:$LD_LIBRARY_PATH
 # lgpc0 rimosso (2026-08-02): lanciava la legopc originale da $LG_BASE/bin_old,
 # che veniva generata da src/tix_old. Quel sorgente e' obsoleto ed e' stato
 # escluso dal build (Alg_legopc/Makefile.mk), quindi bin_old non e' piu'
@@ -492,8 +490,12 @@ export LD_LIBRARY_PATH=$LG_BASE/tcltktix/lib:$LD_LIBRARY_PATH
 # interattive. L'alias va tolto anche da una shell che lo avesse gia' - chi
 # risorgia il profilo con lgini/lggo - altrimenti vincerebbe lui sul comando.
 unalias lgpc 2>/dev/null || true
-export LG_WISH=$LEGOROOT/tcltktix-8.3.5b/tcltktix/bin/wish
-alias lgpcu='$LG_WISH $LG_TIX/legopc.tix'
+# lgpcu e LG_WISH rimossi (2026-10): lanciavano legopc con il Tcl/Tk/Tix 8.3
+# di tcltktix-8.3.5b, compilato a 32 bit e da tempo non piu' eseguibile; la
+# directory e' stata tolta dal repository. Si usa il wish di sistema (lgpc).
+# L'alias va tolto anche da una shell che lo avesse gia' (lgini/lggo).
+unalias lgpcu 2>/dev/null || true
+unset LG_WISH
 lgpc2() {
   wish $LG_TIX/legopc.tix
 #  /percorso/completo/al/programma --con --opzioni "$@"

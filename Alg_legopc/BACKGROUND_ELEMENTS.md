@@ -67,8 +67,7 @@ Un file `*.lib` qualsiasi nella directory basta: il browser di legopc
 - Serve **solo** l'orientamento `n` (nord): niente `e/s/w`.
 - Il file dev'essere un **GIF (o PNG) vero**, non solo di nome: rinominare un
   `.jpg` in `.gif` **non funziona**. Tk 8.6 legge GIF, PNG e PPM/PGM; il JPEG
-  richiederebbe il pacchetto `Img`, che non è installato né incluso nel runtime
-  `tcltktix` del progetto. Per convertire:
+  richiederebbe il pacchetto `Img`, che non è installato. Per convertire:
 
   ```bash
   ffmpeg -i immagine.jpg "$LG_LIBRARIES/background/@logo_0n.gif"

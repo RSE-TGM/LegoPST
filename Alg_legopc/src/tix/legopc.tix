@@ -1385,7 +1385,7 @@ set pal [$pal0.canv subwidget window]
 	#  apriva affatto. Ora li scartiamo qui: la palette si costruisce con gli altri
 	#  e alla fine un unico messaggio dice quali file e perche'.
 	#  Tk 8.6 legge GIF, PNG e PPM/PGM; il JPEG richiederebbe il pacchetto Img,
-	#  non installato ne' incluso nel runtime tcltktix del progetto.
+	#  che non e' installato.
 	set _bg_scartati {}
 	set _bg_buoni {}
 	foreach item $items {

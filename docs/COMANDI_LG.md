@@ -118,10 +118,9 @@ Dettagli su immagine, build e installazione: [../docker/README_INSTALLER.md](../
 | Comando | Tipo | Scopo |
 |---|---|---|
 | `lgpc` | script | **Lancia il CAD grafico** `legopc.tix`: disegno degli schemi, librerie di moduli, generazione dei `.i5`/`.tom`. Imposta `LG_TIX=$LG_BIN` per legopc, quindi usa sempre la versione corrente in `Alg_legopc/bin`. È il comando normale. Sta in `Alg_rt/bin/lgpc` e, come `lghmi`, sorgia il profilo da sé se manca: si può chiamare anche da uno script, da un menu, da una shell non interattiva, da `lgrun -e lgpc` / `lgrun lgpc`. |
-| `lgpcu` | alias | Lo stesso CAD ma con il **wish "ultimo"** (`$LG_WISH`, in `tcltktix-8.3.5b/`) invece di quello di sistema. Serve solo quando il wish di sistema dà problemi con Tix. |
 | `lgpc2` | func | Lancia `wish $LG_TIX/legopc.tix` **senza reimpostare `LG_TIX`**: rispetta un `LG_TIX` già esportato a mano. L'uso previsto non è documentato da nessuna parte. Attenzione: essendo una funzione senza `"$@"`, **ignora gli argomenti** — `lgpc2 <modello>` apre legopc vuoto. |
 
-**Aprire subito un modello.** `lgpc` e `lgpcu` accettano **un** argomento, il
+**Aprire subito un modello.** `lgpc` accetta **un** argomento, il
 nome del modello (cioè della task):
 
 ```sh
