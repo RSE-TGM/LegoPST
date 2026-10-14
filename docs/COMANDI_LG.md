@@ -309,33 +309,46 @@ backup|legocad.prelink-20260916-180429        # copie di sicurezza
 
 | Comando | Tipo | Scopo |
 |---|---|---|
-| `lgdemo` | script | **Scarica e installa nella home una demo**, cioè un'area di lavoro già pronta `~/legopst_<nome>`. Le demo sono gli allegati `legopst_<nome>.tgz` della release *Demo LegoPST 2.0* (tag `demo-2.0`) del repository GitHub, le stesse che `lgrun -d <nome>` installa nel container; le pubblica `demo/publish_demo.sh`. |
+| `lgdemo` | script | **Scarica e installa una demo fra le aree di lavoro**, cioè un'area già pronta `legopst_<nome>` (in nativo `~/legopst_<nome>`). Le demo sono gli allegati `legopst_<nome>.tgz` della release *Demo LegoPST 2.0* (tag `demo-2.0`) del repository GitHub, le stesse che `lgrun -d <nome>` installa nel container; le pubblica `demo/publish_demo.sh`. |
 
 | Invocazione | Effetto |
 |---|---|
 | `lgdemo` | elenca le demo pubblicate, segnando quelle già installate, e chiede quale installare |
-| `lgdemo <nome>` | installa la demo `<nome>` in `~/legopst_<nome>` |
+| `lgdemo <nome>` | installa la demo `<nome>` in `<base>/legopst_<nome>` |
 | `lgdemo -l` | elenca soltanto |
 | `lgdemo -y <nome>` | non chiede conferma se la demo c'è già |
 | `lgdemo --esito <file> …` | a installazione riuscita scrive in `<file>` il nome dell'area: per chi lo lancia da un programma |
+| `lgdemo --base <dir> …` | installa in `<dir>` invece che nella base ricavata dai link |
 | `lgdemo -h` | aiuto |
 
-Se `~/legopst_<nome>` **esiste già** lo segnala e chiede conferma. Confermando,
+**Dove installa.** Nella directory delle **aree di lavoro**, quella in cui
+stanno le `legopst_*` e i link `legocad`/`sked` che `lgswitch` sposta. In
+nativo è la home. Nel container di `lgrun` no: la home del container è
+effimera e le aree stanno nella home dell'host, montata come `/host_home`
+(`~/legocad → /host_home/legocad → legopst_<area>/legocad`). Senza `--base`,
+`lgdemo` la ricava seguendo i link da `~/legocad` fino all'ultimo: la base è la
+directory che lo contiene, o la home se `~/legocad` non è un link. È la stessa
+regola di `lghmi`, che la passa con `--base`. Fino a ottobre 2026 `lgdemo`
+installava sempre in `$HOME`: nel container la demo spariva all'uscita, e
+`lghmi` non la trovava fra le aree.
+
+Se `<base>/legopst_<nome>` **esiste già** lo segnala e chiede conferma. Confermando,
 quella che c'è non viene cancellata: è messa da parte come
-`~/old.legopst_<nome>.<data>-<ora>` e la demo nuova prende il suo posto. Il
+`<base>/old.legopst_<nome>.<data>-<ora>` e la demo nuova prende il suo posto. Il
 pacchetto è scaricato, confrontato con lo sha256 pubblicato ed estratto in una
-directory provvisoria *prima* di toccare la home, quindi un errore di rete o un
+directory provvisoria *prima* di toccare quella che c'è, quindi un errore di rete o un
 pacchetto rovinato lasciano tutto com'era.
 
-`lgdemo` non tocca i link `~/legocad` e `~/sked`: dopo l'installazione si passa
-alla demo con `cd ~ ; lgswitch legopst_<nome>`.
+`lgdemo` non tocca i link `legocad` e `sked`: dopo l'installazione si passa
+alla demo con `cd <base> ; lgswitch legopst_<nome>` (in nativo `cd ~`).
 
 Lo stesso comando si lancia da `lghmi`, *File → Install demo...*: apre `lgdemo`
 in un terminale e, **a installazione riuscita, `lghmi` passa da solo all'area
 appena installata** (gli stessi controlli di *File → Work area*: se qualcosa
 lavora ancora sull'area corrente lo dice e non commuta). Per questo `lghmi`
-lancia `lgdemo --esito <file>`, che a cose fatte scrive nel file il nome
-dell'area.
+lancia `lgdemo --esito <file> --base <aree>`: a cose fatte `lgdemo` scrive nel
+file il nome dell'area, e la installa dove `lghmi` la cercherà, anche nel
+container.
 
 ---
 

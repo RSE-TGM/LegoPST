@@ -549,8 +549,15 @@ la fine del terminale, che resta aperto finché non si preme Invio.
 > **Il terminale parte dalla HOME**, non dalla directory di `lghmi`. Quella sta
 > dentro l'area corrente (è la directory del simulatore), e un terminale aperto
 > lì risulta «al lavoro» sull'area: restando in attesa di Invio, era lui a
-> bloccare la commutazione che doveva provocare. `lgdemo` lavora comunque sulla
-> HOME.
+> bloccare la commutazione che doveva provocare. `lgdemo` installa comunque
+> nella directory delle aree, che `lghmi` gli passa con `--base`.
+
+**Dove finisce la demo.** `lghmi` passa a `lgdemo` la directory delle aree di
+lavoro (`base_aree`, la stessa in cui *Work area* le cerca), con `--base`. In
+nativo è la home; nel container di `lgrun` è `/host_home`, la home dell'host.
+Prima `lgdemo` installava sempre in `$HOME`, che nel container è effimera: la
+demo spariva all'uscita, e `lghmi` non la trovava fra le aree per passarci.
+La voce quindi resta attiva anche nel container. Nel bundle FMU non c'è.
 
 La voce è spenta con [`-insim`](#lanciato-dal-banco--lopzione--insim) e non
 compare dove `lgdemo` non c'è (il bundle FMU). Codice: `installa_demo`,

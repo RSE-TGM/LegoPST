@@ -1186,7 +1186,7 @@ proc comando_lgdemo {} {
     return [expr {$c ne "" ? [lindex $c 0] : ""}]
 }
 
-#  File -> Install demo: lgdemo in un terminale, senza argomenti, cosi' elenca
+#  File -> Install demo: lgdemo in un terminale, senza nome di demo, cosi' elenca
 #  le demo pubblicate e chiede quale installare.
 #
 #  In un terminale e non in un dialogo di lghmi perche' lgdemo fa domande (quale
@@ -1208,8 +1208,17 @@ proc installa_demo {} {
         tk_messageBox -icon error -title "Install demo" -parent . -message "lgdemo not found."
         return
     }
+    #  Dove installare: la directory delle aree di lavoro, la stessa in cui
+    #  cambia_area cerchera' poi la demo. Di solito e' la home, ma nel container
+    #  di lgrun no: la' la home e' effimera e le aree stanno in /host_home, e
+    #  lgdemo che installava in $HOME perdeva la demo all'uscita, oltre a
+    #  metterla dove lghmi non la trovava. Se la base non si ricava, decide
+    #  lgdemo con la stessa regola.
+    set argomenti [list --esito $esito]
+    lassign [base_aree] base _
+    if {$base ne ""} { lappend argomenti --base $base }
     if {[auto_execok lgterm] ne ""} {
-        set cmd [list lgterm -t "lgdemo - install a LegoPST demo" -g 100x30 -H -- $lgdemo --esito $esito]
+        set cmd [list lgterm -t "lgdemo - install a LegoPST demo" -g 100x30 -H -- $lgdemo {*}$argomenti]
     } else {
         set t [expr {[info exists env(LG_XTERM)] && $env(LG_XTERM) ne "" ? $env(LG_XTERM) : "xterm"}]
         if {[auto_execok $t] eq ""} {
@@ -1217,13 +1226,13 @@ proc installa_demo {} {
                 "No terminal found ('$t' is not installed).\nRun 'lgdemo' from a shell instead."
             return
         }
-        set cmd [list $t -e sh -c "[list $lgdemo --esito $esito]; printf '\\nPress Enter to close '; read x"]
+        set cmd [list $t -e sh -c "[list $lgdemo {*}$argomenti]; printf '\\nPress Enter to close '; read x"]
     }
     #  Il terminale parte dalla HOME, non dalla directory di lghmi: quella sta
     #  dentro l'area corrente (il simulatore), e il terminale - che con -H
     #  resta aperto ad aspettare Invio - risulterebbe "al lavoro" sull'area
     #  proprio quando cambia_area controlla chi la usa ancora. Bloccava lui
-    #  la commutazione che doveva provocare. lgdemo lavora comunque sulla HOME.
+    #  la commutazione che doveva provocare. lgdemo installa in $base, non qui.
     set qui [pwd]
     catch {cd $env(HOME)}
     set fallito [catch {exec {*}$cmd &} err]

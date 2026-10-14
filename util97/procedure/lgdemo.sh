@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# lgdemo - scarica e installa nella home una demo di LegoPST.
+# lgdemo - scarica e installa una demo di LegoPST fra le aree di lavoro.
 #
 # Le demo sono aree di lavoro gia' pronte (una directory legopst_<nome> con
 # dentro legocad e sked) pubblicate come allegati legopst_<nome>.tgz della
@@ -11,7 +11,7 @@
 #   uso:  lgdemo [opzioni] [NOME]
 #
 #     lgdemo            elenca le demo pubblicate e chiede quale installare
-#     lgdemo NOME       installa la demo NOME in ~/legopst_NOME
+#     lgdemo NOME       installa la demo NOME in <base>/legopst_NOME
 #                       (va bene anche legopst_NOME o legopst_NOME.tgz)
 #
 #     -l, --list        elenca le demo pubblicate ed esce, senza chiedere niente
@@ -19,7 +19,25 @@
 #         --esito FILE  a installazione riuscita scrive in FILE il nome
 #                       dell'area (legopst_NOME). Serve a chi lancia lgdemo
 #                       da un programma: lghmi lo usa per passare alla demo
+#         --base DIR    la directory delle aree di lavoro, dove installare.
+#                       Senza, la si ricava dai link (vedi DOVE SI INSTALLA)
 #     -h, --help        questo aiuto
+#
+# DOVE SI INSTALLA
+#
+#   Nella directory delle AREE DI LAVORO, quella che contiene le legopst_* e
+#   in cui stanno i link legocad e sked che lgswitch sposta. Su una
+#   installazione nativa e' la home. Nel container di lgrun no: la home del
+#   container e' effimera (sparisce all'uscita) e le aree stanno nella home
+#   dell'host, montata come /host_home, raggiunta da ~/legocad ->
+#   /host_home/legocad -> legopst_<area>/legocad. Installare in $HOME voleva
+#   dire perdere la demo all'uscita, e lghmi non la trovava fra le aree.
+#
+#   Senza --base la si ricava cosi': si seguono i link a partire da
+#   ~/legocad fino all'ULTIMO link (quello che punta alla directory vera), e
+#   la base e' la directory che lo contiene. E' la regola di lghmi
+#   (base_aree), che la passa con --base. Se ~/legocad non e' un link, la
+#   base e' la home.
 #
 # SE LA DEMO C'E' GIA'
 #
@@ -37,8 +55,8 @@
 #
 # DOPO L'INSTALLAZIONE
 #
-#   lgdemo non tocca i link ~/legocad e ~/sked. Per lavorare sulla demo:
-#       cd ~ ; lgswitch legopst_<nome>
+#   lgdemo non tocca i link legocad e sked. Per lavorare sulla demo:
+#       cd <base> ; lgswitch legopst_<nome>
 #
 # VARIABILI D'AMBIENTE
 #
@@ -72,6 +90,7 @@ SOLO_LISTA=false
 SENZA_CONFERMA=false
 NOME=""
 FILE_ESITO=""
+BASE=""
 
 while [ $# -gt 0 ]; do
     case "$1" in
@@ -79,6 +98,8 @@ while [ $# -gt 0 ]; do
         -y|--yes)   SENZA_CONFERMA=true ;;
         --esito)    FILE_ESITO="${2:?$1 vuole il nome del file}"; shift ;;
         --esito=*)  FILE_ESITO="${1#--esito=}" ;;
+        --base)     BASE="${2:?$1 vuole una directory}"; shift ;;
+        --base=*)   BASE="${1#--base=}" ;;
         -h|--help)  sed -n '3,/^[^#]/p' "$0" | sed -n 's/^# \{0,1\}//p'; exit 0 ;;
         -*)         echo "$PROGRAMMA: opzione non riconosciuta: $1 (vedi -h)" >&2; exit 1 ;;
         *)          [ -z "$NOME" ] || { echo "$PROGRAMMA: una demo alla volta (vedi -h)" >&2; exit 1; }
@@ -88,10 +109,29 @@ while [ $# -gt 0 ]; do
 done
 
 command -v curl >/dev/null 2>&1 || muori "serve 'curl' per scaricare le demo."
-[ -n "${HOME:-}" ] && [ -d "$HOME" ] && [ -w "$HOME" ] || muori "la home ('${HOME:-}') non c'e' o non e' scrivibile."
+[ -n "${HOME:-}" ] && [ -d "$HOME" ] || muori "la home ('${HOME:-}') non c'e'."
 
-TMP=""          # file provvisori, fuori dalla home
-PROVV=""        # directory provvisoria di estrazione, DENTRO la home
+#  La directory delle aree di lavoro (vedi DOVE SI INSTALLA in testa).
+base_aree() {
+    local p="$HOME/legocad" t d i
+    for i in 1 2 3 4 5 6 7 8; do
+        [ -L "$p" ] || break
+        t="$(readlink "$p")" || break
+        case "$t" in /*) d="$t" ;; *) d="$(dirname "$p")/$t" ;; esac
+        [ -L "$d" ] || break
+        p="$d"
+    done
+    (cd "$(dirname "$p")" 2>/dev/null && pwd) || echo "$HOME"
+}
+[ -n "$BASE" ] || BASE="$(base_aree)"
+[ -d "$BASE" ] || muori "la directory delle aree di lavoro ('$BASE') non c'e'."
+BASE="$(cd "$BASE" && pwd)"
+[ -w "$BASE" ] || muori "la directory delle aree di lavoro ('$BASE') non e' scrivibile."
+#  Come la si mostra: "~" se e' la home, se no per intero
+if [ "$BASE" = "$(cd "$HOME" && pwd)" ]; then MOSTRA_BASE="~"; else MOSTRA_BASE="$BASE"; fi
+
+TMP=""          # file provvisori, fuori dalla base
+PROVV=""        # directory provvisoria di estrazione, DENTRO la base
 pulisci() {
     [ -n "$TMP" ] && rm -rf "$TMP"
     [ -n "$PROVV" ] && rm -rf "$PROVV"
@@ -150,7 +190,7 @@ dimensione() {      # $1 = byte -> "54M"
     fi
 }
 
-#  Stampa l'elenco numerato. Accanto a ogni demo dice se e' gia' nella home.
+#  Stampa l'elenco numerato. Accanto a ogni demo dice se e' gia' installata.
 mostra_elenco() {
     local n=0 nome byte sha nota
     echo "Demo pubblicate (release '$DEMO_RELEASE' di $REPO_SLUG):"
@@ -159,7 +199,7 @@ mostra_elenco() {
         [ -n "$nome" ] || continue
         n=$((n + 1))
         nota=""
-        [ -e "$HOME/legopst_$nome" ] && nota="${YELLOW}gia' installata in ~/legopst_$nome${NC}"
+        [ -e "$BASE/legopst_$nome" ] && nota="${YELLOW}gia' installata in $MOSTRA_BASE/legopst_$nome${NC}"
         printf '  %2d) %-20s %6s   ' "$n" "$nome" "$(dimensione "$byte")"
         echo -e "$nota"
     done <<< "$ELENCO"
@@ -202,7 +242,7 @@ NOME="${NOME#legopst_}"
 [[ "$NOME" =~ ^[A-Za-z0-9_][A-Za-z0-9_-]*$ ]] || muori "nome di demo non valido: '$NOME' (lettere, cifre, _ e -)."
 
 DIR_DEMO="legopst_$NOME"
-DEST="$HOME/$DIR_DEMO"
+DEST="$BASE/$DIR_DEMO"
 URL="https://github.com/$REPO_SLUG/releases/download/$DEMO_RELEASE/$DIR_DEMO.tgz"
 BYTE="" ; SHA=""
 
@@ -230,12 +270,12 @@ if [ -e "$DEST" ] || [ -L "$DEST" ]; then
         echo "  occupa $(du -sh "$DEST" 2>/dev/null | cut -f1), ultima modifica $(date -r "$DEST" '+%Y-%m-%d %H:%M' 2>/dev/null)"
     fi
     for l in legocad sked; do
-        if [ -L "$HOME/$l" ] && [ "$(readlink "$HOME/$l")" = "$DIR_DEMO/$l" -o "$(readlink "$HOME/$l")" = "$DEST/$l" ]; then
-            echo "  ~/$l punta li': e' l'area di lavoro in uso."
+        if [ -L "$BASE/$l" ] && [ "$(readlink "$BASE/$l")" = "$DIR_DEMO/$l" -o "$(readlink "$BASE/$l")" = "$DEST/$l" ]; then
+            echo "  $MOSTRA_BASE/$l punta li': e' l'area di lavoro in uso."
         fi
     done
     echo "  Se la installo di nuovo, quella che c'e' viene messa da parte (non cancellata)"
-    echo "  come ~/old.$DIR_DEMO.<data>-<ora>, e la demo appena scaricata prende il suo posto."
+    echo "  come $MOSTRA_BASE/old.$DIR_DEMO.<data>-<ora>, e la demo appena scaricata prende il suo posto."
     if ! $SENZA_CONFERMA; then
         [ -t 0 ] || muori "la demo c'e' gia' e non c'e' un terminale a cui chiedere conferma: usa -y per installarla comunque."
         read -r -p "La installo comunque? [s/N]: " RISPOSTA || { echo; exit 0; }
@@ -268,9 +308,9 @@ fi
 
 # --- 4. estraggo in una directory provvisoria ---------------------------------
 
-#  Nella home, non in /tmp: cosi' metterla al suo posto e' una rinomina sullo
+#  Nella base, non in /tmp: cosi' metterla al suo posto e' una rinomina sullo
 #  stesso disco, che o riesce tutta o non riesce.
-PROVV="$(mktemp -d "$HOME/.lgdemo.XXXXXX")" || muori "non riesco a creare una directory provvisoria nella home."
+PROVV="$(mktemp -d "$BASE/.lgdemo.XXXXXX")" || muori "non riesco a creare una directory provvisoria in $BASE."
 echo "Estraggo..."
 #  --no-same-owner: i file sono di chi installa, non di chi ha confezionato.
 tar --no-same-owner -xzf "$TGZ" -C "$PROVV" || muori "il pacchetto non si estrae (disco pieno? file rovinato?)."
@@ -294,6 +334,10 @@ ALTRO="$(ls -A "$PROVV" | grep -v -x "$DIR_DEMO" || true)"
 #  corrente: testo in pochi file, niente da ricompilare. La home d'origine non
 #  si indovina, si legge dalla riga "*simulator: <home>/sked/<simulatore>".
 #  E' lo stesso lavoro che fa lgdock (allinea_demo_alla_home) nel container.
+#
+#  La home nuova e' $HOME anche quando la base e' un'altra (nel container,
+#  /host_home): kGlobContext scrive $HOME/sked/..., e $HOME/sked porta all'area
+#  corrente attraverso i link, li' come in una installazione nativa.
 #
 #  kMmi.cfg: ogni riga porta al quinto campo l'utente di chi l'ha scritta, e
 #  kMmi mostra solo le righe dell'utente corrente. Si riscrive l'utente.
@@ -341,10 +385,10 @@ allinea_demo_alla_home() {
 # --- 5. la metto al suo posto -------------------------------------------------
 
 if [ -e "$DEST" ] || [ -L "$DEST" ]; then
-    DA_PARTE="$HOME/old.$DIR_DEMO.$(date +%Y%m%d-%H%M%S)"
+    DA_PARTE="$BASE/old.$DIR_DEMO.$(date +%Y%m%d-%H%M%S)"
     n=2
     while [ -e "$DA_PARTE" ]; do
-        DA_PARTE="$HOME/old.$DIR_DEMO.$(date +%Y%m%d-%H%M%S)_$n"; n=$((n + 1))
+        DA_PARTE="$BASE/old.$DIR_DEMO.$(date +%Y%m%d-%H%M%S)_$n"; n=$((n + 1))
     done
     mv "$DEST" "$DA_PARTE" || muori "non riesco a mettere da parte $DEST: non ho toccato niente."
     echo "Quella che c'era e' stata messa da parte: $DA_PARTE"
@@ -361,13 +405,13 @@ echo -e "${GREEN}Demo '$NOME' installata in $DEST${NC} ($(du -sh "$DEST" 2>/dev/
 echo "  modelli:     $(ls "$DEST/legocad" 2>/dev/null | wc -l) voci in legocad/"
 echo "  simulatori:  $(ls "$DEST/sked" 2>/dev/null | tr '\n' ' ')"
 echo ""
-if [ -L "$HOME/legocad" ] && [ "$(readlink -f "$HOME/legocad")" = "$(readlink -f "$DEST/legocad")" ]; then
-    echo "~/legocad e ~/sked puntano gia' a questa area: e' pronta."
+if [ -L "$BASE/legocad" ] && [ "$(readlink -f "$BASE/legocad")" = "$(readlink -f "$DEST/legocad")" ]; then
+    echo "$MOSTRA_BASE/legocad e $MOSTRA_BASE/sked puntano gia' a questa area: e' pronta."
 elif [ -n "$FILE_ESITO" ]; then
     echo "Il programma che ha lanciato lgdemo passa ora a questa area."
 else
-    echo "Per lavorarci, punta ~/legocad e ~/sked a questa area:"
-    echo "    cd ~ ; lgswitch $DIR_DEMO"
+    echo "Per lavorarci, punta legocad e sked a questa area:"
+    echo "    cd $MOSTRA_BASE ; lgswitch $DIR_DEMO"
 fi
 [ -n "${DA_PARTE:-}" ] && echo "Quando sei sicuro di non volerla piu':  rm -rf $DA_PARTE"
 #  Per ultimo, a cose fatte: chi aspetta questo file lo prende per "installata".
