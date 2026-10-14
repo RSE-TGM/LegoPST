@@ -42,6 +42,10 @@ url_demo() {    # $1 = nome della demo
     echo "https://github.com/${REPO_SLUG}/releases/download/${DEMO_RELEASE}/legopst_$1.tgz"
 }
 
+#  La descrizione della release, da cui si legge lo sha256 di ogni allegato
+#  (il campo "digest", che GitHub calcola da se' sul file caricato).
+DEMO_API="https://api.github.com/repos/${REPO_SLUG}/releases/tags/${DEMO_RELEASE}"
+
 url_installer() {
     if [ "$REPO_HOST" = "github.com" ]; then
         echo "https://raw.githubusercontent.com/${REPO_SLUG}/${REPO_BRANCH}/docker/install_legopst_dock.sh"
@@ -826,6 +830,42 @@ if [[ "RUN_DEMO_FLAG" == "true" ]]; then
                 rm -f "$DEMO_TGZ"
                 exit 1
             fi
+            # Lo sha256: quello che GitHub ha calcolato sull'allegato quando e'
+            # stato caricato (campo "digest" della release), contro quello del
+            # file arrivato. E' lo stesso controllo di lgdemo e del Dockerfile
+            # (che verifica la demo standard, quella nell'immagine: per lei qui
+            # non si scarica niente). Se la release non si legge (limite di 60
+            # interrogazioni l'ora di GitHub, o allegato senza digest) si
+            # prosegue con un avviso, come lgdemo; se si legge e non coincide,
+            # il pacchetto e' rovinato o non e' quello pubblicato: si butta.
+            # Il JSON di GitHub ha una chiave per riga: niente python o jq.
+            SHA_ATTESO=""
+            if curl -fsS --connect-timeout 15 --max-time 60 -o /tmp/lgdock_rel.json "DEMO_API_VAR" 2>/dev/null; then
+                SHA_ATTESO="$(awk -v n="\"name\": \"$DEMO_DIR.tgz\"" '
+                    index($0, n)                   { dentro = 1; next }
+                    dentro && /"digest": "sha256:/ { sub(/.*"digest": "sha256:/, ""); sub(/".*/, ""); print; exit }
+                    dentro && /"browser_download_url"/ { exit }' /tmp/lgdock_rel.json)"
+            fi
+            rm -f /tmp/lgdock_rel.json
+            if [ -z "$SHA_ATTESO" ]; then
+                echo "ATTENZIONE: sha256 di $DEMO_DIR.tgz non controllato (la release non"
+                echo "            si legge, o non pubblica lo sha256 di questo allegato)."
+                [ -n "$LGDOCK_LOG" ] && echo "LegoPST: ATTENZIONE, sha256 della demo non controllato" >&4
+            else
+                SHA_ARRIVATO="$(sha256sum "$DEMO_TGZ" | cut -d' ' -f1)"
+                if [ "$SHA_ARRIVATO" != "$SHA_ATTESO" ]; then
+                    echo ""
+                    echo "ERRORE: lo sha256 della demo scaricata non e' quello pubblicato."
+                    echo "        pubblicato: $SHA_ATTESO"
+                    echo "        scaricato:  $SHA_ARRIVATO"
+                    echo "        Il file e' arrivato rovinato, o e' stato sostituito mentre"
+                    echo "        lo scaricavo: riprova. Non ho installato niente."
+                    [ -n "$LGDOCK_LOG" ] && echo "LegoPST: ERRORE, sha256 della demo diverso da quello pubblicato" >&4
+                    rm -f "$DEMO_TGZ"
+                    exit 1
+                fi
+                echo "sha256 corretto: $SHA_ARRIVATO"
+            fi
         fi
         # --no-same-owner: NON ripristinare l'UID registrato nel tarball (che e'
         # 1000, l'UID di chi ha confezionato la demo). Estraendo da root, senza
@@ -1120,6 +1160,7 @@ CONTAINER_SCRIPT="${CONTAINER_SCRIPT//RUN_DEMO_FLAG/$RUN_DEMO}"
 CONTAINER_SCRIPT="${CONTAINER_SCRIPT//DEMO_NOME_VAR/$DEMO_NOME}"
 CONTAINER_SCRIPT="${CONTAINER_SCRIPT//DEMO_ESPLICITA_VAR/$DEMO_ESPLICITA}"
 CONTAINER_SCRIPT="${CONTAINER_SCRIPT//DEMO_URL_VAR/$(url_demo "$DEMO_NOME")}"
+CONTAINER_SCRIPT="${CONTAINER_SCRIPT//DEMO_API_VAR/$DEMO_API}"
 CONTAINER_SCRIPT="${CONTAINER_SCRIPT//HOST_USER_HOME_VAR/$HOST_USER_HOME}"
 CONTAINER_SCRIPT="${CONTAINER_SCRIPT//USE_SOCAT_VAR/$USE_SOCAT}"
 CONTAINER_SCRIPT="${CONTAINER_SCRIPT//DISPLAY_NUM_VAR/$DISPLAY_NUM}"

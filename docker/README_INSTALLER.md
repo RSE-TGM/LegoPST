@@ -503,6 +503,13 @@ Una demo è un'area di lavoro pronta — una directory `legopst_<nome>` con dent
 La regola è sempre quella: **`-d <nome>` installa `legopst_<nome>`**, e senza
 nome vale `userstd`.
 
+- Una demo **scaricata viene controllata** prima di estrarla: il suo sha256
+  deve essere quello che GitHub ha calcolato sull'allegato (il campo `digest`
+  della release), come fanno `lgdemo` e il Dockerfile. Se non coincide il file
+  si butta e non si installa niente. Se la release non si legge (GitHub concede
+  60 interrogazioni l'ora a chi non si presenta) si prosegue con un avviso. La
+  demo standard non si scarica: sta nell'immagine, verificata quando
+  l'immagine è stata costruita.
 - Una demo **già installata non viene riestratta**: se `~/legopst_<nome>`
   esiste, i suoi file restano come sono. Per reinstallarla va prima cancellata.
 - **La demo chiesta per nome diventa l'area di lavoro corrente**: dopo
