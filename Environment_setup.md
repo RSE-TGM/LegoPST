@@ -20,6 +20,40 @@ The Fedora/WSL list, which is the one kept up to date, is in
 [README.md](README.md); `imagemagick` also gives `legopc` and
 `draw2gr` their PNG export.
 
+## gdbm: solo la libreria di sistema
+
+I componenti che usano gdbm passano dalla sua interfaccia `ndbm` e si
+compilano contro la gdbm **di sistema**, `-lgdbm_compat -lgdbm` (cioè
+`libgdbm.so.6`): basta il pacchetto di sviluppo, `gdbm-devel` su Fedora,
+`libgdbm-compat-dev` su Debian/Ubuntu.
+
+| Componente | Cosa fa con gdbm |
+|---|---|
+| `util97/pagmod/pagcompiler.c` | compilatore di risorse (`.pag` → `.rtf`) della pipeline MMI: apre il database `edfdb` e legge con `dbm_fetch` gli attributi dei widget |
+| `kutil/kReadDB.c` | legge un valore dati il nome del database e la chiave, con i tempi in millisecondi |
+| `util97/dbutil/dbmrea.c` | stampa tutto il database, coppia per coppia |
+| `util97/dbutil/dbmins.c` | inserisce un record |
+| `util97/dbutil/dbmins_mul.c` | inserisce più record, letti come `chiave valore` da stdin |
+| `util97/dbutil/dbmftc.c` | legge un valore dati database e chiave |
+| `util97/dbutil/dbmftc2.c` | come `dbmftc`, con i tempi |
+| `util97/dbutil/dbm2sql.c` | converte un database gdbm in SQLite3 (`-lsqlite3`) |
+
+Funzioni usate: `dbm_open`, `dbm_close`, `dbm_fetch`, `dbm_store`,
+`dbm_firstkey`, `dbm_nextkey`, `dbm_error`, `dbm_clearerr`.
+
+Il database `CAI_VAR_DB` viene creato e riletto a runtime dalla stessa libreria
+(`leggi_cai_var.sh`, `elab_cai_var.sh`), quindi non c'è un formato su disco da
+rispettare.
+
+**La vecchia `libgdbm.so.2` non serve più.** Fino al 2026 il repository aveva
+una directory `gdbm-install/` che la installava in `/usr/lib64` da un RPM di
+Fedora 12, per binari precompilati collegati a quella versione; anche il
+Dockerfile la eseguiva. Ricompilati dai sorgenti, nessun eseguibile la usa più
+(verificato con `ldd` su tutte le directory `bin` il 2026-10-14): directory e
+passo del Dockerfile sono stati tolti. Servirebbe soltanto per far girare un
+binario vecchio importato già compilato, invece di ricompilarlo. Su una
+macchina dove era stata installata a mano può restare: nessuno la carica.
+
 ## Compiler Configuration
 - **C Compiler**: gcc with `-fcommon` flag for multiple definitions
 - **Fortran Compiler**: gfortran with legacy support

@@ -185,9 +185,6 @@ RUN if [ -n "$DEMO_RELEASE" ]; then \
         exit 1 ; \
     fi
 
-WORKDIR /home/legoroot_fedora41/gdbm-install
-RUN make -f Makefile.mk
-
 # Configura sudoers per permettere creazione utenti dinamici
 RUN echo '%wheel ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers && \
     mkdir -p /etc/sudoers.d
