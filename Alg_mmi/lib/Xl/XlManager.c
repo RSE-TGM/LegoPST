@@ -40,6 +40,7 @@ static char SccsID[] = "@(#)XlManager.c	5.2\t4/2/96";
 #include <X11/CompositeP.h>
 #include <Xl/XlManagerP.h>
 #include <Ol/OlPertP.h>
+#include <Xl/XlProto.h>   /* dichiarazioni prima implicite: vedi il file */
 
 
 #define MIN_WIDTH	5

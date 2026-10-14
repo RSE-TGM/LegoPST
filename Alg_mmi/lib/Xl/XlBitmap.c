@@ -39,6 +39,7 @@ static char SccsID[] = "@(#)XlBitmap.c	5.2\t2/16/96";
 #include <Xl/XlCoreP.h>
 #include <Xl/XlBitmapP.h>
 #include <Xl/nullo.bmp>
+#include <Xl/XlProto.h>   /* dichiarazioni prima implicite: vedi il file */
 
 #define DEFAULTWIDTH 10
 #define DEFAULTHEIGHT 10

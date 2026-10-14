@@ -254,9 +254,6 @@ echo "UID: HOST_USER_ID_VAR, GID: HOST_GROUP_ID_VAR"
 echo "X11 forwarding: abilitato su display :DISPLAY_NUM_VAR"
 echo ''
 
-echo "DEBUG----------->:"
-chown -R "HOST_USER_ID_VAR:HOST_GROUP_ID_VAR" /home/antonio
-ls .
 
 exec su - "HOST_USERNAME_VAR"
 SCRIPT_EOF

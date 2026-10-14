@@ -36,6 +36,7 @@ static char SccsID[] = "@(#)XlPort.c	5.2\t1/5/96";
 #include <Xl/XlCoreP.h>
 #include <Xl/XlPortP.h>
 #include <Xm/Label.h>
+#include <Xl/XlProto.h>   /* dichiarazioni prima implicite: vedi il file */
 
 #define DEFAULT_ARROW_WIDTH 8
 #define DEFAULT_ARROW_HEIGHT 8

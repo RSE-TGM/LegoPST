@@ -178,3 +178,6 @@ __pycache__/
 # riguarda: lo toglie dall'indice "git rm --cached", che publish_demo.sh
 # ricorda di fare.)
 demo/legopst_*.tgz
+
+# log del build di .github/scripts/build_check.sh (CI)
+/build.log

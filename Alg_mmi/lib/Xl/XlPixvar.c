@@ -41,6 +41,7 @@ static char SccsID[] = "@(#)XlPixvar.c	5.2\t1/5/96";
 #include <Xl/XlCoreP.h>
 #include <Xl/XlPixvarP.h>
 #include <Xl/nullo.bmp>
+#include <Xl/XlProto.h>   /* dichiarazioni prima implicite: vedi il file */
 
 #define DEFAULTWIDTH 10
 #define DEFAULTHEIGHT 10

@@ -46,6 +46,7 @@ static char SccsID[] = "@(#)XlAllarmi_func.c	5.1\t11/13/95";
 #include <Ol/OlDatabasePuntiP.h>
 #include <Xl/XlAllarmiP.h>
 #include <Xl/label_tonda.bmp>
+#include <Xl/XlProto.h>   /* dichiarazioni prima implicite: vedi il file */
 
 
 #define MODO_ALLARMI 0
@@ -406,7 +407,9 @@ else
 }
 
 
-setta_tasti(S_XLALLARMI *PuntAllarmi)
+/* void: non ritorna niente, e nessuno usa il valore (era int per default,
+   con un "return;" senza valore). Definita prima di tutte le chiamate. */
+void setta_tasti(S_XLALLARMI *PuntAllarmi)
 {
 S_XLALLARMI *pXlAllarmi;
 

@@ -1,0 +1,34 @@
+name: Build
+
+# Compilazione da zero di LegoPST e controllo dei warning, dentro l'immagine
+# che ha gia' compilatori e header (aguagliardi/legopst:2.0). Lo script fa
+# tutto ed e' lo stesso che si lancia a mano: .github/scripts/build_check.sh.
+# Fallisce se ci sono errori, o se i warning superano la soglia in
+# .github/build_warnings_baseline (che puo' solo scendere).
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: aguagliardi/legopst:2.0
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build da zero e controllo dei warning
+        shell: bash
+        run: bash .github/scripts/build_check.sh
+
+      - name: Log del build
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log
+          path: build.log
+          retention-days: 14

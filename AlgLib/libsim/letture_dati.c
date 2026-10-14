@@ -199,7 +199,9 @@ int scrivi_dati_f14(char *ind_shm_top, char *path_f14, int numero_mod,
 {
 FILE *fp_f14;
 char *nome_bl;
-char comando[120];
+/*  Ci entrano "cp " e due path lunghi fino a FILENAME_MAX: con 120 byte un
+    path appena lungo sforava (scrittura oltre il buffer).  */
+char comando[2*FILENAME_MAX+8];
 char listmod[100];
 char path_f14mom[FILENAME_MAX];
 char *punt_idati;
@@ -246,13 +248,9 @@ int n_bl_md;
      strcpy(path_f14mom,path_f14);
      path_f14mom[lung]='\0';
      punt = &path_f14mom[lung];
-     strncat(path_f14mom,MOM,3);
+     strcat(path_f14mom,MOM);
      printf("mom=%s|   %d\n",path_f14mom,strlen(path_f14mom));
-     comando[0]='\0';
-     strcat(comando,"cp ");
-     strcat(comando,path_f14);
-     strcat(comando," ");
-     strcat(comando,path_f14mom);
+     snprintf(comando,sizeof(comando),"cp %s %s",path_f14,path_f14mom);
      system(comando);
 /*   Fase di scrittura  */
      punt=p_iniz;

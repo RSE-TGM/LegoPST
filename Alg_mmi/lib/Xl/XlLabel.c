@@ -37,6 +37,7 @@ static char SccsID[] = "@(#)XlLabel.c	5.1\t11/13/95";
 #include <Xl/XlLabelP.h>
 #include <Xl/XlDrawingUtil.h>
 #include <pagresdef.h>
+#include <Xl/XlProto.h>   /* dichiarazioni prima implicite: vedi il file */
 
 #define DEFAULTWIDTH  5
 #define DEFAULTHEIGHT 5

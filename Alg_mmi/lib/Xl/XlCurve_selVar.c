@@ -23,6 +23,7 @@
 #include "sim_param.h"
 #include "sim_types.h"
 #include "f22_circ.h"
+#include <Xl/XlProto.h>   /* dichiarazioni prima implicite: vedi il file */
 
 #define DEFAULT_F22_STR   "libera"
 

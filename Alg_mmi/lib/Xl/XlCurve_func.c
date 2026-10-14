@@ -32,6 +32,7 @@ static char *_csrc = "@(#) %filespec: XlCurve_func.c-10 %  (%full_filespec: XlCu
 #include <Xm/XmP.h>
 
 #include <Xl/XlCurveP.h>
+#include <Xl/XlProto.h>   /* dichiarazioni prima implicite: vedi il file */
 
 /* Prototyping funzioni esterne */
 extern Widget create_handleVar();

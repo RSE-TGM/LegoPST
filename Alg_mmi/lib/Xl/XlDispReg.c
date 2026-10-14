@@ -37,6 +37,7 @@ static char SccsID[] = "@(#)XlDispReg.c	5.1\t11/13/95";
 #include <Xl/XlDispRegP.h>
 #include <Xl/XlDrawingUtil.h>
 #include <Xl/XlPrint.h>
+#include <Xl/XlProto.h>   /* dichiarazioni prima implicite: vedi il file */
 
 #define DEFAULTWIDTH  5
 #define DEFAULTHEIGHT 5

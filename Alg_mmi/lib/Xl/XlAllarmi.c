@@ -31,6 +31,9 @@ static char SccsID[] = "@(#)XlAllarmi.c	5.2\t1/5/96";
 #include <Xl/XlDrawingUtil.h>
 #include <Ol/OlDatabasePuntiP.h>
 #include <Cs/Cs.h>
+#include <Xl/XlProto.h>   /* dichiarazioni prima implicite: vedi il file */
+/* in XlAllarmi_func.c; qui perche' ha un Boolean per valore (vedi XlProto.h) */
+int setta_colori_led(S_XLALLARMI *PuntAllarmi, Boolean On);
 
 #define DEFAULTWIDTH  5
 #define DEFAULTHEIGHT 5

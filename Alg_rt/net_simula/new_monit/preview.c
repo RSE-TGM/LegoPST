@@ -345,9 +345,9 @@ LISTA_VAR *p;
    _UxCpreviewSnap *Ctx = (_UxCpreviewSnap*)UxGetContext(w);
 	p = (LISTA_VAR *)&(Ctx->Uxlista_var);
 
- /*  for (i=0; i<MAX_VIEW_ENTRY; i++)  */
-   for (i=0; i<0; i++)
-      strcpy (p->var_view[i],variabili[i+1].nome);
+   /* Qui c'era un ciclo "for (i=0; i<0; i++)" che copiava i nomi delle
+      variabili in p->var_view: non girava mai (prima il limite era
+      MAX_VIEW_ENTRY, poi e' stato azzerato). Tolto: era codice morto. */
   
    return (0);
 }

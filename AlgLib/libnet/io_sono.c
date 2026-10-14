@@ -44,11 +44,15 @@ static char SccsID[] = "@(#)io_sono.c	5.1\t11/7/95";
 
 #define MAXHOSTNAMELEN 256
 
+/*  Il buffer e' static: prima era una variabile locale, e si ritornava il suo
+    indirizzo (comportamento indefinito). Tutti i chiamanti copiano subito il
+    risultato con strcpy.  */
 char *io_sono(void)
 {
-char ptr[MAXHOSTNAMELEN];
+static char ptr[MAXHOSTNAMELEN];
 
 gethostname(ptr,MAXHOSTNAMELEN);
+ptr[MAXHOSTNAMELEN-1] = '\0';
 
 return(ptr);
 }

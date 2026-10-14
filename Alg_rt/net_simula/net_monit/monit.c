@@ -1976,7 +1976,7 @@ caddr_t client_data;
 XtIntervalId * id;
 {
 XmString c_app_str;
-char    app_str[10];
+char    app_str[16];	/* "Automatico" + terminatore sono 11 byte: con 10 sforava */
 char    app_str_l[50];
 int     i;
 static int initial_query=1;

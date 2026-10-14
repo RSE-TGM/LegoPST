@@ -154,7 +154,7 @@ int icona_corrente = -1;  /* numero d'ordine dell'icona */
 int max_icone = 0;  /* numero massimo di icone */
 
 /* VARIABILE GLOBALE DEL NOME DEL MODULO SELEZIONATO */
-char nome_modulo[5];
+char nome_modulo[16];	/* "STDNP" + terminatore sono 6 byte: con 5 sforava */
 char descr_modulo[51];
 
 /* Flag per l'opzione dalla linea di comando */
@@ -432,7 +432,8 @@ printf("flag lib: %d\n", flag_lib);
       char baffer[80];
       XmString cstr;
 
-      strcpy(nome_modulo, app_data.option_modulo);
+      strncpy(nome_modulo, app_data.option_modulo, sizeof(nome_modulo)-1);
+      nome_modulo[sizeof(nome_modulo)-1] = '\0';
       nome_modulo_passato = True;
 
       if ( (offset = cerca_modulo_proc (fp_modp,&rec_modp,nome_modulo))

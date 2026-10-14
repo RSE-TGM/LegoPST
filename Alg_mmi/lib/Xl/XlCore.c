@@ -42,6 +42,7 @@ static char SccsID[] = "@(#)XlCore.c	5.3\t4/2/96";
 #include <Xl/XlManagerP.h>
 #include <Xl/XlCompositeP.h>
 #include <Ol/OlPertP.h>
+#include <Xl/XlProto.h>   /* dichiarazioni prima implicite: vedi il file */
  
 
 #if __STDC__

@@ -17,6 +17,7 @@ static char SccsID[] = "@(#)XlCai.c	5.2\t12/4/95";
 #include <Xl/XlCaiP.h>
 
 #include "sdi_conf.h"  /* Per maschere gestione allarmi */
+#include <Xl/XlProto.h>   /* dichiarazioni prima implicite: vedi il file */
 #define DEFAULTWIDTH 11
 #define DEFAULTHEIGHT 11
 

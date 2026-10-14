@@ -33,6 +33,7 @@ static char SccsID[] = "@(#)XlTransferResource.c	5.1\t11/13/95";
 #include <stdio.h>
 #include <Xm/Xm.h>   
 #include <Rt/RtMemory.h>   
+#include <Xl/XlProto.h>   /* dichiarazioni prima implicite: vedi il file */
 
 
 /*-------------------------------------------------------------------------------

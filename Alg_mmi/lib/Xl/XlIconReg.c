@@ -40,6 +40,7 @@ static char SccsID[] = "@(#)XlIconReg.c	5.1\t11/13/95";
 #include <X11/CompositeP.h>
 #include <Xl/XlIconRegP.h>
 #include <Xl/XlPort.h>
+#include <Xl/XlProto.h>   /* dichiarazioni prima implicite: vedi il file */
 
 
 

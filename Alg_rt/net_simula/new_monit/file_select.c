@@ -72,7 +72,9 @@ int app;       /* applicazione chiamante          */
 char *messaggio;
 int esito = 0;
 char *risp;
-char nome[MAX_PATH_LEN];
+/*  static: si ritorna il suo indirizzo, e una variabile locale non sopravvive
+    alla funzione. I chiamanti (fileSelection.c) copiano subito il risultato. */
+static char nome[MAX_PATH_LEN];
 
 	switch (cbs->reason)
 		{

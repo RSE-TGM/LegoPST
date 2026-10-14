@@ -21,6 +21,7 @@
 *******************************************************************************/
 
 #include <stdlib.h>
+#include <Xl/XlProto.h>   /* dichiarazioni prima implicite: vedi il file */
 
 #define MULT_STEP 10
 #define HOUR_LIMIT 99

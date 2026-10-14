@@ -39,6 +39,7 @@ static char SccsID[] = "@(#)XlIndic.c	5.5\t1/16/96";
 #include <Xl/XlIndicP.h>
 #include <Xl/XlDrawingUtil.h>
 #include <Xl/XlPrint.h>
+#include <Xl/XlProto.h>   /* dichiarazioni prima implicite: vedi il file */
 
 #define DEFAULTWIDTH  5
 #define DEFAULTHEIGHT 5

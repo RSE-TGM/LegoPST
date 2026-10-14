@@ -28,6 +28,7 @@
 #include "sim_param.h"
 #include "sim_types.h"
 #include "f22_circ.h"
+#include <Xl/XlProto.h>   /* dichiarazioni prima implicite: vedi il file */
 
 extern swidget create_warningDialog1();
 extern swidget create_selectVar();

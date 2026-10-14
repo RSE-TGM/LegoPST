@@ -38,6 +38,7 @@ static char SccsID[] = "@(#)XlSincroOld.c	1.4\t1/15/96";
 #include <Xl/XlSincroOldP.h>
 #include <Xl/XlDrawingUtil.h>
 #include <Xl/XlPrint.h>
+#include <Xl/XlProto.h>   /* dichiarazioni prima implicite: vedi il file */
 
 #define DEFAULTWIDTH  5
 #define DEFAULTHEIGHT 5

@@ -1584,7 +1584,9 @@ for (i=0; i< MAX_PAGINE; i++)
         sprintf(aux,"%2d - ",i+1);
 	memcpy(stringa,aux,5);
        	if (strlen(descr_page[i])) memcpy(&stringa[5],descr_page[i],strlen(descr_page[i]));
-        else memcpy(&stringa[5],"nuova pagina                          ",MAX_LUN_DESCRPAGE);
+        /* stringa e' gia' piena di spazi: basta il testo. Prima si copiavano
+           MAX_LUN_DESCRPAGE byte da una costante che ne aveva uno di meno. */
+        else memcpy(&stringa[5],"nuova pagina",12);
         x_list_pagevis[num_pagevis-1]=XmStringCreateLtoR(stringa,XmSTRING_DEFAULT_CHARSET);
         XmListAddItem(w,x_list_pagevis[num_pagevis-1],num_pagevis);
 	num_pagevis++;

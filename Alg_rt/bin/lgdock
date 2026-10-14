@@ -42,6 +42,10 @@ url_demo() {    # $1 = nome della demo
     echo "https://github.com/${REPO_SLUG}/releases/download/${DEMO_RELEASE}/legopst_$1.tgz"
 }
 
+#  La descrizione della release, da cui si legge lo sha256 di ogni allegato
+#  (il campo "digest", che GitHub calcola da se' sul file caricato).
+DEMO_API="https://api.github.com/repos/${REPO_SLUG}/releases/tags/${DEMO_RELEASE}"
+
 url_installer() {
     if [ "$REPO_HOST" = "github.com" ]; then
         echo "https://raw.githubusercontent.com/${REPO_SLUG}/${REPO_BRANCH}/docker/install_legopst_dock.sh"
@@ -738,6 +742,65 @@ echo "Creazione link simbolici in $USER_HOME_IN_CONTAINER..."
 mkdir -p "$USER_HOME_IN_CONTAINER"
 ln -sfn /host_home "$USER_HOME_IN_CONTAINER/host_data"
 
+# Allinea una demo alla home di QUESTO container.
+#
+# I file dell'MMI portano scritta per esteso la home di chi ha confezionato la
+# demo: kGlobContext mette nel Context.ctx "*simulator: $KSIM", "*pages:
+# $KPAGES" e le librerie in "$HOME/legocad/...", cioe' percorsi assoluti. Qui
+# quella home non esiste (/home/<chi ha confezionato> contro /root o
+# /home/<utente>), mmi non troverebbe ne' pagine ne' librerie, e lghmi - che
+# applica le stesse regole - lascia spento il pulsante "mmi". Lo si poteva
+# rimettere a posto solo con un kUpSim, che per una demo e' troppo chiedere.
+#
+# Qui si sostituisce quel prefisso con la home corrente: testo in pochi file,
+# niente da ricompilare. La home d'origine non si indovina, si legge dalla riga
+# "*simulator: <home>/sked/<simulatore>" del Context globale. Si tocca un
+# simulatore SOLO se quella home qui non c'e': una demo gia' allineata, o
+# usata dove i percorsi sono giusti, resta com'e' (e la funzione si puo'
+# richiamare a ogni avvio).
+#
+# kMmi.cfg: ogni riga finisce con host e utente di chi l'ha scritta, e kMmi
+# mostra solo le righe dell'utente corrente. Si riscrive l'utente; l'host no,
+# quello di un container cambia a ogni avvio e kMmi di fatto non lo guarda.
+#
+#   $1 = directory della demo (/host_home/legopst_<nome>)
+allinea_demo_alla_home() {
+    local demo="$1" sim ctx vecchio_sim vecchia nuova f fatti=0
+    nuova="$USER_HOME_IN_CONTAINER"
+    for sim in "$demo"/sked/*/; do
+        sim="${sim%/}"
+        ctx="$sim/globpages/Context.ctx"
+        [ -f "$ctx" ] || continue
+        vecchio_sim="$(sed -n 's/^\*simulator:[[:space:]]*//p' "$ctx" | head -1 | tr -d '\r' | sed 's/[[:space:]]*$//')"
+        case "$vecchio_sim" in
+            /*/sked/"$(basename "$sim")") ;;
+            *) continue ;;      # non e' <home>/sked/<questo simulatore>: non si tocca
+        esac
+        vecchia="${vecchio_sim%/sked/*}"
+        [ "$vecchia" != "$nuova" ] || continue
+        [ ! -d "$vecchia/sked/$(basename "$sim")" ] || continue
+        # il prefisso finisce in un'espressione di sed: se contiene altro che
+        # caratteri da nome di directory si lascia perdere
+        case "$vecchia$nuova" in *[!A-Za-z0-9_./-]*) continue ;; esac
+        while IFS= read -r f; do
+            if grep -q "$vecchia/" "$f" 2>/dev/null; then
+                sed -i "s|$vecchia/|$nuova/|g" "$f" && chown "$CONT_UID:$CONT_GID" "$f" 2>/dev/null || true
+            fi
+        done < <(find "$sim" -maxdepth 2 -type f \( -name Context.ctx -o -name ApplDb.res \))
+        if [ -f "$sim/kMmi.cfg" ]; then
+            awk -F';' -v OFS=';' -v u="$LOGIN_USER" 'NF>=5 {$5=u} {print}' "$sim/kMmi.cfg" > "$sim/kMmi.cfg.lgdock" \
+                && cat "$sim/kMmi.cfg.lgdock" > "$sim/kMmi.cfg"
+            rm -f "$sim/kMmi.cfg.lgdock"
+        fi
+        echo "Demo allineata a questa home: $(basename "$sim") ($vecchia -> $nuova)"
+        fatti=$((fatti + 1))
+    done
+    if [ "$fatti" -gt 0 ] && [ -n "$LGDOCK_LOG" ]; then
+        echo "LegoPST: pagine MMI della demo allineate a $nuova" >&4
+    fi
+    return 0
+}
+
 # Eventuale installazione di una demo nella home dell'utente.
 #
 # La demo e' una directory legopst_<nome> con dentro legocad e sked, cioe'
@@ -766,6 +829,42 @@ if [[ "RUN_DEMO_FLAG" == "true" ]]; then
                 echo "        la rete). Le demo si pubblicano con demo/publish_demo.sh."
                 rm -f "$DEMO_TGZ"
                 exit 1
+            fi
+            # Lo sha256: quello che GitHub ha calcolato sull'allegato quando e'
+            # stato caricato (campo "digest" della release), contro quello del
+            # file arrivato. E' lo stesso controllo di lgdemo e del Dockerfile
+            # (che verifica la demo standard, quella nell'immagine: per lei qui
+            # non si scarica niente). Se la release non si legge (limite di 60
+            # interrogazioni l'ora di GitHub, o allegato senza digest) si
+            # prosegue con un avviso, come lgdemo; se si legge e non coincide,
+            # il pacchetto e' rovinato o non e' quello pubblicato: si butta.
+            # Il JSON di GitHub ha una chiave per riga: niente python o jq.
+            SHA_ATTESO=""
+            if curl -fsS --connect-timeout 15 --max-time 60 -o /tmp/lgdock_rel.json "DEMO_API_VAR" 2>/dev/null; then
+                SHA_ATTESO="$(awk -v n="\"name\": \"$DEMO_DIR.tgz\"" '
+                    index($0, n)                   { dentro = 1; next }
+                    dentro && /"digest": "sha256:/ { sub(/.*"digest": "sha256:/, ""); sub(/".*/, ""); print; exit }
+                    dentro && /"browser_download_url"/ { exit }' /tmp/lgdock_rel.json)"
+            fi
+            rm -f /tmp/lgdock_rel.json
+            if [ -z "$SHA_ATTESO" ]; then
+                echo "ATTENZIONE: sha256 di $DEMO_DIR.tgz non controllato (la release non"
+                echo "            si legge, o non pubblica lo sha256 di questo allegato)."
+                [ -n "$LGDOCK_LOG" ] && echo "LegoPST: ATTENZIONE, sha256 della demo non controllato" >&4
+            else
+                SHA_ARRIVATO="$(sha256sum "$DEMO_TGZ" | cut -d' ' -f1)"
+                if [ "$SHA_ARRIVATO" != "$SHA_ATTESO" ]; then
+                    echo ""
+                    echo "ERRORE: lo sha256 della demo scaricata non e' quello pubblicato."
+                    echo "        pubblicato: $SHA_ATTESO"
+                    echo "        scaricato:  $SHA_ARRIVATO"
+                    echo "        Il file e' arrivato rovinato, o e' stato sostituito mentre"
+                    echo "        lo scaricavo: riprova. Non ho installato niente."
+                    [ -n "$LGDOCK_LOG" ] && echo "LegoPST: ERRORE, sha256 della demo diverso da quello pubblicato" >&4
+                    rm -f "$DEMO_TGZ"
+                    exit 1
+                fi
+                echo "sha256 corretto: $SHA_ARRIVATO"
             fi
         fi
         # --no-same-owner: NON ripristinare l'UID registrato nel tarball (che e'
@@ -802,6 +901,9 @@ if [[ "RUN_DEMO_FLAG" == "true" ]]; then
             echo "        Va rifatto con demo/make_demo_tgz.sh -d $DEMO_NOME."
             exit 1
         fi
+        # I Context.ctx dell'MMI portano la home di chi ha confezionato: si
+        # allineano a quella di qui, prima del chown che intesta tutto.
+        allinea_demo_alla_home "/host_home/$DEMO_DIR"
         # Stessa ragione dell'"if" sopra: anche il chown puo' fallire su quei
         # filesystem, e nudo sotto `set -e` ammazzerebbe l'installazione un
         # attimo prima dei link.
@@ -836,6 +938,9 @@ if [[ "RUN_DEMO_FLAG" == "true" ]]; then
         echo ""
     else
         echo "Demo già installata in /host_home/$DEMO_DIR"
+        # Installata da una lgdock che non allineava i Context.ctx, o su una
+        # macchina dove la home nel container era un'altra: non costa niente.
+        allinea_demo_alla_home "/host_home/$DEMO_DIR"
         # Chi ha scritto il NOME della demo vuole lavorare con quella: se e'
         # gia' installata ma l'area corrente e' un'altra, la si rende corrente.
         # Senza, dopo aver installato due demo "lgrun -d userstd" lasciava
@@ -1055,6 +1160,7 @@ CONTAINER_SCRIPT="${CONTAINER_SCRIPT//RUN_DEMO_FLAG/$RUN_DEMO}"
 CONTAINER_SCRIPT="${CONTAINER_SCRIPT//DEMO_NOME_VAR/$DEMO_NOME}"
 CONTAINER_SCRIPT="${CONTAINER_SCRIPT//DEMO_ESPLICITA_VAR/$DEMO_ESPLICITA}"
 CONTAINER_SCRIPT="${CONTAINER_SCRIPT//DEMO_URL_VAR/$(url_demo "$DEMO_NOME")}"
+CONTAINER_SCRIPT="${CONTAINER_SCRIPT//DEMO_API_VAR/$DEMO_API}"
 CONTAINER_SCRIPT="${CONTAINER_SCRIPT//HOST_USER_HOME_VAR/$HOST_USER_HOME}"
 CONTAINER_SCRIPT="${CONTAINER_SCRIPT//USE_SOCAT_VAR/$USE_SOCAT}"
 CONTAINER_SCRIPT="${CONTAINER_SCRIPT//DISPLAY_NUM_VAR/$DISPLAY_NUM}"

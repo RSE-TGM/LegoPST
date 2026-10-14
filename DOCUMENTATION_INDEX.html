@@ -158,10 +158,21 @@ how it is built.</p>
   <p><b>Scope:</b> <code>make -f Makefile.mk</code>, the Docker image as a separate target
   (<code>make docker</code>), versioning,
   the <code>ksetsim</code>/<code>ksims</code> commands that pick the active simulator,
-  <code>creasim</code>, <code>kDiffS01</code>.</p>
+  <code>creasim</code>, <code>kDiffS01</code>, and the build check that GitHub Actions runs
+  from scratch on every push (warning threshold included).</p>
   <p class="use"><b>When you need it:</b> every time you build. It also holds the most expensive
   trap in the project: without <code>source .profile_legoroot</code> the include paths stay empty
   and the build fails in a way that does not say why.</p>
+</div>
+
+<div class="card">
+  <div class="row1"><a class="tit" href="docs/PIANO_INTERVENTO.md">Codebase review and intervention plan</a>
+    <span class="b md">md</span><span class="path">docs/PIANO_INTERVENTO.md</span></div>
+  <p><b>Scope:</b> the October 2026 review: coherence, the parts outside the build, the
+  possible bugs found by compiling from scratch, and the phased plan with the state of each
+  phase.</p>
+  <p class="use"><b>When you need it:</b> before deciding what to fix next, or to know why a
+  piece of code was changed in that review.</p>
 </div>
 
 <div class="card">

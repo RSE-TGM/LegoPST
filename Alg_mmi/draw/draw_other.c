@@ -33,6 +33,8 @@ static char SccsID[] = "@(#)draw_other.c	5.1\t11/13/95";
 #include <signal.h>
 #include <X11/Intrinsic.h>
 #include <X11/Xlib.h>
+#include <stdlib.h>   /* exit */
+#include <unistd.h>   /* execvp, vfork */
 /*
  routines di print per la versione stand
  alone di draw

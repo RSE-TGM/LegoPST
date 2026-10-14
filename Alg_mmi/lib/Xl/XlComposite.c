@@ -38,6 +38,7 @@ static char SccsID[] = "@(#)XlComposite.c	5.1\t11/13/95";
 #include <Xl/XlCoreP.h>
 #include <X11/CompositeP.h>
 #include <Xl/XlCompositeP.h>
+#include <Xl/XlProto.h>   /* dichiarazioni prima implicite: vedi il file */
 
 
 #define MIN_WIDTH       5

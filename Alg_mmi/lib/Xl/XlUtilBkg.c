@@ -42,6 +42,7 @@ static char SccsID[] = "@(#)XlUtilBkg.c	5.2\t2/16/96";
 #include <Xl/Xl.h>
 #include <Xl/XlUtilBkg.h>
 #include <Xl/XlDrawingUtil.h>
+#include <Xl/XlProto.h>   /* dichiarazioni prima implicite: vedi il file */
 
 static Boolean setta_gc();
 static Boolean IntersezioneRettangoli();

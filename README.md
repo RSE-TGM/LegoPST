@@ -448,6 +448,7 @@ directory you are looking at. See [docs/BUILD.md](docs/BUILD.md).
 ```
 LegoPST/
 ├── AlgLib/           # Core algorithm libraries
+├── Alg_help/         # Historical help (WinHelp projects and HTML pages)
 ├── Alg_mmi/          # Man-Machine Interface
 ├── Alg_rt/           # Runtime System (simulation engine, HMI, FMU export)
 ├── Alg_legopc/       # Models Building Tools (legopc, draw2gr, lghmi)
@@ -455,10 +456,12 @@ LegoPST/
 ├── lego_big/         # Component libraries (linked as legocad/lego_big)
 ├── kprocedure/       # Administrative scripts (sources)
 ├── kbin/             # Administrative scripts (installed commands)
-├── kutil/            # Administrative utilities
+├── kutil/            # Administrative utilities (sources of kDiffS01Slave4)
+├── kdefaults/        # Defaults of the SCADA side (start_txt)
 ├── docker/           # Docker build and install scripts
-├── demo/             # Demo work area (tarball)
+├── demo/             # Demo packaging and publishing (make_demo_tgz, publish_demo)
 ├── docs/             # Guides: build, commands, configuration files
+├── scada/            # SCADA subsystem (not built: commented out in Makefile.mk)
 ├── util97/           # Legacy utilities
 ├── util2007/         # Other legacy utilities
 ├── util2025/         # Modern utilities

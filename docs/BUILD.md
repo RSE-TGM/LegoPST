@@ -36,6 +36,33 @@ make -f Makefile.mk clean
 ```
 Removes all object files (*.o), libraries (*.a), and generated version.h
 
+## Build check (CI)
+
+Every push to `master` and every pull request is compiled **from scratch** by
+GitHub Actions ([.github/workflows/build.yml](../.github/workflows/build.yml)),
+inside the `aguagliardi/legopst:2.0` image, which already has the compilers
+and the development headers. The check fails if:
+
+- the build from the root ends with errors;
+- the warnings are **more** than the number in
+  [.github/build_warnings_baseline](../.github/build_warnings_baseline). The
+  number may only go down: when it does, the script prints the new value to
+  write there.
+
+"From scratch" means without the `.o` files, hundreds of which are tracked in
+git: with them `make` would recompile nothing. The same script runs by hand,
+**on a copy** of the tree, since it deletes the `.o` files:
+
+```bash
+docker run --rm -v <copy>:/src -w /src aguagliardi/legopst:2.0 \
+    bash .github/scripts/build_check.sh
+```
+
+The `Alg_mmi/lib/Xl` library is also compiled with
+`-Werror=implicit-function-declaration`: a function called without a
+declaration returns `int`, and on 64 bits a pointer returned that way is
+truncated. Its declarations are in `Alg_mmi/lib/Xl/XlProto.h`.
+
 ## Version Management
 The build system automatically generates `version.h` with:
 - Git version string from `git describe`

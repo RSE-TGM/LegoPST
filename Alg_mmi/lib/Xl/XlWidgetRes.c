@@ -38,6 +38,7 @@ static char SccsID[] = "@(#)XlWidgetRes.c	5.1\t11/13/95";
 #include <Xl/XlCoreP.h>
 #include <Xl/XlManagerP.h>
 #include <Xl/XlWidgetRes.h>
+#include <Xl/XlProto.h>   /* dichiarazioni prima implicite: vedi il file */
 
 static Boolean GetResWid(Widget,XlWidgetResList* ,int *);
 static char* PixelToString(Widget,Pixel);

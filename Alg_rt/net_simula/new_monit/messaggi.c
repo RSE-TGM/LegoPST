@@ -549,7 +549,7 @@ char *getMessageString (FILE *fp, char *var)
 int i;
 char riga[200];
 char varLab[MAX_NOME_LEN];
-char varMess[MAX_STRINGA_LEN];
+static char varMess[MAX_STRINGA_LEN];	/* static: se ne ritorna l'indirizzo */
 
 	rewind (fp);
 	while (fgets(riga,MAX_STRINGA_LEN,fp) != NULL)
@@ -570,9 +570,11 @@ char varMess[MAX_STRINGA_LEN];
  * ritorna la variabile
  *	la variabile e' racchiusa tra * e :
  */
+/*  Su una riga malformata ritorna "" e non NULL: tutti i chiamanti fanno
+    strcpy del risultato, e con NULL si schiantavano.  */
 char *getVar (char *s)
 {
-char app[MAX_NOME_LEN];
+static char app[MAX_NOME_LEN];	/* static: se ne ritorna l'indirizzo */
 int i,k;
 
 	i = 0;
@@ -582,7 +584,7 @@ int i,k;
 		if (s[i] == '\0')	/* formato non corretto */
 			{
 			fprintf (stderr,"getVar: formato non corretto (*):[%s]\n",s);
-			return (NULL);
+			return ("");
 			}
 		i++;
 		}
@@ -591,14 +593,17 @@ int i,k;
 	while (s[i] != ':')	 /* copia fino a ':'	*/
 		{
 		if ((s[i] == ' ') || (s[i] == '\t'))
-			continue;			/* toglie i blank */
-		app[k] = s[i];
+			{
+			i++;				/* toglie i blank (senza i++ il ciclo non finiva) */
+			continue;
+			}
 		if (s[i] == '\0')  /* formato non corretto */
          {
          fprintf (stderr,"getVar: formato non corretto (:):[%s]\n",s);
-         return (NULL);
+         return ("");
          }
-		k++;
+		if (k < MAX_NOME_LEN-1)		/* oltre, si tronca */
+			app[k++] = s[i];
 		i++;	
 		}
 	app[k] = '\0';
@@ -608,9 +613,10 @@ int i,k;
 /*
  * ritorna il valore della variabile
  */
+/*  Come getVar: "" e non NULL su una riga malformata.  */
 char *getVarMessage (char *s)
 {
-char varMess[MAX_STRINGA_LEN];
+static char varMess[MAX_STRINGA_LEN];	/* static: se ne ritorna l'indirizzo */
 int i,k;
 
 	i=0;
@@ -621,7 +627,7 @@ int i,k;
       if (s[i] == '\0') /* formato non corretto */
          {
          fprintf (stderr,"getVar: formato non corretto (:):[%s]\n",s);
-         return (NULL);
+         return ("");
          }
       i++;
       }
@@ -632,10 +638,10 @@ int i,k;
       if (s[i] == '\0') /* formato non corretto */
          {
          fprintf (stderr,"getVar: formato non corretto (:):[%s]\n",s);
-         return (NULL);
+         return ("");
          }
-		varMess[k] = s[i];
-		k++;
+		if (k < MAX_STRINGA_LEN-1)	/* oltre, si tronca */
+			varMess[k++] = s[i];
       i++;
       }
 	varMess[k] = '\0';

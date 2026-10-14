@@ -79,7 +79,10 @@ FILE *fp;
 if (argc==1)
 {
   printf ("INSERIRE PATH COMPLETO DIRETTORIO DOVE RISIEDE IL CONTEXT.CTX:\n");
-  gets (pathcontext);
+  /* fgets e non gets: gets non ha limite, e un path lungo sforava */
+  if (fgets (pathcontext, sizeof(pathcontext) - strlen("/Context.ctx"), stdin) == NULL)
+    exit (1);
+  pathcontext[strcspn (pathcontext, "\n")] = '\0';
 
  /* per UNIX
   *esempio pathcontext=/usr/users/pag

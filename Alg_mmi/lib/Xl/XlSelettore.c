@@ -33,6 +33,7 @@ static char SccsID[] = "@(#)XlSelettore.c	5.1\t11/13/95";
 #include <X11/StringDefs.h>
 #include <Xl/XlCoreP.h>
 #include <Xl/XlSelettoreP.h>
+#include <Xl/XlProto.h>   /* dichiarazioni prima implicite: vedi il file */
 
 #define DEFAULTWIDTH 11
 #define DEFAULTHEIGHT 11

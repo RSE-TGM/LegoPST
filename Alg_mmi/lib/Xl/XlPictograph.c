@@ -40,6 +40,7 @@ static char SccsID[] = "@(#)XlPictograph.c	5.2\t1/5/96";
 #include <Xl/XlCoreP.h>
 #include <Xl/XlPictographP.h>
 #include <Xl/nullo.bmp>
+#include <Xl/XlProto.h>   /* dichiarazioni prima implicite: vedi il file */
 
 #define DEFAULTWIDTH 10
 #define DEFAULTHEIGHT 10

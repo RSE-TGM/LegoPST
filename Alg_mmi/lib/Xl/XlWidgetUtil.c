@@ -49,6 +49,7 @@ static char SccsID[] = "@(#)XlWidgetUtil.c	5.4\t1/24/96";
 #include "wait_mask.bmp"
 #include "err.bmp"
 #include "err_mask.bmp"
+#include <Xl/XlProto.h>   /* dichiarazioni prima implicite: vedi il file */
 
 
 /*

@@ -34,6 +34,9 @@ static char SccsID[] = "@(#)XlChangePage.c	5.1\t11/13/95";
 #include "new_page.bmp"
 #include "nullo.bmp"
 #include "system.bmp"
+#include <Xm/Label.h>
+#include <Xm/PushB.h>
+#include <Xl/XlProto.h>   /* dichiarazioni prima implicite: vedi il file */
 
 
 /* lista delle risorse  */

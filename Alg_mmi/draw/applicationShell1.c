@@ -42,6 +42,8 @@
 #include <draw.h>
 #include <Xd/XdLista.h>
 #include <Xd/XdUndo.h>
+/* dichiarazioni prima implicite (vedi Alg_mmi/lib/Xl/XlProto.h) */
+void  set_something_val();/* AlgLib/libutilx */
 extern swidget create_drawShell();
 extern char *nome_file_draw;
 extern int width_draw;

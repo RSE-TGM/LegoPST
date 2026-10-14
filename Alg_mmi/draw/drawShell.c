@@ -53,6 +53,9 @@
 #include <math.h>
 #endif
 #include "res_edit.h"
+/* dichiarazioni prima implicite (vedi Alg_mmi/lib/Xl/XlProto.h) */
+Widget  PrintSetup();     /* draw_other.c: ritorna un Widget, senza dichiarazione veniva troncato */
+Boolean PrintPag();       /* draw_other.c */
 extern Boolean saving;
 extern swidget drawFsBD;
 extern swidget fileSelectionBox;

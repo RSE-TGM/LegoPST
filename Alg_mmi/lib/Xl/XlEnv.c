@@ -45,6 +45,8 @@ typedef struct itmlst{
  int end_list;} ITMLIST;
 #else
 #include <stdlib.h>
+#include <unistd.h>
+#include <Xl/XlProto.h>   /* dichiarazioni prima implicite: vedi il file */
 #endif
 
 #if defined VMS || defined SCO_UNIX

@@ -60,6 +60,9 @@ static int UxGetIfClassCode( Widget wgt );
 #include "veos.h"
 #include "swidget.h"
 #endif
+/* dichiarazioni prima implicite (vedi Alg_mmi/lib/Xl/XlProto.h) */
+int UxGetClassCode();     /* definite piu' sotto in questo file */
+int UxMessageIndex();
 
 /* Global environment variable supplied for the user's convenience */
 Environment UxEnv = {NO_EXCEPTION};

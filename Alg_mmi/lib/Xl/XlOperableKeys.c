@@ -34,6 +34,7 @@ static char SccsID[] = "@(#)XlOperableKeys.c	5.1\t11/13/95";
 #include <Xl/XlOperableKeysP.h>
 #include <Ol/OlPert.h>
 #include "nullo.bmp"
+#include <Xl/XlProto.h>   /* dichiarazioni prima implicite: vedi il file */
 
 
 /* lista delle risorse  */

@@ -37,6 +37,7 @@ static char SccsID[] = "@(#)XlPrint.c	5.1\t11/13/95";
 #include <Xl/XlCoreP.h>
 #include <Xl/XlManagerP.h>
 #include <Xl/XlPrint.h>
+#include <Xl/XlProto.h>   /* dichiarazioni prima implicite: vedi il file */
 
 
 

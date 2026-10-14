@@ -230,7 +230,7 @@ printf("local_host = %s\n",host_locale);
 	    /* apro il socket in scrittura */
 printf("\t Chiamo socketscrittura con host=[%s]\n",s02_.model[i].host);
 	    fp_slave[i] = socketscrittura(s02_.model[i].host, 0);
-	    header_net.sorg = (12345);	/* momentaneamente a -1 */
+	    header_net.sorg = (-1);	/* momentaneamente a -1 (era 12345, che in un char diventa 57) */
 	    header_net.dest = (-1);	/* momentaneamente a -1 */
 	    header_net.tasksorg = (-1);
 	    header_net.taskdest = (-1);

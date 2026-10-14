@@ -36,6 +36,8 @@ static char SccsID[] = "@(#)XlBottone.c	5.1\t11/13/95";
 #include <Xl/XlCoreP.h>
 #include <Xl/XlBottoneP.h>
 #include <Ol/OlPert.h>
+#include <Xl/XlProto.h>   /* dichiarazioni prima implicite: vedi il file */
+int min();   /* definita in fondo a questo file (in XlIndicErr.c e' static: non va in XlProto.h) */
 
 #define DEFAULTWIDTH 11
 #define DEFAULTHEIGHT 11

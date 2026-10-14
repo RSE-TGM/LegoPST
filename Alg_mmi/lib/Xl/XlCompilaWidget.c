@@ -45,6 +45,7 @@ static char SccsID[] = "@(#)XlCompilaWidget.c	5.2\t2/16/96";
 #include <Xl/XlDispReg.h>
 #include <Ol/OlCompiler.h>
 #include <Ol/OlDatabaseTopologia.h>
+#include <Xl/XlProto.h>   /* dichiarazioni prima implicite: vedi il file */
 
 static void SetVarReg();
 static void UnSetVarReg();

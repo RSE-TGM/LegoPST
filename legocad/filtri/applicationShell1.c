@@ -537,8 +537,10 @@ static void	singleSelectionCB_scrolledList1( UxWidget, UxClientData, UxCallbackA
 	for(i=0;i<(filtri[num_filtro_selez])->num_var;i++)
 	   free(par[i]);
 	
-	free(par);
-	free(callb);
+	/*  niente free(par): e' un array sullo stack, non memoria allocata, e
+	    liberarlo faceva abortire il programma (free(): invalid pointer).
+	    Si liberano solo le stringhe, qui sopra. Niente free(callb): e' la
+	    struttura che Motif passa al callback, e appartiene a Motif.  */
 	}
 	UxFiltriShell1Context = UxSaveCtx;
 }

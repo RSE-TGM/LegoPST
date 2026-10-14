@@ -2093,7 +2093,7 @@ _UxCscenarioMalf *Ctx;
 char *creaTestoMalfList (M_COMPONENT *m,int im,M_COMP_TYPE *m_t)
 {
 int comp_type_i;		/*indice in m_t  */
-char testo[1000];
+static char testo[1000];	/* static: se ne ritorna l'indirizzo */
 
 	if ((comp_type_i = get_m_type_from_m_comp(im,m,m_t)) < 0)
 		{
@@ -3144,7 +3144,7 @@ printf("dopo la creazione di Wdescr!!!!!!!!!!\n");
  */
 char *sintesiDescr (char *s)
 {
-char stringa[MAX_LUN_DESCR_VAR];
+static char stringa[MAX_LUN_DESCR_VAR];	/* static: se ne ritorna l'indirizzo */
 int i;
 int k;
 int duepunti;

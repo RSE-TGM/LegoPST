@@ -12,6 +12,7 @@
 #include "UxXt.h"
 
 #include <Xm/MessageB.h>
+#include <Xl/XlProto.h>   /* dichiarazioni prima implicite: vedi il file */
 
 
 

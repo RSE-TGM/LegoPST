@@ -551,15 +551,20 @@ Mmi available on RIC326282 :
 Selection :
 ```
 
-`kMmi` filtra le righe di `$KSIM/kMmi.cfg` confrontandole con `$HOST` e `$USER`
-([kMmi.sh:38](../kprocedure/kMmi.sh#L38)). Se il simulatore arriva da un'altra
-macchina, le righe portano host e utente di quella e vengono scartate tutte.
-Si corregge riscrivendo `kMmi.cfg` con host e utente correnti e rilanciando
-`kMmiConfig` per ricreare le `globpages_*`.
+`kMmi` filtra le righe di `$KSIM/kMmi.cfg` confrontandole con `$USER`
+([kMmi.sh:42](../kprocedure/kMmi.sh#L42)). Se il simulatore arriva da un'altra
+macchina, le righe portano l'utente di quella e vengono scartate tutte. Si
+corregge riscrivendo `kMmi.cfg` con l'utente corrente e rilanciando
+`kMmiConfig` per ricreare le `globpages_*`; `lgrun -d` e `lgdemo` lo fanno da
+sé per le demo.
 
-Da sapere: il confronto è scritto `[ "$MmiHost" = "$HOST" ] & [ "$MmiUser" = "$USER" ]`
-con una sola `&`, che manda in background il primo test — di fatto **decide solo
-l'utente**. Una riga con l'host sbagliato ma l'utente giusto compare lo stesso.
+Da sapere: **decide solo l'utente**, l'host non conta. Fino a ottobre 2026 il
+confronto era scritto `[ "$MmiHost" = "$HOST" ] & [ "$MmiUser" = "$USER" ]`, con
+una sola `&` che mandava in background il primo test: contava già solo
+l'utente, ma per sbaglio. Ora lo dice il codice (`kMmi`, `kMmiConfig`, `kClean`,
+`kCleanLoc`). Non si è passati a `&&` di proposito: l'host di `kMmi.cfg` è quello
+della macchina su cui è stato scritto, e nel container (hostname nuovo a ogni
+avvio) o in una demo confezionata altrove non coinciderebbe mai.
 
 ### `SORRY : You have to answer with an available mmi identifier`
 

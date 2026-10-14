@@ -35,7 +35,11 @@ then
 echo "Mmi available on $HOST :"
 cat $KSIM/kMmi.cfg | tr -s '\011' ' ' | tr -s ';' ' ' | while read IdMmi IdScada IdType MmiHost MmiUser
 do
-if [ "$MmiHost" = "$HOST" ] & [ "$MmiUser" = "$USER" ]
+# Conta solo l'utente. Il test era scritto [ host ] & [ utente ], con una "&"
+# sola: il primo test finiva in background e decideva l'utente da solo.
+# Non si passa a "&&": l'host di kMmi.cfg e' quello di chi l'ha scritto, e nel
+# container (hostname nuovo a ogni avvio) o in una demo non coinciderebbe mai.
+if [ "$MmiUser" = "$USER" ]
 then
 	if [ "$IdScada" -gt "4" ]
 	then

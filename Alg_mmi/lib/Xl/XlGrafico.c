@@ -41,6 +41,8 @@ static char SccsID[] = "@(#)XlGrafico.c	5.5\t3/28/96";
 #include <Xl/XlCoreP.h>
 #include <X11/CompositeP.h>
 #include <Xl/XlGraficoP.h>
+#include <Xm/RowColumn.h>
+#include <Xl/XlProto.h>   /* dichiarazioni prima implicite: vedi il file */
 
 #define MIN_WIDTH       5
 #define MIN_HEIGHT      5

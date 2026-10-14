@@ -34,6 +34,7 @@ static char SccsID[] = "@(#)XlLed.c	5.2\t12/4/95";
 #include <X11/StringDefs.h>
 #include <Xl/XlCoreP.h>
 #include <Xl/XlLedP.h>
+#include <Xl/XlProto.h>   /* dichiarazioni prima implicite: vedi il file */
 
 #define DEFAULTWIDTH 11
 #define DEFAULTHEIGHT 11

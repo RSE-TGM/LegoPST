@@ -33,6 +33,8 @@ static char *_csrc = "@(#) %filespec: XlCurve.c-4.2.4 %  (%full_filespec: XlCurv
 #include <Xm/XmP.h>
 
 #include <Xl/XlCurveP.h>
+#include <ctype.h>
+#include <Xl/XlProto.h>   /* dichiarazioni prima implicite: vedi il file */
 
 
 

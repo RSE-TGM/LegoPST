@@ -65,6 +65,7 @@ static char SccsID[] = "@(#)XlClassUtil.c	5.2\t1/5/96";
 #include <Xl/XlPixvar.h>
 #include <Xl/XlPixvarP.h>
 #include <Xl/XlCurveP.h>
+#include <Xl/XlProto.h>   /* dichiarazioni prima implicite: vedi il file */
 
 /* array contenente le classi di widget trattate da legommi */
  static WidgetClass classi[]= {

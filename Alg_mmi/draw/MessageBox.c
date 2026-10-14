@@ -12,6 +12,10 @@
 #include "UxXt.h"
 
 #include <Xm/MessageB.h>
+/* dichiarazioni prima implicite (vedi Alg_mmi/lib/Xl/XlProto.h) */
+void *UxNewContext();     /* UxXt.c: ritorna un puntatore, senza dichiarazione veniva troncato */
+void  WriteBackground();  /* graphics.c */
+void  set_something_val();/* AlgLib/libutilx */
 
 /*******************************************************************************
        Includes, Defines, and Global variables from the Declarations Editor:
