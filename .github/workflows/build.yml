@@ -1,10 +1,15 @@
 name: Build
 
-# Compilazione da zero di LegoPST e controllo dei warning, dentro l'immagine
-# che ha gia' compilatori e header (aguagliardi/legopst:2.0). Lo script fa
-# tutto ed e' lo stesso che si lancia a mano: .github/scripts/build_check.sh.
-# Fallisce se ci sono errori, o se i warning superano la soglia in
-# .github/build_warnings_baseline (che puo' solo scendere).
+# Compilazione da zero di LegoPST e controllo dei warning, poi prove di
+# funzionamento, dentro l'immagine che ha gia' compilatori e header
+# (aguagliardi/legopst:2.0). Gli script fanno tutto e si lanciano uguali a
+# mano: .github/scripts/build_check.sh e .github/scripts/smoke_test.sh.
+#
+# - build: fallisce se ci sono errori, o se i warning superano la soglia in
+#   .github/build_warnings_baseline (che puo' solo scendere);
+# - prove: installano la demo "nuclear" con lgdemo, e su quella provano
+#   lgmkstaz, kUpSim, una simulazione senza grafica che avanza 10 passi e la
+#   mappa delle variabili. Girano solo se il build e' andato bene.
 
 on:
   push:
@@ -15,6 +20,9 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    # una simulazione che non risponde non deve tenere fermo il runner fino al
+    # limite di GitHub (6 ore): ogni prova ha il suo timeout, questo e' il tetto
+    timeout-minutes: 45
     container:
       image: aguagliardi/legopst:2.0
     steps:
@@ -25,10 +33,23 @@ jobs:
         shell: bash
         run: bash .github/scripts/build_check.sh
 
-      - name: Log del build
+      - name: Prove di funzionamento
+        shell: bash
+        timeout-minutes: 20
+        env:
+          # lgdemo legge la release con l'API di GitHub, che da' 60
+          # interrogazioni l'ora a chi non si presenta: dai runner (indirizzi
+          # condivisi) si esauriscono presto. Il token della run basta.
+          GITHUB_TOKEN: ${{ github.token }}
+        run: bash .github/scripts/smoke_test.sh
+
+      - name: Log del build e delle prove
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: build-log
-          path: build.log
+          path: |
+            build.log
+            smoke-logs/
           retention-days: 14
+          if-no-files-found: ignore

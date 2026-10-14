@@ -179,5 +179,6 @@ __pycache__/
 # ricorda di fare.)
 demo/legopst_*.tgz
 
-# log del build di .github/scripts/build_check.sh (CI)
+# log del build e delle prove della CI (.github/scripts/build_check.sh e smoke_test.sh)
 /build.log
+/smoke-logs/

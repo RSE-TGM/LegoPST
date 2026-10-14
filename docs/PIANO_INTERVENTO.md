@@ -122,14 +122,15 @@ di `LeeF22`.
 
 | Fase | Contenuto | Impegno | Rischio | Stato |
 |---|---|---|---|---|
-| 0. Correzioni puntuali | bug 2–6, `gets()`, README | piccolo | basso | **fatta** (2026-10-14), vedi §6 |
-| 1. Prototipi nell'MMI | bug 1; poi `-Werror=implicit-function-declaration` su `Alg_mmi/lib/Xl`; prova di `mmi`, `config`, `draw` | medio | basso nel codice, va provato con pagine vere | **fatta** (2026-10-14), vedi §6; manca la prova con una simulazione viva |
-| 2. CI di build | workflow nell'immagine, base dei warning di oggi | piccolo | nullo | **fatta** (2026-10-14), vedi §6; da vedere al primo push su GitHub |
+| 0. Correzioni puntuali | bug 2–6, `gets()`, README | piccolo | basso | **fatta** (2026-10-14), vedi §7 |
+| 1. Prototipi nell'MMI | bug 1; poi `-Werror=implicit-function-declaration` su `Alg_mmi/lib/Xl`; prova di `mmi`, `config`, `draw` | medio | basso nel codice, va provato con pagine vere | **fatta** (2026-10-14), vedi §7; provata dall'utente con la simulazione viva |
+| 2. CI di build | workflow nell'immagine, base dei warning di oggi | piccolo | nullo | **fatta** (2026-10-14), vedi §7; verde su GitHub dal commit `1367c68e` |
 | 3. Classificazione dei cast | i ~600 cast puntatore/`int` | medio-grande | medio | da decidere |
 | 4. Directory orfane | triage dei gruppi A, B, C | medio | basso se si archivia | da decidere |
 | 5. Artefatti in git | `.o`, `.a`, eseguibili fuori dall'indice, `.gitignore` | piccolo da fare, grande da decidere | alto | da decidere |
 | 6. Makefile comune | frammento condiviso, via i flag storici | grande | medio | da decidere |
 | 7. Funzioni | §4, una per volta | variabile | variabile | da decidere |
+| 8. CI: test di funzionamento | dopo il build, nello stesso container: simulazione senza grafica sulla demo (`net_startup_headless`) che avanza qualche secondo, `kUpSim` sulla demo, i test esistenti (`lg_fmu/tests`, round-trip di `lgmkstaz`). Vedi §6 | piccolo-medio | nullo (non tocca il prodotto) | **fatta** (2026-10-14), vedi §7 |
 
 **Prima della fase 5**: il Dockerfile non compila, copia gli eseguibili
 dell'albero di lavoro, quindi l'immagine non dipende da git. Ma le macchine
@@ -137,7 +138,28 @@ native che fanno `git pull` per avere gli eseguibili senza compilare sì; e le
 `legocad/lego_big/lib/*.a`, che non sono in git, vanno comunque prodotte dal
 build. Va chiarito chi si affida agli eseguibili presi da git.
 
-## 6. Fatto
+## 6. Cosa si può costruire sulla CI
+
+La CI della fase 2 verifica che il codice **compili**, da zero e in un
+ambiente pulito, e che i warning non crescano. Non verifica che **funzioni**,
+non tocca l'immagine Docker, non copre il codice fuori dal build. Gli sviluppi
+possibili, in ordine di utilità:
+
+1. **Test di funzionamento** (fase 8): trasformano "compila" in "funziona". I
+   pezzi esistono quasi tutti: `net_startup_headless.sh` (simulazione senza
+   grafica, gia' usato dalle FMU), la demo `userstd`, `kUpSim`, i test di
+   `lg_fmu` e di `lgmkstaz`.
+2. **Protezione del ramo `master`**: su GitHub, unire a `master` solo con il
+   build verde, lavorando con le pull request. Serve se sul repository lavora
+   anche qualcun altro.
+3. **Immagine Docker costruita dalla CI** a ogni rilascio, da sorgenti
+   verificati, invece che dalla macchina di sviluppo con i suoi binari. È la
+   strada che rende fattibile la fase 5: gli eseguibili li produce la CI, non
+   il repository.
+4. **Soglia dei warning che scende**: a ogni pulizia si aggiorna
+   `.github/build_warnings_baseline`.
+
+## 7. Fatto
 
 ### Fase 0 (2026-10-14)
 
@@ -181,7 +203,8 @@ build. Va chiarito chi si affida agli eseguibili presi da git.
   riguardano l'indice di un array). Ricollegati gli eseguibili che contengono
   `libXl`, `libsim`, `libnet`.
 - **Prova**: `config`, `draw` e `mmi` partono su un display virtuale con le
-  pagine vere di SLaurent_0, senza crash. Non provati con una simulazione viva.
+  pagine vere di SLaurent_0, senza crash. Provati poi dall'utente con la
+  simulazione viva: nessun problema.
 
 ### Fase 2 (2026-10-14)
 
@@ -191,4 +214,34 @@ build. Va chiarito chi si affida agli eseguibili presi da git.
   superano `.github/build_warnings_baseline`.
 - Provato in locale nel container: 49 s, 0 errori, **2212 warning** (erano
   2458), che e' la soglia. Con soglia 2211 il controllo fallisce (uscita 2),
-  con 2212 passa. Su GitHub non ancora girato.
+  con 2212 passa.
+- Prima run su GitHub (commit `d62718a4`) fallita: il checkout da' ai file
+  date in ordine casuale, e prodotti tracciati in git risultavano piu' vecchi
+  dei sorgenti. `make` rifaceva `regopatch.jar` (senza `javac` nell'immagine)
+  e, a caso, `f01totom` e `inhoud` (costruiti direttamente dal `.c`, con
+  `-Wall`: 19 warning in piu'). Corretto in `build_check.sh` dando a tutti i
+  file la stessa data prima di cancellare i `.o`; i primi errori diventano
+  annotazioni della run e c'e' un riepilogo nella pagina. Verde su GitHub dal
+  commit `1367c68e`.
+
+### Fase 8 (2026-10-14)
+
+- `.github/scripts/smoke_test.sh`, nel workflow dopo il build e nello stesso
+  container: `lgdemo` installa la demo `nuclear` (l'unica pubblicata con le
+  `proc/`, quindi simulabile senza legopc), poi round-trip di `lgmkstaz`,
+  `kUpSim -nommi` su SLaurent_0, simulazione senza grafica su PWRN1PSS con
+  `net_startup_headless.sh` + `probe_init` + 10 passi di `probe_step --goup`
+  (il tempo deve avanzare di 10 s), `test_var_mapping`. HOME provvisoria;
+  esiti come annotazioni e riepilogo nella pagina della run; log come
+  artefatto.
+- Provato in locale nel container su una copia pulita di HEAD: build e prove
+  in 75 s, 5 su 5.
+- **Prova in negativo** (con `net_sked` non eseguibile): la prima versione
+  restava appesa, perche' `probe_init` aspetta la risposta per sempre e
+  `net_startup_headless.sh` esce con 0 appena ha lanciato i processi in
+  background. Ora ogni passo ha un `timeout`, lo script controlla che
+  `dispatcher` e `net_sked` siano vivi prima di mandare comandi, e il job ha
+  un tetto di 45 minuti: la stessa rottura da' "FAIL" in 22 s.
+- Da sapere: le prove dipendono dalla release delle demo (rete, e la demo
+  `nuclear` deve restare pubblicata con le `proc/`); il token della run evita
+  il limite di 60 interrogazioni l'ora dell'API di GitHub.

@@ -38,8 +38,8 @@ Removes all object files (*.o), libraries (*.a), and generated version.h
 
 ## Build check (CI)
 
-Every push to `master` and every pull request is compiled **from scratch** by
-GitHub Actions ([.github/workflows/build.yml](../.github/workflows/build.yml)),
+Every push to `master` and every pull request is compiled **from scratch**,
+and then tested (see *Functional tests* below), by GitHub Actions ([.github/workflows/build.yml](../.github/workflows/build.yml)),
 inside the `aguagliardi/legopst:2.0` image, which already has the compilers
 and the development headers. The check fails if:
 
@@ -56,6 +56,33 @@ git: with them `make` would recompile nothing. The same script runs by hand,
 ```bash
 docker run --rm -v <copy>:/src -w /src aguagliardi/legopst:2.0 \
     bash .github/scripts/build_check.sh
+```
+
+### Functional tests
+
+After a successful build, in the same container,
+[.github/scripts/smoke_test.sh](../.github/scripts/smoke_test.sh) checks that
+the freshly built programs **work**, on a real demo and without a display:
+
+| Test | What it does |
+|---|---|
+| `lgdemo` | downloads and installs the `nuclear` demo from the release (sha256 checked). It is the only published demo with the tasks' `proc/`, so it can be simulated without legopc |
+| `lgmkstaz` | round-trip of the faceplate parser/writer (`lgmkstaz_test.tcl`) on the catalogue and on the demo's `r01.dat` |
+| `kUpSim` | `kUpSim -nommi` on the `SLaurent_0` simulator (no MMI pages: they need a display) |
+| simulation | `net_startup_headless.sh` on the `PWRN1PSS` task, `probe_init`, then 10 steps with `probe_step --goup`: simulated time must advance by 10 s |
+| variables | `test_var_mapping` on the live simulation |
+
+Everything happens in a temporary `HOME`. Every step has a time limit: a
+simulation that does not answer must not hold the runner (in testing, with
+`net_sked` not starting, `probe_init` waited forever). The whole job has a
+45-minute ceiling. The whole run (build and tests) takes about a minute and a
+half; the logs of both are in the run's `build-log` artifact.
+
+By hand, on an already built **copy**:
+
+```bash
+docker run --rm -v <copy>:/src -w /src aguagliardi/legopst:2.0 \
+    bash .github/scripts/smoke_test.sh
 ```
 
 The `Alg_mmi/lib/Xl` library is also compiled with

@@ -1,0 +1,168 @@
+#!/bin/bash
+#
+# smoke_test.sh - prove di FUNZIONAMENTO, dopo il build (fase 8 del piano).
+#
+# build_check.sh verifica che LegoPST compili; questo verifica che i
+# programmi appena compilati FACCIANO il loro lavoro, su una demo vera e senza
+# display. Lo usa il workflow .github/workflows/build.yml, nello stesso
+# container del build e subito dopo. A mano, su una copia gia' compilata:
+#
+#   docker run --rm -v <copia>:/src -w /src aguagliardi/legopst:2.0 \
+#       bash .github/scripts/smoke_test.sh
+#
+# Le prove, in ordine:
+#   1. lgdemo     scarica e installa la demo "nuclear" dalla release (sha256
+#                 controllato, Context.ctx allineati): e' l'unica pubblicata
+#                 con le proc/ delle task, quindi simulabile senza legopc
+#   2. lgmkstaz   round-trip del parser/writer dei faceplate sul catalogo e sul
+#                 r01.dat della demo (lgmkstaz_test.tcl)
+#   3. kUpSim     riallinea la configurazione del simulatore SLaurent_0
+#                 (kConnex, kNetCompi, kCompStaz, kCollect; -nommi: niente
+#                 pagine MMI, che vogliono un display)
+#   4. simulazione  net_startup_headless.sh sulla task PWRN1PSS, probe_init,
+#                 10 passi con probe_step --goup: il tempo simulato deve
+#                 avanzare di 10 s
+#   5. variabili  test_var_mapping sulla simulazione viva
+#
+# Tutto avviene in una HOME provvisoria: la demo, i link legocad e sked, la
+# scelta del simulatore. killsim fra una prova e l'altra: nel container le IPC
+# sono solo sue, e non c'e' nessun altro da disturbare.
+#
+# Ogni passo ha un limite di tempo (timeout): una simulazione che non
+# risponde non deve tenere fermo il runner. Era successo in prova: con
+# net_sked che non partiva, probe_init aspettava la risposta per sempre.
+#
+# Uscita: 0 se tutte le prove passano, 1 altrimenti. Una prova fallita non
+# ferma le successive, salvo quelle che dipendono da lei (senza demo non si
+# prova niente).
+
+cd "$(dirname "$0")/../.." || exit 1
+RADICE="$(pwd)"
+LOGDIR="${SMOKE_LOG_DIR:-$RADICE/smoke-logs}"
+mkdir -p "$LOGDIR"
+export HOME
+HOME="$(mktemp -d /tmp/smoke_home.XXXXXX)"
+
+# lancia <secondi> <comando...>: il comando con un limite di tempo; 124 se
+# scade (timeout manda TERM, e KILL 10 s dopo se non basta)
+lancia() { local t="$1"; shift; timeout -k 10 "$t" "$@"; }
+scaduto() { [ "$1" -eq 124 ] || [ "$1" -eq 137 ]; }
+
+RISULTATI=()      # "nome|esito|nota"
+FALLITE=0
+esito() {         # $1 nome  $2 0/1  $3 nota
+    local e="PASS"
+    if [ "$2" -ne 0 ]; then e="FAIL"; FALLITE=$((FALLITE + 1)); fi
+    set -- "$1" "$2" "$(printf '%s' "$3" | tr -s ' ' | sed 's/ *$//')"
+    RISULTATI+=("$1|$e|$3")
+    printf '%-12s %s  %s\n' "$1" "$e" "$3"
+    if [ "$e" = FAIL ] && [ -n "${GITHUB_ACTIONS:-}" ]; then
+        echo "::error::smoke test $1: ${3//%/%25}"
+    fi
+}
+riepilogo() {
+    if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
+        {
+            echo "### Prove di funzionamento"
+            echo ""
+            echo "| prova | esito | nota |"
+            echo "|---|---|---|"
+            for r in "${RISULTATI[@]}"; do
+                IFS='|' read -r n e t <<< "$r"
+                echo "| $n | $e | $t |"
+            done
+        } >> "$GITHUB_STEP_SUMMARY"
+    fi
+}
+
+echo "HOME provvisoria: $HOME"
+echo "log:              $LOGDIR"
+echo ""
+
+# --- 1. demo -------------------------------------------------------------
+lancia 600 util97/bin/lgdemo --base "$HOME" -y nuclear > "$LOGDIR/1_lgdemo.log" 2>&1
+RC=$?
+DEMO="$HOME/legopst_nuclear"
+if [ $RC -eq 0 ] && [ -d "$DEMO/legocad" ] && [ -d "$DEMO/sked/SLaurent_0" ]; then
+    esito lgdemo 0 "demo nuclear installata ($(du -sh "$DEMO" | cut -f1))"
+else
+    esito lgdemo 1 "installazione fallita (uscita $RC): $(grep -m1 -i 'errore' "$LOGDIR/1_lgdemo.log")"
+    riepilogo
+    exit 1
+fi
+ln -s legopst_nuclear/legocad "$HOME/legocad"
+ln -s legopst_nuclear/sked "$HOME/sked"
+echo SLaurent_0 > "$HOME/.legosim"
+
+# Il profilo ricava tutto da HOME (LG_ENTRY, KSKED, KSIM...). La chiave IPC la
+# fissiamo noi: il profilo la calcola come uid*10000, e nel container l'uid
+# e' 0.
+# shellcheck disable=SC1091
+. ./.profile_legoroot "$RADICE" >/dev/null 2>&1
+export SHR_USR_KEY=61000000 SHR_USR_KEYS=61001000
+initav >/dev/null 2>&1
+
+# --- 2. lgmkstaz ---------------------------------------------------------
+lancia 120 tclsh Alg_legopc/src/tix/lgmkstaz_test.tcl </dev/null > "$LOGDIR/2_lgmkstaz.log" 2>&1
+RC=$?
+esito lgmkstaz $RC "$(grep -m1 '^== ' "$LOGDIR/2_lgmkstaz.log" | tr -d '=' | sed 's/^ *//')"
+
+# --- 3. kUpSim -----------------------------------------------------------
+( cd /tmp && lancia 600 kUpSim -nommi ) > "$LOGDIR/3_kUpSim.log" 2>&1
+RC=$?
+if scaduto $RC; then
+    esito kUpSim 1 "timeout: non ha finito in 600 s"
+elif [ $RC -eq 0 ] && ! grep -q "NON AGGIORNATA" "$LOGDIR/3_kUpSim.log"; then
+    esito kUpSim 0 "SLaurent_0 riallineato ($(grep -c '| End |' "$LOGDIR/3_kUpSim.log") passi)"
+else
+    esito kUpSim 1 "$(grep -m1 'NON AGGIORNATA\|ERROR' "$LOGDIR/3_kUpSim.log")"
+fi
+killsim >/dev/null 2>&1
+
+# --- 4. simulazione senza grafica ----------------------------------------
+TASK="$HOME/legocad/PWRN1PSS"
+T_FIN=""
+lancia 120 Alg_rt/lg_fmu/scripts/net_startup_headless.sh "$TASK" > "$LOGDIR/4_avvio.log" 2>&1
+RC=$?
+sleep 2
+# lo script esce appena ha lanciato i processi in background: che siano vivi
+# lo si controlla qui, prima di mandare comandi a una simulazione che non c'e'
+VIVI=""
+for p in dispatcher net_sked; do pgrep -x "$p" >/dev/null && VIVI="$VIVI $p"; done
+if [ $RC -ne 0 ]; then
+    esito simulazione 1 "net_startup_headless.sh uscito con $RC"
+elif [ "$VIVI" != " dispatcher net_sked" ]; then
+    esito simulazione 1 "dopo l'avvio sono vivi solo:${VIVI:- nessuno} (servono dispatcher e net_sked)"
+else
+    ( cd "$TASK" && lancia 120 "$RADICE/Alg_rt/lg_fmu/tools/probe_init" ) > "$LOGDIR/4_init.log" 2>&1
+    RC_INIT=$?
+    ( cd "$TASK" && lancia 120 "$RADICE/Alg_rt/lg_fmu/tools/probe_step" --goup 10 ) > "$LOGDIR/4_step.log" 2>&1
+    RC_STEP=$?
+    T_INI=$(sed -n 's/.*tempo iniziale *: *\([0-9.]*\).*/\1/p' "$LOGDIR/4_step.log")
+    T_FIN=$(sed -n 's/.*tempo finale *: *\([0-9.]*\).*/\1/p' "$LOGDIR/4_step.log")
+    AVANZ=$(awk -v a="${T_INI:-0}" -v b="${T_FIN:-0}" 'BEGIN{printf "%.3f", b-a}')
+    if [ $RC_INIT -eq 0 ] && [ $RC_STEP -eq 0 ] && [ "$AVANZ" = "10.000" ]; then
+        esito simulazione 0 "PWRN1PSS: 10 passi, t da ${T_INI} a ${T_FIN} s"
+    else
+        NOTA="init=$RC_INIT step=$RC_STEP, avanzamento ${AVANZ} s (atteso 10.000)"
+        if scaduto $RC_INIT || scaduto $RC_STEP; then NOTA="timeout: la simulazione non risponde ($NOTA)"; fi
+        esito simulazione 1 "$NOTA"
+    fi
+fi
+
+# --- 5. mappa delle variabili --------------------------------------------
+if [ -n "$T_FIN" ]; then
+    ( cd "$TASK" && lancia 120 "$RADICE/Alg_rt/lg_fmu/tests/test_var_mapping" ) > "$LOGDIR/5_variabili.log" 2>&1
+    RC=$?
+    esito variabili $RC "$(grep -m1 'outputs uniche' "$LOGDIR/5_variabili.log" | sed 's/^ *//'), $(grep -m1 'inputs uniche' "$LOGDIR/5_variabili.log" | sed 's/^ *//')"
+else
+    esito variabili 1 "saltata: la simulazione non e' partita"
+fi
+killsim >/dev/null 2>&1
+# i log delle task restano nella demo: li si porta con gli altri
+cp "$TASK"/*.fmu.log "$LOGDIR"/ 2>/dev/null
+
+echo ""
+echo "prove fallite: $FALLITE su ${#RISULTATI[@]}"
+riepilogo
+[ "$FALLITE" -eq 0 ]
