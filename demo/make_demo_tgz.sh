@@ -95,6 +95,14 @@
 #            E' successo con una demo in cui il file veniva da una corsa FMU,
 #            che usava parametri diversi da quelli del Simulator della task.
 #
+#   parametri.out, parametri.out.prec
+#            il registro dei controlli fatti agli avvii (ControlParam) sulla
+#            macchina di chi confeziona. Fino a ottobre 2026 non si azzerava
+#            mai, e in una demo ne e' arrivato uno con 131 avvii: righe SEVERE
+#            vecchie di giorni, che a chi installa sembravano dell'avvio appena
+#            fatto. Ora lo ricomincia il dispatcher a ogni avvio, ma non deve
+#            comunque viaggiare.
+#
 # Le esclusioni valgono a QUALUNQUE profondita': i bundle FMU annidati
 # (legoclix_<task>_bundle/resources/bundle/task/<task>/) hanno le loro proc/,
 # out/ e f22circ.dat, e vanno via anche quelli.
@@ -157,6 +165,9 @@ COSA ENTRA NEL PACCHETTO
              ricrea da solo al primo avvio; lasciato, puo' impedire alla
              simulazione di partire se i suoi parametri non sono quelli del
              file Simulator.
+    parametri.out
+             il registro dei controlli agli avvii fatti da chi confeziona:
+             a chi installa direbbe cose che non lo riguardano.
 
 LE proc/ NEL PACCHETTO (-p, oppure CON_PROC=1 nel .conf)
   Senza proc/ la demo e' piu' leggera e non dipende dalla macchina di chi la
@@ -300,11 +311,11 @@ fi
 case "$CON_PROC" in 1|si|SI|yes|YES|y|Y) CON_PROC=1 ;; *) CON_PROC=0 ;; esac
 if [ "$CON_PROC" -eq 1 ]; then
     echo "proc/:        INCLUSE (demo pronta all'uso, con gli eseguibili di questa macchina)"
-    ESCLUDI_NOMI=(out f22circ.dat)
-    COSA_ESCLUSA="out/ e f22circ.dat esclusi, proc/ incluse"
+    ESCLUDI_NOMI=(out f22circ.dat parametri.out parametri.out.prec)
+    COSA_ESCLUSA="out/, f22circ.dat e parametri.out esclusi, proc/ incluse"
 else
-    ESCLUDI_NOMI=(proc out f22circ.dat)
-    COSA_ESCLUSA="proc/, out/ e f22circ.dat esclusi"
+    ESCLUDI_NOMI=(proc out f22circ.dat parametri.out parametri.out.prec)
+    COSA_ESCLUSA="proc/, out/, f22circ.dat e parametri.out esclusi"
 fi
 echo ""
 

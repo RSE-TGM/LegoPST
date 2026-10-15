@@ -12,6 +12,7 @@ static char *_csrc = "@(#) %filespec: simulator.c-5 %  (%full_filespec: simulato
 #endif
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 #include <errno.h>
 # include <sys/types.h>
 # include <sys/ipc.h>
@@ -531,6 +532,26 @@ int esnap=0,ebktk=0,ef22=0;
 
 /*  Scritture iniziali su file */
     NomeProcesso(processo,nome_proc);
+/*
+    parametri.out ricomincia a ogni avvio. Il dispatcher e' il primo processo
+    a partire (net_startup, net_startup_headless, startup): lui mette da parte
+    il file dell'avvio precedente come parametri.out.prec e ne apre uno nuovo,
+    gli altri ci scrivono in coda come prima. Fino a ottobre 2026 si scriveva
+    sempre in coda, e il file cresceva per sempre: in una demo ne e' arrivato
+    uno con 131 avvii della macchina di chi l'aveva confezionata, e righe
+    SEVERE vecchie di giorni sembravano dell'avvio appena fatto.
+*/
+    if( processo==DISPATCHER )
+       {
+       time_t ora = time(NULL);
+       rename(PAREDF,PAREDF ".prec");
+       fpedf = fopen(PAREDF,"w");
+       if( fpedf!=NULL )
+          {
+          fprintf(fpedf,"Avvio del %s",ctime(&ora));
+          fclose(fpedf);
+          }
+       }
     fpedf = fopen(PAREDF,"a");
     fprintf(fpedf,"\n");
     fprintf(fpedf,"\t ===> %-12s <===\n", nome_proc);

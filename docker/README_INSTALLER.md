@@ -880,7 +880,7 @@ Il prezzo è quello detto sopra: gli eseguibili delle task (`lg2`, `lg3`,
 `lg5sk`) sono quelli della macchina di confezionamento, e funzionano dove le
 librerie sono compatibili — nel container, se si confeziona da una macchina
 allineata all'immagine. Altrove la task va ricompilata comunque. Il peso in più
-è modesto (per la demo `nuclear` da 37 a 43 MB). `out/` e `f22circ.dat` restano
+è modesto (per la demo `nuclear` da 37 a 43 MB). `out/`, `f22circ.dat` e `parametri.out` restano
 fuori in ogni caso, e con `out/` i symlink `proc` che ci stanno dentro. Con le
 `proc/` chieste la verifica finale le conta invece di segnalarle, e avvisa se
 non trova nemmeno un `proc/f04.dat` (task non compilate nella sorgente).
@@ -912,6 +912,13 @@ valori delle variabili nel tempo, quelli dei grafici.
   parte (`f22circ.dat.incompatibile`) e ricreato, invece di fermare l'avvio —
   ma la demo resta pulita lo stesso: chi la installa con un'immagine precedente
   quella difesa non ce l'ha.
+
+**`parametri.out`** (e `parametri.out.prec`) — il registro dei controlli fatti
+agli avvii sulla macchina di chi confeziona. Fino a ottobre 2026 non si
+azzerava mai: nella demo `nuclear` ne era arrivato uno con 131 avvii, e righe
+`SEVERE` vecchie di giorni sembravano dell'avvio appena fatto. Ora il
+`dispatcher` lo ricomincia a ogni avvio (il precedente resta come
+`parametri.out.prec`), e comunque nel pacchetto non entra.
 
 > **Non "aggiustare" quei symlink creando una directory vera al loro posto.**
 > `net_sked` fa `unlink()` e poi `symlink()`: su una directory l'`unlink`

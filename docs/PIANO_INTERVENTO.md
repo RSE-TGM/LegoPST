@@ -132,7 +132,7 @@ di `LeeF22`.
 | 7. Funzioni | §4, una per volta | variabile | variabile | da decidere |
 | 9. Snapshot e topologia | `net_sked` carica uno snapshot (e un backtrack) senza controllare che sia stato salvato con la topologia attuale: dopo una modifica del modello legge uno stato sfalsato senza avvisare. `ConfrontoPar` confronta i parametri del `Simulator` ma non `size_area_dati`, che pure sta nell'intestazione del file. Correzione: confrontarlo in `ControlParam` e mettere da parte il file incompatibile, come già per `f22circ.dat` | piccolo | basso | **fatta** (2026-10-15), vedi §7 |
 | 10. Catena di avvio "k" | `kRun`, `kStart`, `kOk` (e `kLeeF22`, lanciato da `kStart`) dipendono da `kScd`, rimosso con SCADA: già prima inservibili. Rimuoverli, o riscrivere `kStart` sopra `net_startup` | piccolo | basso | **fatta** (2026-10-15): `kStart` riscritto, vedi §7 |
-| 11. `f22circ.dat` con 3 task | su SLaurent_0 (3 task) `f22circ.dat` nasce con 7200 campioni e 1000 variabili mentre il `Simulator` ne dice 14400 e 10000: tre righe SEVERE in `parametri.out` a ogni avvio. La simulazione parte lo stesso, e succedeva già prima delle modifiche di ottobre. Da capire chi passa quei valori a `net_prepf22` | piccolo | basso | da indagare |
+| 11. `parametri.out` che non si azzera | Sembrava che su SLaurent_0 `f22circ.dat` nascesse con 7200/1000 contro i 14400/10000 del `Simulator`. Non era così: `parametri.out` si scriveva sempre in coda, e quello della demo conteneva 131 avvii della macchina di chi l'ha confezionata; le righe SEVERE erano vecchie. Corretto: il dispatcher lo ricomincia a ogni avvio (il precedente in `.prec`), e le demo non lo includono | piccolo | basso | **fatta** (2026-10-15), vedi §7 |
 | 8. CI: test di funzionamento | dopo il build, nello stesso container: simulazione senza grafica sulla demo (`net_startup_headless`) che avanza qualche secondo, `kUpSim` sulla demo, i test esistenti (`lg_fmu/tests`, round-trip di `lgmkstaz`). Vedi §6 | piccolo-medio | nullo (non tocca il prodotto) | **fatta** (2026-10-14), vedi §7 |
 
 **Prima della fase 5**: il Dockerfile non compila, copia gli eseguibili
@@ -324,4 +324,24 @@ possibili, in ordine di utilità:
   c'è): PWRN1PSS avviata in 8 s, SLaurent_0 (3 task) in 9 s; un secondo
   `kStart` risponde "already started"; senza display esce con NOK in 16 s
   invece di restare appeso. Non in CI: servirebbe Xvfb nell'immagine.
-- Notato durante le prove: fase 11.
+- Notato durante le prove: fase 11 (che poi si è rivelata un'altra cosa).
+
+### Fase 11 (2026-10-15)
+
+- L'indagine ha smentito l'ipotesi: su SLaurent_0 i processi partono con i
+  parametri del `Simulator` (14400/10000) e `f22circ.dat` nasce con quelli. Le
+  righe SEVERE con 7200/1000 venivano da `parametri.out`, che si scriveva
+  sempre in coda: nella demo pubblicata ne era arrivato uno di 3103 righe, 131
+  avvii fatti sulla macchina di chi l'ha confezionata.
+- `ControlParam`: il dispatcher, primo processo a partire, mette da parte il
+  `parametri.out` dell'avvio precedente come `parametri.out.prec` e ne apre uno
+  nuovo che comincia con "Avvio del <data>". `make_demo_tgz.sh` esclude
+  `parametri.out` e `.prec`.
+- Verificato nel container con `net_startup` (Xvfb installato al volo): un
+  `f22circ.dat` con l'intestazione alterata (999 campioni) viene segnalato,
+  rinominato in `f22circ.dat.incompatibile` e ricreato con i parametri del
+  `Simulator`; la simulazione parte. Con `net_startup_headless.sh` quel
+  controllo non scatta, perché lo script cancella sempre `f22circ.dat` prima
+  di avviare.
+- **Da fare alla prossima pubblicazione delle demo**: rifarle con
+  `make_demo_tgz.sh` (oggi `nuclear` contiene ancora il `parametri.out` lungo).

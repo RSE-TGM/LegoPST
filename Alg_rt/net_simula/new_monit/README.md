@@ -55,6 +55,12 @@ guardare quando il banco stampa `Errori in fase di Startup (sk=N disp=N
 monit=N shm=N)`: `N` vale 1 per `snapshot.dat`, 2 per `backtrack.dat`, 4 per
 `f22circ.dat`, sommati.
 
+`parametri.out` **ricomincia a ogni avvio** (da ottobre 2026): lo apre da capo
+il `dispatcher`, il primo processo a partire, con la riga "Avvio del <data>", e
+quello dell'avvio precedente resta come `parametri.out.prec`. Prima si scriveva
+sempre in coda e cresceva per sempre: righe `SEVERE` vecchie di giorni
+sembravano dell'avvio appena fatto.
+
 **`f22circ.dat` incompatibile non ferma più l'avvio** (da ottobre 2026). È solo
 la registrazione circolare per i grafici, non uno stato da cui si riparte: il
 primo processo che lo trova con parametri diversi lo rinomina in
