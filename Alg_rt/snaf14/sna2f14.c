@@ -38,6 +38,7 @@ static char *_csrc = "@(#) %filespec: sna2f14.c-8.1.1 %  (%full_filespec: sna2f1
 #include "sim_types.h"
 #include "xstaz.h"
 #include "compstaz.h"
+#include "dispatcher.h"	/* SNAF14, per ControlParam */
 //#include "monit.h"
 //#include "conv_mmi.h"
 
@@ -132,7 +133,9 @@ int err;
 
          availSnap = (int*)calloc(_MAX_SNAP_SHOT,sizeof(int));
 
-        err = ControlParam("snaf14");
+        /* ControlParam vuole il codice del processo (dispatcher.h), non il
+           nome: la firma e' cambiata, e "snaf14" non compilava piu'. */
+        err = ControlParam(SNAF14);
         if ( err!=0 )
            {
            system ("xterm -T SNAF14ERR -e vi parametri.out &");
@@ -168,8 +171,8 @@ int err;
                _MAX_SNAP_SHOT,
                _MAX_BACK_TRACK);
       printf("\n\t MAX_CAMPIONI  %5d   NUM_VAR        %5d\n",
-               _NUM_VAR,
-               _MAX_CAMPIONI);
+               _MAX_CAMPIONI,	/* erano scambiati: si leggeva un valore per l'altro */
+               _NUM_VAR);
       printf("\n\t MAX_PERTUR    %5d   SPARE_SNAP     %5d   PERT_CLEAR %1d\n\n",
                _MAX_PERTUR,
                _SPARE_SNAP,
@@ -204,7 +207,12 @@ int err;
 			if (snapshot_hea[i-1].stat == 1)
 			{
 				availSnap[i-1] = 1;
-				printf("%d)   descrizione= %s\n\n",
+				/* Il numero da scegliere e' la POSIZIONE (i): e' quella che
+				   la scelta usa piu' sotto. Prima si mostrava .prog, il numero
+				   di programma, e scegliendo il numero mostrato si otteneva
+				   "not available" (o lo snapshot sbagliato). */
+				printf("%d)   [prog %d]   descrizione= %s\n\n",
+						i,
 						snapshot_hea[i-1].prog,
 						snapshot_hea[i-1].descr);
 /*clever hack*/ snapshot_hea[i-1].pos = i;
@@ -223,7 +231,9 @@ int err;
 			else if (snap_sel > tot_snap)
 				printf("\nplease choose a number between 1 and %d\n\n", tot_snap);
 			*/
-			if ((snap_sel < _MAX_SNAP_SHOT) && (availSnap[snap_sel-1] == 1))
+			/* da 1 a _MAX_SNAP_SHOT compreso: prima l'ultimo era escluso, e
+			   0 o un negativo leggevano fuori da availSnap */
+			if ((snap_sel >= 1) && (snap_sel <= _MAX_SNAP_SHOT) && (availSnap[snap_sel-1] == 1))
 				break;
 			else
 				printf("\nsnapshot number %d not available: please select from list\n\n", snap_sel);
@@ -257,6 +267,30 @@ int err;
 
         offset = _MAX_SNAP_SHOT * sizeof(SNTAB) + sizeof(HEADER_REGISTRAZIONI) +
                  (snapshot_hea[snap_sel - 1].pos - 1) * size_blocco_snap;
+
+	/*  Lo snapshot deve essere stato salvato con la topologia ATTUALE.
+	    L'intestazione del file registra la dimensione dell'area dati con
+	    cui e' stato scritto (HEADER_REGISTRAZIONI.size_area_dati): se il
+	    modello e' cambiato dopo - variabili aggiunte o tolte - i blocchi del
+	    file hanno un'altra dimensione, e senza questo controllo si leggeva da
+	    un punto sbagliato e si scriveva un f14.s di valori senza senso,
+	    annunciando "successfull". Trovato su una demo con uno snapshot di
+	    settembre e la topologia rigenerata a ottobre. */
+	if (hreg_snap.size_area_dati != size_area_dati)
+		{
+		fprintf(stderr,
+		    "\nERRORE: snapshot.dat non corrisponde alla topologia attuale.\n"
+		    "        Gli snapshot sono stati salvati con un'area dati di %d byte\n"
+		    "        (%d variabili), la topologia di adesso ne ha %d (%d variabili).\n"
+		    "        Il modello e' cambiato dopo il salvataggio: i valori letti\n"
+		    "        sarebbero sbagliati. Rifare lo snapshot con la simulazione\n"
+		    "        attuale, poi rilanciare snaf14. f14.s non e' stato scritto.\n\n",
+		    hreg_snap.size_area_dati, hreg_snap.size_area_dati / (int)sizeof(float),
+		    size_area_dati, size_area_dati / (int)sizeof(float));
+		fclose(fp_snap);
+		RtDestroyDbPunti(dbpunti);
+		exit(1);
+		}
 
 	fseek(fp_snap, offset, 0);
 	fread(area_dati, size_area_dati, 1, fp_snap);

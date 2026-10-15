@@ -126,10 +126,11 @@ di `LeeF22`.
 | 1. Prototipi nell'MMI | bug 1; poi `-Werror=implicit-function-declaration` su `Alg_mmi/lib/Xl`; prova di `mmi`, `config`, `draw` | medio | basso nel codice, va provato con pagine vere | **fatta** (2026-10-14), vedi §7; provata dall'utente con la simulazione viva |
 | 2. CI di build | workflow nell'immagine, base dei warning di oggi | piccolo | nullo | **fatta** (2026-10-14), vedi §7; verde su GitHub dal commit `1367c68e` |
 | 3. Classificazione dei cast | i ~600 cast puntatore/`int` | medio-grande | medio | da decidere |
-| 4. Directory orfane | triage dei gruppi A, B, C | medio | basso se si archivia | da decidere |
+| 4. Directory orfane | triage dei gruppi A, B, C | medio | basso se si archivia | **fatta** per A e B (2026-10-15), vedi §7 e [COMPONENTI_RIMOSSI.md](COMPONENTI_RIMOSSI.md); SCADA (C) da decidere |
 | 5. Artefatti in git | `.o`, `.a`, eseguibili fuori dall'indice, `.gitignore` | piccolo da fare, grande da decidere | alto | da decidere |
 | 6. Makefile comune | frammento condiviso, via i flag storici | grande | medio | da decidere |
 | 7. Funzioni | §4, una per volta | variabile | variabile | da decidere |
+| 9. Snapshot e topologia | `net_sked` carica uno snapshot (e un backtrack) senza controllare che sia stato salvato con la topologia attuale: dopo una modifica del modello legge uno stato sfalsato senza avvisare. `ConfrontoPar` confronta i parametri del `Simulator` ma non `size_area_dati`, che pure sta nell'intestazione del file. Correzione: confrontarlo in `ControlParam` e mettere da parte il file incompatibile, come già per `f22circ.dat` | piccolo | basso | da decidere |
 | 8. CI: test di funzionamento | dopo il build, nello stesso container: simulazione senza grafica sulla demo (`net_startup_headless`) che avanza qualche secondo, `kUpSim` sulla demo, i test esistenti (`lg_fmu/tests`, round-trip di `lgmkstaz`). Vedi §6 | piccolo-medio | nullo (non tocca il prodotto) | **fatta** (2026-10-14), vedi §7 |
 
 **Prima della fase 5**: il Dockerfile non compila, copia gli eseguibili
@@ -137,6 +138,26 @@ dell'albero di lavoro, quindi l'immagine non dipende da git. Ma le macchine
 native che fanno `git pull` per avere gli eseguibili senza compilare sì; e le
 `legocad/lego_big/lib/*.a`, che non sono in git, vanno comunque prodotte dal
 build. Va chiarito chi si affida agli eseguibili presi da git.
+
+## 2bis. Fase 4: scheda di triage (2026-10-15)
+
+Per ogni directory fuori dal build: cosa è, chi la usa, quanti errori dà oggi
+compilandola (su una copia, con i flag del suo makefile), e la proposta.
+"Rimuovere" vuol dire togliere da `master`: resta tutto nella storia di git, e
+prima si mette un tag per ritrovarlo in un comando.
+
+| # | Directory | Cos'è | Chi la usa | Compila? | Proposta |
+|---|---|---|---|---|---|
+| 1 | `net_simula/agg_manovra` | collegamento al banco manovra fisico (`agg_manovra`, `_stato`, `_pert`, `bm`) | `net_sked` lo lancerebbe solo se `S01` dichiara un host di banco manovra | **no: c'è solo il makefile**, i sorgenti non esistono più (nemmeno nella storia di git); in `bin/` nessun eseguibile | **rimuovere** |
+| 2 | `Alg_mmi/starter` | avvio della versione stand-alone di SCADA/MMI | nessuno | **no: solo i makefile**, `starter.c` non c'è | **rimuovere** |
+| 3 | `net_simula/monitor` | vecchio monitor della simulazione (Motif, generato con AIC) | nessuno: sostituito da `net_monit`/`new_monit` | 9 errori | **rimuovere** |
+| 4 | `legocad/menugraf` | vecchio menu dei grafici di legocad | nessuno: sostituito da `graphics`/`grafics` | 143 errori | **rimuovere** |
+| 5 | `net_simula/net_tast` | comandi alla simulazione da tastiera (start, freeze, stop, backtrack) | solo `tsimula.sh`, script di prova | 33 errori; in `bin/` un eseguibile del 2025 | **rimuovere**, con `tsimula` e l'eseguibile: lo stesso lo fanno il banco e `probe_step` |
+| 6 | `net_simula/dump_shr` | dump del database della simulazione in SHM | nessuno (è uno strumento di debug) | 3 errori | **recuperare**: costa poco, e per i problemi di SHM serve (`probe_attach` legge una variabile alla volta) |
+| 7 | `Alg_rt/snaf14` | `sna2f14`: da uno snapshot a un `f14.dat` (condizioni iniziali) | il comando `snaf14` (installato in `Alg_rt/bin`) | 1 errore: `ControlParam` ha cambiato firma | **recuperare**, se `snaf14` ti serve; altrimenti rimuovere insieme al comando |
+| 8 | `net_simula/agg_scada`, `Alg_mmi/client_scada`, `scada/` | l'integrazione SCADA: ponte simulazione-SCADA, client MMI dello SCADA, il sottosistema intero (845 file, 19 MB, librerie OSF1) | `agg_scada` lo lancerebbe `net_sked` solo se compilato con `-DSCADA`, che non c'è; `Alg_env.sh` esporta `SCADA`, `KSCADA` e l'alias `kscada` | `agg_scada` 49 errori, eseguibile a 32 bit inutilizzabile; `client_scada` compila; `scada/` fuori dal build | **una decisione sola**: se SCADA non serve più, rimuovere tutto insieme e pulire i riferimenti nel profilo |
+| — | `legocad/legoserver` | il server dei moduli di una libreria utente | `cad_crealibut.sh` lo compila **a richiesta**, quando si crea una libreria di moduli | non si compila col build apposta | **non è orfana**: lasciare |
+| — | `Alg_mmi/resource/VARIABILI` | l'editor delle variabili dell'MMI | `config` e `mmi`: i loro makefile compilano questi sorgenti | — | **non è orfana**: lasciare |
 
 ## 6. Cosa si può costruire sulla CI
 
@@ -245,3 +266,24 @@ possibili, in ordine di utilità:
 - Da sapere: le prove dipendono dalla release delle demo (rete, e la demo
   `nuclear` deve restare pubblicata con le `proc/`); il token della run evita
   il limite di 60 interrogazioni l'ora dell'API di GitHub.
+
+### Fase 4 (2026-10-15)
+
+- Scheda di triage in §2bis; decisioni dell'utente: rimuovere 1-5,
+  recuperare `dump_shr` e `snaf14`, SCADA a parte.
+- Rimossi `agg_manovra` (solo makefile), `Alg_mmi/starter` (solo makefile),
+  `monitor`, `legocad/menugraf`, `net_tast` con `tsimula`. Tutto documentato,
+  con le istruzioni per recuperarlo, in
+  [COMPONENTI_RIMOSSI.md](COMPONENTI_RIMOSSI.md) (insieme alle rimozioni
+  precedenti: `tcltktix-8.3.5b`, `gdbm-install`).
+- La ricerca dei riferimenti non aveva visto che `net_monit` prendeva
+  `UxXt.h` da `monitor/` (un `-I` nel makefile): l'ha trovato la CI, in
+  locale, prima del commit. Il file ora sta in `net_monit/`.
+- Recuperati e rientrati nel build: `dump_shr` (provato su una simulazione
+  viva) e `snaf14`. In `snaf14` corretti anche due bug di selezione dello
+  snapshot, e aggiunto il rifiuto di uno snapshot salvato con un'altra
+  topologia: sulla demo `nuclear` lo snapshot di settembre, con 56 variabili
+  in più, produceva un `f14.s` di valori senza senso annunciando successo.
+  Lo stesso difetto riguarda `net_sked`: nuova fase 9.
+- CI in locale dopo le modifiche: 0 errori, 2212 warning (invariati), 5 prove
+  su 5.

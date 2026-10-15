@@ -101,6 +101,7 @@
 #define DISPATCHER		8
 #define NET_PREPF22_CIRC	9
 #define NEW_MONIT		10
+#define SNAF14			11	/* sna2f14 (comando snaf14): solo per ControlParam */
 
 
 /* include per i messaggi fra:

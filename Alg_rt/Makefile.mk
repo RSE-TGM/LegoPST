@@ -50,7 +50,7 @@ all:
 #
 #	snaf14
 #
-########	 cd ./snaf14; $(MAKE) -f Makefile.mk
+	cd ./snaf14; $(MAKE) -f Makefile.mk
 #
 #	procedure
 #

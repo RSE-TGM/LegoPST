@@ -29,7 +29,7 @@ MOTIF_VER=11
 #       %date_created:  Mon Nov  7 12:15:28 2005 %
 all: $(LEGORT_BIN)/cad_simula  $(LEGORT_BIN)/net_simula  $(LEGORT_BIN)/simula \
      $(LEGORT_BIN)/startup $(LEGORT_BIN)/net_startup $(LEGORT_BIN)/web_startup \
-     $(LEGORT_BIN)/tsimula $(LEGORT_BIN)/simprova $(LEGORT_BIN)/snaf14 \
+     $(LEGORT_BIN)/simprova $(LEGORT_BIN)/snaf14 \
      $(LEGORT_BIN)/archive $(LEGORT_BIN)/alg_respawn $(LEGORT_BIN)/net_banco
 
 $(LEGORT_BIN)/cad_simula: cad_simula.sh
@@ -60,9 +60,6 @@ $(LEGORT_BIN)/net_banco: net_banco.sh
 	cp $? $@
 	chmod 755 $@
 
-$(LEGORT_BIN)/tsimula: tsimula.sh
-	cp $? $@
-	chmod 755 $@
 
 $(LEGORT_BIN)/simprova: simprova.sh
 	cp $? $@

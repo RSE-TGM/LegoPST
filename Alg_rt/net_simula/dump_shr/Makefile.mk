@@ -24,8 +24,11 @@ MOTIF_VER=11
 #   data 93/11/24
 #   reserved @(#)Makefile	1.1
 #
+# Niente -I$(LEGOROOT_INCLUDE): il profilo non la definisce, e un -I vuoto
+# si mangiava l'opzione seguente - il -c della regola implicita - cosi' gcc
+# provava a collegare invece di compilare ("undefined reference" a tutto).
 CFLAGS = -I$(LEGORT_INCLUDE) -D$(OS) $(C_FLAGS) $(VERSIONE) \
-	-I$(LEGOROOT_LIB) -I$(LEGOROOT_INCLUDE)
+	-I$(LEGOROOT_LIB)
 
 LIBUTIL = $(LEGORT_LIB)/libsim.a $(LEGORT_LIB)/libnet.a \
 	$(LEGORT_LIB)/libipc.a $(LEGOROOT_LIB)/libutil.a \
@@ -42,4 +45,4 @@ makefile:Makefile
 
 $(LEGORT_BIN)/dump_shr: $(OGGETTI) $(LIBUTIL)
 	$(CC)  -o $(LEGORT_BIN)/dump_shr $(OGGETTI) \
-        $(LIBUTIL) $(OTHER_LIB)
+        $(LIBUTIL) -lsqlite3 $(OTHER_LIB)

@@ -751,6 +751,11 @@ int    NomeProcesso(int processo, char *nome_proc)
              strcpy(nome_proc,"new_monit");
              break;
              }
+        case SNAF14:
+             {
+             strcpy(nome_proc,"snaf14");
+             break;
+             }
         default :
              {
              strcpy(nome_proc,"PROCESSO SCONOSCIUTO");

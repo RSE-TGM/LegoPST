@@ -25,6 +25,7 @@ static char SccsID[] = "@(#)dump_shr.c	5.1\t11/7/95";
         Fine sezione per SCCS
 */
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <math.h>
 # include "sim_param.h"
@@ -49,7 +50,16 @@ char   *nome_modello (char *, int);
 RtDbPuntiOggetto dbpunti;
 RtErroreOggetto errore;
 
-main(argc,argv)
+/*  libsim (letture_dati.c, var_sh.c...) usa il database SQLite della
+    topologia tramite la globale db, che si aspetta definita dal programma.
+    Qui non serve: NULL, e i controlli if(db!=NULL) la saltano. Come negli
+    strumenti di Alg_rt/lg_fmu/tools.  */
+#include <sqlite3.h>
+sqlite3 *db = NULL;
+
+void costruisci_var (char **, VARIABILI **, int *);	/* libsim/var_sh.c */
+
+int main(argc,argv)
 int argc;
 char **argv;
 {
@@ -69,7 +79,8 @@ shr_usr_key = atoi((char *)getenv("SHR_USR_KEY"));
 
 /* creazione o aggancio shared-memory   */
 errore = RtCreateErrore(RT_ERRORE_TERMINALE,"dump_shr");
-dbpunti = RtCreateDbPunti(errore,NULL,DB_PUNTI_INT);
+/* il quarto argomento (SIMULATOR *) e' arrivato dopo: NULL, come probe_step */
+dbpunti = RtCreateDbPunti(errore,NULL,DB_PUNTI_INT,NULL);
 if(dbpunti == NULL)
 	errore("simulazione non attiva");
 
