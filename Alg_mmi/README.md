@@ -499,8 +499,11 @@ con id SCADA distinti.
 - `*hostName`/`*hostNameS` con il **nome host** (più l'eventuale codice):
   `*hostNameS: RIC326282 2`;
 - `fnomi.rtf` nella directory `*simulator`, il database "light" della topologia:
-  è un link creato da [kScadaInit](../kprocedure/kScadaInit.sh#L73) a partire da
-  `$KFILEOP/fnomi.rtf`. Se manca, `mmi` non si ferma ma segnala
+  era un link creato da `kScadaInit` a partire da `$KFILEOP/fnomi.rtf`, con i
+  programmi del sottosistema `scada/` (`PointInst`, `ExpRtf`, `ToRtf`). Il
+  sottosistema e `kScadaInit` sono stati **rimossi** a ottobre 2026 (vedi
+  [docs/COMPONENTI_RIMOSSI.md](../docs/COMPONENTI_RIMOSSI.md)): oggi quel file non
+  si genera più. Se manca, `mmi` non si ferma ma segnala
 
   ```
   XlWarning [OlDatabaseTopologia]: Impossibile aprire il file fnomi.rtf ...

@@ -457,11 +457,9 @@ LegoPST/
 ├── kprocedure/       # Administrative scripts (sources)
 ├── kbin/             # Administrative scripts (installed commands)
 ├── kutil/            # Administrative utilities (sources of kDiffS01Slave4)
-├── kdefaults/        # Defaults of the SCADA side (start_txt)
 ├── docker/           # Docker build and install scripts
 ├── demo/             # Demo packaging and publishing (make_demo_tgz, publish_demo)
 ├── docs/             # Guides: build, commands, configuration files
-├── scada/            # SCADA subsystem (not built: commented out in Makefile.mk)
 ├── util97/           # Legacy utilities
 ├── util2007/         # Other legacy utilities
 ├── util2025/         # Modern utilities
@@ -525,7 +523,7 @@ The system uses hierarchical configuration:
 - **Operator Training**: Power plant simulation
 - **System Design**: CAD for P&I diagrams
 - **Procedure Testing**: Operational sequence validation
-- **SCADA Training**: Advanced operator interfaces
+- **Operator interfaces**: SCADA-like MMI pages for training
 
 ## 📋 Page Types
 

@@ -144,10 +144,6 @@ $(ALTERLEGO_BIN)/kPulirRego \
 $(ALTERLEGO_BIN)/kPulirSim \
 $(ALTERLEGO_BIN)/kRenamePage \
 $(ALTERLEGO_BIN)/kRun \
-$(ALTERLEGO_BIN)/kscadainit \
-$(ALTERLEGO_BIN)/kScadaInit \
-$(ALTERLEGO_BIN)/kscd \
-$(ALTERLEGO_BIN)/kScd \
 $(ALTERLEGO_BIN)/kSimMove \
 $(ALTERLEGO_BIN)/kSinottico \
 $(ALTERLEGO_BIN)/ksortlist \
@@ -731,21 +727,9 @@ $(ALTERLEGO_BIN)/kRun: kRun.sh
 	cp $? $@
 	chmod 755 $@
 
-$(ALTERLEGO_BIN)/kscadainit: kscadainit.sh
-	cp $? $@
-	chmod 755 $@
 
-$(ALTERLEGO_BIN)/kScadaInit: kScadaInit.sh
-	cp $? $@
-	chmod 755 $@
 
-$(ALTERLEGO_BIN)/kscd: kscd.sh
-	cp $? $@
-	chmod 755 $@
 
-$(ALTERLEGO_BIN)/kScd: kScd.sh
-	cp $? $@
-	chmod 755 $@
 
 $(ALTERLEGO_BIN)/kSimMove: kSimMove.sh
 	cp $? $@

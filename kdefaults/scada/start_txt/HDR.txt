@@ -1,5 +1,0 @@
-"HDR_CODE";"HDR_DESCR";"HDR_TYPE";"HDR_PERIOD";"HDR_LENGTH";"HDR_NUM_FILE";"HDR_PARTIAL";"HDR_TRIGGER"
--1;"";2;0;0;0;0;0
-1;"Archivio 1";1;1;1;2;0;1
-2;"Archivio 2";1;1;1;2;0;1
-3;"Archivio 3";1;1;1;2;0;1

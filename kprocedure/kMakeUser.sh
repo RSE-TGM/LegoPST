@@ -42,15 +42,14 @@ cp -R $KSOURCE/dt $HOME/.dt
 fi
 echo "Creating dt directory"
 cp -R $KSOURCE/dt $HOME/.dt
+# ~/defaults si crea se manca, e se c'e' si lascia com'e'. Prima la si
+# riempiva copiando $KSOURCE/kdefaults - che conteneva solo i dati di avvio di
+# SCADA, rimosso nel 2026 - e se esisteva gia' la si CANCELLAVA per ricopiarla,
+# perdendo quello che l'utente ci aveva messo (Simulator, recenti di lghmi...).
 if [ ! -d  $HOME/defaults ]
 then 
 echo "Creating defaults directory"
-cp -R $KSOURCE/kdefaults $HOME/defaults
-else
-echo "Updating defaults directory"
-#cp -r $HOME/defaults $HOME/defaults_old
-rm -r $HOME/defaults
-cp -R $KSOURCE/kdefaults $HOME/defaults
+mkdir -p $HOME/defaults
 fi
 if [ ! -f   $HOME/.Xdefaults-* ]
 then

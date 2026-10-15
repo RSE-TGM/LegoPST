@@ -126,11 +126,12 @@ di `LeeF22`.
 | 1. Prototipi nell'MMI | bug 1; poi `-Werror=implicit-function-declaration` su `Alg_mmi/lib/Xl`; prova di `mmi`, `config`, `draw` | medio | basso nel codice, va provato con pagine vere | **fatta** (2026-10-14), vedi §7; provata dall'utente con la simulazione viva |
 | 2. CI di build | workflow nell'immagine, base dei warning di oggi | piccolo | nullo | **fatta** (2026-10-14), vedi §7; verde su GitHub dal commit `1367c68e` |
 | 3. Classificazione dei cast | i ~600 cast puntatore/`int` | medio-grande | medio | da decidere |
-| 4. Directory orfane | triage dei gruppi A, B, C | medio | basso se si archivia | **fatta** per A e B (2026-10-15), vedi §7 e [COMPONENTI_RIMOSSI.md](COMPONENTI_RIMOSSI.md); SCADA (C) da decidere |
+| 4. Directory orfane | triage dei gruppi A, B, C | medio | basso se si archivia | **fatta** (2026-10-15), SCADA compreso: vedi §7 e [COMPONENTI_RIMOSSI.md](COMPONENTI_RIMOSSI.md) |
 | 5. Artefatti in git | `.o`, `.a`, eseguibili fuori dall'indice, `.gitignore` | piccolo da fare, grande da decidere | alto | da decidere |
 | 6. Makefile comune | frammento condiviso, via i flag storici | grande | medio | da decidere |
 | 7. Funzioni | §4, una per volta | variabile | variabile | da decidere |
 | 9. Snapshot e topologia | `net_sked` carica uno snapshot (e un backtrack) senza controllare che sia stato salvato con la topologia attuale: dopo una modifica del modello legge uno stato sfalsato senza avvisare. `ConfrontoPar` confronta i parametri del `Simulator` ma non `size_area_dati`, che pure sta nell'intestazione del file. Correzione: confrontarlo in `ControlParam` e mettere da parte il file incompatibile, come già per `f22circ.dat` | piccolo | basso | da decidere |
+| 10. Catena di avvio "k" | `kRun`, `kStart`, `kOk` (e `kLeeF22`, lanciato da `kStart`) dipendono da `kScd`, rimosso con SCADA: già prima inservibili. Rimuoverli, o riscrivere `kStart` sopra `net_startup` | piccolo | basso | da decidere |
 | 8. CI: test di funzionamento | dopo il build, nello stesso container: simulazione senza grafica sulla demo (`net_startup_headless`) che avanza qualche secondo, `kUpSim` sulla demo, i test esistenti (`lg_fmu/tests`, round-trip di `lgmkstaz`). Vedi §6 | piccolo-medio | nullo (non tocca il prodotto) | **fatta** (2026-10-14), vedi §7 |
 
 **Prima della fase 5**: il Dockerfile non compila, copia gli eseguibili
@@ -287,3 +288,9 @@ possibili, in ordine di utilità:
   Lo stesso difetto riguarda `net_sked`: nuova fase 9.
 - CI in locale dopo le modifiche: 0 errori, 2212 warning (invariati), 5 prove
   su 5.
+- SCADA rimosso il 2026-10-15 su decisione dell'utente, dopo l'analisi (non
+  si ricompila: thread DCE, Informix solo per Alpha, `ccm_make`). Rimossi anche
+  `kScadaInit`, `kScd`, `creascada`, `lanciascada`, `kdefaults`; `kMakeUser`
+  ora non cancella più `~/defaults`. Lasciati l'"id SCADA" dell'MMI e le
+  directory `$KSIM/scada`. Dettagli in COMPONENTI_RIMOSSI.md; nuova fase 10
+  (catena di avvio "k").

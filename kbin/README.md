@@ -1,6 +1,6 @@
 # `kbin/` — riferimento dei comandi (LegoPST / kprocedure)
 
-I 189 script Korn-shell dell'ambiente **k** di LegoPST: build, esecuzione, SCADA/MMI e
+I 188 script Korn-shell dell'ambiente **k** di LegoPST: build, esecuzione, SCADA/MMI e
 manutenzione di un simulatore d'impianto. Questa è la mappa dello **scopo di ciascuno**,
 raggruppato per funzione.
 
@@ -84,7 +84,7 @@ kDiffS01               # ora cd $KSIM trova l'S01
 |---|---|---|
 | `kStart` | main | Avvia la simulazione (net_startup) e tiene la contabilita' di stato e log, attendendo che il banco scriva `banco.log`. Non ricompila niente. |
 | `kstart` | bg | Avvia kStart in background. |
-| `kRun` | main | **Orchestratore dell'avvio**: kClean, kScd, kStart, kMmi, controllando lo stato fra un passo e l'altro; si rifiuta di partire se kRun risulta `Blocked`. |
+| `kRun` | main | **Orchestratore dell'avvio**: kClean, kScd, kStart, kMmi, controllando lo stato fra un passo e l'altro; si rifiuta di partire se kRun risulta `Blocked`. **Non più utilizzabile**: `kScd` è stato rimosso con SCADA (ottobre 2026) e `kStart` pretende che sia partito; la simulazione si avvia con `net_startup`. |
 | `kMmi` | main | Sceglie e avvia un'istanza MMI: legge `$KSIM/kMmi.cfg`, elenca le istanze definite per questo host e utente, imposta `MMI_ULEVEL` secondo il ruolo (I/O/S/X), esegue `kuser 77<idScada>`, entra in `${KPAGES}_<id>` e lancia `mmi &`. |
 | `kmmi` | bg | Avvia kMmi in background. |
 | `kXlego` | main | `cd $KSIM` e lancia `xlego` in background. |
@@ -101,10 +101,6 @@ kDiffS01               # ora cd $KSIM trova l'S01
 
 | Comando | Tipo | Scopo |
 |---|---|---|
-| `kScd` | main | Avvia il sottosistema SCADA dopo aver eseguito kClean, verificandone l'esito; non riparte se risulta gia' in `Start`. |
-| `kscd` | bg | Avvia kScd in background. |
-| `kScadaInit` | main | Inizializza il database SCADA (previo `kclean`). |
-| `kscadainit` | bg | Avvia kScadaInit in background. |
 | `kMmiConfig` | main | Configurazione della MMI. |
 | `kCollect` | main | Configurazione multi-MMI (raccolta pagine/config). |
 | `kcollect` | bg | Avvia kCollect in background. |

@@ -108,8 +108,9 @@ fi
 #####################################
 
 #Variabili di ambiente da non modificare
-export SCADA=$LEGOROOT/scada${EXTENSION}
-export SCADA_BIN=$LEGOROOT/scada${EXTENSION}/bin
+# SCADA e SCADA_BIN tolte (2026-10): il sottosistema scada/ e' stato rimosso
+# (docs/COMPONENTI_RIMOSSI.md). Restano KSCADA e le altre qui sotto: sono
+# directory del simulatore ($KSIM/scada), che alcuni script k* gestiscono.
 export SCDCOMPACTALL=YES
 if [ "$LEGO_BIG" = "NO" ]
 then
@@ -129,7 +130,7 @@ export LEGOCAD_LIB=$LEGOCAD/lib
 export LEGOCAD_ICO=$LEGOCAD/icons
 export LEGOCAD_BIN=$LEGOCAD/bin
 export XAPPLRESDIR=$LEGOCAD/risorse
-export PATH=$PATH_MAKE:$LEGOCAD_BIN:$PATH:$LEGO_BIN:$SCADA_BIN
+export PATH=$PATH_MAKE:$LEGOCAD_BIN:$PATH:$LEGO_BIN
 #
 # **************************************
 # *     define per LEGO                *

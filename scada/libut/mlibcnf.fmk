@@ -1,5 +1,0 @@
-SRC_C	=	rdpd.c get_key.c
-
-CINC	=	-I\pscs32\incl
-
-LIBRERIA =	libcnf.lib 

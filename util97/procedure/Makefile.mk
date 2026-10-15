@@ -16,7 +16,7 @@ C_FLAGS=-g -DLINUX   -DXOPEN_CATALOG -DUNIX -Dmmap=_mmap_32_  \
 #########################################################################
 
 all:../bin/creasim ../bin/creastazsim ../bin/direct.sh ../bin/mkstaz \
-    ../bin/togli_ctrlm ../bin/superscape ../bin/alg_help ../bin/creascada ../bin/lanciascada\
+    ../bin/togli_ctrlm ../bin/superscape ../bin/alg_help \
     ../bin/cercadoppi.sh ../bin/chgsino ../bin/chpg2newpg ../bin/creasvincolo \
     ../bin/diffs01 ../bin/divstaz ../bin/elab_cai_var.sh ../bin/leggi_cai_var.sh \
     ../bin/lego_back ../bin/listacai ../bin/mkdtw ../bin/mkstaz2 \
@@ -62,11 +62,7 @@ all:../bin/creasim ../bin/creastazsim ../bin/direct.sh ../bin/mkstaz \
 ../bin/alg_help: alg_help.sh
 	cp alg_help.sh ../bin/alg_help;chmod 777 ../bin/alg_help;
 #
-../bin/creascada: creascada.sh
-	cp creascada.sh ../bin/creascada;chmod 777 ../bin/creascada;
 #
-../bin/lanciascada: lanciascada.sh
-	cp lanciascada.sh ../bin/lanciascada;chmod 777 ../bin/lanciascada;
 #
 ../bin/cercadoppi.sh: cercadoppi.sh.sh
 	cp cercadoppi.sh.sh ../bin/cercadoppi.sh ; chmod 777 ../bin/cercadoppi.sh

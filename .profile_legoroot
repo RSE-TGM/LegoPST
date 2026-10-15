@@ -196,7 +196,6 @@ alias  lggo='cd $LEGOROOT; . .profile_legoroot;export PS1="[LEGOROOT:\u@\h \W]\\
 # 
 #########################################################
 #
-export SCADA_DEBUG=1
 export RISOLVI_REGOLAZIONE=YES
 export SKED_TIME_AGG_STAT=1000
 #

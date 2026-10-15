@@ -59,8 +59,7 @@ misurare gli errori.
 
 Restano fuori da questa tabella, per scelta:
 
-- **SCADA** (`scada/`, `Alg_rt/net_simula/agg_scada/`, `Alg_mmi/client_scada/`):
-  da decidere a parte, vedi il piano.
+- **SCADA**: rimosso subito dopo, vedi la sezione seguente.
 - **`legocad/legoserver/`** e **`Alg_mmi/resource/VARIABILI/`**: sembravano
   orfane, ma non lo sono. Il primo lo compila `cad_crealibut.sh` a richiesta,
   quando si crea una libreria di moduli; i sorgenti del secondo li compilano i
@@ -77,6 +76,80 @@ Provati tutti e due nel container, sulla demo `nuclear`: `dump_shr` sulla
 simulazione viva (3977 righe, valori coerenti con lo stato), `snaf14` su uno
 snapshot salvato dalla simulazione attuale (valori dello stato nel `f14.s`) e
 su quello vecchio della demo (rifiutato).
+
+## SCADA, ottobre 2026
+
+Commit di riferimento: **`d9b500a2`** anche qui (l'ultimo che contiene tutto).
+
+**Perché.** Il sottosistema non era più nel build (la riga `cd ./scada` era
+commentata nel makefile della radice) e non si poteva rimettere in piedi con
+una ricompilazione. Provato su una copia, il 15 ottobre 2026:
+
+- le sue librerie di base (`scada/libOSF1`: Net, Util, Marte, InterPol, Xscada)
+  davano 326 errori con GCC 14, 48 ammorbidendo le regole (`-fpermissive`);
+- Net e Marte usano l'API dei thread **DCE** (`pthread_addr_t`,
+  `pthread_startroutine_t`: 19 punti), lo strato che il progetto non costruisce
+  più;
+- `integr` (import/export dei punti, file `.ec`) usava il database
+  **Informix**, e in `lib_informix` c'erano solo eseguibili e librerie per
+  **Alpha** (Digital Unix): su Linux non c'era niente da collegare;
+- le librerie si costruivano con `ccm_make` di Telelogic CM Synergy, che non
+  esiste più;
+- `agg_scada`, il ponte simulazione-SCADA, parte solo con `net_sked` e
+  `dispatcher` compilati con `-DSCADA`, flag che il profilo ha disabilitato da
+  tempo; il suo eseguibile era a 32 bit, inutilizzabile.
+
+Rimetterlo in funzione voleva dire un porting vero (thread POSIX, un database
+al posto di Informix, makefile nuovi) e dei dati su cui provarlo, che non
+c'erano. Nessun uso attuale: deciso dall'utente il 15 ottobre 2026.
+
+| Rimosso | Cos'era |
+|---|---|
+| `scada/` (845 file, 19 MB, più 70 `.o` non tracciati) | il sottosistema SCADA: acquisizione, archivi, allarmi, stampe, la sua interfaccia `Xscada`, le librerie per OSF1, `integr` con Informix, i documenti in `scada/docs/` |
+| `Alg_rt/net_simula/agg_scada/` (5 file) e `Alg_rt/bin/agg_scada` | il ponte simulazione-SCADA |
+| `Alg_mmi/client_scada/` (5 file) e `Alg_mmi/bin/client_scada` | il client MMI verso SCADA |
+| `kdefaults/` (9 file: `scada/start_txt`) | i dati di avvio delle tabelle SCADA, che `kScadaInit` copiava nel simulatore |
+| `kprocedure/kScadaInit.sh`, `kscadainit.sh` e le copie in `kbin/` | inizializzazione del database SCADA del simulatore (`PointInst`, `ExpRtf`, `ToRtf`, e il link `fnomi.rtf`) |
+| `kprocedure/kScd.sh`, `kscd.sh` e le copie in `kbin/` | avvio del programma `scada` (che già prima non c'era in `scada/bin`) |
+| `util97/procedure/creascada.sh`, `lanciascada.sh` e le copie in `util97/bin/` | creazione e lancio dello SCADA di un simulatore |
+| le righe commentate in `Makefile.mk`, `Alg_mmi/Makefile.mk`, `Alg_rt/net_simula/Makefile.mk`; i target in `kprocedure/Makefile.mk` e `util97/procedure/Makefile.mk`; le righe `scada/` di `.gitignore` | — |
+| in `Alg_env.sh`: `SCADA`, `SCADA_BIN` e la voce `$SCADA_BIN` nel `PATH`; in `.profile_legoroot`: `SCADA_DEBUG` | variabili che puntavano al sottosistema |
+
+**Modificato di conseguenza.** `kMakeUser` creava `~/defaults` copiando
+`kdefaults`, e se la directory esisteva già la cancellava per ricopiarla,
+perdendo quello che l'utente ci aveva messo: ora la crea se manca e altrimenti
+la lascia com'è.
+
+**Lasciato apposta**, perché non è il prodotto SCADA o non dà fastidio:
+
+- **l'"id SCADA" delle istanze MMI** (`kMmi.cfg`, `kMmi`, `kMmiConfig`,
+  `kuser 77<id>`, `*hostNameS` nei `Context.ctx`): è il canale client/server
+  dell'MMI (`server_mmi`, `demone_mmi`), non il sottosistema rimosso. Senza
+  `kScadaInit` però non si genera più `fnomi.rtf`: in quella configurazione
+  `mmi` lo segnala e resta senza albero gerarchico, come già documentato in
+  [Alg_mmi/README.md](../Alg_mmi/README.md);
+- **le directory del simulatore** `$KSIM/scada` (`KSCADA`, `KFILEOP`,
+  `KSTART_TABLES`, `KEDIT_TABLES`, `KOPER_TABLES`, alias `kscada`), che
+  `k_crea_simulatore`, `kExport`, `k_crea_cassaforte` e `kMakeRemoteSim`
+  ancora creano o spostano;
+- **il codice `#if defined SCADA`** di `net_sked` e `dispatcher` e l'opzione
+  `-host_scada_name` degli script di avvio: senza il flag non viene compilato, e
+  toglierlo vorrebbe dire toccare il motore della simulazione;
+- i nomi `client_scada`, `scada`, `agg_scada` negli elenchi di processi da
+  terminare di `kClean`, `kPulirSim` e `killsim`: non trovano niente, e non
+  fanno danni;
+- `Alg_help/` (l'aiuto storico) e i documenti in `docs/legacy`.
+
+**Non più utilizzabili**, e da decidere a parte: **`kRun`** (lancia `kScd`, poi
+`kStart`) e **`kStart`** (si rifiuta di partire se `kScd` non risulta avviato),
+con **`kOk`**, che segnava a mano `kScd` come avviato. Era la vecchia catena di
+avvio della sessione, già inservibile prima (il programma `scada` non c'era); la
+simulazione oggi si avvia con `net_startup`.
+
+**Recupero.** Come per il resto: `git checkout d9b500a2 -- scada
+Alg_rt/net_simula/agg_scada Alg_mmi/client_scada kdefaults ...`, poi le righe
+nei makefile e in `Alg_env.sh`. Per farlo funzionare, però, resta tutto il
+porting descritto sopra.
 
 ## Prima, ottobre 2026
 

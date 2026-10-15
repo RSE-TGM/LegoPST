@@ -1,8 +1,0 @@
-SRC_C	=		readiz.c decnum.c readef.c ctrlstat.c ricerca.c\
-			exstati.c aggfconf.c rwdbal.c readdb.c allocdb.c
-
-SRC_A	=		bitio.asm    
-
-CINC	=	-I\pscs32\incl
-
-LIBRERIA =		LIBPSCS.lib

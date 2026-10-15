@@ -1,1 +1,0 @@
-$SCADA_BIN/starter $SCADA_BIN scada /FAT /ACFV /M4 &
