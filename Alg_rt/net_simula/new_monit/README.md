@@ -79,3 +79,39 @@ il primo processo che se ne accorge lo rinomina in `snapshot.dat.incompatibile`
 un file nuovo. Lo si è scoperto con `snaf14` su una demo, con uno snapshot di
 settembre e 56 variabili in più. Codice: `ScartaSeAltraTopologia` in
 `AlgLib/libsim/simulator.c`; la CI lo prova a ogni push.
+
+## Due strumenti sugli stati della simulazione
+
+### Da uno snapshot alle condizioni iniziali: `snaf14`
+
+Nella directory del simulatore (o di una task), `snaf14` elenca gli snapshot di
+`snapshot.dat` e, scelto il numero, scrive accanto al `f14.dat` di ogni modello
+un **`f14.s`** con i valori di quello snapshot. Il `f14.dat` non viene toccato:
+per usarli si rinomina `f14.s` a mano. I parametri li legge dal `Simulator`.
+
+```
+cd $KSIM            # o la directory della task
+snaf14              # invio, poi il numero dello snapshot (quello dell'elenco)
+```
+
+Uno snapshot salvato **con un'altra topologia** (prima di una modifica del
+modello) viene rifiutato con una spiegazione e senza scrivere niente: i valori
+sarebbero sfalsati. Va rifatto lo snapshot con la simulazione attuale. Il
+programma (`Alg_rt/snaf14/sna2f14.c`) è tornato nel build a ottobre 2026, con
+alcune correzioni: vedi [docs/COMPONENTI_RIMOSSI.md](../../../docs/COMPONENTI_RIMOSSI.md).
+
+### Il database della simulazione in memoria: `dump_shr`
+
+Con una simulazione in corso, `dump_shr` scrive in un file tutte le variabili
+di una task, con il loro indirizzo e il valore attuale nella memoria
+condivisa: ingressi e uscite, poi derivate e dati.
+
+```
+dump_shr 1 dump.txt     # task numero 1 (nell'ordine di S01) nel file dump.txt
+dump_shr 1 term         # sullo schermo
+dump_shr                # senza argomenti: elenca le task e chiede
+```
+
+Serve a guardare lo stato completo di una task quando qualcosa non torna (per
+una variabile sola basta `viewval`, o `probe_attach` di `lg_fmu/tools`). Tornato
+nel build a ottobre 2026 (`Alg_rt/net_simula/dump_shr`).

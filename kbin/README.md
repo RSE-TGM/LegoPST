@@ -176,7 +176,7 @@ kDiffS01               # ora cd $KSIM trova l'S01
 | `kMakeLicense` | main | Genera la licenza (`config`). |
 | `kDiffReport` | main | Report di confronto/differenze del simulatore. |
 | `kProcessReport` | main | Report delle task di processo. |
-| `kMakeUser` | main | Crea/inizializza un utente (copia `.dt`, …). |
+| `kMakeUser` | main | Crea/inizializza un utente (copia `.dt`, crea `~/defaults` se manca, …). Fino a ottobre 2026 riempiva `~/defaults` copiandoci `kdefaults` e, se esisteva già, la cancellava per ricopiarla: ora non la tocca. |
 | `kuser` | util | Imposta la chiave utente di sessione (`USR_KEY`/`SHR_USR_KEY`). |
 | `kUpDateUserName` | main | Aggiorna il nome utente. |
 | `kChangeUserLevel` | main | Cambia il livello utente («Make User Level»). |

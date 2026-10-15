@@ -71,6 +71,7 @@ the freshly built programs **work**, on a real demo and without a display:
 | `kUpSim` | `kUpSim -nommi` on the `SLaurent_0` simulator (no MMI pages: they need a display) |
 | simulation | `net_startup_headless.sh` on the `PWRN1PSS` task, `probe_init`, then 10 steps with `probe_step --goup`: simulated time must advance by 10 s |
 | variables | `test_var_mapping` on the live simulation |
+| topology | the task's `snapshot.dat`, with its header altered to look like another model's, must be set aside as `snapshot.dat.incompatibile` at the next start, and the simulation must start anyway (`ControlParam`, see [new_monit/README.md](../Alg_rt/net_simula/new_monit/README.md)) |
 
 Everything happens in a temporary `HOME`. Every step has a time limit: a
 simulation that does not answer must not hold the runner (in testing, with
