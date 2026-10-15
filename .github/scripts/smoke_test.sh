@@ -23,6 +23,9 @@
 #                 10 passi con probe_step --goup: il tempo simulato deve
 #                 avanzare di 10 s
 #   5. variabili  test_var_mapping sulla simulazione viva
+#   6. topologia  uno snapshot.dat salvato con un'altra topologia (intestazione
+#                 alterata apposta) va messo da parte all'avvio, e la
+#                 simulazione deve partire lo stesso (ControlParam, fase 9)
 #
 # Tutto avviene in una HOME provvisoria: la demo, i link legocad e sked, la
 # scelta del simulatore. killsim fra una prova e l'altra: nel container le IPC
@@ -161,6 +164,37 @@ fi
 killsim >/dev/null 2>&1
 # i log delle task restano nella demo: li si porta con gli altri
 cp "$TASK"/*.fmu.log "$LOGDIR"/ 2>/dev/null
+
+# --- 6. snapshot di un'altra topologia ------------------------------------
+# Lo snapshot.dat della task, scritto dalla simulazione della prova 4, e' della
+# topologia attuale. Gli si cambia nell'intestazione la dimensione dell'area
+# dati (il primo int): per ControlParam diventa uno snapshot di un altro
+# modello, e all'avvio va messo da parte come snapshot.dat.incompatibile.
+SNAP="$TASK/snapshot.dat"
+if [ -z "$T_FIN" ] || [ ! -f "$SNAP" ]; then
+    esito topologia 1 "saltata: manca la simulazione della prova 4 o il suo snapshot.dat"
+else
+    rm -f "$TASK/snapshot.dat.incompatibile" "$TASK/parametri.out"
+    VERO=$(od -An -t d4 -N4 "$SNAP" | tr -d ' ')
+    FALSO=$((VERO + 4))
+    printf "$(printf '\\%03o\\%03o\\%03o\\%03o' $((FALSO & 255)) $(((FALSO >> 8) & 255)) $(((FALSO >> 16) & 255)) $(((FALSO >> 24) & 255)))" \
+        | dd of="$SNAP" bs=1 count=4 conv=notrunc 2>/dev/null
+    lancia 120 Alg_rt/lg_fmu/scripts/net_startup_headless.sh "$TASK" > "$LOGDIR/6_avvio.log" 2>&1
+    sleep 2
+    VIVI=""
+    for p in dispatcher net_sked; do pgrep -x "$p" >/dev/null && VIVI="$VIVI $p"; done
+    if [ ! -f "$TASK/snapshot.dat.incompatibile" ]; then
+        esito topologia 1 "lo snapshot con area dati $FALSO byte (vera: $VERO) non e' stato messo da parte"
+    elif ! grep -q "altra topologia" "$TASK/parametri.out" 2>/dev/null; then
+        esito topologia 1 "messo da parte, ma parametri.out non dice perche'"
+    elif [ "$VIVI" != " dispatcher net_sked" ]; then
+        esito topologia 1 "messo da parte, ma la simulazione non e' partita (vivi:${VIVI:- nessuno})"
+    else
+        esito topologia 0 "snapshot da $FALSO byte messo da parte, simulazione partita"
+    fi
+    cp "$TASK/parametri.out" "$LOGDIR/6_parametri.out" 2>/dev/null
+    killsim >/dev/null 2>&1
+fi
 
 echo ""
 echo "prove fallite: $FALLITE su ${#RISULTATI[@]}"

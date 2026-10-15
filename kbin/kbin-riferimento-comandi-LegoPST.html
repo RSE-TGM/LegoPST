@@ -198,9 +198,9 @@ const D = [
   ["koldlg5","build","util","Compila <code>proc/lg5</code> col makefile legacy: <code>make -f $LEGO_BIN/cad_maketask proc/lg5 CAD_LIB_MODULI=`cad_f012lis`</code>."],
 
   // ---- run ----
-  ["kStart","run","main","Avvia la simulazione (net_startup) e tiene la contabilita' di stato e log, attendendo che il banco scriva <code>banco.log</code>. Non ricompila niente."],
+  ["kStart","run","main","Avvia la simulazione con <code>net_startup</code> e <b>aspetta che sia partita</b> (dispatcher, net_sked e banco vivi); esce con 1 e il motivo se non parte, entro <code>KSTART_TIMEOUT</code> (120 s): non resta mai appesa. Output in <code>$KLOG/kStart.log</code>. Riscritta a ottobre 2026."],
   ["kstart","run","bg","Avvia kStart in background."],
-  ["kRun","run","main","<b>Orchestratore dell'avvio</b>: kClean, kScd, kStart, kMmi, controllando lo stato fra un passo e l'altro; si rifiuta di partire se kRun risulta <code>Blocked</code>. <b>Non piu' utilizzabile</b>: kScd e' stato rimosso con SCADA (ottobre 2026), e kStart pretende che sia partito; la simulazione si avvia con <code>net_startup</code>."],
+  ["kRun","run","main","<b>Orchestratore dell'avvio</b>: kClean, kStart, kMmi; si rifiuta di partire se kRun risulta <code>Blocked</code>, e si ferma se kStart fallisce."],
   ["kMmi","run","main","Sceglie e avvia un'istanza MMI: legge <code>$KSIM/kMmi.cfg</code>, elenca le istanze definite per questo host e utente, imposta <code>MMI_ULEVEL</code> secondo il ruolo (I/O/S/X), esegue <code>kuser 77&lt;idScada&gt;</code>, entra in <code>${KPAGES}_&lt;id&gt;</code> e lancia <code>mmi &</code>."],
   ["kmmi","run","bg","Avvia kMmi in background."],
   ["kXlego","run","main","<code>cd $KSIM</code> e lancia <code>xlego</code> in background."],

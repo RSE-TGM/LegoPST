@@ -130,8 +130,9 @@ di `LeeF22`.
 | 5. Artefatti in git | `.o`, `.a`, eseguibili fuori dall'indice, `.gitignore` | piccolo da fare, grande da decidere | alto | da decidere |
 | 6. Makefile comune | frammento condiviso, via i flag storici | grande | medio | da decidere |
 | 7. Funzioni | §4, una per volta | variabile | variabile | da decidere |
-| 9. Snapshot e topologia | `net_sked` carica uno snapshot (e un backtrack) senza controllare che sia stato salvato con la topologia attuale: dopo una modifica del modello legge uno stato sfalsato senza avvisare. `ConfrontoPar` confronta i parametri del `Simulator` ma non `size_area_dati`, che pure sta nell'intestazione del file. Correzione: confrontarlo in `ControlParam` e mettere da parte il file incompatibile, come già per `f22circ.dat` | piccolo | basso | da decidere |
-| 10. Catena di avvio "k" | `kRun`, `kStart`, `kOk` (e `kLeeF22`, lanciato da `kStart`) dipendono da `kScd`, rimosso con SCADA: già prima inservibili. Rimuoverli, o riscrivere `kStart` sopra `net_startup` | piccolo | basso | da decidere |
+| 9. Snapshot e topologia | `net_sked` carica uno snapshot (e un backtrack) senza controllare che sia stato salvato con la topologia attuale: dopo una modifica del modello legge uno stato sfalsato senza avvisare. `ConfrontoPar` confronta i parametri del `Simulator` ma non `size_area_dati`, che pure sta nell'intestazione del file. Correzione: confrontarlo in `ControlParam` e mettere da parte il file incompatibile, come già per `f22circ.dat` | piccolo | basso | **fatta** (2026-10-15), vedi §7 |
+| 10. Catena di avvio "k" | `kRun`, `kStart`, `kOk` (e `kLeeF22`, lanciato da `kStart`) dipendono da `kScd`, rimosso con SCADA: già prima inservibili. Rimuoverli, o riscrivere `kStart` sopra `net_startup` | piccolo | basso | **fatta** (2026-10-15): `kStart` riscritto, vedi §7 |
+| 11. `f22circ.dat` con 3 task | su SLaurent_0 (3 task) `f22circ.dat` nasce con 7200 campioni e 1000 variabili mentre il `Simulator` ne dice 14400 e 10000: tre righe SEVERE in `parametri.out` a ogni avvio. La simulazione parte lo stesso, e succedeva già prima delle modifiche di ottobre. Da capire chi passa quei valori a `net_prepf22` | piccolo | basso | da indagare |
 | 8. CI: test di funzionamento | dopo il build, nello stesso container: simulazione senza grafica sulla demo (`net_startup_headless`) che avanza qualche secondo, `kUpSim` sulla demo, i test esistenti (`lg_fmu/tests`, round-trip di `lgmkstaz`). Vedi §6 | piccolo-medio | nullo (non tocca il prodotto) | **fatta** (2026-10-14), vedi §7 |
 
 **Prima della fase 5**: il Dockerfile non compila, copia gli eseguibili
@@ -294,3 +295,33 @@ possibili, in ordine di utilità:
   ora non cancella più `~/defaults`. Lasciati l'"id SCADA" dell'MMI e le
   directory `$KSIM/scada`. Dettagli in COMPONENTI_RIMOSSI.md; nuova fase 10
   (catena di avvio "k").
+
+### Fase 9 (2026-10-15)
+
+- `ControlParam` (`AlgLib/libsim/simulator.c`): `snapshot.dat` e
+  `backtrack.dat` salvati con un'altra topologia - confronto della dimensione
+  dell'area dati e, task per task, di stati, ingressi, derivate e dati con
+  quelli di `S02_LINUX` - vengono rinominati in `.incompatibile` dal primo
+  processo che se ne accorge, con il motivo in `parametri.out`; la simulazione
+  parte con un file nuovo. Per i parametri diversi l'errore resta com'era.
+- Provato sulla demo `nuclear`: lo snapshot di settembre (14968 byte contro
+  14744) messo da parte al primo avvio, simulazione partita, niente al
+  secondo. Nuova prova `topologia` nella CI (intestazione alterata apposta).
+- Ricollegati dispatcher, net_sked, cad_sked, net_monit, cad_monit, banco,
+  net_prepf22, sna2f14.
+
+### Fase 10 (2026-10-15)
+
+- `kStart` riscritto: avvia con `net_startup` (come prima), poi aspetta che
+  `dispatcher`, `net_sked` e `banco` siano vivi e restino vivi per 5 s, con un
+  limite di tempo (`KSTART_TIMEOUT`, 120 s); esce con 1 e il motivo se
+  `net_startup` segnala errori di startup, se un processo muore o se scade il
+  tempo. Tolti il controllo su `kScd`, l'attesa senza limite di un messaggio
+  che il banco non stampa più, e `kLeeF22`. L'output va in
+  `$KLOG/kStart.log`. `kRun` non lancia più `kScd` e si ferma se `kStart`
+  fallisce; `kOk` non nomina più `kScd`.
+- Provato nel container (con Xvfb installato al volo: nell'immagine non
+  c'è): PWRN1PSS avviata in 8 s, SLaurent_0 (3 task) in 9 s; un secondo
+  `kStart` risponde "already started"; senza display esce con NOK in 16 s
+  invece di restare appeso. Non in CI: servirebbe Xvfb nell'immagine.
+- Notato durante le prove: fase 11.

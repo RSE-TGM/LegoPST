@@ -33,27 +33,15 @@ kAddStatus kRun Blocked
 kClean
 sleep 5
 #
-kScd
-sleep 5
-#
-kScdStatus=`cat $KSTATUS/kScd.status`
-while [ ! "$kScdStatus" = "Started" ]
-do
-print "kRun :\tWaiting for SCADA started"
-sleep 20
-kScdStatus=`cat $KSTATUS/kScd.status`
-done
-sleep 5
-kStart
-sleep 5
-#
-kStartStatus=`cat $KSTATUS/kStart.status`
-while [ ! "$kStartStatus" = "Started" ]
-do
-print "kRun :\tWaiting for SCHEDULATOR started"
-sleep 20
-kStartStatus=`cat $KSTATUS/kStart.status`
-done
+#  Niente piu' kScd: SCADA e' stato rimosso (ottobre 2026). kStart ora
+#  aspetta da se' che la simulazione sia partita, con un limite di tempo, ed
+#  esce con 1 se non ci riesce: qui non si gira piu' in tondo ad aspettare.
+if ! kStart
+then
+print "kRun :\tla simulazione non e' partita (vedi $KLOG/kStart.log)"
+kAddStatus kRun Free
+exit 1
+fi
 sleep 5
 kMmi 0
 sleep 30

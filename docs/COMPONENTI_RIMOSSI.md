@@ -140,11 +140,13 @@ la lascia com'è.
   fanno danni;
 - `Alg_help/` (l'aiuto storico) e i documenti in `docs/legacy`.
 
-**Non più utilizzabili**, e da decidere a parte: **`kRun`** (lancia `kScd`, poi
-`kStart`) e **`kStart`** (si rifiuta di partire se `kScd` non risulta avviato),
-con **`kOk`**, che segnava a mano `kScd` come avviato. Era la vecchia catena di
-avvio della sessione, già inservibile prima (il programma `scada` non c'era); la
-simulazione oggi si avvia con `net_startup`.
+**Sistemati subito dopo** (fase 10 del piano): `kRun` lanciava `kScd` e
+aspettava senza limite che SCADA risultasse avviato; `kStart` si rifiutava di
+partire senza `kScd`, aspettava per sempre un messaggio che il banco non stampa
+più, e alla fine lanciava `kLeeF22`; `kOk` segnava a mano `kScd` come avviato.
+`kStart` è stato riscritto (avvia con `net_startup`, aspetta i processi con un
+limite di tempo, esce con il motivo se non partono), `kRun` non lancia più
+`kScd`, `kOk` non lo nomina più.
 
 **Recupero.** Come per il resto: `git checkout d9b500a2 -- scada
 Alg_rt/net_simula/agg_scada Alg_mmi/client_scada kdefaults ...`, poi le righe

@@ -63,5 +63,19 @@ dice sullo stdout e in `parametri.out` (`RIMEDIO: ...`). Prima la simulazione
 non partiva più finché qualcuno non cancellava il file a mano — capitava dopo
 una corsa FMU della stessa task, o cambiando il `Simulator`.
 
-Per `snapshot.dat` e `backtrack.dat` l'errore **resta**: contengono gli stati
-salvati, e scartarli è una decisione di chi usa il simulatore.
+Per `snapshot.dat` e `backtrack.dat` con **parametri** diversi l'errore
+**resta**: contengono gli stati salvati, e scartarli è una decisione di chi usa
+il simulatore.
+
+**Salvo un caso: un'altra topologia** (da ottobre 2026). L'intestazione di
+`snapshot.dat` e `backtrack.dat` registra anche la dimensione dell'area dati e,
+task per task, il numero di stati, ingressi, derivate e dati. Se non
+corrispondono alla topologia attuale (letta da `S02_LINUX`), il file è stato
+salvato prima di una modifica del modello e caricarlo vorrebbe dire ripartire
+da valori sfalsati, senza che niente lo dica. Non si può usare in nessun caso:
+il primo processo che se ne accorge lo rinomina in `snapshot.dat.incompatibile`
+(o `backtrack.dat.incompatibile`), lo scrive sullo stdout e in `parametri.out`
+(`RIMEDIO: ... salvato con un'altra topologia ...`), e la simulazione parte con
+un file nuovo. Lo si è scoperto con `snaf14` su una demo, con uno snapshot di
+settembre e 56 variabili in più. Codice: `ScartaSeAltraTopologia` in
+`AlgLib/libsim/simulator.c`; la CI lo prova a ogni push.

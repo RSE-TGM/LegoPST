@@ -38,6 +38,9 @@ int   ReadSimulator(int);
 #define FF22C "f22circ.dat"
 /* dove finisce un f22circ.dat incompatibile, messo da parte da ControlParam */
 #define FF22C_SCARTATO "f22circ.dat.incompatibile"
+/* dove finiscono snapshot.dat e backtrack.dat salvati con un'altra topologia */
+#define FSNAP_SCARTATO "snapshot.dat.incompatibile"
+#define FBKTK_SCARTATO "backtrack.dat.incompatibile"
 #define WARN  "WARNING"
 #define SEVR  "SEVERE"
 char nome_proc[50];
@@ -404,6 +407,111 @@ char *val;
 6     1 1 0
 7     1 1 1
 */
+/*
+   La topologia ATTUALE del simulatore, letta da S02_LINUX come la legge il
+   database dei punti (RtCreateDbPunti, file_top) - senza toccare la memoria
+   condivisa, che a questo punto puo' non esserci ancora. Per ogni task le
+   quattro grandezze (stati, ingressi, derivate, dati), e in *size la
+   dimensione in byte dell'area dati di tutte le task, cioe' quella che
+   snapshot.dat e backtrack.dat registrano nell'intestazione.
+   Ritorna il numero di task, o -1 se il file non si legge (e allora il
+   controllo della topologia non si fa).
+*/
+static int TopologiaAttuale(NUMERI_MODELLI *num, int *size)
+{
+FILE  *fp;
+S02   *top;
+int    i,nmod;
+
+    *size = 0;
+    if( (fp = fopen("S02_LINUX","r"))==NULL )
+        return(-1);
+    top = (S02*)calloc(1,sizeof(S02));
+    if( top==NULL || fread(&(top->nmod),sizeof(int),1,fp)!=1 ||
+        top->nmod<=0 || top->nmod>MAX_MODEL ||
+        fread(&(top->model[0]),sizeof(MODEL),top->nmod,fp)!=(size_t)top->nmod )
+        {
+        fclose(fp);
+        free(top);
+        return(-1);
+        }
+    fclose(fp);
+    nmod = top->nmod;
+    for(i=0;i<nmod;i++)
+        {
+        num[i].stati    = top->model[i].punt_ivin  - top->model[i].punt_ivus;
+        num[i].ingressi = top->model[i].punt_ider  - top->model[i].punt_ivin;
+        num[i].derivate = top->model[i].punt_idati - top->model[i].punt_ider;
+        num[i].dati     = top->model[i].punt_ifine - top->model[i].punt_idati;
+        *size += (num[i].stati + num[i].ingressi + num[i].derivate + num[i].dati)
+                 * (int)sizeof(float);
+        }
+    free(top);
+    return(nmod);
+}
+
+/*
+   snapshot.dat o backtrack.dat salvato con un'ALTRA topologia: dopo una
+   modifica del modello (kUpSim, una task ricompilata) le variabili non sono
+   piu' quelle, e caricare uno stato da quel file vuol dire ripartire da
+   valori sfalsati, senza che niente lo dica. Lo si e' visto con snaf14 su una
+   demo: uno snapshot di settembre con 56 variabili in piu' dava valori senza
+   senso, e net_sked lo avrebbe caricato allo stesso modo.
+
+   Il controllo usa quello che il file registra nell'intestazione: la
+   dimensione dell'area dati e, task per task, stati, ingressi, derivate e
+   dati. Si confronta anche il dettaglio perche' una variabile spostata da una
+   task all'altra lascia uguale il totale.
+
+   Un file cosi' non si puo' usare in nessun caso, quindi lo si mette da parte
+   come f22circ.dat (rinominato, non cancellato: lo si ritrova), e la
+   simulazione parte con uno nuovo. Lo fa il primo processo che se ne
+   accorge; rename() e' atomica, e chi arriva dopo non trova piu' il file.
+   Ritorna 1 se lo ha messo da parte (o se lo aveva gia' fatto un altro).
+*/
+static int ScartaSeAltraTopologia(char *file, char *scartato,
+                                  HEADER_REGISTRAZIONI *hd)
+{
+NUMERI_MODELLI num[MAX_MODEL];
+int   nmod,size,i,diverso=0;
+FILE *fpedf;
+FILE *fp;
+
+    nmod = TopologiaAttuale(num,&size);
+    if( nmod<0 || hd->size_area_dati<=0 )
+        return(0);                    /* niente da confrontare */
+    if( hd->size_area_dati != size )
+        diverso = 1;
+    for(i=0;i<nmod && !diverso;i++)
+        if( hd->num_modelli[i].stati    != num[i].stati    ||
+            hd->num_modelli[i].ingressi != num[i].ingressi ||
+            hd->num_modelli[i].derivate != num[i].derivate ||
+            hd->num_modelli[i].dati     != num[i].dati )
+            diverso = 1;
+    if( !diverso )
+        return(0);
+
+    if( rename(file,scartato)==0 )
+        {
+        fpedf = fopen(PAREDF,"a");
+        if( fpedf!=NULL )
+            {
+            fprintf(fpedf,"RIMEDIO: %s salvato con un'altra topologia (area dati "
+                          "%d byte, ora %d): rinominato in %s, ne verra' creato "
+                          "uno nuovo\n",file,hd->size_area_dati,size,scartato);
+            fclose(fpedf);
+            }
+        printf("%s: %s salvato con un'altra topologia (area dati %d byte, ora %d): "
+               "rinominato in %s, ne verra' creato uno nuovo\n",
+               nome_proc,file,hd->size_area_dati,size,scartato);
+        return(1);
+        }
+    if( (fp = fopen(file,"r"))==NULL )
+        return(1);                    /* messo da parte da un altro, un attimo fa */
+    fclose(fp);
+    return(0);
+}
+
 int ControlParam(int processo)
 {
 int i,ret;
@@ -441,7 +549,8 @@ int esnap=0,ebktk=0,ef22=0;
       fp = fopen(file, "r");
       fread(&hdfile,sizeof(HEADER_REGISTRAZIONI),1,fp);
       fclose(fp);
-      esnap = ConfrontoPar(hdfile,processo,file);
+      if( !ScartaSeAltraTopologia(FSNAP,FSNAP_SCARTATO,&hdfile) )
+         esnap = ConfrontoPar(hdfile,processo,file);
       }
     else
       printf("%s non esiste %s\n",nome_proc,file);
@@ -454,7 +563,8 @@ int esnap=0,ebktk=0,ef22=0;
       fp = fopen(file, "r");
       fread(&hdfile,sizeof(HEADER_REGISTRAZIONI),1,fp);
       fclose(fp);
-      ebktk = ConfrontoPar(hdfile,processo,file);
+      if( !ScartaSeAltraTopologia(FBKTK,FBKTK_SCARTATO,&hdfile) )
+         ebktk = ConfrontoPar(hdfile,processo,file);
       }
 
 /*  Controllo del file f22circ.dat */
@@ -494,8 +604,10 @@ printf("\t\t ControlParam da f22circ.dat %d %d %d %d %d %d %d\n",
 
    Si puo' fare perche' f22circ.dat e' solo la registrazione circolare per i
    grafici: non e' uno stato da cui si riparte. snapshot.dat e backtrack.dat
-   invece lo sono, e per loro l'errore resta - buttarli e' una decisione di
-   chi usa il simulatore, non di questa funzione.
+   invece lo sono, e per i PARAMETRI diversi l'errore resta - buttarli e' una
+   decisione di chi usa il simulatore, non di questa funzione. Salvo un caso:
+   salvati con un'altra TOPOLOGIA non si possono usare comunque, e vengono
+   messi da parte (ScartaSeAltraTopologia, sopra).
 
    Lo fa il PRIMO processo che se ne accorge, chiunque sia: dispatcher,
    net_sked, il banco e net_prepf22 passano tutti di qui prima di aprire il

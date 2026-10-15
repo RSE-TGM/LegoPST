@@ -1,7 +1,6 @@
 #!/bin/ksh
 #
 kAddStatus kClean OK
-kAddStatus kScd Started
 kAddStatus kStart Started
 kAddStatus kMmi0 Reset
 kAddStatus kMmi1 Reset

@@ -82,9 +82,9 @@ kDiffS01               # ora cd $KSIM trova l'S01
 
 | Comando | Tipo | Scopo |
 |---|---|---|
-| `kStart` | main | Avvia la simulazione (net_startup) e tiene la contabilita' di stato e log, attendendo che il banco scriva `banco.log`. Non ricompila niente. |
+| `kStart` | main | Avvia la simulazione del simulatore corrente con `net_startup` e **aspetta che sia partita**: `dispatcher`, `net_sked` e `banco` vivi per qualche secondo. Esce con 0 se è partita, con 1 (e il motivo) se `net_startup` segnala errori di startup, se un processo muore o se scade il tempo (`KSTART_TIMEOUT`, default 120 s): non resta mai appesa. L'output di `net_startup` va in `$KLOG/kStart.log`. Riscritta a ottobre 2026: prima pretendeva `kScd` (SCADA, rimosso), aspettava per sempre un messaggio che il banco non stampa più, e alla fine lanciava `kLeeF22`. |
 | `kstart` | bg | Avvia kStart in background. |
-| `kRun` | main | **Orchestratore dell'avvio**: kClean, kScd, kStart, kMmi, controllando lo stato fra un passo e l'altro; si rifiuta di partire se kRun risulta `Blocked`. **Non più utilizzabile**: `kScd` è stato rimosso con SCADA (ottobre 2026) e `kStart` pretende che sia partito; la simulazione si avvia con `net_startup`. |
+| `kRun` | main | **Orchestratore dell'avvio**: kClean, kStart, kMmi; si rifiuta di partire se kRun risulta `Blocked`. Se `kStart` fallisce si ferma e lo dice. (Fino a ottobre 2026 lanciava anche `kScd`, lo SCADA rimosso, e aspettava senza limite che risultasse avviato.) |
 | `kMmi` | main | Sceglie e avvia un'istanza MMI: legge `$KSIM/kMmi.cfg`, elenca le istanze definite per questo host e utente, imposta `MMI_ULEVEL` secondo il ruolo (I/O/S/X), esegue `kuser 77<idScada>`, entra in `${KPAGES}_<id>` e lancia `mmi &`. |
 | `kmmi` | bg | Avvia kMmi in background. |
 | `kXlego` | main | `cd $KSIM` e lancia `xlego` in background. |
