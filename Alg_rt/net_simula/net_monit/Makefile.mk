@@ -9,6 +9,10 @@ LEGORT_BIN=../../bin
 LEGORT_UID=../../uid
 PATHCADOBJ=./cad_monit_o
 PATHNETOBJ=./net_monit_o
+#  Le due directory degli oggetti contenevano solo .o: da quando i .o non
+#  sono in git (ottobre 2026) un checkout nuovo non le ha, e gcc non sapeva
+#  dove scrivere ("can't create cad_monit_o/monit.o"). Le crea il makefile.
+$(shell mkdir -p $(PATHCADOBJ) $(PATHNETOBJ))
 
 # make_macros from project "Alg_rt-2007A1_RHE4_lomgr
 GUI_BUILD=/usr/bin/aic

@@ -186,11 +186,18 @@ Not on the list, on purpose:
   the `modulilib.a` built by LegoPC). LegoPC uses `cad_crealibut`, which does
   not build `refresh_dati`. A dormant feature, not a missing file.
 
-Before the other `.o` files were untracked, the change was tested on a clone
+Before the other `.o` files were untracked, the change was tested on a copy
 from which they had been deleted, as `git pull` deletes them on the users'
-machines. Every functional test passed without compiling anything, and a build
-from scratch on that clone left no new `.o` for git to see. The build
-recreates every one of them from its source.
+machines. Every functional test passed without compiling anything. That copy,
+though, had been filled from the working tree with `rsync`, and it missed one
+thing: **git does not record empty directories**. `net_monit/cad_monit_o`,
+`net_monit/net_monit_o`, `net_sked/cad_sked_o` and `net_sked/net_sked_o`
+contained only `.o` files, so a fresh checkout no longer had them, and the
+first GitHub build failed with `can't create cad_monit_o/monit.o`. Their
+makefiles now create them (`$(shell mkdir -p ...)`). The fix was checked on a
+real `git clone` of the commit: build from scratch and all seven tests green.
+**Test changes like this on a real checkout, never on a copy of the working
+tree.**
 
 **Adding a new one.** Suppose a runtime script starts linking another
 installation object. Then:
