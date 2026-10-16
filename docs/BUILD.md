@@ -51,8 +51,8 @@ and the development headers. The check fails if:
   number may only go down: when it does, the script prints the new value to
   write there.
 
-"From scratch" means without the `.o` files, hundreds of which are tracked in
-git: with them `make` would recompile nothing. The same script runs by hand,
+"From scratch" means without any `.o` file: on a working copy that has been
+built they are all there, and `make` would recompile nothing. The same script runs by hand,
 **on a copy** of the tree, since it deletes the `.o` files:
 
 ```bash
@@ -102,14 +102,18 @@ GCC 14 error stops the build there too.
 
 ## Compiled files in git
 
-Executables, libraries and some objects are committed **on purpose**: users get
-them with `git pull`, and the product must work without compiling anything.
+Executables, libraries and **nine** objects are committed **on purpose**: users
+get them with `git pull`, and the product must work without compiling anything.
+All the other `.o` files are ignored (`.gitignore`: `*.o`, with an exception
+for each of the nine).
 After changing a source, rebuild **and relink** what depends on it (the
 makefiles do not relink an executable when a library changes), and commit the
 results.
 
-Most of the ~820 tracked `.o` files are just build intermediates. A few,
-though, are linked **on the user's machine**: LegoPC builds each task's
+Every other `.o` is a build intermediate, and has not been in git since
+October 2026. Until then 824 were tracked, so every build left hundreds of
+modified files to commit. The nine are different: they are linked **on the
+user's machine**. LegoPC builds each task's
 executables (`lg2`, `lg3`, `lg5`, `lg5sk`, `pslego3`) through
 `lego_big/bin/cad_maketask`, `maketask` and `cad_marcotask`, and those link
 installation objects together with the user's module libraries. Without them a
@@ -144,6 +148,20 @@ Not on the list, on purpose:
   inside the installation, and that link fails anyway (`modidat_` missing from
   the `modulilib.a` built by LegoPC). LegoPC uses `cad_crealibut`, which does
   not build `refresh_dati`. A dormant feature, not a missing file.
+
+Before the other `.o` files were untracked, the change was tested on a clone
+from which they had been deleted, as `git pull` deletes them on the users'
+machines. Every functional test passed without compiling anything, and a build
+from scratch on that clone left no new `.o` for git to see. The build
+recreates every one of them from its source.
+
+**Adding a new one.** Suppose a runtime script starts linking another
+installation object. Then:
+1. add it with a `!` line in `.gitignore`;
+2. commit it;
+3. add a row to the table above.
+
+If you forget, the `task` test fails and names the file.
 
 `make -f Makefile.mk clean` deletes **all** `.o` and `.a` files, these
 included: after it, rebuild everything before committing, or restore them with

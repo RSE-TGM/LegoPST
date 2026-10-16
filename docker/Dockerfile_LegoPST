@@ -169,7 +169,7 @@ COPY /LegoPST /home/legoroot_fedora41
 # fra due versioni e se le tiene tutte intere nella storia, per sempre. Il
 # repository e' pubblico: per scaricare basta curl, senza credenziali.
 ARG DEMO_RELEASE=demo-2.0
-ARG DEMO_SHA256=6098155a49d6385004387e487003dca6f5637507ec038115e73ca5b7bfe00ee9
+ARG DEMO_SHA256=d17427d59f585c5b70cd135bfcc91279b5995e0e595d381015d13299b3788faa
 RUN if [ -n "$DEMO_RELEASE" ]; then \
         echo "demo: scarico la release $DEMO_RELEASE" && \
         mkdir -p /home/legoroot_fedora41/demo && \

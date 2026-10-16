@@ -15,7 +15,7 @@
 #      .github/build_warnings_baseline. Il numero puo' solo scendere: quando
 #      scende, si aggiorna il file con il nuovo valore (lo script lo dice).
 #
-# Da zero vuol dire senza i .o: in git ce ne sono centinaia, e con quelli make
+# Da zero vuol dire senza i .o: in una copia gia' compilata ci sono tutti, e con quelli make
 # non ricompilerebbe niente (e non direbbe niente).
 #
 # Uscita: 0 tutto bene, 1 errori di compilazione, 2 warning oltre la soglia.

@@ -88,7 +88,7 @@ l'integrazione SCADA?
 6b. `libsim/f22_func.c`, `f22_leggi_tutti_camp`: a ogni giro del buffer di
    `f22circ.dat` salta lo slot `num_campioni`, che lo scrittore
    (`pf_wrif22circ.c`) usa: un campione perso per giro. Trovato il
-   2026-10-16 scrivendo `f22exp`, che legge da sé e non ne soffre. Non
+   2026-10-16 scrivendo `lgf22exp`, che legge da sé e non ne soffre. Non
    corretto: va prima capito chi usa quella funzione.
 
 ### Gravità bassa
@@ -124,7 +124,7 @@ fatti a giugno-luglio 2026; provati e corretti il 2026-10-16); ~~messaggi di
 MINMAX~~ (fatto il 2026-10-16); `f01totom` fase 2 (**sospesa**, decisione
 dell'utente del 2026-10-16); configuratore dei simulatori (opzione A con Access: **aspetta che Access
 sia installato**, vedi §7); ~~un esportatore in testo di `f22circ.dat` al posto
-di `LeeF22`~~ (`f22exp`, fatto il 2026-10-16).
+di `LeeF22`~~ (`lgf22exp`, fatto il 2026-10-16).
 
 ## 5. Fasi
 
@@ -135,9 +135,9 @@ di `LeeF22`~~ (`f22exp`, fatto il 2026-10-16).
 | 2. CI di build | workflow nell'immagine, base dei warning di oggi | piccolo | nullo | **fatta** (2026-10-14), vedi §7; verde su GitHub dal commit `1367c68e` |
 | 3. Classificazione dei cast | i cast puntatore/`int` | medio-grande | medio | **fatta** (2026-10-16): 5 difetti corretti, 4 sospetti chiusi, eseguibili ricollegati, soglia warning 2212 → 2183, vedi §7 |
 | 4. Directory orfane | triage dei gruppi A, B, C | medio | basso se si archivia | **fatta** (2026-10-15), SCADA compreso: vedi §7 e [COMPONENTI_RIMOSSI.md](COMPONENTI_RIMOSSI.md) |
-| 5. Artefatti in git | ~~togliere `.o`, `.a`, eseguibili dall'indice~~ | — | — | **non si fa** (decisione dell'utente, 2026-10-15): tutti prendono gli eseguibili già compilati da git, il prodotto deve funzionare senza essere compilato. **Attenzione (utente, 2026-10-15): anche alcuni `.o` vanno tenuti**, perché servono a compilare gli eseguibili che il motore LEGO produce a runtime (le task). **Indagine fatta (2026-10-16)**: i `.o` indispensabili sono 9 (`main_lg2/lg3/lg5/cf04/lg5sk/rg5sk.o`, `rg5sim.o`, `pslego3.o`, `trapfpe.o`), più 10 `.a`; gli altri ~810 sono intermedi del build. Elenco e motivi in [BUILD.md, *Compiled files in git*](BUILD.md#compiled-files-in-git); la prova `task` della CI ricostruisce le task della demo e fallisce se uno di quei file non è in git |
+| 5. Artefatti in git | ~~togliere `.o`, `.a`, eseguibili dall'indice~~ | — | — | **fatta solo per i `.o` intermedi** (decisione dell'utente, 2026-10-16): `.gitignore` ignora `*.o` tranne i 9 indispensabili, e gli altri 815 escono dall'indice; provato su un clone senza quei `.o` (7 prove su 7 senza compilare, e build da zero pulito). Eseguibili e `.a` restano. Storia precedente: **non si fa** (decisione dell'utente, 2026-10-15): tutti prendono gli eseguibili già compilati da git, il prodotto deve funzionare senza essere compilato. **Attenzione (utente, 2026-10-15): anche alcuni `.o` vanno tenuti**, perché servono a compilare gli eseguibili che il motore LEGO produce a runtime (le task). **Indagine fatta (2026-10-16)**: i `.o` indispensabili sono 9 (`main_lg2/lg3/lg5/cf04/lg5sk/rg5sk.o`, `rg5sim.o`, `pslego3.o`, `trapfpe.o`), più 10 `.a`; gli altri ~810 sono intermedi del build. Elenco e motivi in [BUILD.md, *Compiled files in git*](BUILD.md#compiled-files-in-git); la prova `task` della CI ricostruisce le task della demo e fallisce se uno di quei file non è in git |
 | 6. Makefile comune | frammento condiviso, via i flag storici | grande | medio | **primo passo fatto** (2026-10-16): via i flag storici e `-fpermissive`, vedi §7. Il frammento comune è **sospeso** (decisione dell'utente, 2026-10-16) |
-| 7. Funzioni | §4, una per volta | variabile | variabile | **in corso**: fatte (2026-10-16) la prova del Command Mode di draw2gr nel bundle FMU, con due correzioni, e `lgdemo` in inglese, vedi §7. Fatti anche colori e scale di lgmkstaz e l'esportatore `f22exp`. Resta il configuratore, che aspetta l'installazione di Access; f01totom fase 2 è **sospesa** |
+| 7. Funzioni | §4, una per volta | variabile | variabile | **in corso**: fatte (2026-10-16) la prova del Command Mode di draw2gr nel bundle FMU, con due correzioni, e `lgdemo` in inglese, vedi §7. Fatti anche colori e scale di lgmkstaz e l'esportatore `lgf22exp`. Resta il configuratore, che aspetta l'installazione di Access; f01totom fase 2 è **sospesa** |
 | 9. Snapshot e topologia | `net_sked` carica uno snapshot (e un backtrack) senza controllare che sia stato salvato con la topologia attuale: dopo una modifica del modello legge uno stato sfalsato senza avvisare. `ConfrontoPar` confronta i parametri del `Simulator` ma non `size_area_dati`, che pure sta nell'intestazione del file. Correzione: confrontarlo in `ControlParam` e mettere da parte il file incompatibile, come già per `f22circ.dat` | piccolo | basso | **fatta** (2026-10-15), vedi §7 |
 | 10. Catena di avvio "k" | `kRun`, `kStart`, `kOk` (e `kLeeF22`, lanciato da `kStart`) dipendono da `kScd`, rimosso con SCADA: già prima inservibili. Rimuoverli, o riscrivere `kStart` sopra `net_startup` | piccolo | basso | **fatta** (2026-10-15): `kStart` riscritto, vedi §7 |
 | 11. `parametri.out` che non si azzera | Sembrava che su SLaurent_0 `f22circ.dat` nascesse con 7200/1000 contro i 14400/10000 del `Simulator`. Non era così: `parametri.out` si scriveva sempre in coda, e quello della demo conteneva 131 avvii della macchina di chi l'ha confezionata; le righe SEVERE erano vecchie. Corretto: il dispatcher lo ricomincia a ogni avvio (il precedente in `.prec`), e le demo non lo includono | piccolo | basso | **fatta** (2026-10-15), vedi §7 |
@@ -491,7 +491,7 @@ Dal build da zero: **417** punti distinti (240 `int-to-pointer-cast`, 177
 
 ### Fase 7: esportatore di `f22circ.dat` e stato del configuratore (2026-10-16)
 
-- **`f22exp`** (`Alg_rt/net_simula/f22exp`, nel build) esporta `f22circ.dat`
+- **`lgf22exp`** (`Alg_rt/net_simula/lgf22exp`, nel build) esporta `f22circ.dat`
   in CSV.
   - Va dal campione più vecchio al più nuovo, seguendo il giro del buffer.
   - Opzioni: `-l` elenca le variabili; `-v` sceglie le variabili, `-t` un

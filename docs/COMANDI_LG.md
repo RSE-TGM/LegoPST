@@ -240,6 +240,29 @@ Riferimento completo, formato `S01` e finestra di log: [../Alg_legopc/LGHMI.md](
 
 Dettaglio dei singoli passi: [../kbin/README.md](../kbin/README.md).
 
+### Le registrazioni in un foglio di calcolo: `lgf22exp`
+
+| Comando | Tipo | Scopo |
+|---|---|---|
+| `lgf22exp` | binario | **Esporta in CSV le variabili registrate** in `f22circ.dat`, il file circolare che `net_prepf22` scrive durante la simulazione e da cui `graphics` e draw2gr fanno i grafici. I campioni escono dal più vecchio al più nuovo, anche quando il buffer ha già fatto il giro. La prima riga è `tempo` seguito dai nomi delle variabili; l'esito (campioni e variabili esportati) va sullo standard error. Sta in `Alg_rt/bin`. |
+
+| Invocazione | Effetto |
+|---|---|
+| `lgf22exp -l [FILE]` | elenca le variabili registrate e i dati del file (creazione, campioni registrati su quanti possibili), senza esportare |
+| `lgf22exp [FILE]` | esporta tutte le variabili sullo schermo. `FILE` è `f22circ.dat`, `f22circ` o la directory che lo contiene (per esempio `$KSIM`); senza, quello della directory corrente |
+| `lgf22exp -o <file.csv> …` | scrive in un file |
+| `lgf22exp -v A,B …` | solo le variabili `A` e `B` (anche ripetuta, maiuscole e minuscole indifferenti) |
+| `lgf22exp -t 100:250 …` | solo i campioni fra 100 e 250 s (`100:` e `:250` vanno bene) |
+| `lgf22exp -p 10 …` | un campione ogni 10 |
+| `lgf22exp -d ';' …` | separatore `;`, per un foglio di calcolo in italiano (`-d tab` per il tabulatore) |
+| `lgf22exp -D …` | una seconda riga d'intestazione con le descrizioni |
+| `lgf22exp -a …` | anche gli slot liberi (`libera`) e senza nome |
+
+Esempio: `lgf22exp -v ALZATHPS -t 100:250 -d ';' -o valvola.csv $KSIM`.
+`kLeeF22` fa lo stesso sul simulatore corrente e scrive `$KSIM/f22circ.csv`.
+Dettagli e formato del file in
+[../Alg_rt/net_simula/new_monit/README.md](../Alg_rt/net_simula/new_monit/README.md).
+
 ---
 
 ## 5. Scelta dell'area di lavoro

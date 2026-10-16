@@ -122,18 +122,18 @@ Serve a guardare lo stato completo di una task quando qualcosa non torna (per
 una variabile sola basta `viewval`, o `probe_attach` di `lg_fmu/tools`). Tornato
 nel build a ottobre 2026 (`Alg_rt/net_simula/dump_shr`).
 
-### Le registrazioni in un foglio di calcolo: `f22exp`
+### Le registrazioni in un foglio di calcolo: `lgf22exp`
 
 Durante la simulazione `net_prepf22` registra le variabili grafiche in
 `f22circ.dat`, un file circolare: arrivato in fondo, ricomincia sovrascrivendo
-i campioni più vecchi. Lo leggono `graphics` e draw2gr per i grafici. `f22exp`
+i campioni più vecchi. Lo leggono `graphics` e draw2gr per i grafici. `lgf22exp`
 lo esporta in colonne di testo (CSV), dal campione più vecchio al più nuovo,
 per un foglio di calcolo o per un altro programma:
 
 ```
-f22exp -l                          # le variabili registrate e i dati del file
-f22exp -o prova.csv                # tutto f22circ.dat di qui in prova.csv
-f22exp -v ALZATHPS,PU_5TW11 -t 100:250 -d ';' -o valvola.csv $KSIM
+lgf22exp -l                          # le variabili registrate e i dati del file
+lgf22exp -o prova.csv                # tutto f22circ.dat di qui in prova.csv
+lgf22exp -v ALZATHPS,PU_5TW11 -t 100:250 -d ';' -o valvola.csv $KSIM
 ```
 
 | Opzione | Effetto |
@@ -158,7 +158,7 @@ mostra l'elenco delle variabili e scrive `$KSIM/f22circ.csv`.
 
 Prende il posto di `LeeF22`, che leggeva il formato sequenziale di prima
 (`f22.dat`) e non si compilava più. Il sorgente è
-`Alg_rt/net_simula/f22exp` (ottobre 2026). Legge il file con le stesse
+`Alg_rt/net_simula/lgf22exp` (ottobre 2026). Legge il file con le stesse
 strutture con cui lo scrive `net_prepf22` (`sim_types.h`, `f22_circ.h`) e non
 usa le funzioni di lettura di `libsim`. Queste stampano messaggi di debug sullo
 standard output, e `f22_leggi_tutti_camp` salta un campione a ogni giro del

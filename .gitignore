@@ -2,85 +2,27 @@
 *.d
 
 # Object files
-#*.o
-
-AlgLib/libcom/*.o
-AlgLib/libnet/*.o
-AlgLib/libmanovra/*.o
-AlgLib/libwidget/*.o
-AlgLib/libipc/*.o
-AlgLib/libsim/*.o
-AlgLib/libutil/*.o
-AlgLib/libutilx/*.o
-AlgLib/libdispatcher/*.o
-AlgLib/libdispatcher/*.o
-AlgLib/Rt/*.o
-
-Alg_legopc/src/c_files/*.o
-
-Alg_rt/grafica/xstaz/*.o
-Alg_rt/grafica/xaing/*.o
-Alg_rt/grafica/compstaz/*.o
-Alg_rt/net_simula/viewval/*.o
-Alg_rt/net_simula/net_prova/*.o
-Alg_rt/net_simula/dataserver/*.o
-Alg_rt/net_simula/net_prepf22_circ/*.o
-Alg_rt/net_simula/net_sked/cad_sked_o/*.o
-Alg_rt/net_simula/net_sked/net_sked_o/*.o
-Alg_rt/net_simula/net_updbase/*.o
-Alg_rt/net_simula/malfunzioni/*.o
-Alg_rt/net_simula/new_monit/*.o
-Alg_rt/net_simula/net_disp/*.o
-Alg_rt/net_simula/net_clean/*.o
-Alg_rt/net_simula/net_demone/*.o
-Alg_rt/net_simula/mandb/*.o
-Alg_rt/net_simula/net_compi/*.o
-Alg_rt/net_simula/newsess/*.o
-Alg_rt/net_simula/rest_sess/*.o
-Alg_rt/net_simula/net_net/*.o
-Alg_rt/net_simula/net_monit/cad_monit_o/*.o
-
-Alg_mmi/lib/Xl/*.o
-Alg_mmi/lib/Xl/SourceGrafica/*.o
-Alg_mmi/lib/Xl/*.o
-Alg_mmi/lib/Cs/*.o
-Alg_mmi/lib/Ol/*.o
-Alg_mmi/lib/Xd/*.o
-Alg_mmi/forms/*.o
-Alg_mmi/draw/*.o
-Alg_mmi/regolazione/*.o
-Alg_mmi/conv_staz/*.o
-
-Alg_mmi/config/*.o
-Alg_mmi/client_server/*.o
-Alg_mmi/run_time/*.o
-Alg_mmi/utilities/*.o
-
-legocad/autodoc/*.o
-legocad/bitmap/*.o
-legocad/calcstaz/*.o
-legocad/dati_legocad/*.o
-legocad/edicole/*.o
-legocad/editf01/*.o
-legocad/filtri/*.o
-legocad/iconvert/*.o
-legocad/info/*.o
-legocad/know/*.o
-legocad/lib/macro/*.o
-legocad/librarian/*.o
-legocad/main/*.o
-legocad/tavole/*.o
-legocad/topologia/*.o
-legocad/topsim/*.o
-legocad/utility/*.o
-legocad/lib/macro/macro_dati_obj/*.o
-legocad/lib/macro/macro_topol_obj/*.o
-
-
-
-
-
-util97/utilities/*.o
+#
+# I .o NON stanno in git, tranne i 9 che servono agli utenti: LegoPC collega
+# le task sulla loro macchina con questi oggetti dell'installazione
+# (lego_big/bin/cad_maketask, maketask, cad_marcotask; ALG_FPE_OBJ per
+# trapfpe.o). Elenco e motivi in docs/BUILD.md, "Compiled files in git"; la
+# prova "task" della CI fallisce se uno di loro manca da git. Gli eseguibili e
+# le librerie .a invece restano tracciati: il prodotto si usa senza compilare.
+#
+# Fino a ottobre 2026 qui c'erano ~70 regole per directory, mentre git
+# tracciava comunque 824 .o (aggiunti prima delle regole): ogni build ne
+# modificava centinaia.
+*.o
+!/lego_big/sorglego/main/main_lg2.o
+!/lego_big/sorglego/main/main_lg3.o
+!/lego_big/sorglego/main/main_lg5.o
+!/lego_big/sorglego/main/main_cf04.o
+!/lego_big/sorglego/main/main_lg5sk.o
+!/lego_big/sorglego/main/main_rg5sk.o
+!/lego_big/lib/rg5sim.o
+!/lego_big/lib/pslego3.o
+!/AlgLib/trapfpe.o
 
 *.ko
 *.obj
