@@ -937,7 +937,7 @@ printf("in net_disp_scoda_monit_e_banco comando = %d\n", comando);
 	 totale = sizeof(int) + n * (sizeof(int) + sizeof(float));
 	 for (k = 0; k < totale / MAX_LUN_COMANDI_DISPATCHER; k++)
 	 {
-	    memcpy((void * restrict)app_varupd[k * MAX_LUN_COMANDI_DISPATCHER],
+	    memcpy(app_varupd + (k * MAX_LUN_COMANDI_DISPATCHER),
 	     messaggio_dispatcher.comando_dispatcher.dati,
 		   MAX_LUN_COMANDI_DISPATCHER);
 	    msg_ack.ret = 1;

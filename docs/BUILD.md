@@ -34,7 +34,9 @@ the leaner recipe. What the image deliberately leaves out, and why, is in
 ```bash
 make -f Makefile.mk clean
 ```
-Removes all object files (*.o), libraries (*.a), and generated version.h
+Removes all object files (*.o), libraries (*.a), and generated version.h - including
+the ones committed for users that do not compile: see
+[Compiled files in git](#compiled-files-in-git).
 
 ## Build check (CI)
 
@@ -72,6 +74,7 @@ the freshly built programs **work**, on a real demo and without a display:
 | simulation | `net_startup_headless.sh` on the `PWRN1PSS` task, `probe_init`, then 10 steps with `probe_step --goup`: simulated time must advance by 10 s |
 | variables | `test_var_mapping` on the live simulation |
 | topology | the task's `snapshot.dat`, with its header altered to look like another model's, must be set aside as `snapshot.dat.incompatibile` at the next start, and the simulation must start anyway (`ControlParam`, see [new_monit/README.md](../Alg_rt/net_simula/new_monit/README.md)) |
+| task | the demo's tasks are rebuilt with LegoPC's commands (`cad_crealg1`, `cad_crealg3`, `crealg5`, `cad_crealg5sk`, `cad_marcotask`), and every installation `.o`/`.a` they link must be tracked by git (see [Compiled files in git](#compiled-files-in-git)) |
 
 Everything happens in a temporary `HOME`. Every step has a time limit: a
 simulation that does not answer must not hold the runner (in testing, with
@@ -90,6 +93,55 @@ The `Alg_mmi/lib/Xl` library is also compiled with
 `-Werror=implicit-function-declaration`: a function called without a
 declaration returns `int`, and on 64 bits a pointer returned that way is
 truncated. Its declarations are in `Alg_mmi/lib/Xl/XlProto.h`.
+
+## Compiled files in git
+
+Executables, libraries and some objects are committed **on purpose**: users get
+them with `git pull`, and the product must work without compiling anything.
+After changing a source, rebuild **and relink** what depends on it (the
+makefiles do not relink an executable when a library changes), and commit the
+results.
+
+Most of the ~820 tracked `.o` files are just build intermediates. A few,
+though, are linked **on the user's machine**: LegoPC builds each task's
+executables (`lg2`, `lg3`, `lg5`, `lg5sk`, `pslego3`) through
+`lego_big/bin/cad_maketask`, `maketask` and `cad_marcotask`, and those link
+installation objects together with the user's module libraries. Without them a
+user who does not compile cannot build a model. Checked on 2026-10-16 by
+rebuilding the `nuclear` demo's tasks on a fresh clone with nothing compiled:
+
+| Objects | Linked by |
+|---|---|
+| `lego_big/sorglego/main/main_lg2.o` | `lg2` (`cad_crealg1`), `lg5sk` |
+| `lego_big/sorglego/main/main_lg3.o` | `lg3` (`cad_crealg3`), `lg5`, `lg5sk` |
+| `lego_big/sorglego/main/main_lg5.o`, `main_cf04.o` | `lg5` (`crealg5`; `main_cf04.o` only when `proc/f04.dat` is rebuilt) |
+| `lego_big/sorglego/main/main_lg5sk.o` | `lg5sk` (`cad_crealg5sk`) |
+| `lego_big/sorglego/main/main_rg5sk.o` | `lg5sk` of the simplified-regulation tasks (`cad_marcotask`) |
+| `lego_big/lib/rg5sim.o`, `pslego3.o` | `lg5sk`, `pslego3` (`cad_marcotask`) |
+| `AlgLib/trapfpe.o` | every task (`ALG_FPE_OBJ`, from `Alg_env.sh`) |
+
+| Libraries | |
+|---|---|
+| `lego_big/lib/` | `clegolib.a`, `legolib.a`, `vapo.a`, `regonew.a` |
+| `AlgLib/` | `libsim.a`, `libnet.a`, `libipc.a`, `libutil.a`, `libRt.a` |
+| `legocad/lib/` | `liblegocad.a` |
+
+The `task` functional test keeps this list honest: it fails, naming the file,
+if a task links an installation file that git does not track.
+
+Not on the list, on purpose:
+
+- `lego_big/lib/cmain_lg1.o` is only an intermediate of `clg1a_exe`.
+- `main_refresh.o` (for `refresh_dati`, which `net_sked` runs, if it exists,
+  when the monitor changes a block's data) is neither committed nor built: only
+  the old `crealibut` would link it, compiling `main_refresh.c` on the fly
+  inside the installation, and that link fails anyway (`modidat_` missing from
+  the `modulilib.a` built by LegoPC). LegoPC uses `cad_crealibut`, which does
+  not build `refresh_dati`. A dormant feature, not a missing file.
+
+`make -f Makefile.mk clean` deletes **all** `.o` and `.a` files, these
+included: after it, rebuild everything before committing, or restore them with
+`git checkout`.
 
 ## Version Management
 The build system automatically generates `version.h` with:

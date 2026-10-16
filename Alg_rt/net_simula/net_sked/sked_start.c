@@ -1065,7 +1065,9 @@ printf("sked_start: PARENT - pid[%d] = %d\n", i, fpid);
       {
          stat_proc = RtDbPGetPuntAusStat(dbpunti,PREP_F22 - 1);
          stat_proc-> pid =  -1;
-	 signal(SIGKILL, (__sighandler_t)pidgr);
+	 /* era signal(SIGKILL, pid): non uccideva niente */
+	 if (pidgr > 0)
+	    kill(pidgr, SIGKILL);
       }
    }
    /* lancio processo demone  per la connessione con l'mmi */
@@ -1100,7 +1102,9 @@ printf("sked_start: PARENT - pid[%d] = %d\n", i, fpid);
       {
          stat_proc = RtDbPGetPuntAusStat(dbpunti,AGG_MANOVRA);
          stat_proc-> pid =  -1;
-	 signal(SIGKILL, (__sighandler_t)pid_bm_master);
+	 /* era signal(SIGKILL, pid): non uccideva niente */
+	 if (pid_bm_master > 0)
+	    kill(pid_bm_master, SIGKILL);
       }
 #endif
 #if defined SCADA

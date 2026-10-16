@@ -125,9 +125,9 @@ di `LeeF22`.
 | 0. Correzioni puntuali | bug 2–6, `gets()`, README | piccolo | basso | **fatta** (2026-10-14), vedi §7 |
 | 1. Prototipi nell'MMI | bug 1; poi `-Werror=implicit-function-declaration` su `Alg_mmi/lib/Xl`; prova di `mmi`, `config`, `draw` | medio | basso nel codice, va provato con pagine vere | **fatta** (2026-10-14), vedi §7; provata dall'utente con la simulazione viva |
 | 2. CI di build | workflow nell'immagine, base dei warning di oggi | piccolo | nullo | **fatta** (2026-10-14), vedi §7; verde su GitHub dal commit `1367c68e` |
-| 3. Classificazione dei cast | i ~600 cast puntatore/`int` | medio-grande | medio | da decidere |
+| 3. Classificazione dei cast | i cast puntatore/`int` | medio-grande | medio | **fatta** (2026-10-16): 5 difetti corretti, 4 sospetti chiusi, eseguibili ricollegati, soglia warning 2212 → 2183, vedi §7 |
 | 4. Directory orfane | triage dei gruppi A, B, C | medio | basso se si archivia | **fatta** (2026-10-15), SCADA compreso: vedi §7 e [COMPONENTI_RIMOSSI.md](COMPONENTI_RIMOSSI.md) |
-| 5. Artefatti in git | `.o`, `.a`, eseguibili fuori dall'indice, `.gitignore` | piccolo da fare, grande da decidere | alto | da decidere |
+| 5. Artefatti in git | ~~togliere `.o`, `.a`, eseguibili dall'indice~~ | — | — | **non si fa** (decisione dell'utente, 2026-10-15): tutti prendono gli eseguibili già compilati da git, il prodotto deve funzionare senza essere compilato. **Attenzione (utente, 2026-10-15): anche alcuni `.o` vanno tenuti**, perché servono a compilare gli eseguibili che il motore LEGO produce a runtime (le task). **Indagine fatta (2026-10-16)**: i `.o` indispensabili sono 9 (`main_lg2/lg3/lg5/cf04/lg5sk/rg5sk.o`, `rg5sim.o`, `pslego3.o`, `trapfpe.o`), più 10 `.a`; gli altri ~810 sono intermedi del build. Elenco e motivi in [BUILD.md, *Compiled files in git*](BUILD.md#compiled-files-in-git); la prova `task` della CI ricostruisce le task della demo e fallisce se uno di quei file non è in git |
 | 6. Makefile comune | frammento condiviso, via i flag storici | grande | medio | da decidere |
 | 7. Funzioni | §4, una per volta | variabile | variabile | da decidere |
 | 9. Snapshot e topologia | `net_sked` carica uno snapshot (e un backtrack) senza controllare che sia stato salvato con la topologia attuale: dopo una modifica del modello legge uno stato sfalsato senza avvisare. `ConfrontoPar` confronta i parametri del `Simulator` ma non `size_area_dati`, che pure sta nell'intestazione del file. Correzione: confrontarlo in `ControlParam` e mettere da parte il file incompatibile, come già per `f22circ.dat` | piccolo | basso | **fatta** (2026-10-15), vedi §7 |
@@ -345,3 +345,57 @@ possibili, in ordine di utilità:
   di avviare.
 - **Da fare alla prossima pubblicazione delle demo**: rifarle con
   `make_demo_tgz.sh` (oggi `nuclear` contiene ancora il `parametri.out` lungo).
+
+### Fase 3 (fatta, 2026-10-16)
+
+Dal build da zero: **417** punti distinti (240 `int-to-pointer-cast`, 177
+`pointer-to-int-cast`). Classificati leggendo la riga di sorgente:
+
+- **343 innocui**: 182 interi passati a Xt come `client_data`/risorsa
+  (`(XtPointer)*is-1`, `set_something(...,(char *)width)`) e 130 riletti
+  come intero nel callback (`int is=(int)info`): il valore va e torna intero.
+  29 `(char)NULL` (vale zero), 2 confronti `(int)ptr == -1` dopo `shmat`.
+- **74 guardati a mano**; quasi tutti lo stesso idioma su più righe. Difetti
+  **veri**, da correggere:
+  1. `Alg_rt/net_simula/net_disp/dispatcher.c:940`: `memcpy((void*)app_varupd[k*MAX_LUN_COMANDI_DISPATCHER], ...)`
+     usa come destinazione il VALORE di un carattere, non l'indirizzo
+     (deve essere `app_varupd + k*MAX_LUN_COMANDI_DISPATCHER`, come alla riga
+     961). Un aggiornamento di variabili (VARUPD) di più blocchi scrive in un
+     indirizzo a caso.
+  2. `AlgLib/libsim/var_sh.c` (`numero_blocco`, righe 294-299):
+     `init = (int) ret; punt = (char*)(inizio + init)`: indirizzo troncato a
+     32 bit. Usare un `char *` base.
+  3. `Alg_mmi/lib/Ol/OlForm.c:1026`: `eofile=(int)fgets(...)`: usare
+     `fgets(...) != NULL`.
+  4. `Alg_mmi/run_time/topLevelShellMain.c:1996`: `(int)(fpLog=fopen(...))<0`
+     non rileva mai il fallimento: `== NULL`.
+  5. `Alg_rt/grafica/xstaz/xstaz.c:374,381`: `(int)(t_call[i].closure)>1000`
+     distingue un codice da un puntatore troncando: confrontare come
+     `uintptr_t`.
+- **Da guardare ancora**: `Alg_mmi/config/PagShell.c:750` e
+  `Alg_mmi/draw/applicationShell1.c:389` (`return((int)ret)`, ret
+  puntatore?); `net_sked/sked_start.c:1068,1103`
+  (`signal(SIGKILL,(__sighandler_t)pid)`: insensato, probabilmente voleva
+  `kill`); `net_monit/util_monit/monit_variabili.c:897,937,989,1029` (non
+  risolti dallo script).
+- **Non è un difetto su Linux**: `resource/UtilRes.c` mette il pid restituito
+  da `ActiveProgWithParameter` in un `PROG_DATA *`; lo si dereferenzia solo in
+  `AnimateIconSelection.c` (`uccidi_processo`), che è sotto `#ifdef VMS`.
+- **Fatto (2026-10-16)**: corretti i 5 difetti, come indicato sopra. In `OlForm.c`
+  la lettura a fine file ora restituisce `EOF` invece di elaborare un buffer
+  vecchio. I 4 sospetti:
+  - `gs_draw_ris` (PagShell.c, applicationShell1.c): il valore restituito non
+    lo usa nessuno; ora è `ret != NULL`.
+  - `sked_start.c`: `signal(SIGKILL, pid)` non uccideva niente; ora è
+    `kill(pid, SIGKILL)` se il pid è positivo. **Cambia il comportamento**:
+    se `net_prepf22` o `agg_manovra` non risponde entro il timeout di avvio,
+    adesso viene terminato. Prima restava vivo, ma `net_sked` lo dava già per
+    perso (`pid = -1`).
+  - `monit_variabili.c`: `!= (int)NULL` diventa `!= NULL`. Era già corretto,
+    perché `Utstrstr` ha il prototipo.
+
+  Ricollegati tutti gli eseguibili e le `.so` tracciati che contenevano il
+  codice vecchio di `libsim`/`libOl`. Sono stati trovati con `nm`; i makefile
+  non ricollegavano da soli `viewval`, `viewval_legacy`, `DataServer`,
+  `LegoCliSINC.so` e gli strumenti di `lg_fmu/tools` e `tests`. CI locale:
+  0 errori, 7 prove su 7, warning da 2212 a 2183 (nuova soglia).

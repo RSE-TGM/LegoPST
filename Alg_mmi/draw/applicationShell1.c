@@ -386,7 +386,7 @@ switch(ris_num)
 #ifndef DESIGN_TIME
  UxApplicationShell1Context = UxSaveCtx;
 #endif
-return((int) ret);
+return(ret != NULL);
 }
 
 /*******************************************************************************

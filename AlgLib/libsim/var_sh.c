@@ -274,7 +274,7 @@ int     i;
 char   *ret;
 char   *punt;
 short   ntbl;
-int     init;
+char   *init;
 int     inizio;
 int     nmax;
 
@@ -291,12 +291,14 @@ int     nmax;
        }
     ret = ind;
     ret += sizeof (int);
-    init = (int) ret;
+    /* base degli offset dei blocchi: un puntatore, non un int, che a 64 bit
+       troncava l'indirizzo della SHM */
+    init = ret;
     for (i = 1; i < nmod; i++)
         ret += sizeof (NOMI_MODELLI);
     punt = ret + MAX_LUN_NOME_MODELLO + sizeof(short);
     memcpy((void *)&inizio,(void *)punt,sizeof(int));
-    punt = (char*) (inizio + init);
+    punt = init + inizio;
     ret += MAX_LUN_NOME_MODELLO;
     memcpy (&ntbl, ret, sizeof (short));
     i=1;

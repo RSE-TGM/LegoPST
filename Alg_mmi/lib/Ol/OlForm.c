@@ -1023,8 +1023,15 @@ char *ret;
                  /* vecchia versione
                  eofile = fscanf(fp,"%*[ ]%[^\n]",str);
 		 */
-                 eofile=(int)fgets(app_str,100,fp);
-                 app_str[strlen(app_str)-1]=0;
+                 /* come fscanf: 1 se ha letto, EOF a fine file (prima il
+                    puntatore di fgets troncato a int) */
+                 if (fgets(app_str,100,fp) == NULL)
+                    {
+                    stringa[0]=0;
+                    return(EOF);
+                    }
+                 eofile=1;
+                 app_str[strcspn(app_str,"\n")]=0;
                  for(i=0;app_str[i]==' ';i++);
                  strcpy(str,&app_str[i]);
                  }

@@ -26,6 +26,9 @@
 #   6. topologia  uno snapshot.dat salvato con un'altra topologia (intestazione
 #                 alterata apposta) va messo da parte all'avvio, e la
 #                 simulazione deve partire lo stesso (ControlParam, fase 9)
+#   7. task       le task della demo si ricostruiscono con i comandi di LegoPC,
+#                 e i .o/.a dell'installazione che usano sono tutti in git
+#                 (chi non compila prende quelli committati)
 #
 # Tutto avviene in una HOME provvisoria: la demo, i link legocad e sked, la
 # scelta del simulatore. killsim fra una prova e l'altra: nel container le IPC
@@ -194,6 +197,46 @@ else
     fi
     cp "$TASK/parametri.out" "$LOGDIR/6_parametri.out" 2>/dev/null
     killsim >/dev/null 2>&1
+fi
+
+# --- 7. ricostruzione delle task -----------------------------------------
+# Le task si collegano sulla macchina dell'utente, con oggetti e librerie
+# dell'installazione (main_lg*.o, rg5sim.o, trapfpe.o, legolib.a...), e chi
+# non compila prende quelli committati: se uno non e' in git, il link fallisce
+# da lui e non qui, dove il build li ha appena rifatti tutti. Quindi si
+# ricostruiscono le task della demo con i comandi di LegoPC (cad_crealg1,
+# cad_crealg3 e crealg5 per il processo, cad_crealg5sk, cad_marcotask per la
+# regolazione semplificata), e ogni .o/.a dell'installazione usato nel link
+# deve essere tracciato da git. L'elenco ragionato e' in docs/BUILD.md.
+OGGETTI="$LOGDIR/7_oggetti.txt"
+: > "$OGGETTI"
+NOTA=""
+costruisci() {    # $1 task  $2 log  $3... comando
+    local t="$1" log="$LOGDIR/7_$2.log"; shift 2
+    ( cd "$HOME/legocad/$t" && lancia 300 "$@" ) > "$log" 2>&1 || { NOTA="$NOTA $t:$*"; return; }
+    grep -oE "(^|[[:space:]])$RADICE/[^[:space:]]+\.(o|a)\b" "$log" | sed 's/^[[:space:]]//' >> "$OGGETTI"
+}
+rm -f "$HOME"/legocad/PWRN1PSS/proc/{lg2,lg3,lg5} "$HOME"/legocad/SLB1_NI2/proc/lg5sk \
+      "$HOME"/legocad/r_SLB1_0/proc/{lg5sk,pslego3}
+costruisci PWRN1PSS lg1   cad_crealg1 p
+costruisci PWRN1PSS lg3   cad_crealg3 p
+costruisci PWRN1PSS lg5   crealg5
+costruisci SLB1_NI2 lg5sk cad_crealg5sk p
+costruisci r_SLB1_0 rg5sk make -f "$LEGO_BIN/cad_marcotask" rg5sk
+for f in PWRN1PSS/proc/lg2 PWRN1PSS/proc/lg3 PWRN1PSS/proc/lg5 SLB1_NI2/proc/lg5sk r_SLB1_0/proc/lg5sk; do
+    [ -x "$HOME/legocad/$f" ] || NOTA="$NOTA manca:$f"
+done
+FUORI=""
+for o in $(sort -u "$OGGETTI"); do
+    r=$(realpath --relative-to="$RADICE" "$o")
+    git -c safe.directory='*' ls-files --error-unmatch "$r" >/dev/null 2>&1 || FUORI="$FUORI $r"
+done
+if [ -n "$NOTA" ]; then
+    esito task 1 "costruzione fallita:$NOTA"
+elif [ -n "$FUORI" ]; then
+    esito task 1 "collegate con file dell'installazione che non sono in git:$FUORI"
+else
+    esito task 0 "5 task ricostruite, $(sort -u "$OGGETTI" | wc -l) oggetti e librerie dell'installazione, tutti in git"
 fi
 
 echo ""

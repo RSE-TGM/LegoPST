@@ -894,7 +894,7 @@ cerca_var_avanti()
       {
 	 strcpy(mom, variabili[k - 1].nome);
 	 ++posizione;
-	 if ( Utstrstr(strcat(mom, variabili[k - 1].descr), app_str) != (int)NULL  &&
+	 if ( Utstrstr(strcat(mom, variabili[k - 1].descr), app_str) != NULL  &&
 	      k > start_ricerca  &&
               ( flag_sel == SEL_REG && variabili[k - 1].typ == NO_GRAF_SEL  ||
                 flag_sel == SEL_LGPH && variabili[k - 1].typlg == NO_GRAF_SEL )
@@ -934,7 +934,7 @@ cerca_var_avanti()
 	 {
 	    strcpy(mom, variabili[k - 1].nome);
 	    ++posizione;
-	    if (Utstrstr(strcat(mom, variabili[k - 1].descr), app_str) != (int)NULL                       &&
+	    if (Utstrstr(strcat(mom, variabili[k - 1].descr), app_str) != NULL                       &&
                 (flag_sel == SEL_REG && variabili[k - 1].typ == NO_GRAF_SEL  ||
                  flag_sel == SEL_LGPH && variabili[k - 1].typlg == NO_GRAF_SEL)
 	               &&
@@ -986,7 +986,7 @@ cerca_var_indietro()
       {
 	 strcpy(mom, variabili[k - 1].nome);
 	 --posizione;
-	 if ( Utstrstr(strcat(mom, variabili[k - 1].descr), app_str) != (int)NULL
+	 if ( Utstrstr(strcat(mom, variabili[k - 1].descr), app_str) != NULL
                        &&
               ( flag_sel == SEL_REG && variabili[k - 1].typ == NO_GRAF_SEL  ||
                 flag_sel == SEL_LGPH && variabili[k - 1].typlg == NO_GRAF_SEL )
@@ -1026,7 +1026,7 @@ cerca_var_indietro()
 	 {
 	    strcpy(mom, variabili[k - 1].nome);
 	    --posizione;
-	    if ( Utstrstr(strcat(mom, variabili[k - 1].descr), app_str) != (int)NULL 
+	    if ( Utstrstr(strcat(mom, variabili[k - 1].descr), app_str) != NULL 
                        &&
                 (flag_sel == SEL_REG && variabili[k - 1].typ == NO_GRAF_SEL  ||
                  flag_sel == SEL_LGPH && variabili[k - 1].typlg == NO_GRAF_SEL)

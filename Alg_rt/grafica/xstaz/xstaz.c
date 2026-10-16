@@ -30,6 +30,7 @@ static char SccsID[] = "@(#)xstaz.c	1.13\t9/13/95";
 #include <unistd.h>
 
 #include <string.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <math.h>
 #include <signal.h>
@@ -371,14 +372,14 @@ for(i=0;i<header.tot_staz*MAX_WIDGET_STAZ;i++)
 	  Quando verranno definitivamente eliminate le vecchie stazioni
 	  sara necessario eliminare il test.
 	*/
-	if((int)(t_call[i].closure)>1000)
+	if((uintptr_t)(t_call[i].closure)>1000)
 		{  /* test per nuove stazioni  */
 		p_refr=(DATI_REFRESH *) t_call[i].closure;
 		memcpy(&tipo_oggetto,p_refr->pdati,sizeof(int));
 		}
 	else
 		{  /* test per vecchie stazioni  */
-		tipo_oggetto=(int)(t_call[i].closure);
+		tipo_oggetto=(int)(uintptr_t)(t_call[i].closure);
 		}
 	/*  Le funzioni registrate da add_refresh() prendono UN solo argomento
 	    (la DATI_REFRESH), pur essendo memorizzate in un XtCallbackRec:

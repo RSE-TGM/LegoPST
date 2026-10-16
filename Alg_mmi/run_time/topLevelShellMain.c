@@ -1993,9 +1993,10 @@ Widget	popup_topLevelShellMain()
 		/*
 			Apre il file di log
 		*/
-		if((int)(fpLog=fopen("LegoMMI.log","w"))<0)
+		/* fopen fallita: NULL (prima "(int)puntatore < 0", mai vero) */
+		if((fpLog=fopen("LegoMMI.log","w"))==NULL)
 			{
-			fpLog=NULL;
+			fprintf(stderr,"mmi: non riesco ad aprire LegoMMI.log\n");
 			}
 		
 		SettaSelect();
