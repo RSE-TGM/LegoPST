@@ -148,8 +148,8 @@ kDiffS01               # ora cd $KSIM trova l'S01
 | `kCheckDirect` | main | Verifica i collegamenti diretti (direct links). |
 | `kModRtf` | main | Modifica i file RTF (tabelle operatore). |
 | `kmodrtf` | bg | Avvia kModRtf in background. |
-| `kLeeF22` | main | Legge/verifica il file grafico F22 (variabili di grafica), in una finestra di terminale aperta con `lgterm` (il terminale scelto dall'utente). |
-| `kLeeF22Slave1` | slave | Verifica (sotto-passo di kLeeF22). |
+| `kLeeF22` | main | Esporta le registrazioni del simulatore corrente (`$KSIM/f22circ.dat`) in `$KSIM/f22circ.csv` con `f22exp`, mostrando prima l'elenco delle variabili, in una finestra di terminale aperta con `lgterm` (il terminale scelto dall'utente). Fino a ottobre 2026 lanciava `LeeF22`, che non esisteva più. |
+| `kLeeF22Slave1` | slave | L'esportazione vera e propria (sotto-passo di kLeeF22). |
 | `kMalfunctionGroupWindow` | main | Costruisce la finestra dei gruppi di malfunzioni. |
 | `kMalfunctionGroupWindowSlave2` | slave | Aggiorna l'altezza della finestra. |
 | `kMalfunctionGroupWindowSlave3` | slave | Sotto-passo di kMalfunctionGroupWindow. |

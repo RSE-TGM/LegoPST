@@ -75,12 +75,38 @@ usa `xstaz` (vedi *Da dove vengono le posizioni*), e i testi sono scritti con
 gli stessi font X. Confrontando con le catture reali, i 54 testi del catalogo
 cadono entro **2 pixel** in orizzontale e **4** sulla linea di base.
 
-Restano generici i parametri che l'immagine porta con sé e che non sono testo:
-i **colori** dei LED e delle spie e le **scale** degli indicatori (`0`/`50`/
-`100`, che nella pagina vera vengono dal `MINMAX` della stazione). Quelli che
-dipendono dalla simulazione in corso — valori, stati accesi/spenti, posizione
-dell'indice — non ci sono per definizione: quelli si vedono solo in `xstaz`
-con una simulazione viva.
+Sopra l'immagine compaiono anche i **colori** e le **scale** di questa
+stazione (dal 2026-10-16). Prima restavano quelli generici del catalogo, dove
+ogni oggetto è `GIALLO` e ogni scala `0`–`100`.
+
+- **Colori.** Le tavolozze sono quelle di xstaz (`excolor_new` per spento,
+  `excolor_blink` per acceso, in `xstaz.c`).
+  - Pulsanti, tasti, lampade, luci e pulsanti luminosi si ricolorano dentro il
+    loro rettangolo. Le ombre e i riflessi del rilievo seguono il colore nuovo
+    nelle stesse proporzioni, quindi la forma resta quella vera.
+  - I **LED** spenti, in xstaz, hanno il colore dello sfondo: così il colore
+    scelto non si vedrebbe mai. Per questo lgmkstaz di norma disegna LED e
+    spie **accesi**. Il menu **`Visualizza → LED e spie accesi`** torna alla
+    vista da spenti, che è quella che xstaz mostra senza simulazione.
+- **Scale degli indicatori.** Sono le etichette che `gindic.c` ricava dal
+  `MINMAX` (e dal `MINMAX_ERR`), nelle stesse posizioni e con lo stesso
+  formato `%3d`. Nelle barre orizzontali l'ultima etichetta ha il `%`. Un
+  testo troppo largo si taglia a **sinistra**, come in xstaz: con massimo
+  `1000` in un indicatore ad ago si legge `000`.
+
+Confrontati con le catture di xstaz su un catalogo con tutti i colori e
+scale diverse, i colori coincidono a parte uno o due pixel sul bordo dei
+pulsanti, e le scale coincidono.
+
+Quello che dipende dalla simulazione in corso, cioè valori, stati e posizione
+dell'indice, non c'è per definizione: si vede solo in `xstaz` con una
+simulazione viva.
+
+**I font.** I testi piccoli di xstaz sono nel `fixed` 6×13 di X. Tk 8.6 però
+cerca i font con fontconfig e quel font non lo vede. lgmkstaz usa allora un
+monospazio con le stesse misure (DejaVu Sans Mono a 10 pixel). Fino al
+2026-10-16 un controllo sbagliato lasciava passare la sostituzione automatica
+di Tk, cioè Noto Sans, proporzionale.
 
 Il menu **`Visualizza → Immagini reali di xstaz`** spegne le immagini e torna
 allo **schema** a forme semplici, utile per vedere a colpo d'occhio quali
@@ -370,8 +396,8 @@ vede che il documento è previsto e che manca.
 
 ## Limiti noti
 
-- Dei parametri della singola stazione si vedono i **testi**; colori e scale
-  degli indicatori restano quelli generici dell'immagine.
+- La posizione dell'indice e lo stato acceso/spento non seguono la
+  simulazione: LED e spie sono disegnati tutti accesi, o tutti spenti.
 - Le 13 stazioni storiche non sono modificabili.
 - La sovrapposizione fra stazioni è segnalata, non impedita.
 - Lo zoom non c'è: la vista è sempre a 62 pixel per cella.

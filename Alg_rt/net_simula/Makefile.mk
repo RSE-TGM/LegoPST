@@ -43,6 +43,7 @@ all:
 	cd ./net_disp; $(MAKE) -f Makefile.mk
 	cd ./net_prova; $(MAKE) -f Makefile.mk
 	cd ./dump_shr; $(MAKE) -f Makefile.mk
+	cd ./f22exp; $(MAKE) -f Makefile.mk
 	cd ./new_monit;$(MAKE) -f Makefile.mk
 	cd ./newsess;$(MAKE) -f Makefile.mk
 	cd ./rest_sess;$(MAKE) -f Makefile.mk

@@ -86,7 +86,7 @@ un file nuovo. Lo si è scoperto con `snaf14` su una demo, con uno snapshot di
 settembre e 56 variabili in più. Codice: `ScartaSeAltraTopologia` in
 `AlgLib/libsim/simulator.c`; la CI lo prova a ogni push.
 
-## Due strumenti sugli stati della simulazione
+## Strumenti sugli stati e sulle registrazioni della simulazione
 
 ### Da uno snapshot alle condizioni iniziali: `snaf14`
 
@@ -121,3 +121,45 @@ dump_shr                # senza argomenti: elenca le task e chiede
 Serve a guardare lo stato completo di una task quando qualcosa non torna (per
 una variabile sola basta `viewval`, o `probe_attach` di `lg_fmu/tools`). Tornato
 nel build a ottobre 2026 (`Alg_rt/net_simula/dump_shr`).
+
+### Le registrazioni in un foglio di calcolo: `f22exp`
+
+Durante la simulazione `net_prepf22` registra le variabili grafiche in
+`f22circ.dat`, un file circolare: arrivato in fondo, ricomincia sovrascrivendo
+i campioni più vecchi. Lo leggono `graphics` e draw2gr per i grafici. `f22exp`
+lo esporta in colonne di testo (CSV), dal campione più vecchio al più nuovo,
+per un foglio di calcolo o per un altro programma:
+
+```
+f22exp -l                          # le variabili registrate e i dati del file
+f22exp -o prova.csv                # tutto f22circ.dat di qui in prova.csv
+f22exp -v ALZATHPS,PU_5TW11 -t 100:250 -d ';' -o valvola.csv $KSIM
+```
+
+| Opzione | Effetto |
+|---|---|
+| `FILE` | `f22circ.dat`, `f22circ` (come lo chiama `graphics`) o la directory che lo contiene; senza, quello della directory corrente |
+| `-l` | elenca le variabili (indice, nome, descrizione) e i dati del file: data di creazione, campioni registrati su quanti possibili |
+| `-v NOMI` | solo queste variabili, separate da virgole (anche ripetuta; maiuscole e minuscole indifferenti) |
+| `-a` | anche gli slot liberi (`libera`) e senza nome, che di norma si saltano |
+| `-t DA:A` | solo i campioni con tempo fra `DA` e `A` secondi (`100:` o `:250` vanno bene) |
+| `-p N` | un campione ogni `N` |
+| `-d SEP` | separatore delle colonne, default `,`; `-d ';'` per un foglio di calcolo in italiano, `-d tab` per il tabulatore |
+| `-D` | una seconda riga di intestazione con le descrizioni delle variabili |
+| `-o FILE` | scrive in `FILE` invece che sullo schermo |
+
+La prima riga è `tempo` seguito dai nomi delle variabili. I valori sono scritti
+con 7 cifre significative, la precisione dei `float` del file. L'esito
+(campioni e variabili esportati) va sullo standard error, così non si mescola
+con i dati.
+
+`kLeeF22` (dal menu delle procedure `k`) fa lo stesso sul simulatore corrente:
+mostra l'elenco delle variabili e scrive `$KSIM/f22circ.csv`.
+
+Prende il posto di `LeeF22`, che leggeva il formato sequenziale di prima
+(`f22.dat`) e non si compilava più. Il sorgente è
+`Alg_rt/net_simula/f22exp` (ottobre 2026). Legge il file con le stesse
+strutture con cui lo scrive `net_prepf22` (`sim_types.h`, `f22_circ.h`) e non
+usa le funzioni di lettura di `libsim`. Queste stampano messaggi di debug sullo
+standard output, e `f22_leggi_tutti_camp` salta un campione a ogni giro del
+buffer: lo slot `num_campioni`, che lo scrittore invece usa.

@@ -93,6 +93,9 @@ namespace eval ::lgmkstaz {
     # Disegno delle stazioni con le immagini vere di xstaz (sprite) invece che
     # con lo schema a forme semplici. Vedi sprite_per_tipo.
     variable usa_sprite 1
+    #  LED e spie disegnati accesi, per vederne il colore (spenti, i LED hanno
+    #  il colore dello sfondo e il colore scelto non si vedrebbe)
+    variable colori_accesi 1
     #  i numeri di riga e colonna nelle caselle grigie degli assi
     variable mostra_assi 1
     variable sprite         ;# tipo -> nome dell'immagine Tk, o "" se non c'e'
@@ -301,22 +304,46 @@ set ::lgmkstaz::ascent_reale_piccolo 11   ;# "fixed" 6x13
 set ::lgmkstaz::ascent_reale_grande  19   ;# -adobe-times-bold-r-normal--25-...
 set ::lgmkstaz::margine_label        2    ;# XmNmarginHeight di XmLabel
 
-#  I font con cui lgmkstaz scrive i parametri. Per quello grande si chiede
-#  esattamente l'XLFD di xstaz: se il server ce l'ha si ottiene lo stesso
-#  disegno, altrimenti Tk sostituisce qualcosa di simile.
+#  I font con cui lgmkstaz scrive i parametri. Si chiede prima esattamente
+#  l'XLFD di xstaz, poi dei ripieghi simili.
+#
+#  Un font si accetta solo se Tk lo trova davvero: Tk 8.6 con Xft cerca i font
+#  con fontconfig, non fra i font "core" di X, e per un nome che non trova
+#  NON da' errore ma sostituisce in silenzio (di solito con Noto Sans). Prima
+#  il controllo era "catch {font measure ...}", che non scatta mai: i testi
+#  piccoli uscivano in Noto Sans 9, proporzionale, al posto del 6x13
+#  monospazio di xstaz, e le etichette delle scale ("250%") non ci stavano.
+#  DejaVu Sans Mono a 10 pixel ha le stesse misure del fixed 6x13: 6 pixel
+#  per carattere, 13 di interlinea.
 proc ::lgmkstaz::font_parametri {quale} {
     variable font_par
     if {[info exists font_par($quale)]} { return $font_par($quale) }
+    #  Per il grande si tiene l'XLFD qualunque cosa Tk ne faccia (sull'host di
+    #  sviluppo diventa Utopia bold 25 px): e' quello con cui i titoli sono
+    #  stati confrontati con le catture di xstaz.
     if {$quale eq "grande"} {
-        set f "-adobe-times-bold-r-normal--25-180-100-100-p-132-iso8859-1"
-        set ripiego [list Times -19 bold]
+        set candidati [list \
+            {-adobe-times-bold-r-normal--25-180-100-100-p-132-iso8859-1 {}} \
+            {{Times -19 bold} {}}]
     } else {
-        set f "-misc-fixed-medium-r-normal--13-120-75-75-c-60-iso8859-1"
-        set ripiego [list Courier -13]
+        set candidati [list \
+            {-misc-fixed-medium-r-normal--13-120-75-75-c-60-iso8859-1 fixed} \
+            {{{DejaVu Sans Mono} -10} {dejavu sans mono}} \
+            {{Monospace -10} {}} \
+            {{Courier -13} {}}]
     }
-    if {[catch {font measure $f M}]} { set f $ripiego }
-    set font_par($quale) $f
-    return $f
+    set scelto [lindex $candidati end 0]
+    foreach cand $candidati {
+        lassign $cand f famiglia
+        if {[catch {font actual $f -family} vera]} continue
+        #  senza famiglia attesa (i ripieghi generici) va bene quello che c'e'
+        if {$famiglia eq "" || [string match -nocase "*$famiglia*" $vera]} {
+            set scelto $f
+            break
+        }
+    }
+    set font_par($quale) $scelto
+    return $scelto
 }
 
 #  I valori di tutti i campi con un dato nome, nell'ordine: SELETTORE ha DUE
@@ -342,8 +369,23 @@ proc ::lgmkstaz::testo_che_ci_sta {testo carattere larghezza} {
     return ""
 }
 
+#  Come testo_che_ci_sta, ma toglie i caratteri a SINISTRA: e' quello che si
+#  vede in una XmLabel allineata a destra (XmALIGNMENT_END) con un testo piu'
+#  largo di lei, tagliato dal bordo sinistro del widget. Un carattere resta se
+#  almeno meta' sta dentro: gindic.c scrive "250%" in una label di 25 pixel e
+#  in xstaz si legge intero, mentre di "1000" in una di 20 si legge "000".
+proc ::lgmkstaz::testo_che_ci_sta_a_destra {testo carattere larghezza} {
+    if {$testo eq "" || $larghezza <= 0} { return "" }
+    set tolleranza [expr {[font measure $carattere 0] / 2}]
+    while {$testo ne "" && [font measure $carattere $testo] > $larghezza + $tolleranza} {
+        set testo [string range $testo 1 end]
+    }
+    return $testo
+}
+
 #  Scrive un testo con la linea di base dove la metterebbe xstaz.
-#  $ancora vale w (allineato a sinistra su $px) oppure center (centrato).
+#  $ancora vale w (allineato a sinistra su $px), center (centrato) oppure e
+#  (allineato a destra su $px).
 #
 #  Prima del testo si stende un rettangolo del colore di sfondo della label:
 #  non e' un trucco per "cancellare", e' quello che fa xstaz, dove ogni testo
@@ -357,19 +399,27 @@ proc ::lgmkstaz::scrivi_parametro {c px base testo carattere ancora larghezza ta
     variable margine_label
     set testo [string trim $testo]
     if {$testo eq ""} return
-    set testo [testo_che_ci_sta $testo $carattere $larghezza]
+    if {$ancora eq "e"} {
+        set testo [testo_che_ci_sta_a_destra $testo $carattere $larghezza]
+    } else {
+        set testo [testo_che_ci_sta $testo $carattere $larghezza]
+    }
     if {$testo eq ""} return
 
     if {$sfondo ne ""} {
         set ascent [expr {$alto_reale >= 20 ? $ascent_reale_grande : $ascent_reale_piccolo}]
         set cima [expr {$base - $ascent - $margine_label}]
         set fondo [expr {$cima + $alto_reale + 2 * $margine_label}]
-        set sx [expr {$ancora eq "center" ? $px - $larghezza / 2 : $px}]
+        switch -- $ancora {
+            center  { set sx [expr {$px - $larghezza / 2}] }
+            e       { set sx [expr {$px - $larghezza}] ; set larghezza [expr {$larghezza + $margine_label}] }
+            default { set sx $px }
+        }
         $c create rectangle $sx $cima [expr {$sx + $larghezza}] $fondo \
             -fill $sfondo -outline "" -tags [list stazione $tag]
     }
     set y [expr {$base - [font metrics $carattere -ascent]}]
-    $c create text $px $y -anchor [expr {$ancora eq "center" ? "n" : "nw"}] \
+    $c create text $px $y -anchor [dict get {center n e ne w nw} $ancora] \
         -text $testo -font $carattere -fill black -tags [list stazione $tag]
 }
 
@@ -446,6 +496,18 @@ proc ::lgmkstaz::disegna_parametri {c x0 y0 stazione tag} {
                 scrivi_parametro $c [expr {$x0 + 5 + $meta}] $base \
                     [lindex $etichette 1] $piccolo w $meta $tag $sfondo_staz 13
             }
+            INDICATORE - INDICATORE_ERR {
+                #  la scala, dal MINMAX (e dal MINMAX_ERR) di questa stazione:
+                #  XmLabel larghe wfs, testo allineato a destra (marginWidth 2)
+                set err [expr {$gtipo eq "INDICATORE_ERR" ? [oggetto_campo $oggetto minmax_err] : {}}]
+                foreach et [etichette_scala $sottotipo $gx $gy \
+                                [oggetto_campo $oggetto minmax] $err] {
+                    lassign $et ex ey wfs testo
+                    scrivi_parametro $c [expr {$x0 + $ex + $wfs - $margine_label}] \
+                        [expr {$y0 + $ey + $margine_label + $ascent_reale_piccolo}] \
+                        $testo $piccolo e [expr {$wfs - $margine_label}] $tag $sfondo_staz 13
+                }
+            }
             SET_VALORE {
                 #  gsetval.c: l'etichetta sta a (75,2) dentro il riquadro del
                 #  set value, che a sua volta sta in (gx,gy)
@@ -456,6 +518,209 @@ proc ::lgmkstaz::disegna_parametri {c x0 y0 stazione tag} {
             }
         }
     }
+}
+
+# ---------------------------------------------------------------------------
+# Colori degli oggetti.
+#
+# Le due tavolozze di xstaz (xstaz.c), in RGB a 8 bit: excolor_new e' il
+# colore dell'oggetto spento, e quello fisso di pulsanti e tasti;
+# excolor_blink e' il colore acceso. L'indice e' la posizione del nome in
+# scolori_oggetti[] (newstaz.h).
+#
+# Gli sprite sono catturati dal catalogo, dove ogni oggetto e' GIALLO e
+# nessuno e' acceso: i LED spenti hanno il colore dello sfondo (gled.c), il
+# resto ha il giallo scuro di excolor_new con le sfumature che Motif ne ricava
+# per il rilievo. Per mostrare il colore configurato si ricolorano, dentro il
+# rettangolo dell'oggetto, i pixel della famiglia del giallo (R > G > B):
+# ciascun canale e' scalato dal giallo del catalogo al colore voluto, cosi'
+# le sfumature lo seguono. Lo sfondo e le cornici delle stazioni sono verdi o
+# grigi (G >= R) e restano come sono.
+# ---------------------------------------------------------------------------
+set ::lgmkstaz::nomi_colori   {NERO BIANCO GIALLO VERDE ROSSO GRIGIO BLU}
+set ::lgmkstaz::rgb_spento    {{0 0 0} {203 203 203} {228 196 136} {0 138 0}
+                               {179 0 0} {92 92 92} {0 0 118}}
+set ::lgmkstaz::rgb_acceso    {{0 0 0} {255 255 255} {255 255 0} {0 255 0}
+                               {255 50 0} {203 203 203} {0 229 255}}
+set ::lgmkstaz::colore_catalogo GIALLO
+
+#  Il rettangolo (relativo alla stazione) di un oggetto colorato e se si
+#  accende: le misure sono quelle di xstaz.h (W_LED, W_LAMPADA, ...) e di
+#  gtasto.c per i due tasti. Ritorna "" per gli oggetti senza colore.
+proc ::lgmkstaz::rettangolo_colorato {gtipo sottotipo gx gy} {
+    switch -- $gtipo {
+        LED       { return [list $gx $gy 15 5 1] }
+        LAMPADA   { return [list $gx $gy 15 15 1] }
+        PULS_LUCE { return [list $gx $gy 15 15 1] }
+        PULSANTE  { return [list $gx $gy 15 15 0] }
+        LUCE      { return [list $gx $gy 90 35 1] }
+        TASTO {
+            if {$sottotipo eq "TASTO_GROSSO"} { return [list $gx $gy 100 90 0] }
+            return [list $gx $gy 60 30 0]
+        }
+    }
+    return ""
+}
+
+proc ::lgmkstaz::rgb_di {tavolozza nome} {
+    variable nomi_colori
+    set i [lsearch -exact $nomi_colori $nome]
+    if {$i < 0} { return "" }
+    return [lindex [set ::lgmkstaz::$tavolozza] $i]
+}
+
+#  Ricolora i pixel "gialli" di un rettangolo dell'immagine, da $da a $a.
+#
+#  Ogni pixel della famiglia e' una sfumatura del colore di base: o piu' scuro,
+#  base * s (le ombre del rilievo), o piu' chiaro, base + s * (bianco - base)
+#  (i riflessi, che Motif e i widget ottengono mescolando col bianco). Si
+#  ricava s dal pixel e si applica la stessa sfumatura al colore nuovo. Scalare
+#  e basta rendeva colorati anche i riflessi, che in xstaz restano quasi
+#  bianchi.
+proc ::lgmkstaz::ricolora {img x y w h da a} {
+    set x1 [expr {min($x + $w, [image width $img])}]
+    set y1 [expr {min($y + $h, [image height $img])}]
+    set somma_base [expr {[tcl::mathop::+ {*}$da]}]
+    for {set j $y} {$j < $y1} {incr j} {
+        for {set i $x} {$i < $x1} {incr i} {
+            set p [$img get $i $j]
+            lassign $p r g b
+            if {!($r > $g && $g > $b)} continue
+            set nuovo {}
+            if {$r + $g + $b <= $somma_base} {
+                #  piu' scuro: s = pixel / base, media sui tre canali
+                set s 0.0
+                foreach c $p d $da { set s [expr {$s + $c / double(max($d, 1))}] }
+                set s [expr {min(1.0, $s / 3.0)}]
+                foreach c $a { lappend nuovo [expr {round($c * $s)}] }
+            } else {
+                #  piu' chiaro: s = (pixel - base) / (bianco - base)
+                set s 0.0
+                foreach c $p d $da { set s [expr {$s + ($c - $d) / double(max(255 - $d, 1))}] }
+                set s [expr {max(0.0, min(1.0, $s / 3.0))}]
+                foreach c $a { lappend nuovo [expr {round($c + $s * (255 - $c))}] }
+            }
+            $img put [format #%02x%02x%02x {*}$nuovo] -to $i $j
+        }
+    }
+}
+
+#  Lo sprite della stazione con i SUOI colori. Quando non cambia niente
+#  rispetto al catalogo si usa lo sprite comune; altrimenti se ne fa una
+#  copia ricolorata, tenuta in una cache per combinazione di colori: una
+#  pagina ripete spesso la stessa stazione con gli stessi colori.
+proc ::lgmkstaz::sprite_colorato {stazione} {
+    variable geometria
+    variable colori_accesi
+    variable sprite_ricolorati
+    variable colore_catalogo
+
+    set tipo [dict get $stazione tipo]
+    set base [sprite_per_tipo $tipo]
+    if {$base eq "" || ![info exists geometria($tipo)]} { return $base }
+
+    set oggetti [dict get $stazione oggetti]
+    set lavori {}
+    set i -1
+    foreach g $geometria($tipo) {
+        incr i
+        set oggetto [lindex $oggetti $i]
+        if {$oggetto eq ""} continue
+        lassign $g gtipo sottotipo gx gy
+        set r [rettangolo_colorato $gtipo $sottotipo $gx $gy]
+        if {$r eq ""} continue
+        set nome [oggetto_campo $oggetto colore]
+        if {[rgb_di rgb_spento $nome] eq ""} { set nome $colore_catalogo }
+        lassign $r x y w h si_accende
+        set acceso [expr {$colori_accesi && $si_accende}]
+        if {$gtipo eq "LED" && !$acceso} continue      ;# spento = sfondo
+        if {$nome eq $colore_catalogo && !$acceso} continue
+        lappend lavori [list $gtipo $x $y $w $h $nome $acceso]
+    }
+    if {$lavori eq {}} { return $base }
+
+    set chiave [list $tipo $lavori]
+    if {[info exists sprite_ricolorati($chiave)]} { return $sprite_ricolorati($chiave) }
+    set img [image create photo]
+    $img copy $base
+    set da [rgb_di rgb_spento $colore_catalogo]
+    foreach l $lavori {
+        lassign $l gtipo x y w h nome acceso
+        set a [rgb_di [expr {$acceso ? "rgb_acceso" : "rgb_spento"}] $nome]
+        if {$gtipo eq "LED"} {
+            #  il led acceso e' tutto del colore acceso, cornice esclusa
+            $img put [format #%02x%02x%02x {*}$a] \
+                -to [expr {$x + 1}] [expr {$y + 1}] [expr {$x + $w - 1}] [expr {$y + $h - 1}]
+        } else {
+            ricolora $img $x $y $w $h $da $a
+        }
+    }
+    set sprite_ricolorati($chiave) $img
+    return $img
+}
+
+#  Le etichette della scala di un indicatore, come le crea gindic.c: per
+#  ciascuna x, y (angolo in alto a sinistra della label, relativo alla
+#  stazione), larghezza e testo. Il testo e' sprintf("%3d", (int)valore), e
+#  nelle barre orizzontali l'ULTIMA etichetta ha in piu' "%" (nella BARRA2
+#  e' quella di "massimo - 30", non quella del massimo: e' cosi' in gindic.c).
+#  Le dimensioni vengono da xstaz.h (LARG_INDIC 100, ALTEZZA_INDIC 20,
+#  DELTA_X_BARRA2 30, ALTEZZA_INDIC_VERT 200) e dalle bitmap am1/am2 (100x100).
+proc ::lgmkstaz::etichette_scala {sottotipo gx gy minmax {minmax_err {}}} {
+    lassign $minmax basso alto
+    lassign $minmax_err basso_err alto_err
+    if {![string is double -strict $basso] || ![string is double -strict $alto]} { return {} }
+    set larg 100 ; set alt 20 ; set dx2 30 ; set altv 200 ; set h_ago 100
+    switch -- $sottotipo {
+        INDIC_BARRA1 {
+            set y [expr {$gy - $alt + 2}]
+            set e [list [list [expr {$gx - 10}] $y $basso] \
+                        [list [expr {$gx + $larg - 15}] $y $alto]]
+            set wfs 25 ; set percento 1
+        }
+        INDIC_BARRA2 {
+            set y [expr {$gy - $alt + 2}]
+            set e [list [list [expr {$gx - 10}] $y $basso] \
+                        [list [expr {$gx + $larg - 15}] $y $alto] \
+                        [list [expr {$gx - 10 + $larg - $dx2}] $y [expr {$alto - double($dx2)}]]]
+            set wfs 25 ; set percento 1
+        }
+        INDIC_BARRA_VS - INDIC_BARRA_VD {
+            set x [expr {$gx + ($sottotipo eq "INDIC_BARRA_VS" ? 2 : 28)}]
+            set e [list [list $x [expr {$gy - 20 + $altv}] $basso] \
+                        [list $x [expr {$gy + 1}] $alto] \
+                        [list $x [expr {$gy - 9 + $altv / 2}] [expr {($alto + $basso) / 2.0}]]]
+            set wfs 25 ; set percento 0
+        }
+        INDIC_AGO {
+            set e [list [list [expr {$gx + 1}] [expr {$gy + $h_ago - 20}] $basso] \
+                        [list [expr {$gx + $larg - 25}] [expr {$gy + 8}] $alto] \
+                        [list [expr {$gx + $larg / 2 - 35}] [expr {$gy + $h_ago / 2 - 15}] \
+                              [expr {($alto + $basso) / 2.0}]]]
+            set wfs 20 ; set percento 0
+        }
+        INDIC_AGO_ERR {
+            if {![string is double -strict $basso_err] || ![string is double -strict $alto_err]} {
+                return {}
+            }
+            set x0 [expr {$gx + 1}] ; set y0 [expr {$gy + $h_ago - 20}] ; set y1 [expr {$gy + 15}]
+            set e [list [list $x0 $y0 $basso] \
+                        [list [expr {$gx + $larg - 25}] $y1 $alto] \
+                        [list [expr {$x0 + 2}] [expr {$y0 - 18}] $basso_err] \
+                        [list [expr {$x0 + 35}] [expr {$y1 + 3}] $alto_err]]
+            set wfs 20 ; set percento 0
+        }
+        default { return {} }
+    }
+    set fuori {}
+    set n [llength $e]
+    for {set k 0} {$k < $n} {incr k} {
+        lassign [lindex $e $k] x y v
+        set testo [format %3d [expr {int(double($v))}]]
+        if {$percento && $k == $n - 1} { append testo % }
+        lappend fuori [list $x $y $wfs $testo]
+    }
+    return $fuori
 }
 
 #  Lo sprite rimpicciolito per la riga di stato. Tk sa ridurre una photo solo
@@ -609,14 +874,14 @@ proc ::lgmkstaz::disegna_stazione {c stazione} {
             -text [dict get $stazione tipo] -fill #555555 \
             -font {Helvetica 8} -tags [list stazione $tag]
     } else {
-        #  Con lo sprite si vede la stazione com'e' davvero in xstaz; le parti
-        #  che dipendono dall'istanza (etichette, colori, scale) restano quelle
-        #  generiche del catalogo, percio' lo schema a forme semplici resta
-        #  disponibile dal menu Visualizza: e' l'unico che mostra le ETICHETTA
-        #  vere di questa stazione.
+        #  Con lo sprite si vede la stazione com'e' davvero in xstaz. Le parti
+        #  che dipendono dall'istanza le rimette lgmkstaz sopra l'immagine
+        #  generica del catalogo: i colori (sprite_colorato), i testi e le
+        #  scale degli indicatori (disegna_parametri). Lo schema a forme
+        #  semplici resta disponibile dal menu Visualizza.
         variable usa_sprite
         set img ""
-        if {$usa_sprite} { set img [sprite_per_tipo [dict get $stazione tipo]] }
+        if {$usa_sprite} { set img [sprite_colorato $stazione] }
         if {$img ne ""} {
             $c create image $x0 $y0 -anchor nw -image $img \
                 -tags [list stazione $tag]
@@ -2763,6 +3028,8 @@ menu .mb.visualizza -tearoff 0
 .mb add cascade -label Visualizza -menu .mb.visualizza
 .mb.visualizza add checkbutton -label "Immagini reali di xstaz" \
     -variable ::lgmkstaz::usa_sprite -command ::lgmkstaz::ridisegna
+.mb.visualizza add checkbutton -label "LED e spie accesi (per vederne il colore)" \
+    -variable ::lgmkstaz::colori_accesi -command ::lgmkstaz::ridisegna
 .mb.visualizza add checkbutton -label "Numeri di riga e colonna" \
     -variable ::lgmkstaz::mostra_assi -command ::lgmkstaz::ridisegna
 

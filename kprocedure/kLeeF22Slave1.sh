@@ -33,16 +33,29 @@ print "$star\n"
 print "$star\n" >> $KLOG/kLeeF22.log
 ###############################################################################
 #
+#  Prima qui si lanciava $CBIN/LeeF22, che leggeva il vecchio f22.dat con i
+#  parametri di LeeF22.in e non si compilava piu'. Il file delle registrazioni
+#  e' ora f22circ.dat (circolare): lo esporta f22exp, in CSV.
 cd $KSIM
-rm -f LeeF22.out
-if [ ! -f LeeF22.in ]
+if [ ! -f f22circ.dat ]
 then
-cp $CBIN/LeeF22.in .
-print "Please update LeeF22.in in simulator directory\a"
-exit
+print "ERROR\t: in $KSIM non c'e' f22circ.dat (la simulazione non ha ancora registrato)\a"
+print "ERROR : manca $KSIM/f22circ.dat" >> $KLOG/kLeeF22.log
+kAddStatus kLeeF22 NOK
+sleep 10
+exit 1
 fi
-$CBIN/LeeF22
+f22exp -l f22circ.dat | head -20
+print ""
+if f22exp -o f22circ.csv f22circ.dat >> $KLOG/kLeeF22.log 2>&1
+then
 print "\a"
+else
+print "ERROR\t: f22exp non e' riuscito a esportare f22circ.dat: vedi $KLOG/kLeeF22.log\a"
+kAddStatus kLeeF22 NOK
+sleep 10
+exit 1
+fi
 #
 ###############################################################################
 echo "$star"
@@ -53,6 +66,6 @@ kAddStatus kLeeF22 End
 echo "$star"
 echo "$star" >> $KLOG/kLeeF22.log
 print "Log File\t: $KLOG/kLeeF22.log"
-print "Output File\t: $KSIM/LeeF22.out\n"
+print "Output File\t: $KSIM/f22circ.csv\n"
 sleep 10
 #
