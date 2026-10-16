@@ -64,7 +64,7 @@ extern void _XdInheritSelect(Draget, Boolean,Boolean);
 extern void _XdInheritClassInitialize(Draget);
 extern void _XdInheritDeleteRegions(Draget);
 extern Boolean XdDragetInRect(Draget, XRectangle *);
-extern Draget XdReadRecord(Draget, XdGC *,FILE *);
+extern Draget XdReadRecord(Widget, XdGC *,FILE *);
 extern GC XdGetXorGC(Widget );
 extern GC XdGetCopyGC(Widget );
 extern Boolean XdIsConn(Draget );

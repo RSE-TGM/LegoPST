@@ -316,10 +316,14 @@ backup|legocad.prelink-20260916-180429        # copie di sicurezza
 | `lgdemo <nome>` | installa la demo `<nome>` in `<base>/legopst_<nome>` |
 | `lgdemo -l` | elenca soltanto |
 | `lgdemo -y <nome>` | non chiede conferma se la demo c'è già |
-| `lgdemo --esito <file> …` | a installazione riuscita scrive in `<file>` il nome dell'area: per chi lo lancia da un programma |
+| `lgdemo --result <file> …` | a installazione riuscita scrive in `<file>` il nome dell'area: per chi lo lancia da un programma (`--esito` è lo stesso) |
 | `lgdemo --machine …` | uscita per un programma: righe `LGDEMO ...` con elenco, fasi, avanzamento ed esito, niente domande (la usa `lghmi`; il formato è in `lgdemo -h`) |
 | `lgdemo --base <dir> …` | installa in `<dir>` invece che nella base ricavata dai link |
 | `lgdemo -h` | aiuto |
+
+Messaggi e aiuto sono **in inglese** (dal 2026-10-16): le demo si scaricano
+da GitHub, anche da chi non legge l'italiano. Alla conferma risponde sia
+`y`/`yes` sia `s`/`si`.
 
 **Dove installa.** Nella directory delle **aree di lavoro**, quella in cui
 stanno le `legopst_*` e i link `legocad`/`sked` che `lgswitch` sposta. In

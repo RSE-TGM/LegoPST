@@ -33,7 +33,7 @@ git.
 | Build dalla radice | ✅ 0 errori, incrementale e da zero; raggiunge 118 makefile su 163 |
 | Link locali di `DOCUMENTATION_INDEX.html` | ✅ tutti validi |
 | Artefatti in git | ❌ 821 `.o`, 26 `.a`, 28 `.so`, 129 eseguibili in `bin/`/`kbin/`; pacchetto git di 329 MB. Ogni build modifica file tracciati |
-| Flag di compilazione storici | ⚠️ `-Dmmap=_mmap_32_` in 151 makefile (innocuo: nessuno usa `mmap`); `-I/usr/lib/gcc-lib/i386-redhat-linux/2.96/include` in 22; un `-I-I.`; `-fpermissive` in 6, che nasconde errori veri |
+| Flag di compilazione storici | ✅ tolti il 2026-10-16 (fase 6, §7). Erano: ⚠️ `-Dmmap=_mmap_32_` in 151 makefile (innocuo: nessuno usa `mmap`); `-I/usr/lib/gcc-lib/i386-redhat-linux/2.96/include` in 22; un `-I-I.`; `-fpermissive` in 6, che nasconde errori veri |
 | Nome dei makefile | ⚠️ `Makefile.mk` ovunque tranne `Alg_legopc/src/*`, che usa `makefile` |
 | Albero delle directory nel README | ⚠️ mancavano `Alg_help/`, `kdefaults/`, `scada/` |
 | Codice morto tracciato | ⚠️ `AlgLib/dcethreads_lib_NO` (711 file, 15 MB), `Alg_legopc/src/tix_old` + `bin_old` (231 file, vecchia UI Linux fuori build da agosto 2026), `kutil/LeeF22.c`, `kutil/kReadDB.c`, `kbin/kReadDB` (eseguibile Alpha) |
@@ -99,9 +99,10 @@ l'integrazione SCADA?
 
 ### Lavori recenti non ancora verificati sul campo
 
-Podman reale (filtro dei warning, `--pull=never`); Command Mode di draw2gr con
-`net_sked` vivo; elementi operatore (`@stz_0`, `@set_0`) con una simulazione
-vera; `bundle/build.sh` con draw2gr; bundle FMU già costruiti da ricostruire.
+Podman reale (filtro dei warning, `--pull=never`); elementi operatore
+(`@stz_0`, `@set_0`) con una simulazione vera; bundle FMU già costruiti da
+ricostruire (quelli di prima del 2026-10-16 non hanno `ps`/`pgrep`). Il
+Command Mode di draw2gr nel bundle FMU è stato provato il 2026-10-16 (§7, fase 7).
 
 ## 4. Sviluppi e miglioramenti
 
@@ -112,11 +113,12 @@ copiati; test di regressione con i pezzi che già esistono
 (`net_startup_headless` e `kUpSim` sulla demo, `probe_attach` FMU, round-trip
 `lgmkstaz`); pulizia del codice morto.
 
-**Funzioni**: draw2gr nel bundle FMU (piano in 4 fasi) e fase 3 del Command
-Mode in FMU; `lgmkstaz`: colori e scale MINMAX; `f01totom` fase 2; configuratore
-dei simulatori (opzione A con Access); messaggi di `lgdemo` in inglese; se
-serve, un esportatore in testo di `f22circ.dat` per il formato attuale al posto
-di `LeeF22`.
+**Funzioni**: ~~draw2gr nel bundle FMU e Command Mode in FMU~~ (erano già
+fatti a giugno-luglio 2026; provati e corretti il 2026-10-16); ~~messaggi di
+`lgdemo` in inglese~~ (fatto il 2026-10-16); `lgmkstaz`: colori e scale
+MINMAX; `f01totom` fase 2; configuratore dei simulatori (opzione A con Access);
+se serve, un esportatore in testo di `f22circ.dat` per il formato attuale al
+posto di `LeeF22`.
 
 ## 5. Fasi
 
@@ -128,8 +130,8 @@ di `LeeF22`.
 | 3. Classificazione dei cast | i cast puntatore/`int` | medio-grande | medio | **fatta** (2026-10-16): 5 difetti corretti, 4 sospetti chiusi, eseguibili ricollegati, soglia warning 2212 → 2183, vedi §7 |
 | 4. Directory orfane | triage dei gruppi A, B, C | medio | basso se si archivia | **fatta** (2026-10-15), SCADA compreso: vedi §7 e [COMPONENTI_RIMOSSI.md](COMPONENTI_RIMOSSI.md) |
 | 5. Artefatti in git | ~~togliere `.o`, `.a`, eseguibili dall'indice~~ | — | — | **non si fa** (decisione dell'utente, 2026-10-15): tutti prendono gli eseguibili già compilati da git, il prodotto deve funzionare senza essere compilato. **Attenzione (utente, 2026-10-15): anche alcuni `.o` vanno tenuti**, perché servono a compilare gli eseguibili che il motore LEGO produce a runtime (le task). **Indagine fatta (2026-10-16)**: i `.o` indispensabili sono 9 (`main_lg2/lg3/lg5/cf04/lg5sk/rg5sk.o`, `rg5sim.o`, `pslego3.o`, `trapfpe.o`), più 10 `.a`; gli altri ~810 sono intermedi del build. Elenco e motivi in [BUILD.md, *Compiled files in git*](BUILD.md#compiled-files-in-git); la prova `task` della CI ricostruisce le task della demo e fallisce se uno di quei file non è in git |
-| 6. Makefile comune | frammento condiviso, via i flag storici | grande | medio | da decidere |
-| 7. Funzioni | §4, una per volta | variabile | variabile | da decidere |
+| 6. Makefile comune | frammento condiviso, via i flag storici | grande | medio | **primo passo fatto** (2026-10-16): via i flag storici e `-fpermissive`, vedi §7. Il frammento comune è **sospeso** (decisione dell'utente, 2026-10-16) |
+| 7. Funzioni | §4, una per volta | variabile | variabile | **in corso**: fatte (2026-10-16) la prova del Command Mode di draw2gr nel bundle FMU, con due correzioni, e `lgdemo` in inglese, vedi §7. Restano lgmkstaz (colori, MINMAX), f01totom fase 2, configuratore, esportatore f22 |
 | 9. Snapshot e topologia | `net_sked` carica uno snapshot (e un backtrack) senza controllare che sia stato salvato con la topologia attuale: dopo una modifica del modello legge uno stato sfalsato senza avvisare. `ConfrontoPar` confronta i parametri del `Simulator` ma non `size_area_dati`, che pure sta nell'intestazione del file. Correzione: confrontarlo in `ControlParam` e mettere da parte il file incompatibile, come già per `f22circ.dat` | piccolo | basso | **fatta** (2026-10-15), vedi §7 |
 | 10. Catena di avvio "k" | `kRun`, `kStart`, `kOk` (e `kLeeF22`, lanciato da `kStart`) dipendono da `kScd`, rimosso con SCADA: già prima inservibili. Rimuoverli, o riscrivere `kStart` sopra `net_startup` | piccolo | basso | **fatta** (2026-10-15): `kStart` riscritto, vedi §7 |
 | 11. `parametri.out` che non si azzera | Sembrava che su SLaurent_0 `f22circ.dat` nascesse con 7200/1000 contro i 14400/10000 del `Simulator`. Non era così: `parametri.out` si scriveva sempre in coda, e quello della demo conteneva 131 avvii della macchina di chi l'ha confezionata; le righe SEVERE erano vecchie. Corretto: il dispatcher lo ricomincia a ogni avvio (il precedente in `.prec`), e le demo non lo includono | piccolo | basso | **fatta** (2026-10-15), vedi §7 |
@@ -399,3 +401,62 @@ Dal build da zero: **417** punti distinti (240 `int-to-pointer-cast`, 177
   non ricollegavano da soli `viewval`, `viewval_legacy`, `DataServer`,
   `LegoCliSINC.so` e gli strumenti di `lg_fmu/tools` e `tests`. CI locale:
   0 errori, 7 prove su 7, warning da 2212 a 2183 (nuova soglia).
+
+### Fase 6, primo passo (2026-10-16)
+
+- **Via `-fpermissive`.** Col GCC 14 declassa a warning tutti gli errori
+  nuovi del C.
+  - In `AlgLib`, `lego_big`, `lego_big/tavole`, `config` e `draw` non serviva
+    più. In `draw` restavano 3 errori veri, ora corretti:
+    - il prototipo di `XdReadRecord` in `Xd.h` diceva `Draget`, ma la
+      funzione prende un `Widget`;
+    - un parametro K&R senza tipo in `applicationShell1.c`.
+  - In `Xl` è sostituito da un declassamento esplicito di tre sole categorie
+    (`XL_PERMISSIVE`: `incompatible-pointer-types`, `int-conversion`,
+    `implicit-int`). Sono circa 1300 righe di idiomi Xt: un `XlIndicWidget`
+    passato dove serve un `Widget`, `NULL` nei campi `int` delle tabelle delle
+    risorse. Gli altri errori del GCC 14 restano errori.
+- **Trovato strada facendo**: la macro `XlEvError(widget,flag)` di `XlP.h`
+  usava `cw` al posto del suo argomento. Funzionava solo perché tutte le 64
+  chiamate passano `cw`. Ora usa l'argomento.
+- **Via i flag morti da 121 makefile** (tranne `Alg_legopc`):
+  - `-Dmmap=_mmap_32_`: nessun sorgente usa `mmap`;
+  - `-I/usr/lib/gcc-lib/i386-redhat-linux/2.96/include`, del gcc di Red Hat 7;
+  - `-I$(X_INCLUDE)`: `X_INCLUDE` comincia già con `-I.`, e ne usciva
+    `-I-I.`.
+- **CI**: build da zero con 0 errori, 7 prove su 7, warning da 2183 a 2096
+  (nuova soglia). Ricollegati `draw` e `config`.
+- **Resta della fase 6**: il frammento di makefile comune al posto dei blocchi
+  "Telelogic expanded" copiati in 122 makefile. È **sospeso** (decisione
+  dell'utente, 2026-10-16): è un lavoro grande e non porta niente agli utenti.
+
+### Fase 7: Command Mode nel bundle FMU, `lgdemo` in inglese (2026-10-16)
+
+- **draw2gr e Command Mode nel bundle FMU.** Il codice c'era già: i commit
+  `6587fe41` (giugno) e `b886f283` (luglio). Mancava la prova su una macchina
+  senza LegoPST.
+  - **Come è stata fatta:** in un container `python:3.11-slim` con Xvfb, sulla
+    task PWRN1PSS della demo nuclear, con la FMU a tempo reale. Si apre
+    `run_draw2gr.sh`, si passa al Command Mode e si manda un gradino di
+    `ALZATBV1` (0 → 0,3) dal pannello `xaing`.
+  - **Esito:** il modello risponde (portata della valvola TBV1 da 0 a 109 kg/s,
+    pressione del collettore da 6,07 a 5,76 MPa). La procedura è in
+    `Alg_rt/lg_fmu/USAGE.md`.
+  - **Due difetti trovati e corretti:**
+    1. **Senza `procps` la HMI del bundle non si apriva.** `run_draw2gr.sh`
+       cerca il `net_sked` con `pgrep`, draw2gr e altri strumenti usano `ps`,
+       e `killsim` trova i processi con `ps -e`. Ora `bundle/build.sh` mette
+       nel bundle `ps` e `pgrep` del build host.
+    2. **Senza `USER`, `killsim` non cancellava SHM, code e semafori**
+       (`grep $USER` restava senza argomento). Succede in un container, in un
+       servizio, sotto `env -i`. Ora usa `$(id -un)`.
+
+    Dopo le correzioni la fine della simulazione lascia zero IPC.
+- **`lgdemo` in inglese.** Sono tradotti i messaggi, le domande e l'aiuto
+  (`-h`).
+  - Alla conferma `lgdemo` accetta sia `y`/`yes` sia `s`/`si`.
+  - `--result` è un nuovo alias di `--esito`.
+  - Le righe `LGDEMO ...` del modo macchina, quelle che legge lghmi, non
+    cambiano.
+  - `smoke_test.sh` ora cerca "error" invece di "errore".
+

@@ -186,6 +186,36 @@ pannello `xaing` per inviare la perturbazione (gradino/rampa/impulso). Per veder
 l'effetto in diretta, esegui la simulazione con il pacing a tempo reale
 (`run_fmu -r 1`). Requisiti: `DISPLAY` (X11) e una simulazione `net_sked` attiva.
 
+**Provato da un capo all'altro il 2026-10-16**, su una macchina senza LegoPST e
+senza `procps`. Il setup:
+- un container `python:3.11-slim` con `--init`, più Xvfb, `xdotool` e fmpy;
+- la task PWRN1PSS della demo nuclear;
+- la FMU fatta avanzare a passi di 1 s, al ritmo del tempo reale.
+
+La sequenza è questa:
+1. Si apre `run_draw2gr.sh` del bundle, così com'è.
+2. Si passa al Command Mode.
+3. Si fa clic sulla valvola TBV1 e poi sulla sua alzata, `ALZATBV1`: si apre il
+   pannello `xaing` del bundle.
+4. Si imposta un gradino da 0 a 0,3 e lo si avvia.
+
+In pochi secondi lo schema mostra la risposta del modello: la portata della
+valvola passa da 0 a 109 kg/s, la pressione del collettore scende da 6,07 a
+5,76 MPa e la portata d'alimento da 91,7 a 78,6 kg/s. Alla fine della
+simulazione `killsim` lascia zero SHM, code e semafori.
+
+La prova ha trovato due difetti, ora corretti: senza `procps` la HMI non si
+apriva, e senza `USER` le IPC restavano. Sono descritti nella tabella
+*Adattamenti runtime per container Linux*, più sotto.
+
+Per ripeterla, si costruisce il bundle in un container con LegoPST (lo fa
+`dolgfmu.sh -b`, che avvia la simulazione e la chiude con `killsim`: quindi
+mai sull'host con una sessione aperta), e lo si esegue in un container pulito
+con `docker run --init`. Lì si lanciano `Xvfb :99`, la FMU a tempo reale e
+`DISPLAY=:99 ./run_draw2gr.sh`, e si comanda la HMI con `xdotool` guardando
+gli screenshot (`import -window root`). I clic dipendono dalla disposizione
+della finestra, per questo la prova non è in CI.
+
 **Export dello schema.** Anche la HMI del bundle ha *File → Export as ▸ PDF / PNG*
 ([esporta.tcl](../../Alg_legopc/src/tix/esporta.tcl)). La conversione usa
 Ghostscript, che **non è nel bundle**: se sulla macchina target manca, il
@@ -654,6 +684,8 @@ installato" non vede:
 | HMI (`--hmi` / `"hmi": true`) non compare, nessun errore | `run_draw2gr.sh` non esportava `LG_MODELS`, richiesta da `draw2gr`/`topRead`: `wish` muore in avvio. Su una macchina **con** LegoPST la variabile trapelava dal profilo (`Alg_env.sh`: `LG_MODELS=$LG_ENTRY`) mascherando il difetto; sulla macchina target del bundle non esiste | `bundle/build.sh` genera `export LG_MODELS="$(dirname "$PWD")"` (= `task/`) in `run_draw2gr.sh`. Diagnosi: `<task>/draw2gr.fmu.log` |
 | `SHR_USR_KEY=0` in container root (uid=0) → `IPC_PRIVATE`, SHM non condivisibile | `Alg_env.sh:234`: `USR_KEY=$(id -u)`, poi `SHR_USR_KEY=USR_KEY*10000` | `lg_fmi2.c::setup_legopst_env`: se `getuid()==0` fallback a `getpid()*10 + 10000`; `net_startup_headless.sh` preserva `SHR_USR_KEY` del caller dopo source profile |
 | `dispatcher non in PATH` exit 2 dal launcher | `/bin/sh = dash` su debian/ubuntu, non digerisce sintassi bash di `.profile_legoroot` (`set -o emacs`, `[[ ]]`) → source silente fallisce → `PATH` non esteso | `net_startup_headless.sh` ora ha shebang `#!/usr/bin/env bash` |
+| HMI del bundle che non si apre: `run_draw2gr.sh` esce con "SHR_USR_KEY non impostata e nessun net_sked trovato", anche con la simulazione viva | Sulla macchina target manca `procps` (`python:3.11-slim`, per esempio). `run_draw2gr.sh` cerca il `net_sked` della task con `pgrep`; draw2gr abilita il Command Mode solo se `ps -A -o comm` mostra `net_sked`; lghmi, lgstaz e hmielem fanno lo stesso; e `killsim` trova i processi da terminare con `ps -e` | `bundle/build.sh` mette nel bundle `ps` e `pgrep` del build host (`Alg_rt/bin`, che è nel `PATH` degli script e della FMU); le loro librerie (`libproc2`...) le raccoglie il giro `ldd` (2026-10-16) |
+| Dopo la simulazione restano SHM, code e semafori; "Usage: grep" nell'uscita di `killsim` | `killsim` cercava il proprietario delle IPC con `grep $USER`: in un container, in un servizio o sotto `env -i` `USER` non c'è | `killsim.c` usa `$(id -un)` (2026-10-16). Nota per le prove: in un container senza `--init` i processi terminati restano zombie (stato `Z`), perché il PID 1 (`sleep`) non li raccoglie. Non è un difetto del bundle |
 
 ### Perché serve una sim viva durante il build della FMU
 

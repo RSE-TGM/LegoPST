@@ -15,7 +15,7 @@
 
 OS = LINUX
 
-C_FLAGS = -g -D_BSD -DLINUX -DXOPEN_CATALOG -DUNIX -Dmmap=_mmap_32_
+C_FLAGS = -g -D_BSD -DLINUX -DXOPEN_CATALOG -DUNIX
 
 CFLAGS = -I../include \
          -I$(LEGORT_INCLUDE) \

@@ -126,6 +126,7 @@ static void	_UxapplicationShell1MenuPost( wgt, client_data, event, ctd )
 	Widget		wgt;
 	XtPointer	client_data;
 	XEvent		*event;
+	Boolean		*ctd;
 
 {
 	Widget	menu = (Widget) client_data;

@@ -1,101 +1,102 @@
 #!/bin/bash
 #
-# lgdemo - scarica e installa una demo di LegoPST fra le aree di lavoro.
+# lgdemo - downloads a LegoPST demo and installs it among the work areas.
 #
-# Le demo sono aree di lavoro gia' pronte (una directory legopst_<nome> con
-# dentro legocad e sked) pubblicate come allegati legopst_<nome>.tgz della
-# release "Demo LegoPST" del repository GitHub di LegoPST. Le confeziona e le
-# pubblica demo/publish_demo.sh; "lgrun -d <nome>" installa le stesse demo
-# dentro il container, questo comando lo fa su una installazione nativa.
+# The demos are ready-made work areas (a legopst_<name> directory with
+# legocad and sked inside), published as legopst_<name>.tgz assets of the
+# "Demo LegoPST" release of the LegoPST GitHub repository. They are packaged
+# and published by demo/publish_demo.sh; "lgrun -d <name>" installs the same
+# demos inside the container, this command does it on a native installation.
 #
-#   uso:  lgdemo [opzioni] [NOME]
+#   usage:  lgdemo [options] [NAME]
 #
-#     lgdemo            elenca le demo pubblicate e chiede quale installare
-#     lgdemo NOME       installa la demo NOME in <base>/legopst_NOME
-#                       (va bene anche legopst_NOME o legopst_NOME.tgz)
+#     lgdemo            lists the published demos and asks which to install
+#     lgdemo NAME       installs demo NAME in <base>/legopst_NAME
+#                       (legopst_NAME or legopst_NAME.tgz work too)
 #
-#     -l, --list        elenca le demo pubblicate ed esce, senza chiedere niente
-#     -y, --yes         non chiede conferma se la demo e' gia' installata
-#         --esito FILE  a installazione riuscita scrive in FILE il nome
-#                       dell'area (legopst_NOME). Serve a chi lancia lgdemo
-#                       da un programma: lghmi lo usa per passare alla demo
-#         --base DIR    la directory delle aree di lavoro, dove installare.
-#                       Senza, la si ricava dai link (vedi DOVE SI INSTALLA)
-#         --machine     uscita per un programma (lghmi), vedi MODO MACCHINA
-#     -h, --help        questo aiuto
+#     -l, --list        lists the published demos and exits, asking nothing
+#     -y, --yes         no confirmation if the demo is already installed
+#         --result FILE on success, writes the area name (legopst_NAME) into
+#                       FILE. For programs that run lgdemo: lghmi uses it to
+#                       switch to the demo. --esito is the same option
+#         --base DIR    the work-area directory to install into. Without it,
+#                       it is derived from the links (see WHERE IT INSTALLS)
+#         --machine     output for a program (lghmi), see MACHINE MODE
+#     -h, --help        this help
 #
-# DOVE SI INSTALLA
+# WHERE IT INSTALLS
 #
-#   Nella directory delle AREE DI LAVORO, quella che contiene le legopst_* e
-#   in cui stanno i link legocad e sked che lgswitch sposta. Su una
-#   installazione nativa e' la home. Nel container di lgrun no: la home del
-#   container e' effimera (sparisce all'uscita) e le aree stanno nella home
-#   dell'host, montata come /host_home, raggiunta da ~/legocad ->
-#   /host_home/legocad -> legopst_<area>/legocad. Installare in $HOME voleva
-#   dire perdere la demo all'uscita, e lghmi non la trovava fra le aree.
+#   In the WORK-AREA directory, the one holding the legopst_* areas and the
+#   legocad and sked links that lgswitch moves. On a native installation it
+#   is the home. Not in the lgrun container: the container home is ephemeral
+#   (it disappears on exit) and the areas live in the host home, mounted as
+#   /host_home, reached through ~/legocad -> /host_home/legocad ->
+#   legopst_<area>/legocad. Installing in $HOME meant losing the demo on exit,
+#   and lghmi could not find it among the areas.
 #
-#   Senza --base la si ricava cosi': si seguono i link a partire da
-#   ~/legocad fino all'ULTIMO link (quello che punta alla directory vera), e
-#   la base e' la directory che lo contiene. E' la regola di lghmi
-#   (base_aree), che la passa con --base. Se ~/legocad non e' un link, la
-#   base e' la home.
+#   Without --base it is derived like this: follow the links starting from
+#   ~/legocad up to the LAST link (the one pointing to the real directory);
+#   the base is the directory that contains it. It is lghmi's rule
+#   (base_aree), which passes it with --base. If ~/legocad is not a link, the
+#   base is the home.
 #
-# LA DESCRIZIONE
+# THE DESCRIPTION
 #
-#   Ogni demo puo' avere una riga di descrizione: e' l'etichetta (label)
-#   dell'allegato sulla release, che publish_demo.sh scrive dalla riga
-#   DESCRIZIONE= del demo_<nome>.conf. lgdemo la mostra nell'elenco.
+#   Each demo may have a one-line description: the label of the release
+#   asset, which publish_demo.sh writes from the DESCRIZIONE= line of
+#   demo_<name>.conf. lgdemo shows it in the list.
 #
-# MODO MACCHINA (--machine)
+# MACHINE MODE (--machine)
 #
-#   Per chi lancia lgdemo da un programma e ne mostra l'avanzamento (la
-#   finestra Install demo di lghmi). Niente colori e niente domande: la demo
-#   va indicata per nome, e se c'e' gia' serve -y (la conferma la chiede il
-#   programma). Su stdout, oltre ai messaggi soliti, righe che cominciano
-#   con "LGDEMO ":
+#   For programs that run lgdemo and show its progress (lghmi's Install demo
+#   window). No colours and no questions: the demo must be given by name,
+#   and if it is already installed -y is needed (the program asks for the
+#   confirmation). On stdout, besides the usual messages, lines starting
+#   with "LGDEMO ":
 #
-#     con --list, una riga per demo:
-#       LGDEMO DEMO <nome>|<byte>|<sha256>|<stato>|<descrizione>
-#       stato: current (e' l'area in uso), installed, absent
-#     durante l'installazione:
-#       LGDEMO BASE <dir>                 dove si installa
-#       LGDEMO PHASE <fase>               download, check, extract, align, install
-#       LGDEMO PROGRESS <scaricati> <totale>   due volte al secondo; totale 0
-#                                         se non si conosce
-#       LGDEMO DONE <legopst_nome> <directory>   a installazione riuscita
-#       LGDEMO ERROR <motivo>             prima di uscire con errore
+#     with --list, one line per demo:
+#       LGDEMO DEMO <name>|<bytes>|<sha256>|<state>|<description>
+#       state: current (the area in use), installed, absent
+#     during the installation:
+#       LGDEMO BASE <dir>                 where it installs
+#       LGDEMO PHASE <phase>              download, check, extract, align, install
+#       LGDEMO PROGRESS <received> <total>   twice a second; total 0 when
+#                                         unknown
+#       LGDEMO DONE <legopst_name> <directory>   on success
+#       LGDEMO ERROR <reason>             before exiting with an error
 #
-# SE LA DEMO C'E' GIA'
+# IF THE DEMO IS ALREADY THERE
 #
-#   Lo si segnala e si chiede conferma. Se si conferma, la directory che c'e'
-#   NON viene cancellata ne' sovrascritta: viene messa da parte con il nome
-#   old.legopst_<nome>.<data>-<ora>, e la demo nuova prende il suo posto.
-#   Dentro potrebbe esserci del lavoro; cancellarla e' una decisione di chi
-#   lavora, non di questo script. Il nome non comincia per "legopst_" apposta:
-#   e' il modello con cui lgswitch cerca le aree, e una copia messa da parte
-#   non deve comparire nel suo menu.
+#   lgdemo says so and asks for confirmation. If confirmed, the existing
+#   directory is NOT deleted nor overwritten: it is set aside as
+#   old.legopst_<name>.<date>-<time>, and the new demo takes its place. It
+#   may contain someone's work; deleting it is the user's decision, not this
+#   script's. The name deliberately does not start with "legopst_": that is
+#   the pattern lgswitch uses to find areas, and a copy set aside must not
+#   show up in its menu.
 #
-#   La demo nuova viene scaricata, controllata ed estratta in una directory
-#   provvisoria PRIMA di toccare quella che c'e': se qualcosa va storto (rete,
-#   sha256, pacchetto fatto male) la home resta com'era.
+#   The new demo is downloaded, checked and extracted into a temporary
+#   directory BEFORE touching the existing one: if anything goes wrong
+#   (network, sha256, bad package) the home stays as it was.
 #
-# DOPO L'INSTALLAZIONE
+# AFTER THE INSTALLATION
 #
-#   lgdemo non tocca i link legocad e sked. Per lavorare sulla demo:
-#       cd <base> ; lgswitch legopst_<nome>
+#   lgdemo does not touch the legocad and sked links. To work on the demo:
+#       cd <base> ; lgswitch legopst_<name>
 #
-# VARIABILI D'AMBIENTE
+# ENVIRONMENT VARIABLES
 #
-#   LG_DEMO_RELEASE   tag della release da cui prendere le demo (default:
-#                     demo-2.0, lo stesso di lgrun)
-#   LG_DEMO_REPO      repository GitHub, come proprietario/nome (default:
+#   LG_DEMO_RELEASE   tag of the release to take the demos from (default:
+#                     demo-2.0, the same as lgrun)
+#   LG_DEMO_REPO      GitHub repository, as owner/name (default:
 #                     RSE-TGM/LegoPST)
-#   GITHUB_TOKEN      facoltativo: GitHub concede 60 interrogazioni l'ora a chi
-#                     non si presenta, e con un token il limite sparisce
-#   LG_DEMO_API       per uno specchio, o per le prove: l'indirizzo da cui
-#                     leggere la release (default: l'API di GitHub)
-#   LG_DEMO_DOWNLOAD  idem: l'indirizzo sotto cui stanno i legopst_<nome>.tgz
-
+#   GITHUB_TOKEN      optional: GitHub allows 60 anonymous queries an hour,
+#                     and with a token the limit goes away
+#   LG_DEMO_API       for a mirror, or for tests: the address to read the
+#                     release from (default: the GitHub API)
+#   LG_DEMO_DOWNLOAD  likewise: the address holding the legopst_<name>.tgz
+#
+# (The comments in the code below are in Italian, like the rest of LegoPST.)
 set -o pipefail
 
 PROGRAMMA="$(basename "$0")"
@@ -119,10 +120,10 @@ fi
 proto() { $MACCHINA && echo "LGDEMO $*"; return 0; }
 muori() {
     $MACCHINA && echo "LGDEMO ERROR $(printf '%s' "$*" | head -1)"
-    echo -e "${RED}ERRORE:${NC} $*" >&2
+    echo -e "${RED}ERROR:${NC} $*" >&2
     exit 1
 }
-avviso() { echo -e "${YELLOW}ATTENZIONE:${NC} $*" >&2; }
+avviso() { echo -e "${YELLOW}WARNING:${NC} $*" >&2; }
 
 SOLO_LISTA=false
 SENZA_CONFERMA=false
@@ -134,21 +135,22 @@ while [ $# -gt 0 ]; do
     case "$1" in
         -l|--list)  SOLO_LISTA=true ;;
         -y|--yes)   SENZA_CONFERMA=true ;;
-        --esito)    FILE_ESITO="${2:?$1 vuole il nome del file}"; shift ;;
+        --esito|--result)  FILE_ESITO="${2:?$1 needs a file name}"; shift ;;
         --esito=*)  FILE_ESITO="${1#--esito=}" ;;
-        --base)     BASE="${2:?$1 vuole una directory}"; shift ;;
+        --result=*) FILE_ESITO="${1#--result=}" ;;
+        --base)     BASE="${2:?$1 needs a directory}"; shift ;;
         --base=*)   BASE="${1#--base=}" ;;
         --machine)  ;;      # gia' letta sopra: serve prima dei colori
         -h|--help)  sed -n '3,/^[^#]/p' "$0" | sed -n 's/^# \{0,1\}//p'; exit 0 ;;
-        -*)         muori "opzione non riconosciuta: $1 (vedi -h)" ;;
-        *)          [ -z "$NOME" ] || muori "una demo alla volta (vedi -h)"
+        -*)         muori "unknown option: $1 (see -h)" ;;
+        *)          [ -z "$NOME" ] || muori "one demo at a time (see -h)"
                     NOME="$1" ;;
     esac
     shift
 done
 
-command -v curl >/dev/null 2>&1 || muori "serve 'curl' per scaricare le demo."
-[ -n "${HOME:-}" ] && [ -d "$HOME" ] || muori "la home ('${HOME:-}') non c'e'."
+command -v curl >/dev/null 2>&1 || muori "'curl' is needed to download the demos."
+[ -n "${HOME:-}" ] && [ -d "$HOME" ] || muori "the home directory ('${HOME:-}') does not exist."
 
 #  La directory delle aree di lavoro (vedi DOVE SI INSTALLA in testa).
 base_aree() {
@@ -163,9 +165,9 @@ base_aree() {
     (cd "$(dirname "$p")" 2>/dev/null && pwd) || echo "$HOME"
 }
 [ -n "$BASE" ] || BASE="$(base_aree)"
-[ -d "$BASE" ] || muori "la directory delle aree di lavoro ('$BASE') non c'e'."
+[ -d "$BASE" ] || muori "the work-area directory ('$BASE') does not exist."
 BASE="$(cd "$BASE" && pwd)"
-[ -w "$BASE" ] || muori "la directory delle aree di lavoro ('$BASE') non e' scrivibile."
+[ -w "$BASE" ] || muori "the work-area directory ('$BASE') is not writable."
 #  Come la si mostra: "~" se e' la home, se no per intero
 if [ "$BASE" = "$(cd "$HOME" && pwd)" ]; then MOSTRA_BASE="~"; else MOSTRA_BASE="$BASE"; fi
 
@@ -178,8 +180,8 @@ pulisci() {
     [ -n "$PROVV" ] && rm -rf "$PROVV"
 }
 trap pulisci EXIT
-trap 'echo; proto ERROR "interrotto"; echo "$PROGRAMMA: interrotto." >&2; exit 130' INT TERM
-TMP="$(mktemp -d "${TMPDIR:-/tmp}/lgdemo.XXXXXX")" || muori "non riesco a creare una directory provvisoria."
+trap 'echo; proto ERROR "interrupted"; echo "$PROGRAMMA: interrupted." >&2; exit 130' INT TERM
+TMP="$(mktemp -d "${TMPDIR:-/tmp}/lgdemo.XXXXXX")" || muori "cannot create a temporary directory."
 
 #  Le demo pubblicate, una per riga:  <nome>|<byte>|<sha256>|<descrizione>
 #
@@ -202,10 +204,10 @@ leggi_elenco() {
                  -o "$TMP/rel.json" -w '%{http_code}' "$API" 2>"$TMP/curl.err")" || http="000"
     case "$http" in
         200) ;;
-        404) echo "la release '$DEMO_RELEASE' di $REPO_SLUG non esiste." >&2; return 1 ;;
-        403|429) echo "GitHub ha rifiutato l'interrogazione (troppe richieste da questo indirizzo: riprova fra un'ora, o definisci GITHUB_TOKEN)." >&2; return 1 ;;
-        000) echo "GitHub non risponde ($(head -1 "$TMP/curl.err" 2>/dev/null))." >&2; return 1 ;;
-        *)   echo "GitHub ha risposto $http leggendo la release '$DEMO_RELEASE'." >&2; return 1 ;;
+        404) echo "release '$DEMO_RELEASE' of $REPO_SLUG does not exist." >&2; return 1 ;;
+        403|429) echo "GitHub refused the query (too many requests from this address: try again in an hour, or set GITHUB_TOKEN)." >&2; return 1 ;;
+        000) echo "GitHub does not answer ($(head -1 "$TMP/curl.err" 2>/dev/null))." >&2; return 1 ;;
+        *)   echo "GitHub answered $http reading release '$DEMO_RELEASE'." >&2; return 1 ;;
     esac
     ELENCO=""
     while IFS= read -r riga; do
@@ -253,13 +255,13 @@ stato_demo() {
 #  e sotto la sua descrizione.
 mostra_elenco() {
     local n=0 nome byte sha eti nota
-    echo "Demo pubblicate (release '$DEMO_RELEASE' di $REPO_SLUG):"
+    echo "Published demos (release '$DEMO_RELEASE' of $REPO_SLUG):"
     echo ""
     while IFS='|' read -r nome byte sha eti; do
         [ -n "$nome" ] || continue
         n=$((n + 1))
         nota=""
-        [ -e "$BASE/legopst_$nome" ] && nota="${YELLOW}gia' installata in $MOSTRA_BASE/legopst_$nome${NC}"
+        [ -e "$BASE/legopst_$nome" ] && nota="${YELLOW}already installed in $MOSTRA_BASE/legopst_$nome${NC}"
         printf '  %2d) %-20s %6s   ' "$n" "$nome" "$(dimensione "$byte")"
         echo -e "$nota"
         [ -n "$eti" ] && printf '      %s\n' "$eti"
@@ -275,10 +277,10 @@ if leggi_elenco 2>"$TMP/elenco.err"; then
 fi
 
 if [ -z "$NOME" ] || $SOLO_LISTA; then
-    $ELENCO_LETTO || muori "non riesco a leggere l'elenco delle demo: $(cat "$TMP/elenco.err")"
-    [ -n "$ELENCO" ] || muori "la release '$DEMO_RELEASE' non ha nessun allegato legopst_<nome>.tgz."
+    $ELENCO_LETTO || muori "cannot read the list of demos: $(cat "$TMP/elenco.err")"
+    [ -n "$ELENCO" ] || muori "release '$DEMO_RELEASE' has no legopst_<name>.tgz asset."
     if $MACCHINA; then
-        $SOLO_LISTA || muori "nel modo macchina la demo va indicata per nome."
+        $SOLO_LISTA || muori "in machine mode the demo must be given by name."
         proto BASE "$BASE"
         while IFS='|' read -r nome byte sha eti; do
             [ -n "$nome" ] && proto DEMO "$nome|$byte|$sha|$(stato_demo "$nome")|$eti"
@@ -287,11 +289,11 @@ if [ -z "$NOME" ] || $SOLO_LISTA; then
     fi
     mostra_elenco
     $SOLO_LISTA && exit 0
-    [ -t 0 ] || muori "nessuna demo indicata e nessun terminale a cui chiederla: usa '$PROGRAMMA NOME'."
+    [ -t 0 ] || muori "no demo given and no terminal to ask on: use '$PROGRAMMA NAME'."
     QUANTE="$(printf '%s\n' "$ELENCO" | grep -c .)"
     while :; do
-        read -r -p "Quale installo? [1-$QUANTE, oppure il nome; invio = nessuna]: " SCELTA || { echo; exit 0; }
-        [ -n "$SCELTA" ] || { echo "Niente da fare."; exit 0; }
+        read -r -p "Which one should I install? [1-$QUANTE, or the name; Enter = none]: " SCELTA || { echo; exit 0; }
+        [ -n "$SCELTA" ] || { echo "Nothing to do."; exit 0; }
         if [[ "$SCELTA" =~ ^[0-9]+$ ]]; then
             if [ "$SCELTA" -ge 1 ] && [ "$SCELTA" -le "$QUANTE" ]; then
                 NOME="$(printf '%s\n' "$ELENCO" | sed -n "${SCELTA}p" | cut -d'|' -f1)"
@@ -301,14 +303,14 @@ if [ -z "$NOME" ] || $SOLO_LISTA; then
             NOME="$SCELTA"
             break
         fi
-        echo "Scelta non valida: '$SCELTA'."
+        echo "Invalid choice: '$SCELTA'."
     done
 fi
 
 #  Si accetta anche il nome della directory o quello del pacchetto.
 NOME="${NOME%.tgz}"
 NOME="${NOME#legopst_}"
-[[ "$NOME" =~ ^[A-Za-z0-9_][A-Za-z0-9_-]*$ ]] || muori "nome di demo non valido: '$NOME' (lettere, cifre, _ e -)."
+[[ "$NOME" =~ ^[A-Za-z0-9_][A-Za-z0-9_-]*$ ]] || muori "invalid demo name: '$NOME' (letters, digits, _ and -)."
 
 DIR_DEMO="legopst_$NOME"
 DEST="$BASE/$DIR_DEMO"
@@ -318,8 +320,8 @@ BYTE="" ; SHA=""
 if $ELENCO_LETTO; then
     RIGA="$(printf '%s\n' "$ELENCO" | grep "^$NOME|" || true)"
     if [ -z "$RIGA" ]; then
-        proto ERROR "la demo '$NOME' non c'e' nella release '$DEMO_RELEASE'."
-        echo -e "${RED}ERRORE:${NC} la demo '$NOME' non c'e' nella release '$DEMO_RELEASE'." >&2
+        proto ERROR "demo '$NOME' is not in release '$DEMO_RELEASE'."
+        echo -e "${RED}ERROR:${NC} demo '$NOME' is not in release '$DEMO_RELEASE'." >&2
         [ -n "$ELENCO" ] && { echo "" >&2; mostra_elenco >&2; }
         exit 1
     fi
@@ -328,30 +330,30 @@ if $ELENCO_LETTO; then
 else
     #  L'elenco non si legge (di solito: troppe interrogazioni), ma il
     #  pacchetto si scarica da un altro indirizzo, che non ha quel limite.
-    avviso "non riesco a leggere l'elenco delle demo: $(cat "$TMP/elenco.err")"
-    echo "            Provo lo stesso a scaricare $DIR_DEMO.tgz, senza poterne controllare lo sha256." >&2
+    avviso "cannot read the list of demos: $(cat "$TMP/elenco.err")"
+    echo "         Trying to download $DIR_DEMO.tgz anyway, without checking its sha256." >&2
 fi
 
 # --- 2. c'e' gia'? ------------------------------------------------------------
 
 if [ -e "$DEST" ] || [ -L "$DEST" ]; then
-    echo -e "${YELLOW}La demo '$NOME' e' gia' installata:${NC} $DEST"
+    echo -e "${YELLOW}Demo '$NOME' is already installed:${NC} $DEST"
     if [ -d "$DEST" ]; then
-        echo "  occupa $(du -sh "$DEST" 2>/dev/null | cut -f1), ultima modifica $(date -r "$DEST" '+%Y-%m-%d %H:%M' 2>/dev/null)"
+        echo "  size $(du -sh "$DEST" 2>/dev/null | cut -f1), last modified $(date -r "$DEST" '+%Y-%m-%d %H:%M' 2>/dev/null)"
     fi
     for l in legocad sked; do
         if [ -L "$BASE/$l" ] && [ "$(readlink "$BASE/$l")" = "$DIR_DEMO/$l" -o "$(readlink "$BASE/$l")" = "$DEST/$l" ]; then
-            echo "  $MOSTRA_BASE/$l punta li': e' l'area di lavoro in uso."
+            echo "  $MOSTRA_BASE/$l points there: it is the work area in use."
         fi
     done
-    echo "  Se la installo di nuovo, quella che c'e' viene messa da parte (non cancellata)"
-    echo "  come $MOSTRA_BASE/old.$DIR_DEMO.<data>-<ora>, e la demo appena scaricata prende il suo posto."
+    echo "  If I install it again, the existing one is set aside (not deleted)"
+    echo "  as $MOSTRA_BASE/old.$DIR_DEMO.<date>-<time>, and the downloaded demo takes its place."
     if ! $SENZA_CONFERMA; then
-        [ -t 0 ] || muori "la demo c'e' gia' e non c'e' un terminale a cui chiedere conferma: usa -y per installarla comunque."
-        read -r -p "La installo comunque? [s/N]: " RISPOSTA || { echo; exit 0; }
+        [ -t 0 ] || muori "the demo is already there and there is no terminal to ask for confirmation: use -y to install it anyway."
+        read -r -p "Install it anyway? [y/N]: " RISPOSTA || { echo; exit 0; }
         case "$RISPOSTA" in
             s|S|si|SI|Si|y|Y|yes) ;;
-            *) echo "Lasciata com'e'."; exit 0 ;;
+            *) echo "Left as it is."; exit 0 ;;
         esac
     fi
 fi
@@ -361,7 +363,7 @@ fi
 TGZ="$TMP/$DIR_DEMO.tgz"
 proto BASE "$BASE"
 proto PHASE download
-echo "Scarico $DIR_DEMO.tgz$([ -n "$BYTE" ] && echo " ($(dimensione "$BYTE"))")"
+echo "Downloading $DIR_DEMO.tgz$([ -n "$BYTE" ] && echo " ($(dimensione "$BYTE"))")"
 echo "  $URL"
 if $MACCHINA; then
     #  Nessuna barra di curl: l'avanzamento lo si misura dalla dimensione del
@@ -374,44 +376,44 @@ if $MACCHINA; then
     done
     wait "$CURL_PID"; esito_curl=$?
     CURL_PID=""
-    [ "$esito_curl" -eq 0 ] || muori "non riesco a scaricare la demo '$NOME' ($URL): $(head -1 "$TMP/curl.err" 2>/dev/null)"
+    [ "$esito_curl" -eq 0 ] || muori "cannot download demo '$NOME' ($URL): $(head -1 "$TMP/curl.err" 2>/dev/null)"
     proto PROGRESS "$(stat -c%s "$TGZ")" "${BYTE:-0}"
 else
     BARRA="-sS" ; [ -t 2 ] && BARRA="-#"
     curl -fL $BARRA --retry 3 --connect-timeout 15 -o "$TGZ" "$URL" \
-        || muori "non riesco a scaricare la demo '$NOME' ($URL)."
+        || muori "cannot download demo '$NOME' ($URL)."
 fi
 proto PHASE check
 
 if [ -n "$SHA" ] && command -v sha256sum >/dev/null 2>&1; then
     SHA_SCARICATO="$(sha256sum "$TGZ" | cut -d' ' -f1)"
-    [ "$SHA_SCARICATO" = "$SHA" ] || muori "lo sha256 del pacchetto scaricato non e' quello pubblicato.
-        pubblicato: $SHA
-        scaricato:  $SHA_SCARICATO
-        Il file e' arrivato rovinato, o e' stato sostituito mentre lo scaricavo: riprova."
-    echo "  sha256 corretto"
+    [ "$SHA_SCARICATO" = "$SHA" ] || muori "the sha256 of the downloaded package is not the published one.
+        published:  $SHA
+        downloaded: $SHA_SCARICATO
+        The file arrived damaged, or was replaced while downloading: try again."
+    echo "  sha256 correct"
 elif $ELENCO_LETTO; then
-    avviso "sha256 non controllato (GitHub non lo pubblica per questo allegato, o manca sha256sum)."
+    avviso "sha256 not checked (GitHub does not publish it for this asset, or sha256sum is missing)."
 fi
 
 # --- 4. estraggo in una directory provvisoria ---------------------------------
 
 #  Nella base, non in /tmp: cosi' metterla al suo posto e' una rinomina sullo
 #  stesso disco, che o riesce tutta o non riesce.
-PROVV="$(mktemp -d "$BASE/.lgdemo.XXXXXX")" || muori "non riesco a creare una directory provvisoria in $BASE."
+PROVV="$(mktemp -d "$BASE/.lgdemo.XXXXXX")" || muori "cannot create a temporary directory in $BASE."
 proto PHASE extract
-echo "Estraggo..."
+echo "Extracting..."
 #  --no-same-owner: i file sono di chi installa, non di chi ha confezionato.
-tar --no-same-owner -xzf "$TGZ" -C "$PROVV" || muori "il pacchetto non si estrae (disco pieno? file rovinato?)."
+tar --no-same-owner -xzf "$TGZ" -C "$PROVV" || muori "the package does not extract (disk full? damaged file?)."
 
 #  Il pacchetto deve contenere proprio legopst_<nome>, con legocad e sked: e'
 #  un'area di lavoro, e senza quelle due directory lgswitch non la userebbe.
 if [ ! -d "$PROVV/$DIR_DEMO/legocad" ] || [ ! -d "$PROVV/$DIR_DEMO/sked" ]; then
-    muori "il pacchetto non contiene $DIR_DEMO/legocad e $DIR_DEMO/sked.
-        Va rifatto con demo/make_demo_tgz.sh -d $NOME."
+    muori "the package does not contain $DIR_DEMO/legocad and $DIR_DEMO/sked.
+        It must be rebuilt with demo/make_demo_tgz.sh -d $NOME."
 fi
 ALTRO="$(ls -A "$PROVV" | grep -v -x "$DIR_DEMO" || true)"
-[ -z "$ALTRO" ] || avviso "il pacchetto contiene anche altro, che non installo: $(echo $ALTRO)"
+[ -z "$ALTRO" ] || avviso "the package also contains other things, which I do not install: $(echo $ALTRO)"
 
 #  Allinea la demo a QUESTA home.
 #
@@ -464,7 +466,7 @@ allinea_demo_alla_home() {
             done < "$sim/kMmi.cfg" > "$sim/kMmi.cfg.lgdemo" && cat "$sim/kMmi.cfg.lgdemo" > "$sim/kMmi.cfg"
             rm -f "$sim/kMmi.cfg.lgdemo"
         fi
-        echo "  pagine MMI di $(basename "$sim") allineate a questa home ($vecchia -> $nuova)"
+        echo "  MMI pages of $(basename "$sim") aligned to this home ($vecchia -> $nuova)"
     done
     return 0
 }
@@ -481,30 +483,30 @@ if [ -e "$DEST" ] || [ -L "$DEST" ]; then
     while [ -e "$DA_PARTE" ]; do
         DA_PARTE="$BASE/old.$DIR_DEMO.$(date +%Y%m%d-%H%M%S)_$n"; n=$((n + 1))
     done
-    mv "$DEST" "$DA_PARTE" || muori "non riesco a mettere da parte $DEST: non ho toccato niente."
-    echo "Quella che c'era e' stata messa da parte: $DA_PARTE"
+    mv "$DEST" "$DA_PARTE" || muori "cannot set aside $DEST: nothing was touched."
+    echo "The existing one was set aside: $DA_PARTE"
     if ! mv "$PROVV/$DIR_DEMO" "$DEST"; then
         mv "$DA_PARTE" "$DEST" 2>/dev/null
-        muori "non riesco a mettere la demo nuova in $DEST: ho rimesso al suo posto quella che c'era."
+        muori "cannot put the new demo in $DEST: the existing one was put back."
     fi
 else
-    mv "$PROVV/$DIR_DEMO" "$DEST" || muori "non riesco a creare $DEST."
+    mv "$PROVV/$DIR_DEMO" "$DEST" || muori "cannot create $DEST."
 fi
 
 echo ""
-echo -e "${GREEN}Demo '$NOME' installata in $DEST${NC} ($(du -sh "$DEST" 2>/dev/null | cut -f1))"
-echo "  modelli:     $(ls "$DEST/legocad" 2>/dev/null | wc -l) voci in legocad/"
-echo "  simulatori:  $(ls "$DEST/sked" 2>/dev/null | tr '\n' ' ')"
+echo -e "${GREEN}Demo '$NOME' installed in $DEST${NC} ($(du -sh "$DEST" 2>/dev/null | cut -f1))"
+echo "  models:      $(ls "$DEST/legocad" 2>/dev/null | wc -l) entries in legocad/"
+echo "  simulators:  $(ls "$DEST/sked" 2>/dev/null | tr '\n' ' ')"
 echo ""
 if [ -L "$BASE/legocad" ] && [ "$(readlink -f "$BASE/legocad")" = "$(readlink -f "$DEST/legocad")" ]; then
-    echo "$MOSTRA_BASE/legocad e $MOSTRA_BASE/sked puntano gia' a questa area: e' pronta."
+    echo "$MOSTRA_BASE/legocad and $MOSTRA_BASE/sked already point to this area: it is ready."
 elif [ -n "$FILE_ESITO" ] || $MACCHINA; then
-    echo "Il programma che ha lanciato lgdemo passa ora a questa area."
+    echo "The program that ran lgdemo now switches to this area."
 else
-    echo "Per lavorarci, punta legocad e sked a questa area:"
+    echo "To work on it, point legocad and sked to this area:"
     echo "    cd $MOSTRA_BASE ; lgswitch $DIR_DEMO"
 fi
-[ -n "${DA_PARTE:-}" ] && echo "Quando sei sicuro di non volerla piu':  rm -rf $DA_PARTE"
+[ -n "${DA_PARTE:-}" ] && echo "When you are sure you no longer need it:  rm -rf $DA_PARTE"
 #  Per ultimo, a cose fatte: chi aspetta questo file lo prende per "installata".
 [ -n "$FILE_ESITO" ] && { printf '%s\n' "$DIR_DEMO" > "$FILE_ESITO" || true; }
 proto DONE "$DIR_DEMO" "$DEST"

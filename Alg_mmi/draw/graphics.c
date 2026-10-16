@@ -1075,7 +1075,7 @@ fscanf(fp,"%s %d\n",buf,&ymin);
 fscanf(fp,"%s %d\n",buf,&xmax);
 fscanf(fp,"%s %d\n",buf,&ymax);
 fscanf(fp,"%s %d",buf,&numero_draget);
-while((dr=XdReadRecord((Draget)wid,&xdgc,fp))!=NULL)
+while((dr=XdReadRecord(wid,&xdgc,fp))!=NULL)
 	{
         ListDragetAdd(get_lista(wid),dr);
 	XdSetSnap(dr,get_step(wid));

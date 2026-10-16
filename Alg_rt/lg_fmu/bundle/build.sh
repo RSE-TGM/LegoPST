@@ -190,6 +190,23 @@ if [[ $BUNDLE -eq 1 ]]; then
             || { echo "ERR: $b non trovato in $LEGOROOT_ABS/Alg_rt/bin" >&2; exit 4; }
     done
 
+    # ps e pgrep (procps) del build host. La HMI li usa per sapere se la
+    # simulazione e' viva: run_draw2gr.sh cerca il net_sked della task con
+    # pgrep (da li' ricava SHR_USR_KEY), draw2gr abilita il Command Mode solo
+    # se "ps -A -o comm" mostra net_sked, e lo stesso fanno lghmi, lgstaz e
+    # hmielem. Su una macchina minimale (python:3.11-slim, provata il
+    # 2026-10-16) procps non c'e': run_draw2gr.sh usciva con "SHR_USR_KEY non
+    # impostata" e la HMI non si apriva. Stanno in Alg_rt/bin, che e' nel PATH
+    # degli script del bundle; le loro librerie le raccoglie il giro ldd.
+    for b in ps pgrep; do
+        _p="$(command -v "$b" 2>/dev/null)"
+        if [[ -n "$_p" ]]; then
+            cp -pL "$_p" "$BD/Alg_rt/bin/$b"
+        else
+            echo "AVVISO: $b non trovato sul build host: la HMI del bundle non funzionera' dove manca procps" >&2
+        fi
+    done
+
     # Loader tabelle acqua/vapore
     cp -p "$LEGOROOT_ABS/lego_big/bin/initav"     "$BD/lego_big/bin/"
     cp -p "$LEGOROOT_ABS/lego_big/bin/TAVOLE.DAT" "$BD/lego_big/bin/"

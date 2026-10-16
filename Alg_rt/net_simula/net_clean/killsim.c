@@ -298,7 +298,13 @@ printf("Eliminazione code\n");
    d'appogio.
 */
 #if defined LINUX
-strcpy(comando,"ipcs -q  | grep $USER | cut -f 2 -d ' '  > ");
+/*
+   Il proprietario si cerca con $(id -un), non con $USER: in un container, in
+   un servizio o sotto "env -i" USER non c'e', "grep $USER" diventava "grep"
+   senza argomenti, e killsim non cancellava ne' code ne' SHM ne' semafori
+   (visto il 2026-10-16 con il bundle FMU in python:3.11-slim).
+*/
+strcpy(comando,"ipcs -q  | grep \"$(id -un)\" | cut -f 2 -d ' '  > ");
 #else
 strcpy(comando,"ipcs -q > ");
 #endif
@@ -366,7 +372,7 @@ fclose(fp);
 
 printf("Eliminazione delle shared memory\n");
 #if defined LINUX
-strcpy(comando,"ipcs -m  | grep $USER | cut -f 2 -d ' '  > ");
+strcpy(comando,"ipcs -m  | grep \"$(id -un)\" | cut -f 2 -d ' '  > ");
 #else
 strcpy(comando,"ipcs -m > ");
 #endif
@@ -420,7 +426,7 @@ fclose(fp);
 
 // printf("Eliminazione semafori\n");
 #if defined LINUX
-strcpy(comando,"ipcs -s  | grep $USER | cut -f 2 -d ' '  > ");
+strcpy(comando,"ipcs -s  | grep \"$(id -un)\" | cut -f 2 -d ' '  > ");
 #else
 strcpy(comando,"ipcs -s > ");
 #endif

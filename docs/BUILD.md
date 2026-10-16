@@ -94,6 +94,12 @@ The `Alg_mmi/lib/Xl` library is also compiled with
 declaration returns `int`, and on 64 bits a pointer returned that way is
 truncated. Its declarations are in `Alg_mmi/lib/Xl/XlProto.h`.
 
+No makefile uses `-fpermissive` any more: with GCC 14 it turns every new C
+error into a warning. `Xl` alone downgrades exactly three categories
+(`XL_PERMISSIVE` in its makefile: `incompatible-pointer-types`,
+`int-conversion`, `implicit-int`), about 1300 lines of Xt idiom. Any other
+GCC 14 error stops the build there too.
+
 ## Compiled files in git
 
 Executables, libraries and some objects are committed **on purpose**: users get

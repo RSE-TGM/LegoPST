@@ -92,7 +92,7 @@ DEMO="$HOME/legopst_nuclear"
 if [ $RC -eq 0 ] && [ -d "$DEMO/legocad" ] && [ -d "$DEMO/sked/SLaurent_0" ]; then
     esito lgdemo 0 "demo nuclear installata ($(du -sh "$DEMO" | cut -f1))"
 else
-    esito lgdemo 1 "installazione fallita (uscita $RC): $(grep -m1 -i 'errore' "$LOGDIR/1_lgdemo.log")"
+    esito lgdemo 1 "installazione fallita (uscita $RC): $(grep -m1 -i 'error' "$LOGDIR/1_lgdemo.log")"
     riepilogo
     exit 1
 fi

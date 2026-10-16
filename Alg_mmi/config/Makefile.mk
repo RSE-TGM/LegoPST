@@ -20,9 +20,9 @@ SQLITE_LIB=-lsqlite3
 #THREAD_LIB=-L$(LEGOROOT_LIB)/dcethreads_lib -ldcethreads -ldl
 THREAD_LIB=-pthread -ldl
 X_LIB=-L/usr/X11R6/lib -lMrm -lXm -lXt -lX11
-X_INCLUDE=-I. -I/usr/local/include -I/usr/lib/gcc-lib/i386-redhat-linux/2.96/include -I/usr/include -I/usr/include/uil -I/usr/include/Xt -I/usr/include/lib 
-#C_FLAGS=-g  -DLINUX -DLINUX9   -DXT_CODE -DXOPEN_CATALOG -DUNIX -Dmmap=_mmap_32_ -DXPRINTER_USED -DXLIB_ILLEGAL_ACCESS -I$(LEGOROOT_LIB)/dcethreads_include -I$(LEGOROOT_LIB)/sqlite_include  -I/usr/include
-C_FLAGS=-g -fpermissive -DLINUX  -DXT_CODE -DXOPEN_CATALOG -DUNIX -Dmmap=_mmap_32_ -DXPRINTER_USED -DXLIB_ILLEGAL_ACCESS -I$(LEGOROOT_LIB)/dcethreads_include  -I/usr/include
+X_INCLUDE=-I. -I/usr/local/include -I/usr/include -I/usr/include/uil -I/usr/include/Xt -I/usr/include/lib 
+#C_FLAGS=-g  -DLINUX -DLINUX9   -DXT_CODE -DXOPEN_CATALOG -DUNIX -DXPRINTER_USED -DXLIB_ILLEGAL_ACCESS -I$(LEGOROOT_LIB)/dcethreads_include -I$(LEGOROOT_LIB)/sqlite_include  -I/usr/include
+C_FLAGS=-g -DLINUX  -DXT_CODE -DXOPEN_CATALOG -DUNIX -DXPRINTER_USED -DXLIB_ILLEGAL_ACCESS -I$(LEGOROOT_LIB)/dcethreads_include  -I/usr/include
 #VERSIONE=-DBANCO_MANOVRA -DSCADA -DBACKTRACK -DF22_APPEND -DSNAP_PIAC -DPIACENZA -DREPLAY -DMFFR -DSAVEPERT
 LINKER_OPTIONS=--allow-multiple-definition
 UXCGEN=run_uxcgen12.sh $@ $<
@@ -33,7 +33,7 @@ UXCGEN=run_uxcgen12.sh $@ $<
 #       %created_by:    lopez %
 #       %date_created:  Thu Oct 24 14:20:49 2002 %
 #
-APPL_INCL       = -I$(LEGOROOT_INCLUDE) -I$(LEGOMMI_INCLUDE) -I$(X_INCLUDE)\
+APPL_INCL       = -I$(LEGOROOT_INCLUDE) -I$(LEGOMMI_INCLUDE) $(X_INCLUDE)\
                   -I$(LEGORT_INCLUDE) -I$(LEGOMMI_LIB) -I$(LEGOROOT_LIB)\
                   -I$(UX_DIR)/include
 

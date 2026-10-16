@@ -16,12 +16,18 @@ SQLITE_LIB=-L$(LEGOROOT_LIB)/sqlite_lib -lsqlite3
 #THREAD_LIB=-L$(LEGOROOT_LIB)/dcethreads_lib -ldcethreads -ldl
 THREAD_LIB=-pthread -ldl
 X_LIB=-L/usr/X11R6/lib -lMrm -lXm -lXt -lX11
-X_INCLUDE=-I. -I/usr/local/include -I/usr/lib/gcc-lib/i386-redhat-linux/2.96/include -I/usr/include -I/usr/include/uil -I/usr/include/Xt -I/usr/include/lib 
+X_INCLUDE=-I. -I/usr/local/include -I/usr/include -I/usr/include/uil -I/usr/include/Xt -I/usr/include/lib 
 # -Werror=implicit-function-declaration: una funzione chiamata senza
 # dichiarazione ritorna int, e su 64 bit un puntatore ritornato cosi' viene
 # troncato (vedi XlProto.h). Qui le dichiarazioni implicite erano 182, ora 0:
 # che restino 0.
-C_FLAGS=-g -Werror=implicit-function-declaration -fpermissive -fcommon -DLINUX  -DXT_CODE -DXOPEN_CATALOG -DUNIX -Dmmap=_mmap_32_ -DXPRINTER_USED -DXLIB_ILLEGAL_ACCESS -I$(LEGOROOT_LIB)/dcethreads_include -I$(LEGOROOT_LIB)/sqlite_include  -I/usr/include
+# Niente -fpermissive (che col GCC 14 declassa a warning TUTTI gli errori
+# nuovi): si declassano solo le tre categorie che qui sono idiomi di Xt e del
+# codice di allora, ~1300 righe innocue (un XlIndicWidget passato dove serve un
+# Widget, NULL nei campi int delle tabelle delle risorse, funzioni senza tipo).
+# Gli altri errori del GCC 14 restano errori.
+XL_PERMISSIVE=-Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int
+C_FLAGS=-g -Werror=implicit-function-declaration $(XL_PERMISSIVE) -fcommon -DLINUX  -DXT_CODE -DXOPEN_CATALOG -DUNIX -DXPRINTER_USED -DXLIB_ILLEGAL_ACCESS -I$(LEGOROOT_LIB)/dcethreads_include -I$(LEGOROOT_LIB)/sqlite_include  -I/usr/include
 #VERSIONE=-DBANCO_MANOVRA -DSCADA -DBACKTRACK -DF22_APPEND -DSNAP_PIAC -DPIACENZA -DREPLAY -DMFFR -DSAVEPERT
 LINKER_OPTIONS=-fcommon
 UXCGEN=run_uxcgen12.sh $@ $<
@@ -36,7 +42,7 @@ INTERFACES = XlCurve_dialog.c XlCurve_date.c XlCurve_conf.c \
              XlCurve_confVar.c XlCurve_selVar.c \
              XlCurve_warningBox.c
 
-APPL_INCLUDE      = -I$(LEGOCAD_INCLUDE) -I$(LEGOROOT_INCLUDE) -I$(X_INCLUDE)\
+APPL_INCLUDE      = -I$(LEGOCAD_INCLUDE) -I$(LEGOROOT_INCLUDE) $(X_INCLUDE)\
                     -I$(LEGOMMI_INCLUDE) -I$(LEGORT_INCLUDE) -I$(LEGOMMI_LIB)\
 -I$(LEGOROOT_LIB) -I.
 

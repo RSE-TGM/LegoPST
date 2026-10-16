@@ -43,13 +43,15 @@ fprintf(stderr,"\n*******\n* XlWarning [%s]: <proc: %s> %s\n*******\n",oggetto,p
 exit(fprintf(stderr,"\n*******\n* XlError [%s]: <proc: %s> %s\n*******\n",oggetto,procedura,stringa));
 /*
  Macro per evidenziare graficamente un oggetto
- su cui si e' verificato un errore
+ su cui si e' verificato un errore.
+ Usava "cw" al posto del suo argomento: funzionava solo perche' tutti la
+ chiamano con cw.
 */
 #define XlEvError(widget,flag)\
 {\
 Arg args[2];\
 XtSetArg(args[0],XlNerrore,flag);\
-XtSetValues(cw,args,1);\
+XtSetValues((Widget)(widget),args,1);\
 }
 
 /* tipi di elaborazione sul valore di input appena estratto */
