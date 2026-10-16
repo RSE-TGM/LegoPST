@@ -309,7 +309,9 @@ make -f Makefile.mk clean
 # It does NOT build the Docker image, so it needs no Docker on the machine.
 make -f Makefile.mk
 
-# Build the Docker image (optional, ~2.9 GB on disk, needs Docker installed and running)
+# Build the Docker image (optional, ~2.9 GB on disk, needs Docker installed and running).
+# It first runs "all" (the image is a copy of the working tree, compiled files
+# included), so it is safe even right after a clean (see docs/BUILD.md)
 make -f Makefile.mk docker
 
 # Build the Docker image and push it to the registry

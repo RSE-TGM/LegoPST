@@ -9,6 +9,19 @@ make -f Makefile.mk docker        # la costruisce
 make -f Makefile.mk docker-push   # la costruisce e la pubblica
 ```
 
+**L'immagine prende la copia sul disco, non git**, compresi i file compilati:
+`BuildImage` non compila niente. Per questo dal 2026-10-16 `docker` e
+`docker-push` lanciano **prima `all`**. Anche subito dopo un `make -f
+Makefile.mk clean`, all'immagine non mancano i `.o` che LegoPC collega nelle
+task né le librerie (`libsim.a`, `legolib.a`…), e `version.h` è aggiornato. Se
+il build fallisce, l'immagine non si costruisce.
+
+I due target vogliono il profilo caricato (`source .profile_legoroot`), e
+proprio di questo albero. Se `all` ricompila qualcosa, gli eseguibili sul disco
+cambiano e vanno committati. Per l'immagine dello stato attuale senza
+ricompilare c'è `cd docker && ./BuildImage -y`: in quel caso, mai subito dopo
+un `clean`. Dettagli in [docs/BUILD.md](../docs/BUILD.md), *Docker Image*.
+
 2,27 GB su disco, 447 pacchetti rpm, e un layer da 462 MB per la copia del
 repository. Dentro ci sono `gcc`, `gfortran`, Motif, Tcl/Tk/Tix,
 `ghostscript`, ImageMagick, `evince`, `firefox` e tutti i `-devel`: si compila

@@ -23,12 +23,47 @@ make -f Makefile.mk docker        # builds it
 make -f Makefile.mk docker-push   # builds it and pushes it to the registry
 ```
 
-Both run `docker/BuildImage -y`, which needs Docker installed and running. Rebuild the
+Both run `all` and then `docker/BuildImage -y`, which needs Docker installed and running. Rebuild the
 image whenever something that ends up inside it changes - the repository is copied in,
 the demo tarball included. Until 2026-09-27 there were two images, `legopst_multi` and
 `legopst_slim`; they differed only in packages nothing requires, so they were unified on
 the leaner recipe. What the image deliberately leaves out, and why, is in
 [docker/README_INSTALLER.md](../docker/README_INSTALLER.md).
+
+**The image is built from the working copy on disk, not from git.**
+`BuildImage` runs `docker build` on the repository directory and compiles
+nothing: whatever is on disk ends up in the image, compiled files included.
+
+For this reason, since 2026-10-16 **`docker` and `docker-push` first run
+`all`**. Then:
+- after a `clean`, the image no longer lacks the nine objects that LegoPC links
+  into the tasks, nor all the libraries (`libsim.a`, `legolib.a`, `vapo.a`...);
+- `version.h` is always current;
+- if the build fails, no image is built.
+
+When nothing has changed, `all` just walks the directories and recompiles
+nothing; after a `clean` it takes a couple of minutes. So the whole sequence
+is one command:
+
+```bash
+source .profile_legoroot          # required: the targets check it
+make -f Makefile.mk docker-push
+```
+
+**Things to know:**
+- **The profile.** Both targets refuse to start if the profile is not loaded,
+  or if `LEGOROOT` points to another copy of the tree. Without the profile,
+  `all` would fail with unhelpful `-I -I` errors.
+- **Uncommitted files.** If `all` recompiles something, the executables on disk
+  change and need committing. The image contains them anyway.
+- **Without recompiling.** For an image of the current state on disk, run
+  `cd docker && ./BuildImage -y [--push]` by hand. Then you must make sure the
+  tree is built; never do it right after a `clean`.
+
+Checked on 2026-10-16: a tree with no `.o` and no `.a` at all, built from
+scratch in the container, came out with every library and object that git
+tracks, and no errors. Before that date only the `.o` had been tested this
+way (the CI deletes `.o` files, not `.a` ones).
 
 ## Clean Build
 ```bash
@@ -36,7 +71,9 @@ make -f Makefile.mk clean
 ```
 Removes all object files (*.o), libraries (*.a), and generated version.h - including
 the ones committed for users that do not compile: see
-[Compiled files in git](#compiled-files-in-git).
+[Compiled files in git](#compiled-files-in-git). Follow it with
+`make -f Makefile.mk` before committing. The Docker targets rebuild by
+themselves: see [Docker Image](#docker-image).
 
 ## Build check (CI)
 
@@ -164,8 +201,9 @@ installation object. Then:
 If you forget, the `task` test fails and names the file.
 
 `make -f Makefile.mk clean` deletes **all** `.o` and `.a` files, these
-included: after it, rebuild everything before committing, or restore them with
-`git checkout`.
+included. After it, rebuild everything (`make -f Makefile.mk`) before
+committing, or restore them with `git checkout`. `docker` and `docker-push`
+rebuild by themselves.
 
 ## Version Management
 The build system automatically generates `version.h` with:
