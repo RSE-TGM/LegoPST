@@ -79,6 +79,7 @@ static char SccsID[] = "@(#)legocad.c	2.26\t5/15/95";
 #include "CAP.h"		/* Serve per la gestione delle licenze software*/
 #include "skey_manager3.h"	/* Serve per la gestione delle licenze hardware*/
 #include <stdlib.h>		/* For exit() function */
+#include "fontfallback.h"
 
 /* Function declarations */
 int skey_stampa_errore(int error_code, char *messaggio_errore);
@@ -136,6 +137,7 @@ int richiestaScrittura;
 
   	UxTopLevel = XtAppInitialize(&UxAppContext, "LegocadMain",
 				     NULL, 0, &argc, argv, NULL, NULL, 0);
+  	FontFallbackInstall();  /* font 2-byte -> fallback 8-bit */
 
 	UxDisplay = XtDisplay(UxTopLevel);
 	UxScreen = XDefaultScreen(UxDisplay);

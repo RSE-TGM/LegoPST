@@ -71,6 +71,7 @@ static char SccsID[] = "@(#)xaing.c	1.17\t6/18/96";
 # include <Rt/RtDbPunti.h>
 # include <Rt/RtErrore.h>
 #include <sqlite3.h>
+#include "fontfallback.h"
 
 int     font_widthn;
 
@@ -518,6 +519,7 @@ SIMULATOR *sim;
 *********/
 topLevel = XtAppInitialize(&app_context, "xaing",
                                      NULL, 0, &argc, argv, NULL, NULL, 0);
+        FontFallbackInstall();  /* font 2-byte -> fallback 8-bit */
 
         display = XtDisplay(topLevel);
         screen_num = XDefaultScreen(display);

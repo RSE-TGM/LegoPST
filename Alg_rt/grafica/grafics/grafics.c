@@ -45,6 +45,7 @@ static char SccsID[] = "@(#)grafics.c	1.10\t11/23/95";
 #include "uni_mis.h"
 #include "param_f22.h"
 #include "grafics.h"
+#include "fontfallback.h"
 
 
 #define RISO 100.0  /* risoluzione ascisse in frazioni di secondo */
@@ -543,6 +544,7 @@ toplevel_widget = XtInitialize("grafics",
       0,                                /* Number of options. */
       &argc,                            /* Address of argc */
       argv);                            /* argv */
+        FontFallbackInstall();  /* font 2-byte -> fallback 8-bit */
 /*
  Gestione dell'argomento addizionale: nome del file  nomi variabili
 */

@@ -81,6 +81,7 @@ int		UxScreen;
 #include "errore.h"
 
 #include "filtri.h"        /* include per la gestione dei filtri */
+#include "fontfallback.h"
 
 #ifndef GRAPHICS_VAR
 #define GRAPHICS_VAR
@@ -148,6 +149,7 @@ int main(argc,argv)
 
   	UxTopLevel = XtAppInitialize(&UxAppContext, "Topologia",
 				     NULL, 0, &argc, argv, NULL, NULL, 0);
+  	FontFallbackInstall();  /* font 2-byte -> fallback 8-bit */
 
 	UxDisplay = XtDisplay(UxTopLevel);
 	UxScreen = XDefaultScreen(UxDisplay);

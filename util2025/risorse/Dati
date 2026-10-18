@@ -5,9 +5,9 @@ Dati*XmScrolledWindow*background: #396674
 Dati*XmText.background:           #396674
 Dati*XmTextField.background:      #396674
 
-Dati*XmList.fontList: -adobe-courier-bold-r-normal--14-*
+Dati*XmList.fontList: -adobe-courier-bold-r-normal--14-*-iso8859-1
 
-Dati*fontList:        -adobe-helvetica-bold-r-normal--14-*
+Dati*fontList:        -adobe-helvetica-bold-r-normal--14-*-iso8859-1
 
 !!
 !! Defaults utilizzati per la parte di visualizzazione grafica

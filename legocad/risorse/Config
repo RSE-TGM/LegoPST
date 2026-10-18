@@ -10,7 +10,7 @@ Config*XmList.fontList: -adobe-courier-bold-r-normal--14-*-iso8859-1
 
 ! Charset esplicito: senza, il wildcard puo' agganciare la versione
 ! iso10646-1 (2-byte) e Motif disegna riquadri. Se il font manca, config
-! ripiega su misc-fixed (XlInstallFontFallback, Alg_mmi/lib/Xl/XlFontFallback.c)
+! ripiega su misc-fixed (FontFallbackInstall, AlgLib/libutilx/fontfallback.c)
 Config*fontList:        -adobe-helvetica-bold-r-normal--14-*-iso8859-1
 *fontList:  -adobe-helvetica-bold-r-normal--14-*-iso8859-1
 

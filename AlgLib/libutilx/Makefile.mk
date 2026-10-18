@@ -28,13 +28,13 @@ SORGENTI = utstatowidget.c get_something.c set_something.c get_something_val.c s
            attesa.c def_cursore.c attenzione.c errore.c utlistascroll.c utstrstr.c\
 	   commento.c undef_cursore.c conferma.c \
            extract_string.c editor.c attention.c information.c \
-           find_kit.c find_in_text.c utilx.c
+           find_kit.c find_in_text.c utilx.c fontfallback.c
            
 OGGETTI = utstatowidget.o get_something.o set_something.o get_something_val.o set_something_val.o \
            attesa.o def_cursore.o attenzione.o errore.o utlistascroll.o utstrstr.o\
 	   commento.o undef_cursore.o conferma.o \
            extract_string.o editor.o attention.o information.o \
-           find_kit.o find_in_text.o utilx.o
+           find_kit.o find_in_text.o utilx.o fontfallback.o
 
 all:  $(LEGOROOT_LIB)/libutilx.a
 

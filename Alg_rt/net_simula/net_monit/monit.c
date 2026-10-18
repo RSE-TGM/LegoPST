@@ -59,6 +59,7 @@ static char SccsID[] = "@(#)monit.c	5.6\t3/14/96";
 #endif
 #include <Rt/RtMemory.h>
 #include <sqlite3.h>
+#include "fontfallback.h"
 
 #define ATTESA_SKED 20	/* tempo massimo di attesa dei messaggi da * NET_SKED */
 
@@ -560,6 +561,7 @@ testata("net_monit",SccsID);
 	    0,			/* Number of options. */
 	    &argc,		/* Address of argc */
 	    argv);		/* argv */
+    FontFallbackInstall();  /* font 2-byte -> fallback 8-bit */
 
 /* aggancio shared memory */
 
@@ -604,7 +606,7 @@ testata("net_monit",SccsID);
 /*
  * carica i font e definisce i cahrset per mf e fr
  */
-	if ((font_mffr = XLoadQueryFont (XtDisplay(toplevel_widget),
+	if ((font_mffr = FontFallbackLoad (XtDisplay(toplevel_widget),
                              /*    "variable")) == NULL)    */
                                  "8x13bold")) == NULL)
 				printf ("FONT_MFFR non trovato\n");
@@ -779,7 +781,7 @@ XFontStruct ** font_info;
 /*char   *font_name = "-misc-fixed-normal-r-semicondensed--10-100-75-75-c-50-iso8859-1"; */
 char   *font_name = "8x13bold";
 /* Carica il font ottenendo la descrizione del font stesso */
-    if ((*font_info = XLoadQueryFont (display, font_name)) == NULL)
+    if ((*font_info = FontFallbackLoad (display, font_name)) == NULL)
     {
 	fprintf (stderr,"Cannot open font 8x13\n");
 		if ((*font_info = XLoadQueryFont (display,"fixed")) == NULL)

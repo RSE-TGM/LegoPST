@@ -50,6 +50,7 @@ static char SccsID[] = "@(#)XlWidgetUtil.c	5.4\t1/24/96";
 #include "err.bmp"
 #include "err_mask.bmp"
 #include <Xl/XlProto.h>   /* dichiarazioni prima implicite: vedi il file */
+#include "fontfallback.h"
 
 
 /*
@@ -2318,7 +2319,7 @@ for(i=0;i<xllista_font.num_font;i++)
 /*
  Se il font non e' presente lo carica in lista
 */
-if((font_info = XLoadQueryFont(disp,fontname)) == NULL)
+if((font_info = FontFallbackLoad(disp,fontname)) == NULL)
         {
         return(NULL);
         }

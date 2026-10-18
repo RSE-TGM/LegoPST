@@ -6,9 +6,9 @@ Topologia*XmScrolledWindow*background: #277676
 Topologia*XmText.background:           #277676
 Topologia*XmTextField.background:      #277676
 
-Topologia*XmList.fontList: -adobe-courier-bold-r-normal--14-*
+Topologia*XmList.fontList: -adobe-courier-bold-r-normal--14-*-iso8859-1
 
-Topologia*fontList:        -adobe-helvetica-bold-r-normal--14-*
+Topologia*fontList:        -adobe-helvetica-bold-r-normal--14-*-iso8859-1
 
 
 Topologia*var_pm.x: 5
@@ -17,14 +17,14 @@ Topologia*var_pm.y: 3
 Topologia*var_lb.x: 30
 Topologia*var_lb.shadowThickness: 0
 Topologia*var_lb.marginHeight: 2
-Topologia*var_lb*fontList: -adobe-courier-bold-r-normal--14-*
+Topologia*var_lb*fontList: -adobe-courier-bold-r-normal--14-*-iso8859-1
 Topologia*var_lb*traversalOn: True
 
 Topologia*var_lb_conn.x: 30
 Topologia*var_lb_conn.y: 25
 Topologia*var_lb_conn.shadowThickness: 0
 Topologia*var_lb_conn.marginHeight: 2
-Topologia*var_lb_conn*fontList: -adobe-courier-bold-r-normal--14-*
+Topologia*var_lb_conn*fontList: -adobe-courier-bold-r-normal--14-*-iso8859-1
 
 
 !!

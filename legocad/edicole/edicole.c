@@ -79,6 +79,7 @@ static char SccsID[] = "@(#)edicole.c	1.5\t3/20/95";
 #include "messaggi.h"
 
 #include "aggiunte.h"
+#include "fontfallback.h"
 
 /* Function prototypes */
 int init_mrm();
@@ -314,6 +315,7 @@ void main(int argc,char **argv)
 
    toplevel_widget = XtInitialize(argv[0], "Edicole", options, 
                                   XtNumber(options), &argc, argv);
+   FontFallbackInstall();  /* font 2-byte -> fallback 8-bit */
 
    argcount = 0;
    XtSetArg(args[argcount],XmNminWidth,680); argcount++;

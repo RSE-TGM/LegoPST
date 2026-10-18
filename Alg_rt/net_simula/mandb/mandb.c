@@ -68,6 +68,7 @@ static char SccsID[] = "@(#)mandb.c	5.1\t11/7/95";
 #include <Rt/RtErrore.h>
 #include <Rt/RtMemory.h>
 #include <sqlite3.h>
+#include "fontfallback.h"
 
 #define RtRecord(punt)  RtIntRecord(punt,__FILE__,__LINE__);
 void * RtIntRecord(void *, char *, int);
@@ -459,6 +460,7 @@ toplevel_widget = XtInitialize("mandb",
       0,                                /* Number of options. */
       &argc,                            /* Address of argc */
       argv);                            /* argv */
+        FontFallbackInstall();  /* font 2-byte -> fallback 8-bit */
 
     display=XtDisplay(toplevel_widget);
     screen_num=DefaultScreen(display);

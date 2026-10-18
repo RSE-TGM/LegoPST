@@ -81,6 +81,7 @@ int		UxScreen;
  *---------------------------------------------*/
 #define HELPKIT_MAIN
 #include "helpkit.h"
+#include "fontfallback.h"
 
  static XrmOptionDescRec options[] = {
   { HELPKIT_OPTION, HELPKIT_OPTIONSPEC, XrmoptionSepArg, NULL },
@@ -127,6 +128,7 @@ int main(argc,argv)
 
   	UxTopLevel = XtAppInitialize(&UxAppContext, "nn",
 	 options, XtNumber( options), &argc, argv, NULL, NULL, 0);
+  	FontFallbackInstall();  /* font 2-byte -> fallback 8-bit */
 
 	UxDisplay = XtDisplay(UxTopLevel);
 	UxScreen = XDefaultScreen(UxDisplay);

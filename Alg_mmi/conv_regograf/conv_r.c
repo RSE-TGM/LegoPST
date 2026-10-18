@@ -52,6 +52,7 @@ static char SccsID[] = "@(#)conv_r.c	1.19\t11/10/95";
 #include "UxXt.h"
 #include "libutilx.h"
 #include <sqlite3.h>
+#include "fontfallback.h"
 
 XtAppContext    UxAppContext;
 
@@ -173,6 +174,7 @@ char riga[MAXRIGA];
 
 topLevel = XtAppInitialize(&app_context, "xaing",
                                      NULL, 0, &argc, argv, NULL, NULL, 0);
+        FontFallbackInstall();  /* font 2-byte -> fallback 8-bit */
 
         display = XtDisplay(topLevel);
         screen_num = XDefaultScreen(display);

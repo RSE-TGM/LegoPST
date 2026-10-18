@@ -61,6 +61,7 @@ static char SccsID[] = "@(#)calcstaz.c	1.12\t3/30/95";
 #include "messaggi.h"
 #include "f03.h"
 #include "f11.h"
+#include "fontfallback.h"
 
 extern Widget create_fileSelectionBox(); 
 extern void free_array_XmString( XmString *, int );
@@ -296,6 +297,7 @@ void main(int argc,char **argv)
     MrmInitialize ();  /* INIZIALIZZARE Mrm PRIMA DEL TOOLKIT  */
     toplevel_widget = XtInitialize(argv[0], "Calcstaz", options, 
                                    XtNumber(options), &argc, argv);
+    FontFallbackInstall();  /* font 2-byte -> fallback 8-bit */
 
     display = XtDisplay(toplevel_widget);
 

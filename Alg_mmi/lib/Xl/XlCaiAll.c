@@ -18,6 +18,7 @@ static char SccsID[] = "@(#)XlCaiAll.c	5.2\t12/4/95";
 
 #include "sdi_conf.h"  /* Per maschere gestione allarmi */
 #include <Xl/XlProto.h>   /* dichiarazioni prima implicite: vedi il file */
+#include "fontfallback.h"
 #define DEFAULTWIDTH 11
 #define DEFAULTHEIGHT 11
 
@@ -1455,7 +1456,8 @@ else
         disp=XtDisplay(cw);
 
 
-if((Xl_cw->caiAll.font_info = XLoadQueryFont(disp,fontname)) == NULL)
+if((Xl_cw->caiAll.font_info = modoPrint ? XLoadQueryFont(disp,fontname)
+                                         : FontFallbackLoad(disp,fontname)) == NULL)
         {
         XlWarning("XlCaiAll","LoadFont","Cannot open font");
         return(False);

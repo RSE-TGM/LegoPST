@@ -71,6 +71,7 @@ static char SccsID[] = "@(#)linfo.c	1.10\t3/27/95";
  *---------------------------------------------------*/
 #ifndef DESIGN_TIME
 #include "UxXt.h"
+#include "fontfallback.h"
 #endif /* DESIGN_TIME */
 
 XtAppContext	UxAppContext;
@@ -147,6 +148,7 @@ printf("pathmodel %s\n",pathmodel);
 
   	UxTopLevel = XtAppInitialize(&UxAppContext, "linfo",
 				     NULL, 0, &argc, argv, NULL, NULL, 0);
+  	FontFallbackInstall();  /* font 2-byte -> fallback 8-bit */
 
 	UxDisplay = XtDisplay(UxTopLevel);
 	UxScreen = XDefaultScreen(UxDisplay);

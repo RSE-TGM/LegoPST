@@ -7,9 +7,9 @@ LegocadMain*XmTextField.background:      #396674
 LegocadMain*form1*XmPushButton.foreground:          #000000
 LegocadMain*form3*XmPushButton.foreground:          #000000
 
-LegocadMain*XmList.fontList: -adobe-courier-bold-r-normal--14-*
+LegocadMain*XmList.fontList: -adobe-courier-bold-r-normal--14-*-iso8859-1
 
-LegocadMain*fontList:        -adobe-helvetica-bold-r-normal--14-*
+LegocadMain*fontList:        -adobe-helvetica-bold-r-normal--14-*-iso8859-1
 
 
 LegocadMain*var_pm.x: 5
@@ -17,10 +17,10 @@ LegocadMain*var_pm.x: 5
 LegocadMain*var_lb.x: 30
 LegocadMain*var_lb.shadowThickness: 0
 LegocadMain*var_lb.marginHeight: 2
-LegocadMain*var_lb*fontList: -adobe-courier-bold-r-normal--14-*
+LegocadMain*var_lb*fontList: -adobe-courier-bold-r-normal--14-*-iso8859-1
 
 LegocadMain*var_lb_conn.x: 30
 LegocadMain*var_lb_conn.y: 20
 LegocadMain*var_lb_conn.shadowThickness: 0
 LegocadMain*var_lb_conn.marginHeight: 2
-LegocadMain*var_lb_conn*fontList: -adobe-courier-bold-r-normal--14-*
+LegocadMain*var_lb_conn*fontList: -adobe-courier-bold-r-normal--14-*-iso8859-1

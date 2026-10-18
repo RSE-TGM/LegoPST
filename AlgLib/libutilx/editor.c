@@ -65,6 +65,7 @@ static char SccsID[] = "@(#)editor.c	5.1\t11/10/95";
 #include <Xm/Xm.h>
 
 #include "libutilx.h"
+#include "fontfallback.h"
 
 /* Macro per la creazioni di compound stringhe */
 #define CS  			XmSTRING_DEFAULT_CHARSET
@@ -91,7 +92,7 @@ Dialog_geometry geometry;
    Text_find_struct *parametri;
    XmString cstring;
 
-   finfo = XLoadQueryFont(XtDisplay(padre),font);
+   finfo = FontFallbackLoad(XtDisplay(padre),font);
    fontList = XmFontListCreate (finfo,XmSTRING_DEFAULT_CHARSET);
 
 /* allocazione della struttura utilizzata dalla function find_in_a_text() */

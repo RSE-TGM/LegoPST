@@ -72,6 +72,7 @@ static char SccsID[] = "@(#)iconvert.c	1.3\t3/28/95";
 
 #include "iconvert.h"
 #include "files.h"
+#include "fontfallback.h"
 
 /* messaggi di warning */
 char *warning_mesg[] = {
@@ -178,6 +179,7 @@ int main (int argc, char **argv)
 
 /* Inizializzazione del Toolkit */
   top_level = XtInitialize(argv[0], "Iconvert", NULL,  0, &argc, argv);
+  FontFallbackInstall();  /* font 2-byte -> fallback 8-bit */
 
   display = XtDisplay(top_level);
 

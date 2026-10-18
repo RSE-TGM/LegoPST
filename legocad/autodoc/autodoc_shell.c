@@ -46,6 +46,7 @@
 #include "autodoc.h"
 #include "noto_xbm.h"
 #include "UxXt.h"
+#include "fontfallback.h"
 
 void lcDestroySwidget(Widget);
 void ordina_blocchi(ModelBlockStruct *, int);
@@ -1047,7 +1048,7 @@ static Widget	_Ux_create_autodoc_shell()
 		   }
 		
 		/* Creazione Font per Text */
-		   finfo1 = XLoadQueryFont(display,font);
+		   finfo1 = FontFallbackLoad(display,font);
 		   fontList = XmFontListCreate (finfo1,XmSTRING_DEFAULT_CHARSET);
 		
 		/* recupera il nome del modello dal file f01.dat */

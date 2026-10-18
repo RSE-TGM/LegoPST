@@ -6,10 +6,10 @@ Config*XmScrolledWindow*background: #277676
 Config*XmText.background:           #277676
 Config*XmTextField.background:      #277676
 
-Config*XmList.fontList: -adobe-courier-bold-r-normal--14-*
+Config*XmList.fontList: -adobe-courier-bold-r-normal--14-*-iso8859-1
 
-Config*fontList:        -adobe-helvetica-bold-r-normal--14-*
-*fontList:  -adobe-helvetica-bold-r-normal--14-*
+Config*fontList:        -adobe-helvetica-bold-r-normal--14-*-iso8859-1
+*fontList:  -adobe-helvetica-bold-r-normal--14-*-iso8859-1
 
 ! --- Copia/incolla testo con Ctrl+C / Ctrl+X / Ctrl+V --------------------
 ! XmText/XmTextField hanno gia' le azioni copy/cut/paste-clipboard(), ma

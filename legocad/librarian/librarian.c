@@ -75,6 +75,7 @@ static char SccsID[] = "@(#)librarian.prj	2.25\t1/18/96";
 #include <file_icone.h>
 
 #include "definizioni.h"
+#include "fontfallback.h"
 
 /* Forward declarations */
 extern int copia_file(char *src, char *dest);
@@ -179,6 +180,7 @@ int main(argc,argv)
 
   	UxTopLevel = XtAppInitialize(&UxAppContext, "Librarian",
 				     NULL, 0, &argc, argv, NULL, NULL, 0);
+  	FontFallbackInstall();  /* font 2-byte -> fallback 8-bit */
 
 	UxDisplay = XtDisplay(UxTopLevel);
 	UxScreen = XDefaultScreen(UxDisplay);

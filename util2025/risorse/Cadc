@@ -5,7 +5,7 @@ Cadc*XmText.background:           #396674
 Cadc*XmTextField.background:      #396674
 Cadc*XmTextField.foregound:       #ff00ff
 
-Cadc*XmList.fontList: -adobe-courier-bold-r-normal--14-*
+Cadc*XmList.fontList: -adobe-courier-bold-r-normal--14-*-iso8859-1
 
-Cadc*fontList:        -adobe-helvetica-bold-r-normal--14-*
+Cadc*fontList:        -adobe-helvetica-bold-r-normal--14-*-iso8859-1
 

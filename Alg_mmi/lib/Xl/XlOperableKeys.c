@@ -35,6 +35,7 @@ static char SccsID[] = "@(#)XlOperableKeys.c	5.1\t11/13/95";
 #include <Ol/OlPert.h>
 #include "nullo.bmp"
 #include <Xl/XlProto.h>   /* dichiarazioni prima implicite: vedi il file */
+#include "fontfallback.h"
 
 
 /* lista delle risorse  */
@@ -1016,7 +1017,7 @@ char fontname[];
    char **pf;
    int i,nf;
 
-   if((Xl_cw->operableKeys.font_info = XLoadQueryFont(XtDisplay(cw),fontname)) == NULL)
+   if((Xl_cw->operableKeys.font_info = FontFallbackLoad(XtDisplay(cw),fontname)) == NULL)
    {
         XlWarning("XlOperableKeys","LoadFont","Cannot open font");
         return(False);

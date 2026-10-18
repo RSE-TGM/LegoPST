@@ -93,6 +93,7 @@ int		UxScreen;
 #include "autodoc.h"
 #include "unita.h"
 #include "init_unita.h"
+#include "fontfallback.h"
 
 Arg args[30];
 int nargs;
@@ -156,6 +157,7 @@ int main(argc,argv)
 
   	UxTopLevel = XtAppInitialize(&UxAppContext, "Autodoc",
 				     NULL, 0, &argc, argv, NULL, NULL, 0);
+  	FontFallbackInstall();  /* font 2-byte -> fallback 8-bit */
 
 	UxDisplay = XtDisplay(UxTopLevel);
 	UxScreen = XDefaultScreen(UxDisplay);

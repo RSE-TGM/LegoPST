@@ -50,6 +50,7 @@ static char SccsID[] = "@(#)run_time.prj	5.2\t1/22/96";
 # include "CAP.h"		/* Serve per la gestione delle licenze */
 // Guag2024 #include "skey_manager3.h"	/* Serve per la gestione delle licenze hardware*/
 #include <sqlite3.h>
+#include "fontfallback.h"
 
 XtAppContext	UxAppContext;
 Widget		UxTopLevel;
@@ -116,6 +117,7 @@ int     ret;
 
   	UxTopLevel = XtAppInitialize(&UxAppContext, "run_time",
 				     NULL, 0, &argc, argv, NULL, NULL, 0);
+  	FontFallbackInstall();  /* font 2-byte -> fallback 8-bit */
 
 	UxDisplay = XtDisplay(UxTopLevel);
 	UxScreen = XDefaultScreen(UxDisplay);

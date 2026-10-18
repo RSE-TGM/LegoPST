@@ -23,4 +23,4 @@ librarian*Background:                  #3d8093
 librarian*XmScrolledWindow*background: #396674
 librarian*XmText.background:           #396674
 librarian*XmTextField.background:      #396674
-librarian*XmList.fontList: -adobe-courier-bold-r-normal--14-*
+librarian*XmList.fontList: -adobe-courier-bold-r-normal--14-*-iso8859-1

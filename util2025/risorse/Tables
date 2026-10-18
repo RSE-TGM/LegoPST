@@ -4,5 +4,5 @@ Tables*Background:                  #3d8093
 Tables*XmScrolledWindow*background: #396674
 Tables*XmText.background:           #396674
 Tables*XmTextField.background:      #396674
-Tables*XmList.fontList: -adobe-courier-bold-r-normal--14-*
-Tables*fontList:        -adobe-helvetica-bold-r-normal--14-*
+Tables*XmList.fontList: -adobe-courier-bold-r-normal--14-*-iso8859-1
+Tables*fontList:        -adobe-helvetica-bold-r-normal--14-*-iso8859-1

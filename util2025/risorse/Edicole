@@ -24,4 +24,4 @@ edicole*XmScrolledWindow*background: #396674
 edicole*XmText.background:           #396674
 edicole*XmTextField.background:      #396674
 edicole*XmLabel.foreground:      black
-edicole*XmList.fontList: -adobe-courier-bold-r-normal--14-*
+edicole*XmList.fontList: -adobe-courier-bold-r-normal--14-*-iso8859-1

@@ -53,6 +53,7 @@ static char SccsID[] = "@(#)graphics.c	1.7\t2/9/96";
 #include "sim_param.h"
 #include "f22_circ.h"
 #include <Rt/RtMemory.h>
+#include "fontfallback.h"
 
 typedef char* caddr_t;
 
@@ -611,6 +612,7 @@ toplevel_widget = XtInitialize("graphics",
       0,                                /* Number of options. */
       &argc,                            /* Address of argc */
       argv);                            /* argv */
+        FontFallbackInstall();  /* font 2-byte -> fallback 8-bit */
 /*
  Gestione dell'argomento addizionale: nome del file  nomi variabili
 */

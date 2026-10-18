@@ -62,6 +62,7 @@ static char SccsID[] = "@(#)macro.c	2.14\t4/26/95";
 #ifdef TOPOLOGIA
 #include "lg1.h"  /* non so se serve realmente */
 #endif
+#include "fontfallback.h"
 
 /* Function declarations */
 int leggi_macroblocchi(MacroBlockType **mblocks, int *num_mblocks, int *macro_allocate);
@@ -300,6 +301,7 @@ int lancia_macro(Widget toplevel_appl, Widget listaBlocchi)
 
 /* Inizializzazione del Toolkit */
    top_level = XtInitialize(argv[0], "Macro", NULL,  0, &argc, argv);
+   FontFallbackInstall();  /* font 2-byte -> fallback 8-bit */
 
 /* Definizione titolo e nome icona */
    nargs = 0;

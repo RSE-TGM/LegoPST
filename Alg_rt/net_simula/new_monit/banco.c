@@ -83,6 +83,7 @@ STATISTICHE    statistiche;
 #endif
 
 #include "preset_messaggi.h"
+#include "fontfallback.h"
 
 /* aggiunto a mano 8apr97 */
 int    _MAX_SNAP_SHOT;
@@ -166,6 +167,7 @@ int i;
 
   	UxTopLevel = XtAppInitialize(&UxAppContext, "banco",
 				     NULL, 0, &argc, argv, NULL, NULL, 0);
+  	FontFallbackInstall();  /* font 2-byte -> fallback 8-bit */
 
 	UxDisplay = XtDisplay(UxTopLevel);
 	UxScreen = XDefaultScreen(UxDisplay);

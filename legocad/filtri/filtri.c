@@ -80,6 +80,7 @@ static char SccsID[] = "@(#)filtri.c	2.6\t3/20/95";
 #ifndef FILTRI_H
 #include "filtri.h"
 #endif
+#include "fontfallback.h"
 
 XtAppContext	UxAppContext;
 Widget		UxTopLevel;
@@ -129,6 +130,7 @@ int main(argc,argv)
 
   	UxTopLevel = XtAppInitialize(&UxAppContext, "filtri",
 				     NULL, 0, &argc, argv, NULL, NULL, 0);
+  	FontFallbackInstall();  /* font 2-byte -> fallback 8-bit */
 
 	UxDisplay = XtDisplay(UxTopLevel);
 	UxScreen = XDefaultScreen(UxDisplay);

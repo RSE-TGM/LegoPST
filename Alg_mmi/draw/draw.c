@@ -79,6 +79,7 @@ static char SccsID[] = "@(#)draw.c	5.1\t11/13/95";
  *---------------------------------------------------*/
 #ifndef DESIGN_TIME
 #include "UxXt.h"
+#include "fontfallback.h"
 #endif /* DESIGN_TIME */
 
 XtAppContext	UxAppContext;
@@ -139,6 +140,7 @@ int main(argc,argv)
 
   	UxTopLevel = XtAppInitialize(&UxAppContext, "Draw",
 				     NULL, 0, &argc, argv, NULL, NULL, 0);
+  	FontFallbackInstall();  /* font 2-byte -> fallback 8-bit */
 
 	UxDisplay = XtDisplay(UxTopLevel);
 	UxScreen = XDefaultScreen(UxDisplay);

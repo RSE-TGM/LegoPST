@@ -40,6 +40,7 @@ static char SccsID[] = "@(#)crea_rego_lib.c	1.4\t10/19/95";
 #include "libutilx.h"
 
 #include <sqlite3.h>
+#include "fontfallback.h"
 
 XtAppContext    UxAppContext;
 char nome_file_input[100];
@@ -147,6 +148,7 @@ insert_icona_lib(NULL);
 
 topLevel = XtAppInitialize(&app_context, "xaing",
                                      NULL, 0, &argc, argv, NULL, NULL, 0);
+        FontFallbackInstall();  /* font 2-byte -> fallback 8-bit */
 
         display = XtDisplay(topLevel);
         screen_num = XDefaultScreen(display);

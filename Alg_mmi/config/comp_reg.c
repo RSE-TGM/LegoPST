@@ -22,6 +22,7 @@ static char *_csrc = "@(#) %filespec: comp_reg.c-3 %  (%full_filespec: comp_reg.
 #include "config.h"
 
 #include <sqlite3.h>
+#include "fontfallback.h"
 
 extern int setvarenv_appl(char *,char *);
 extern Widget	create_ClipBoardComp();
@@ -75,6 +76,7 @@ printf("argc = %d\n",argc);
 
    UxTopLevel = XtVaAppInitialize(&UxAppContext, "compreg",
                               NULL, 0, &argc, argv, NULL, NULL);
+   FontFallbackInstall();  /* font 2-byte -> fallback 8-bit */
 
    UxDisplay = XtDisplay(UxTopLevel);
    UxScreen = XDefaultScreen(UxDisplay);

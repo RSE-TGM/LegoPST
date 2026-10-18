@@ -1,5 +1,5 @@
 /*
-   XlFontFallback.c
+   fontfallback.c
 
    Caricamento font core X11 con fallback garantito a un font 8-bit.
 
@@ -11,18 +11,20 @@
    Un nome esplicito -iso8859-1 invece non viene trovato e Motif ripiega
    su "fixed" generico.
 
-   XlLoadFontFallback() rifiuta i font 2-byte e prova in cascata:
+   FontFallbackLoad() rifiuta i font 2-byte e prova in cascata:
      1. il nome richiesto
      2. stessa famiglia/peso/size forzando iso8859-1
      3. misc-fixed iso8859-1 di peso e pixel size piu' vicini
      4. "fixed" (built-in in ogni server X)
 
-   XlInstallFontFallback() sostituisce i convertitori Xt String->FontList
+   FontFallbackInstall() sostituisce i convertitori Xt String->FontList
    di Motif, cosi' il fallback vale sia per le risorse (*fontList nei file
    risorse) sia per le conversioni da codice (UxConvertFontList).
    Va chiamata dopo XtAppInitialize e prima di creare i widget.
 
    Con LEGO_FONT_DEBUG definita stampa su stderr le sostituzioni.
+   Con LEGO_FONT_FALLBACK=0 il fallback e' disattivato (comportamento
+   originale, per confronto e diagnosi).
 */
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,7 +33,7 @@
 #include <X11/Xlib.h>
 #include <X11/Intrinsic.h>
 #include <Xm/Xm.h>
-#include <XlFontFallback.h>
+#include "fontfallback.h"
 
 #define XLFD_FIELDS 14
 #define XLFD_FIELD_LEN 64
@@ -47,12 +49,24 @@
 
 static int font_debug = -1;
 
+static int fallback_disabled(void)
+{
+	static int disabled = -1;
+	char *v;
+
+	if (disabled < 0) {
+		v = getenv("LEGO_FONT_FALLBACK");
+		disabled = (v != NULL && strcmp(v, "0") == 0);
+	}
+	return disabled;
+}
+
 static void debug_msg(const char *req, const char *got)
 {
 	if (font_debug < 0)
 		font_debug = (getenv("LEGO_FONT_DEBUG") != NULL);
 	if (font_debug)
-		fprintf(stderr, "XlFontFallback: \"%s\" -> \"%s\"\n", req, got);
+		fprintf(stderr, "FontFallback: \"%s\" -> \"%s\"\n", req, got);
 }
 
 static int font_is_8bit(XFontStruct *fs)
@@ -79,7 +93,9 @@ static XFontStruct *load_8bit(Display *disp, const char *name)
 /*
    Divide un nome XLFD nei 14 campi. In un pattern con meno campi
    (es. "-adobe-helvetica-bold-r-normal--14-*-iso8859-1") l'ultimo '*'
-   copre i campi mancanti, come fa il server X.
+   copre i campi mancanti, come fa il server X. Un '*' iniziale
+   (es. "*Courier-Bold-R-Normal--14-*") vale come foundry qualsiasi.
+   I campi sono resi minuscoli (XLFD non distingue le maiuscole).
    Ritorna 0 se il nome non e' un XLFD.
 */
 static int split_xlfd(const char *name, char f[XLFD_FIELDS][XLFD_FIELD_LEN])
@@ -87,15 +103,22 @@ static int split_xlfd(const char *name, char f[XLFD_FIELDS][XLFD_FIELD_LEN])
 	const char *p, *q;
 	int n = 0, len, i, w, missing;
 
-	if (name == NULL || name[0] != '-')
+	if (name == NULL)
 		return 0;
-	p = name + 1;
+	if (name[0] == '*' && name[1] != '-' && strchr(name, '-') != NULL) {
+		strcpy(f[n++], "*");
+		p = name + 1;
+	} else if (name[0] == '-')
+		p = name + 1;
+	else
+		return 0;
 	while (n < XLFD_FIELDS) {
 		q = strchr(p, '-');
 		len = q ? (int)(q - p) : (int)strlen(p);
 		if (len >= XLFD_FIELD_LEN)
 			return 0;
-		memcpy(f[n], p, len);
+		for (i = 0; i < len; i++)
+			f[n][i] = tolower((unsigned char)p[i]);
 		f[n][len] = 0;
 		n++;
 		if (q == NULL)
@@ -183,13 +206,15 @@ static XFontStruct *load_misc_fixed(Display *disp, const char *weight,
 	return fs;
 }
 
-XFontStruct *XlLoadFontFallback(Display *disp, const char *fontname)
+XFontStruct *FontFallbackLoad(Display *disp, const char *fontname)
 {
 	char f[XLFD_FIELDS][XLFD_FIELD_LEN];
 	char name[512], used[512];
 	const char *weight;
 	XFontStruct *fs;
 
+	if (fallback_disabled())
+		return XLoadQueryFont(disp, fontname);
 	if ((fs = load_8bit(disp, fontname)) != NULL)
 		return fs;
 
@@ -277,7 +302,7 @@ static Boolean CvtStringToFontListFallback(Display *disp, XrmValuePtr args,
 				tag = trim(sep + 1);
 				item = trim(item);
 			}
-			if ((fs = XlLoadFontFallback(disp, item)) != NULL)
+			if ((fs = FontFallbackLoad(disp, item)) != NULL)
 				entry = XmFontListEntryCreate(tag, XmFONT_IS_FONT, fs);
 		}
 		if (entry != NULL) {
@@ -313,13 +338,15 @@ static void FontListDestructor(XtAppContext app, XrmValuePtr to,
 	XmFontListFree(*(XmFontList *)to->addr);
 }
 
-void XlInstallFontFallback(void)
+void FontFallbackInstall(void)
 {
 	static const char *types[] = {
 		XmRFontList, XmRLabelFontList, XmRButtonFontList, XmRTextFontList
 	};
 	int i;
 
+	if (fallback_disabled())
+		return;
 	for (i = 0; i < (int)XtNumber(types); i++)
 		XtSetTypeConverter(XmRString, types[i], CvtStringToFontListFallback,
 		                   NULL, 0, XtCacheByDisplay, FontListDestructor);

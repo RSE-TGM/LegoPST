@@ -68,6 +68,7 @@ static char SccsID[] = "@(#)other_mmi.c	5.3\t1/22/96";
 #include <Rt/RtMemory.h>
 #include <UxXt.h>
 #include <time.h>
+#include "fontfallback.h"
 
 
 
@@ -1136,7 +1137,7 @@ char   *font_name_default = "fixed";
 XFontStruct *font_info;
 
 /* Carica il font ottenendo la descrizione del font stesso */
-    if ((font_info = XLoadQueryFont (display, fontname)) == NULL)
+    if ((font_info = FontFallbackLoad (display, fontname)) == NULL)
     {
         fprintf (stderr,"Cannot open font [%s]\n",fontname);
 	if ((font_info = XLoadQueryFont (display, font_name_default)) == NULL)

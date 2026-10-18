@@ -55,6 +55,7 @@ extern void calcola_(int*, float*, float*, float*, int*, float*, float*);
 #include "tables.h"
 #include "def_tav.h"
 #include "sfondo.px"  /* Bitmap dell'icona dell'applicazione */
+#include "fontfallback.h"
 
 /*******************************************/
 /* DEFINIZIONE  DELLE  VARIABILI  GLOBALI  */
@@ -136,6 +137,7 @@ printf("argc= %d\n",argc);
 
 /* Inizializzazione del Toolkit */
   top_level = XtInitialize(argv[0], "Tables", NULL,  0, &argc, argv);
+  FontFallbackInstall();  /* font 2-byte -> fallback 8-bit */
 
   display = XtDisplay(top_level);
 printf("display= %d\n",display);

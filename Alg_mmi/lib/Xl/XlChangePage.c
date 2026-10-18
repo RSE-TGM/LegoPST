@@ -37,6 +37,7 @@ static char SccsID[] = "@(#)XlChangePage.c	5.1\t11/13/95";
 #include <Xm/Label.h>
 #include <Xm/PushB.h>
 #include <Xl/XlProto.h>   /* dichiarazioni prima implicite: vedi il file */
+#include "fontfallback.h"
 
 
 /* lista delle risorse  */
@@ -767,7 +768,7 @@ Display *disp;
 
 char **pf;
 int i,nf;
-if((Xl_cw->changePage.font_info = XLoadQueryFont(XtDisplay(cw),fontname)) == NULL
+if((Xl_cw->changePage.font_info = FontFallbackLoad(XtDisplay(cw),fontname)) == NULL
 )
         {
         XlWarning("XlChangePage","LoadFont","Cannot open font");

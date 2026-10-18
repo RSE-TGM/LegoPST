@@ -83,6 +83,7 @@ Boolean graphics_on; /* indica se si desidera la rappresentazione dello
 #include "dati.h"
 #include <stdlib.h>
 #include <unistd.h>
+#include "fontfallback.h"
 
 /* Missing function declarations */
 int read_file_f03(void);
@@ -129,6 +130,7 @@ int main(int argc, char *argv[])
 
   	UxTopLevel = XtAppInitialize(&UxAppContext, "Dati",
 				     NULL, 0, &argc, argv, NULL, NULL, 0);
+  	FontFallbackInstall();  /* font 2-byte -> fallback 8-bit */
 
 	UxDisplay = XtDisplay(UxTopLevel);
 	UxScreen = XDefaultScreen(UxDisplay);

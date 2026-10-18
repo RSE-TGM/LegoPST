@@ -44,7 +44,7 @@ static char SccsID[] = "@(#)config.prj	5.1\t11/13/95";
 #endif /* DESIGN_TIME */
 
 #include "config.h"
-#include <XlFontFallback.h>
+#include "fontfallback.h"
 //#include "CAP.h"		/* Serve per la gestione delle licenze software*/
 // Guag2024 #include "skey_manager3.h"	/* Serve per la gestione delle licenze hardware*/
 
@@ -246,7 +246,7 @@ if(comm_found!=0)
 				     NULL, 0, &argc, argv, NULL, NULL, 0);
 
 	/* font 2-byte (iso10646) -> fallback 8-bit, evita il testo a riquadri */
-	XlInstallFontFallback();
+	FontFallbackInstall();
 
 	UxDisplay = XtDisplay(UxTopLevel);
 	UxScreen = XDefaultScreen(UxDisplay);

@@ -88,6 +88,7 @@ extern int lancia_comando(Display *dpy, char *cmd);
 #ifdef HYPERHELP_USED
 #include "winhelp.h"
 #endif
+#include "fontfallback.h"
 
 #define LIBENV "librarian_debug.cfg"
 
@@ -2912,7 +2913,7 @@ static Widget	_Ux_create_mainWindow1()
 		rtrn = _Uxbuild_mainWindow1();
 
 		/* Creazione Font per Text */
-		   finfo = XLoadQueryFont(XtDisplay(UxGetWidget(mainWindow1)),font);
+		   finfo = FontFallbackLoad(XtDisplay(UxGetWidget(mainWindow1)),font);
 		   fontList = XmFontListCreate (finfo,XmSTRING_DEFAULT_CHARSET);
 		
 		/* Inserimento find di libreria */
