@@ -63,7 +63,7 @@ SORGENTI = UxMethod.c XlAnObjList.c  XlCore.c XlLed.c XlCai.c XlCaiAll.c \
 	XlIconReg.c  XlDispReg.c XlAllarmi.c XlAllarmi_func.c \
 	XlWidgetRes.c XlPrint.c XlSincro.c XlSincroOld.c \
 	XlPictograph.c XlIndicTelep.c  XlOperableKeys.c XlCurve.c \
-	XlCurve_func.c XlGif.c XlPixvar.c
+	XlCurve_func.c XlGif.c XlPixvar.c XlFontFallback.c
 
 OGGETTI  = XlAnObjList.o  XlCore.o XlLed.o XlCai.o XlCaiAll.o XlCaiVar.o\
 	XlBottone.o    XlSetResource.o \
@@ -77,7 +77,7 @@ OGGETTI  = XlAnObjList.o  XlCore.o XlLed.o XlCai.o XlCaiAll.o XlCaiVar.o\
 	XlIconReg.o   XlDispReg.o XlAllarmi.o XlAllarmi_func.o \
 	XlWidgetRes.o XlPrint.o XlSincro.o XlSincroOld.o \
 	XlPictograph.o XlIndicTelep.o XlOperableKeys.o XlCurve.o \
-	XlCurve_func.o XlGif.o XlPixvar.o
+	XlCurve_func.o XlGif.o XlPixvar.o XlFontFallback.o
 
 OBJS = $(INTERFACES:.c=.o) $(OGGETTI)
 IFILES= $(INTERFACES:.c=.i) 
