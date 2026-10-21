@@ -513,3 +513,37 @@ Dal build da zero: **417** punti distinti (240 `int-to-pointer-cast`, 177
   `crea_simulatore_finto.vbs`, apertura, import di `vba_patched/` e
   compilazione) si possono fare da qui.
 
+
+### Fase 7: connessioni fra gli schemi di regolazione, `lgconn` (iniziata il 2026-10-21)
+
+Collegare una variabile fra due schemi di una task di regolazione è laborioso
+(*Interface Mode*, pagine da chiudere, doppio collegamento) e insicuro:
+`Connessioni.reg` copia variabile e tag e non li aggiorna. Il piano, deciso
+dall'utente:
+- **A**, il controllo;
+- **C**, un editor a tabella;
+- **protezione in `config`**: non sovrascrivere un `Connessioni.reg` cambiato
+  su disco;
+- **B**, togliere l'obbligo di *Interface Mode*, da decidere dopo.
+
+Le connessioni potrà farle anche un non specialista. Tutto è compatibile con le
+task esistenti, perché il formato del file non cambia.
+
+- **Passo 0, fatto.** Ricostruiti dal codice di `config` il formato del file e
+  l'origine di ogni campo, documentati in `Alg_mmi/README.md`. Due particolarità:
+  - il campo *modulo* è scambiato fra i due lati;
+  - il *valore* viene dalla form del modulo.
+
+  La compilazione usa solo pagina, icona di interfaccia, variabile e tag.
+- **Passo 1, fatto: `lgconn -c`.**
+  - È composto da `Alg_legopc/src/tix/lgconn_dati.tcl`, `lgconn.tcl` e il
+    lanciatore `Alg_rt/bin/lgconn`.
+  - Su 26 task vere la riga ricostruita dalle pagine coincide con quella di
+    `config`, salvo valore e descrizione invecchiati.
+  - Prova `lgconn` nella CI (8 su 8).
+  - Sulla demo nuclear trova 2 errori veri (riga 131 di
+    `r_SLB1_0/Connessioni.reg`: variabile e tag cambiati dopo il collegamento)
+    e 76 connessioni verso pagine sparite. **Da decidere con l'utente se
+    correggere la demo.**
+- **Prossimo: passo 2**, l'editor `lgconn DIR`, insieme alla protezione in
+  `config` (passo 3).

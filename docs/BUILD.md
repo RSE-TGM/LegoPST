@@ -112,6 +112,7 @@ the freshly built programs **work**, on a real demo and without a display:
 | variables | `test_var_mapping` on the live simulation |
 | topology | the task's `snapshot.dat`, with its header altered to look like another model's, must be set aside as `snapshot.dat.incompatibile` at the next start, and the simulation must start anyway (`ControlParam`, see [new_monit/README.md](../Alg_rt/net_simula/new_monit/README.md)) |
 | task | the demo's tasks are rebuilt with LegoPC's commands (`cad_crealg1`, `cad_crealg3`, `crealg5`, `cad_crealg5sk`, `cad_marcotask`), and every installation `.o`/`.a` they link must be tracked by git (see [Compiled files in git](#compiled-files-in-git)) |
+| lgconn | `lgconn_test.tcl`: a synthetic task with one case for each check of `lgconn -c`, and the `Connessioni.reg` rows of the demo's regulation task rebuilt from its pages, which must match what `config` wrote; then `lgconn -c` on that task must produce its report (its findings are not judged: the demo has real ones) |
 
 Everything happens in a temporary `HOME`. Every step has a time limit: a
 simulation that does not answer must not hold the runner (in testing, with

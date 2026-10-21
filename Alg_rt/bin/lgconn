@@ -1,0 +1,57 @@
+#!/usr/bin/env bash
+#
+# lgconn - le connessioni fra gli schemi di una task di regolazione
+# (Connessioni.reg, quelle che in config si fanno in Interface Mode).
+#
+# Uso:
+#   lgconn -c [-v] [DIR]   controllo, senza grafica: le connessioni che non
+#                          corrispondono piu' alle pagine. Con -v anche le
+#                          note. Esce con 0 senza errori, 1 con errori, 2 se
+#                          la task non si legge.
+#   DIR                    la directory della task (quella con Context.ctx);
+#                          senza, la directory corrente.
+#
+# Guida: Alg_mmi/README.md, "Collegare gli schemi di una task di regolazione".
+#
+# Variabili d'ambiente:
+#   LG_TIX   dir di lgconn.tcl (dal profilo LegoPST)
+#
+set -u
+
+case "${1:-}" in
+    -h|--help) sed -n '3,/^[^#]/p' "$0" | sed -n 's/^# \{0,1\}//p'; exit 0 ;;
+esac
+
+# Sorgia il profilo LegoPST se l'ambiente non e' gia' impostato (LG_TIX),
+# come Alg_rt/bin/lgmkstaz.
+if [ -z "${LG_TIX:-}" ]; then
+    SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"          # .../Alg_rt/bin
+    : "${LEGOROOT:=$(cd "$SCRIPT_DIR/../.." && pwd)}"    # -> LEGOROOT
+    export LEGOROOT
+    set +u
+    # "$LEGOROOT" come $1: senza, il profilo erediterebbe i parametri
+    # posizionali di questo script e li prenderebbe per LEGOROOT.
+    . "$LEGOROOT/.profile_legoroot" "$LEGOROOT" >/dev/null 2>&1 || true
+    set -u
+fi
+
+if [ -z "${LG_TIX:-}" ] || [ ! -f "$LG_TIX/lgconn.tcl" ]; then
+    echo "lgconn: LG_TIX non definito o lgconn.tcl assente (profilo LegoPST non sorgiato?)." >&2
+    echo "        LG_TIX='${LG_TIX:-}'" >&2
+    exit 2
+fi
+
+# Il controllo non ha grafica: basta tclsh, e funziona anche senza display.
+if [ "${1:-}" = "-c" ]; then
+    TCLSH="$(command -v tclsh8.6 || command -v tclsh)"
+    exec "$TCLSH" "$LG_TIX/lgconn.tcl" "$@"
+fi
+
+# L'editor vuole il wish di Tcl/Tk 8.6 (Tix esiste solo per Tcl 8): vedi
+# Alg_rt/bin/lgmkstaz.
+WISH="$(command -v wish8.6 || command -v wish8 || command -v wish)"
+if [ -z "$WISH" ]; then
+    echo "lgconn: 'wish' (Tcl/Tk) non trovato nel PATH." >&2
+    exit 2
+fi
+exec "$WISH" "$LG_TIX/lgconn.tcl" "$@"

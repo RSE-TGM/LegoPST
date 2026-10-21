@@ -14,7 +14,8 @@ md2html.tcl lgdocindex.tcl \
 vorwahl1.for vorwahl2.for migrate_i5.tcl gen_missing_i5.sh bgelement.tcl linkstyle.tcl \
 lghmi.tcl lgedit.tcl lgstaz.tcl hmielem.tcl modelli.tcl esporta.tcl \
 lgmkstaz_dati.tcl lgmkstaz_geometria.tcl lgmkstaz_leggi.tcl lgmkstaz_scrivi.tcl lgmkstaz_modifica.tcl \
-lgmkstaz_topologia.tcl lgmkstaz_verifica.tcl lgmkstaz.tcl
+lgmkstaz_topologia.tcl lgmkstaz_verifica.tcl lgmkstaz.tcl \
+lgconn_dati.tcl lgconn.tcl
 
 # 2. Lista dei file destinati alla cartella preinst/
 PREINST_FILES = vorwahl1_x.for vorwahl2_x.for templ.lib makevorwahl

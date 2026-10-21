@@ -144,6 +144,135 @@ I nomi dei file si compongono con due sole funzioni:
 > ([config.h:145](include/config.h#L145)). Impostarne una a mano non ha effetto
 > sull'altro programma.
 
+### Collegare gli schemi di una task di regolazione (*Interface Mode*)
+
+In una task di regolazione si porta una variabile d'uscita di uno schema
+(una pagina) a una variabile d'ingresso di un altro schema attraverso le
+**icone di interfaccia**. Ognuna ha due porte:
+
+- una **interna**, che dentro lo schema si collega con un filo normale alla
+  porta di un blocco;
+- una **di interfaccia**, rivolta verso l'esterno, che si collega alla porta
+  di interfaccia dell'altro schema.
+
+Le connessioni fra schemi non stanno nelle pagine: stanno in
+**`$LEGOMMI_PAG/Connessioni.reg`**
+([set_interface](config/othercnf.c#L3856)). Il file si legge quando si entra
+in *Interface Mode* e si **scrive solo quando se ne esce**.
+
+**Fare la connessione**
+
+1. **Dentro ciascuno dei due schemi, prima di tutto**, si collega la porta
+   interna dell'icona di interfaccia al blocco: nello schema di partenza
+   l'icona d'uscita al blocco che produce la variabile, nell'altro l'icona
+   d'ingresso al blocco che la riceve. Si fa come ogni collegamento,
+   con *Option → Connect Mode* nella pagina. Senza questo passo la connessione
+   fra schemi viene rifiutata con *Cannot connect Interface Port That Is Not
+   Internally Connected* ([CreoNuovaInterfaccia](config/othercnf.c#L3891)).
+2. **Chiudere tutte le pagine.** Con una pagina aperta la modalità non cambia,
+   e compare *Close all the page first.*
+3. Nella finestra principale di `config`, menu **Interface Mode**, attivare la
+   voce a spunta **Interface Mode**. Buona parte dei menu principali si spegne,
+   e nelle pagine aperte da qui il *Connect Mode* è già attivo.
+4. Aprire le due pagine.
+5. Fare clic sulla **porta di interfaccia** della variabile d'uscita in uno
+   schema, poi sulla **porta di interfaccia** della variabile d'ingresso
+   nell'altro. L'ordine non conta: `config` riconosce l'ingresso dal tipo della
+   porta. In questa modalità rispondono **solo** le porte di interfaccia; fuori
+   da questa modalità, al contrario, le porte di interfaccia non si possono
+   collegare ([proc_SelPort](config/othercnf.c#L3247)).
+6. Chiudere le pagine e **togliere la spunta** da *Interface Mode*: è qui che la
+   connessione viene salvata in `Connessioni.reg`. Finché si resta nella
+   modalità, non è scritta su disco.
+
+**Cancellare la connessione**
+
+1. Con le pagine chiuse, entrare in *Interface Mode* e aprire la pagina con
+   l'icona di interfaccia collegata.
+2. Selezionare l'icona di interfaccia.
+3. **Delete**, dal menu *Edit* della pagina o dal menu del tasto destro. In
+   *Interface Mode* il Delete **non cancella l'icona**: toglie solo la sua
+   connessione verso l'altro schema e libera la porta
+   ([delete_interface](config/othercnf.c#L1805)).
+4. Chiudere le pagine e uscire da *Interface Mode* per salvare.
+
+Per cancellare l'icona stessa, o il filo interno allo schema, si lavora fuori
+da *Interface Mode*, con il Delete normale della pagina.
+
+#### Il file `Connessioni.reg`
+
+Una connessione per riga, campi separati da `|`
+([WriteConn](lib/Ol/OlConn.c#L197)):
+
+```
+uscita|<lato uscita: 9 campi>|ingresso|<lato ingresso: 9 campi>|valore|<valore>
+```
+
+I 9 campi di ciascun lato:
+
+| # | Campo | Da dove lo prende `config` | Chi lo usa |
+|---|---|---|---|
+| 1 | pagina | la pagina dell'icona di interfaccia | compilazione, apertura delle pagine |
+| 2 | porta di interfaccia | la porta esterna dell'icona (`interfacePort: 1`) | apertura delle pagine |
+| 3 | icona di interfaccia | l'icona (`iconRegType` 1 o 2) | apertura; la compilazione usa quella del lato ingresso |
+| 4 | porta interna | la porta del blocco a cui l'icona è collegata dentro lo schema | nessuno |
+| 5 | blocco | quel blocco | nessuno |
+| 6 | variabile | `portName` di quella porta | **compilazione** |
+| 7 | modulo | `modulName` del blocco **dell'altro lato** (vedi sotto) | nessuno |
+| 8 | tag | `tagName` del blocco | **compilazione** |
+| 9 | descrizione | `iconDescr` del blocco, `-` se vuota | nessuno |
+
+Il *valore*, l'ultimo campo, è il valore iniziale della variabile d'uscita. Si
+legge in `inputValue` del blocco, nella posizione che la variabile ha fra le
+righe `input` della form del modulo (`<modulo>.frm` in `*objectLibraries`).
+Non lo usa nessuno.
+
+Cose da sapere:
+
+- **Sono copie, e `config` non le aggiorna.** Variabile, tag, descrizione e
+  valore sono fotografati quando si fa la connessione. Se poi lo schema cambia
+  (un altro blocco collegato all'icona, un tag rinominato), il file resta com'era
+  e la compilazione usa **variabile e tag vecchi**, senza avvisare. `lgconn -c`
+  lo trova.
+- **Il modulo è scambiato.** `CreoNuovaInterfaccia` scrive nel lato uscita il
+  modulo del blocco d'ingresso e viceversa ([othercnf.c](config/othercnf.c#L4049)).
+  Non ha conseguenze, perché il campo non lo legge nessuno.
+- **I nomi `43w`, `43w0c` sono nomi di widget**, assegnati in ordine di
+  creazione. Copia/incolla e duplicazioni li cambiano, e `config` cerca di
+  rimappare le connessioni ([pagina.c](config/pagina.c#L1404)).
+- **Nei `.pag`** la porta di interfaccia ha una risorsa `portNameConnect` con
+  l'altro capo della connessione. È una copia che `PostOpenPage2` rifà da
+  `Connessioni.reg` ogni volta che apre la pagina: comanda il file.
+
+#### Controllare le connessioni: `lgconn -c`
+
+```
+lgconn -c [-v] [DIR]
+```
+
+Legge `Connessioni.reg` e le pagine della task (`DIR`, quella con
+`Context.ctx`; senza, la directory corrente), senza aprire niente e senza
+display, e scrive un rapporto:
+
+| Gravità | Cosa |
+|---|---|
+| **errore** | variabile o tag nel file diversi da quelli del blocco collegato oggi (la compilazione userebbe i vecchi); porta di interfaccia sparita da una pagina della task; icona di interfaccia non collegata a nessun blocco dentro lo schema; porta d'uscita usata come ingresso o viceversa; analogico collegato a digitale; una porta in più connessioni; riga illeggibile |
+| **avviso** | connessioni con pagine che non sono più nella task (riassunte per pagina: non servono a niente, si possono togliere); icona collegata dentro lo schema a un blocco diverso da quello del file |
+| **nota** | ingressi di interfaccia non collegati ad altri schemi. Non sono per forza un errore, perché la variabile resta un ingresso della task e può arrivare da un'altra task. Con `-v` sono elencati, altrimenti se ne dà il numero |
+
+Esce con 0 senza errori, 1 con errori, 2 se la task non si legge. Non modifica
+niente.
+
+La lettura delle pagine è verificata contro i file veri: sulle 26 task di
+regolazione presenti sulla macchina di sviluppo (circa 2.600 connessioni confrontabili),
+per ogni connessione il cui collegamento interno non è cambiato, la riga
+ricostruita dalle pagine è identica a quella scritta da `config`. Fanno
+eccezione valore e descrizione, che sono copie invecchiate. La prova è
+`Alg_legopc/src/tix/lgconn_test.tcl`, ed è anche nella CI (prova `lgconn`).
+Sulla task di regolazione della demo nuclear, `r_SLB1_0`, il controllo trova
+2 errori veri (riga 131: variabile e tag cambiati dopo il collegamento) e 76
+connessioni verso pagine che non esistono più.
+
 ---
 
 ## 4. Ciclo di vita dei file di una pagina

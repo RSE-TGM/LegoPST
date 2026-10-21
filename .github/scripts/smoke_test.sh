@@ -29,6 +29,10 @@
 #   7. task       le task della demo si ricostruiscono con i comandi di LegoPC,
 #                 e i .o/.a dell'installazione che usano sono tutti in git
 #                 (chi non compila prende quelli committati)
+#   8. lgconn     le prove di lgconn_test.tcl (una task sintetica con ogni tipo
+#                 di problema, e la riga di Connessioni.reg ricostruita dalle
+#                 pagine per la task di regolazione della demo), poi
+#                 "lgconn -c" sulla stessa task deve produrre il rapporto
 #
 # Tutto avviene in una HOME provvisoria: la demo, i link legocad e sked, la
 # scelta del simulatore. killsim fra una prova e l'altra: nel container le IPC
@@ -237,6 +241,26 @@ elif [ -n "$FUORI" ]; then
     esito task 1 "collegate con file dell'installazione che non sono in git:$FUORI"
 else
     esito task 0 "5 task ricostruite, $(sort -u "$OGGETTI" | wc -l) oggetti e librerie dell'installazione, tutti in git"
+fi
+
+# --- 8. connessioni fra gli schemi di regolazione (lgconn) ----------------
+# Il controllo della demo puo' trovare errori veri nei suoi dati: qui si
+# chiede solo che il rapporto venga fatto (uscita 0 o 1), non che sia pulito.
+lancia 120 tclsh Alg_legopc/src/tix/lgconn_test.tcl > "$LOGDIR/8_lgconn.log" 2>&1
+RC=$?
+REG="$HOME/legocad/r_SLB1_0"
+if [ $RC -ne 0 ]; then
+    esito lgconn 1 "$(grep -m1 '^FALLITO' "$LOGDIR/8_lgconn.log")"
+elif [ ! -f "$REG/Connessioni.reg" ]; then
+    esito lgconn 1 "la demo non ha $REG/Connessioni.reg"
+else
+    lancia 60 Alg_rt/bin/lgconn -c "$REG" > "$LOGDIR/8_lgconn_c.log" 2>&1
+    RC=$?
+    if [ $RC -le 1 ] && grep -q '^esito:' "$LOGDIR/8_lgconn_c.log"; then
+        esito lgconn 0 "$(grep -m1 '^==' "$LOGDIR/8_lgconn.log" | tr -d '='); r_SLB1_0: $(sed -n 's/^esito: //p' "$LOGDIR/8_lgconn_c.log")"
+    else
+        esito lgconn 1 "lgconn -c uscito con $RC: $(tail -1 "$LOGDIR/8_lgconn_c.log")"
+    fi
 fi
 
 echo ""
