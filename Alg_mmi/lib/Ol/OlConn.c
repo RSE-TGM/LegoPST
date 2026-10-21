@@ -34,6 +34,7 @@ static char SccsID[] = "@(#)OlConn.c	5.4\t2/16/96";
 #include <string.h>
 #include <stdlib.h>
 #include <math.h>
+#include <sys/stat.h>
 #include <Ol/OlConnP.h>
 #include "utile.h"
 
@@ -42,6 +43,9 @@ static char SccsID[] = "@(#)OlConn.c	5.4\t2/16/96";
 static Boolean CompareConnection(CONNESSIONE *, CONNESSIONE *);
 static int separa_str();
 static Boolean leggoRigaConn(FILE*, char *);
+static void ricorda_stato_file(OlConnObject);
+static void ScriviConn(OlConnObject);
+static Boolean file_cambiato(OlConnObject);
 
 /* dichiarazioni di strutture ad uso interno  */
 /* typedef per separa_str() */
@@ -187,6 +191,7 @@ int i;
 	*/
 	fclose(conn->olconn.fp);
 
+ricorda_stato_file(conn);
 return(True);
 }
 
@@ -194,22 +199,13 @@ return(True);
 /*
         Metodo WriteConn dell'oggetto conn
 */
-static Boolean WriteConn(OlConnObject conn)
+/*
+	Le connessioni, una per riga, nel file aperto in conn->olconn.fp.
+*/
+static void ScriviConn(OlConnObject conn)
 {
 int tot;
 int i;
-
-        /*
-	printf("OlConn: metodo WriteConn\n");
-        */
-
-	/*
-		apro il file in scrittura
-	*/
-	conn->olconn.fp = fopen(conn->olconn.path_name,"w");
-	/*if( (int)conn->olconn.fp == (int)NULL )*/
-	if( conn->olconn.fp == NULL )
-		return(False);
 
 	tot = conn->olconn.num_conns;
 
@@ -238,10 +234,91 @@ int i;
                 conn->olconn.connessioni[i].valore_variabile);
                 }
 
+}
+
+/*
+	Ricorda data di modifica e dimensione del file, per accorgersi poi se
+	qualcun altro lo ha cambiato.
+*/
+static void ricorda_stato_file(OlConnObject conn)
+{
+struct stat st;
+
+	if(stat(conn->olconn.path_name,&st) == 0)
+		{
+		conn->olconn.letto_sec = (long) st.st_mtim.tv_sec;
+		conn->olconn.letto_nsec = (long) st.st_mtim.tv_nsec;
+		conn->olconn.letto_size = (long) st.st_size;
+		}
+	else
+		{
+		conn->olconn.letto_sec = -1;
+		conn->olconn.letto_nsec = -1;
+		conn->olconn.letto_size = -1;
+		}
+}
+
+/*
+	Vero se il file su disco non e' piu' quello letto: cambiato, creato o
+	cancellato da qualcun altro.
+*/
+static Boolean file_cambiato(OlConnObject conn)
+{
+struct stat st;
+
+	if(stat(conn->olconn.path_name,&st) != 0)
+		return(conn->olconn.letto_sec != -1);
+	return( (long) st.st_mtim.tv_sec != conn->olconn.letto_sec ||
+		(long) st.st_mtim.tv_nsec != conn->olconn.letto_nsec ||
+		(long) st.st_size != conn->olconn.letto_size );
+}
+
+static Boolean WriteConn(OlConnObject conn)
+{
+int tot;
+int i;
+
+        /*
+	printf("OlConn: metodo WriteConn\n");
+        */
+
+	/*
+		Se il file e' cambiato su disco dopo che l'abbiamo letto (un
+		altro config, o lgconn), riscriverlo cancellerebbe quelle
+		modifiche senza dirlo. Non lo si tocca: le connessioni di questo
+		config vanno in <file>.config, e chi chiama avvisa l'utente.
+	*/
+	if(file_cambiato(conn))
+		{
+		char *altro = XtMalloc(strlen(conn->olconn.path_name)+8);
+		sprintf(altro,"%s.config",conn->olconn.path_name);
+		fprintf(stderr,"OlConn: %s e' cambiato dopo la lettura: non lo "
+			"sovrascrivo, le connessioni di config vanno in %s\n",
+			conn->olconn.path_name,altro);
+		conn->olconn.fp = fopen(altro,"w");
+		XtFree(altro);
+		if( conn->olconn.fp == NULL )
+			return(False);
+		ScriviConn(conn);
+		fclose(conn->olconn.fp);
+		return(False);
+		}
+
+	/*
+		apro il file in scrittura
+	*/
+	conn->olconn.fp = fopen(conn->olconn.path_name,"w");
+	/*if( (int)conn->olconn.fp == (int)NULL )*/
+	if( conn->olconn.fp == NULL )
+		return(False);
+
+	ScriviConn(conn);
+
 	/*
 		Chiudo il file
 	*/
 	fclose(conn->olconn.fp);
+	ricorda_stato_file(conn);
 
 return(True);
 }

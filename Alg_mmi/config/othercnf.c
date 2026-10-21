@@ -3871,7 +3871,16 @@ char file_conn[200]; /* Path name per Connessioni.reg */
 	{
 	if(conn_obj != NULL)
 		{
-		OlSaveConn(conn_obj);
+		/*
+		   OlSaveConn rifiuta di sovrascrivere Connessioni.reg se e'
+		   cambiato su disco dopo la lettura (lgconn, un altro config):
+		   le connessioni di questa sessione restano in
+		   Connessioni.reg.config, e lo si dice
+		*/
+		if(!OlSaveConn(conn_obj))
+			SetMsg(topLevelShell,NULL,WRNMSG,"ConfigInfo",
+			   "Connessioni.reg was changed by another program (lgconn?) while Interface Mode was on: it was NOT overwritten. The connections of this session are in Connessioni.reg.config. Compare the two files with lgconn -c.",
+			   NULL,False,NULL,False,NULL);
 		OlDestroyConn(conn_obj);
 		conn_obj=NULL;
 		}

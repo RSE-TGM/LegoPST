@@ -2943,7 +2943,7 @@ proc aggiorna_menu_tools {} {
     set stato [expr {$nome ne "" ? "normal" : "disabled"}]
     set quale [expr {$nome ne "" ? $nome : "no simulator"}]
 
-    #  Ordine: Edit model, kCompile regulation, lgmkstaz, kUpSim, killsim,
+    #  Ordine: Edit model, kCompile regulation, lgconn, lgmkstaz, kUpSim, killsim,
     #  Terminal. In cima quello che agisce sulla task selezionata. Le varianti di
     #  kUpSim e di kCompile stanno in un sottomenu ciascuno: il menu resta
     #  corto e le varianti restano vicine. Il simulatore corrente si sceglie
@@ -2976,6 +2976,13 @@ proc aggiorna_menu_tools {} {
         -label "3. kCompile Page - compile the pages mmi animates"
     .mb.tools add cascade -label "kCompile regulation - on the selected task" \
         -menu .mb.tools.kcompile -state $sreg
+
+    #  Le connessioni fra gli schemi della regolazione selezionata
+    #  (Connessioni.reg): basta il riquadro delle regolazioni, non serve un
+    #  simulatore corrente, perche' lgconn legge e scrive solo file della task.
+    .mb.tools add command -command lancia_lgconn \
+        -state [expr {$::mostra_reg ? "normal" : "disabled"}] \
+        -label "lgconn - connections between the schemes of the selected regulation task"
 
     #  L'altro editor: legopc disegna il modello, lgmkstaz le pagine di
     #  faceplate. Sempre attiva anche senza
@@ -3101,6 +3108,25 @@ proc lancia_lgmkstaz {} {
         return
     }
     .status configure -text "lgmkstaz opened in [pwd]"
+}
+
+#  Tools -> lgconn: l'editor delle connessioni fra gli schemi della task di
+#  regolazione selezionata. Processo indipendente, come lgmkstaz.
+proc lancia_lgconn {} {
+    if {[auto_execok lgconn] eq ""} {
+        tk_messageBox -icon error -title "lgconn" -parent . -message \
+            "Executable 'lgconn' not found in PATH.\nStart lghmi from a LegoPST environment (profile sourced)."
+        return
+    }
+    set scelta [regolazione_scelta "lgconn"]
+    if {[llength $scelta] == 0} return
+    lassign $scelta dir task
+    if {[catch {exec lgconn $dir &} err]} {
+        tk_messageBox -icon error -title "lgconn" -parent . \
+            -message "Cannot open lgconn:\n$err"
+        return
+    }
+    .status configure -text "lgconn opened on regulation task '$task'"
 }
 
 #  Tools -> Terminal: un terminale nella directory corrente del selettore,

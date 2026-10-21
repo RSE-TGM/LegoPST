@@ -545,5 +545,22 @@ task esistenti, perché il formato del file non cambia.
     `r_SLB1_0/Connessioni.reg`: variabile e tag cambiati dopo il collegamento)
     e 76 connessioni verso pagine sparite. **Da decidere con l'utente se
     correggere la demo.**
-- **Prossimo: passo 2**, l'editor `lgconn DIR`, insieme alla protezione in
-  `config` (passo 3).
+- **Passo 2, fatto: l'editor `lgconn DIR`.** È in Tk/ttk, e si apre anche da
+  lghmi (*Tools → lgconn*).
+  - In alto gli ingressi di interfaccia con l'uscita collegata e lo stato; in
+    basso le uscite collegabili all'ingresso scelto.
+  - *Modifica* contiene: collega, scollega, aggiorna i dati copiati dalle
+    pagine, togli le connessioni verso pagine assenti.
+  - Il salvataggio fa una copia `.bak`, scrive in modo atomico e lascia le
+    righe non toccate identiche byte per byte.
+  - Provato pilotando la finestra su una copia di `r_SLB1_0`: collegamento,
+    pulizie e salvataggio portano `lgconn -c` a 0 errori e 0 avvisi. Il file
+    scritto lo legge la libreria di `config`.
+- **Passo 3, fatto: protezione in `config`.** `OlConn.c` ricorda data
+  (al nanosecondo) e dimensione del file letto. Se il file è cambiato su disco,
+  `WriteConn` non lo sovrascrive: scrive `Connessioni.reg.config` e
+  restituisce errore. `set_interface` lo mostra all'uscita da *Interface Mode*.
+  `libOl.a` è cambiata: ricollegati `config`, `compreg`, `conv_r`,
+  `crea_rego_lib`, `draw` e `mmi`.
+- **Passo 4 (B), da decidere dopo l'uso dell'editor.** Resta anche da
+  decidere se correggere la demo nuclear (le 2 righe e le 76 orfane).

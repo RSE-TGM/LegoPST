@@ -192,6 +192,8 @@ proc ::lgconn::carica_task {dir} {
         }
     }
     dict set task conns [leggi_reg [dict get $task file_reg]]
+    dict set task letto [contenuto_file [dict get $task file_reg]]
+    dict set task salvato 0
     return $task
 }
 
@@ -263,7 +265,8 @@ proc ::lgconn::nuova_connessione {u i} {
     }
     dict set lu modulo [dict get $i modulo]
     dict set li modulo [dict get $u modulo]
-    return [dict create uscita $lu ingresso $li valore [dict get $u valore]]
+    #  riga 0: non ancora nel file (salva la numera)
+    return [dict create uscita $lu ingresso $li valore [dict get $u valore] riga 0]
 }
 
 # ---------------------------------------------------------------------------
@@ -387,4 +390,177 @@ proc ::lgconn::comprimi_righe {righe} {
         set prec $r
     }
     return [join $pezzi {, }]
+}
+
+# ---------------------------------------------------------------------------
+# Modifiche (le usa l'editor)
+#
+# Ogni procedura prende la task e restituisce la task modificata, oppure dà
+# errore con un messaggio per l'utente. Le connessioni lette dal file tengono
+# il loro testo ("testo"): finché non si toccano si riscrivono identiche, byte
+# per byte. Quelle nuove o aggiornate non hanno "testo" e si scrivono con
+# riga_reg.
+# ---------------------------------------------------------------------------
+
+#  La chiave "<pagina> <porta_int>" di un lato di una connessione.
+proc ::lgconn::chiave_lato {c lato} {
+    return "[dict get $c $lato pagina] [dict get $c $lato porta_int]"
+}
+
+#  L'indice della connessione che usa la porta $chiave, -1 se nessuna.
+proc ::lgconn::connessione_di {task chiave} {
+    set i -1
+    foreach c [dict get $task conns] {
+        incr i
+        if {[dict exists $c errore]} continue
+        if {[chiave_lato $c uscita] eq $chiave || [chiave_lato $c ingresso] eq $chiave} { return $i }
+    }
+    return -1
+}
+
+#  Le porte d'uscita a cui si puo' collegare l'ingresso $ki: collegate a un
+#  blocco dentro il loro schema, dello stesso tipo (analogico/digitale), libere.
+proc ::lgconn::uscite_per {task ki} {
+    set porte [dict get $task porte]
+    set analogica [dict get $porte $ki analogica]
+    set fuori {}
+    dict for {k p} $porte {
+        if {[dict get $p direzione] ne "uscita" || ![dict get $p collegata_dentro]} continue
+        if {[dict get $p analogica] != $analogica} continue
+        if {[connessione_di $task $k] >= 0} continue
+        lappend fuori $k
+    }
+    return $fuori
+}
+
+#  Collega l'uscita $ku all'ingresso $ki (chiavi "<pagina> <porta_int>").
+proc ::lgconn::collega {task ku ki} {
+    set porte [dict get $task porte]
+    foreach k [list $ku $ki] lato {uscita ingresso} {
+        if {![dict exists $porte $k]} { error "la porta $k non esiste" }
+        set p [dict get $porte $k]
+        if {[dict get $p direzione] ne $lato} {
+            error "[dict get $p pagina]/[dict get $p icona_int] e' una porta di [dict get $p direzione], non di $lato"
+        }
+        if {![dict get $p collegata_dentro]} {
+            error "in [dict get $p pagina] l'icona di interfaccia [dict get $p icona_int] non e' collegata a nessun blocco: collegala prima dentro lo schema, con config"
+        }
+        if {[connessione_di $task $k] >= 0} {
+            error "[dict get $p pagina]/[dict get $p icona_int] e' gia' collegata: scollegala prima"
+        }
+    }
+    if {[dict get $porte $ku analogica] != [dict get $porte $ki analogica]} {
+        error "non si collega una porta analogica a una digitale"
+    }
+    dict lappend task conns [nuova_connessione [dict get $porte $ku] [dict get $porte $ki]]
+    return $task
+}
+
+#  Toglie la connessione di indice $i.
+proc ::lgconn::scollega {task i} {
+    dict set task conns [lreplace [dict get $task conns] $i $i]
+    return $task
+}
+
+#  Toglie le connessioni con pagine che non sono nella task. Restituisce
+#  {task numero_tolte}.
+proc ::lgconn::togli_orfane {task} {
+    set pagine [dict get $task pagine]
+    set tenute {}
+    set tolte 0
+    foreach c [dict get $task conns] {
+        if {![dict exists $c errore] &&
+            ([dict get $c uscita pagina] ni $pagine || [dict get $c ingresso pagina] ni $pagine)} {
+            incr tolte
+            continue
+        }
+        lappend tenute $c
+    }
+    dict set task conns $tenute
+    return [list $task $tolte]
+}
+
+#  Rifa' dalle pagine i dati copiati (variabile, tag, blocco, descrizione,
+#  modulo, valore) delle connessioni le cui due porte esistono e sono
+#  collegate dentro lo schema: e' quello che config non fa mai. Restituisce
+#  {task numero_aggiornate}.
+proc ::lgconn::aggiorna_copie {task} {
+    set porte [dict get $task porte]
+    set nuove {}
+    set n 0
+    foreach c [dict get $task conns] {
+        if {![dict exists $c errore]} {
+            set ku [chiave_lato $c uscita]
+            set ki [chiave_lato $c ingresso]
+            if {[dict exists $porte $ku] && [dict exists $porte $ki] &&
+                [dict get $porte $ku collegata_dentro] && [dict get $porte $ki collegata_dentro]} {
+                set c2 [nuova_connessione [dict get $porte $ku] [dict get $porte $ki]]
+                if {[riga_reg $c2] ne [testo_di $c]} {
+                    dict set c2 riga [dict get $c riga]
+                    set c $c2
+                    incr n
+                }
+            }
+        }
+        lappend nuove $c
+    }
+    dict set task conns $nuove
+    return [list $task $n]
+}
+
+#  Il testo con cui si scrive una connessione: quello letto, se non e' stata
+#  toccata.
+proc ::lgconn::testo_di {c} {
+    if {[dict exists $c testo]} { return [dict get $c testo] }
+    return [riga_reg $c]
+}
+
+#  Il contenuto di Connessioni.reg com'era quando la task e' stata caricata
+#  (o salvata l'ultima volta): serve a salva per accorgersi se qualcun altro
+#  lo ha cambiato nel frattempo.
+proc ::lgconn::contenuto_file {file} {
+    if {![file exists $file]} { return "" }
+    set f [open $file r]
+    fconfigure $f -encoding iso8859-1 -translation binary
+    set t [read $f]
+    close $f
+    return $t
+}
+
+#  Salva Connessioni.reg. Se il file su disco non e' piu' quello letto (lo ha
+#  cambiato config o un altro lgconn) non lo sovrascrive: da' errore con
+#  codice LGCONN_CAMBIATO, e chi chiama decide. La prima volta che salva in
+#  una sessione lascia la copia del file com'era in Connessioni.reg.bak.
+#  Scrive in un file provvisorio e poi lo rinomina: un'interruzione a meta'
+#  non lascia un file troncato.
+proc ::lgconn::salva {task} {
+    set file [dict get $task file_reg]
+    if {[contenuto_file $file] ne [dict get $task letto]} {
+        return -code error -errorcode LGCONN_CAMBIATO \
+            "$file e' stato cambiato da un altro programma (config?) dopo che lgconn l'ha letto"
+    }
+    if {![dict get $task salvato] && [file exists $file]} {
+        file copy -force $file $file.bak
+    }
+    set testo ""
+    foreach c [dict get $task conns] { append testo [testo_di $c] \n }
+    set tmp $file.lgconn_[pid]
+    set f [open $tmp w]
+    fconfigure $f -encoding iso8859-1 -translation lf
+    puts -nonewline $f $testo
+    close $f
+    file rename -force $tmp $file
+    #  da qui in poi le connessioni sono quelle del file
+    set conns {}
+    set n 0
+    foreach c [dict get $task conns] {
+        incr n
+        dict set c testo [testo_di $c]
+        dict set c riga $n
+        lappend conns $c
+    }
+    dict set task conns $conns
+    dict set task letto [contenuto_file $file]
+    dict set task salvato 1
+    return $task
 }

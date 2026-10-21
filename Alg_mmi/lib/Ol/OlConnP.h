@@ -112,6 +112,14 @@ typedef struct {
 	int num_conns;	      /* numero delle conns */
 	CONNESSIONE *connessioni;
 	FILE *fp;             /* file pointer del file delle connesioni */
+	/*
+	   com'era il file quando e' stato letto (o scritto l'ultima volta):
+	   WriteConn non lo sovrascrive se nel frattempo e' cambiato su disco,
+	   per esempio per mano di lgconn
+	*/
+	long letto_sec;
+	long letto_nsec;
+	long letto_size;
         } OlConnPart;
 /*
  Dichiarazione completa del record per instanziazione

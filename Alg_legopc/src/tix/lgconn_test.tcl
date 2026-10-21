@@ -125,6 +125,58 @@ foreach q $probl {
         ![string match "*compare in 2*" [dict get $q testo]]} { incr su_buona }
 }
 esito "controllo: la connessione buona non ha altri problemi" [expr {$su_buona == 0}]
+
+# ---------------------------------------------------------------------------
+# 1b. modifiche, sulla stessa task
+# ---------------------------------------------------------------------------
+
+proc rifiuta {task ku ki modello} {
+    if {![catch {::lgconn::collega $task $ku $ki} msg]} { return 0 }
+    return [string match $modello $msg]
+}
+esito "collega: rifiuta un ingresso gia' collegato" [rifiuta $task "PAGU 6w1c" "PAGI 1w1c" "*gia' collegata*"]
+esito "collega: rifiuta la direzione sbagliata"     [rifiuta $task "PAGI 10w1c" "PAGU 6w1c" "*porta di ingresso, non di uscita*"]
+esito "collega: rifiuta un'icona non collegata dentro" [rifiuta $task "PAGU 5w1c" "PAGI 10w1c" "*non e' collegata a nessun blocco*"]
+#  per l'analogico/digitale serve un'uscita digitale libera: 3w e' usata nella
+#  riga 3, la si scollega prima
+set t2 [::lgconn::scollega $task 2]
+esito "scollega: toglie la riga" [expr {[llength [dict get $t2 conns]] == [llength [dict get $task conns]] - 1}]
+esito "collega: rifiuta analogico/digitale" [rifiuta $t2 "PAGU 3w1c" "PAGI 10w1c" "*analogica a una digitale*"]
+esito "uscite_per: solo uscite libere dello stesso tipo" [expr {[::lgconn::uscite_per $t2 "PAGI 10w1c"] eq {}}] \
+    [::lgconn::uscite_per $t2 "PAGI 10w1c"]
+
+#  un collegamento valido: tolgo le righe 7, 2 e 1, che usano 6w e 1w di
+#  PAGU, e collego 6w -> 10w
+set t3 [::lgconn::scollega [::lgconn::scollega [::lgconn::scollega $task 6] 1] 0]
+esito "uscite_per: l'uscita liberata e' disponibile" [expr {"PAGU 6w1c" in [::lgconn::uscite_per $t3 "PAGI 10w1c"]}]
+set t3 [::lgconn::collega $t3 "PAGU 6w1c" "PAGI 10w1c"]
+set ultima [lindex [dict get $t3 conns] end]
+esito "collega: la nuova riga e' come la scriverebbe config" \
+    [expr {[::lgconn::riga_reg $ultima] eq "uscita|PAGU|6w1c|6w|7w0c|7w|U1|prov|T003|-|ingresso|PAGI|10w1c|10w|11w0c|11w|U1|prov|T105|-|valore|1.500000"}] \
+    [::lgconn::riga_reg $ultima]
+
+lassign [::lgconn::togli_orfane $task] t4 tolte
+esito "togli_orfane: toglie solo la riga con la pagina assente" [expr {$tolte == 1 && [llength [dict get $t4 conns]] == [llength [dict get $task conns]] - 1}]
+lassign [::lgconn::aggiorna_copie $task] t5 aggiornate
+set probl5 [::lgconn::verifica $t5]
+esito "aggiorna_copie: corregge il tag invecchiato" [expr {$aggiornate >= 1 && ![trovato $probl5 errore 2 "*T999*"]}] "(aggiornate $aggiornate)"
+
+#  salva: le righe non toccate restano identiche, .bak, rifiuto se cambiato
+set prima [::lgconn::contenuto_file [file join $d Connessioni.reg]]
+set t6 [::lgconn::salva [::lgconn::collega [::lgconn::scollega [::lgconn::scollega [::lgconn::scollega $task 6] 1] 0] "PAGU 6w1c" "PAGI 10w1c"]]
+set dopo [split [::lgconn::contenuto_file [file join $d Connessioni.reg]] \n]
+set righe_prima [split $prima \n]
+esito "salva: le righe non toccate restano identiche" \
+    [expr {[lrange $dopo 0 5] eq [concat [lrange $righe_prima 2 5] [lrange $righe_prima 7 8]]}]
+esito "salva: lascia Connessioni.reg.bak com'era" \
+    [expr {[::lgconn::contenuto_file [file join $d Connessioni.reg.bak]] eq $prima}]
+esito "salva: la task salvata si rilegge uguale" \
+    [expr {[llength [dict get [::lgconn::carica_task $d] conns]] == [llength [dict get $t6 conns]]}]
+set f [open [file join $d Connessioni.reg] a]
+puts $f "uscita|X|1w1c|1w|||||||ingresso|Y|1w1c|1w|||||||valore|0.000000"
+close $f
+set ok_rifiuto [expr {[catch {::lgconn::salva $t6} msg] && $::errorCode eq "LGCONN_CAMBIATO"}]
+esito "salva: rifiuta se un altro programma ha cambiato il file" $ok_rifiuto $msg
 file delete -force $d
 
 # ---------------------------------------------------------------------------

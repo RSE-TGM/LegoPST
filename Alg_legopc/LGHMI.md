@@ -843,6 +843,7 @@ Le voci, in quest'ordine:
 ```
 Edit model (legopc) - on the selected task, or empty
 kCompile regulation - on the selected task   >   le tre compilazioni della regolazione
+lgconn - connections between the schemes of the selected regulation task
 lgmkstaz - build/edit faceplate pages (r01.dat)
 --------
 kUpSim                                       >   le tre varianti di kUpSim
@@ -861,6 +862,14 @@ I **due editor** sono `legopc`, che disegna il modello, e
 sempre attivi, anche senza simulatore corrente — a `lgmkstaz` basta un
 `r01.dat`, che cerca nella directory corrente del selettore. Si aprono come
 processi indipendenti: chiuderli non chiude `lghmi`, e viceversa.
+
+**`lgconn`** apre l'editor delle connessioni fra gli schemi della task di
+regolazione selezionata nel riquadro *Regulation tasks* (`Connessioni.reg`,
+quelle che in `config` si fanno in *Interface Mode*). Basta il riquadro delle
+regolazioni, non serve un simulatore corrente: legge e scrive solo file della
+task. Come per *kCompile*, la task deve appartenere all'area di lavoro
+corrente. Guida in [Alg_mmi/README.md](../Alg_mmi/README.md), *Collegare gli
+schemi di una task di regolazione*.
 
 Le varianti di `kUpSim` e di `kCompile` stanno in un **sottomenu** ciascuna: il
 menu resta corto e le varianti restano vicine. Un sottomenu spento spegne tutte

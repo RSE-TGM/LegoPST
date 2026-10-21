@@ -4,6 +4,12 @@
 # (Connessioni.reg, quelle che in config si fanno in Interface Mode).
 #
 # Uso:
+#   lgconn [DIR]           l'editor: gli ingressi di interfaccia di tutti gli
+#                          schemi con l'uscita collegata; collega, scollega,
+#                          aggiorna i dati copiati dalle pagine, toglie le
+#                          connessioni verso pagine assenti. Salva con una
+#                          copia .bak, e non sovrascrive un Connessioni.reg
+#                          cambiato da config nel frattempo.
 #   lgconn -c [-v] [DIR]   controllo, senza grafica: le connessioni che non
 #                          corrispondono piu' alle pagine. Con -v anche le
 #                          note. Esce con 0 senza errori, 1 con errori, 2 se

@@ -199,6 +199,70 @@ in *Interface Mode* e si **scrive solo quando se ne esce**.
 Per cancellare l'icona stessa, o il filo interno allo schema, si lavora fuori
 da *Interface Mode*, con il Delete normale della pagina.
 
+#### Collegare e scollegare con l'editor `lgconn` (consigliato)
+
+`lgconn` fa lo stesso lavoro di *Interface Mode* senza aprire `config` e senza
+aprire le pagine. Si lancia in due modi:
+- da **lghmi**, selezionando la task di regolazione e scegliendo *Tools →
+  lgconn - connections between the schemes of the selected regulation task*;
+- da terminale, con `lgconn <directory della task>`.
+
+La finestra ha due tabelle:
+
+- **In alto, tutti gli ingressi di interfaccia** degli schemi della task.
+  Per ciascuno si vedono: pagina, icona, variabile, blocco e descrizione,
+  l'uscita a cui è collegato e lo **stato**. Lo stato è *collegato*,
+  *libero* (in grigio), oppure un problema: in giallo gli avvisi, in rosso
+  gli errori, gli stessi di `lgconn -c`. In fondo alla tabella stanno le
+  connessioni verso pagine che non sono più nella task.
+- **In basso, le uscite collegabili** all'ingresso selezionato. Sono solo le
+  uscite che vanno bene: libere, collegate a un blocco dentro il loro
+  schema, dello stesso tipo (analogico o digitale).
+
+Le caselle *Cerca* filtrano le due tabelle per pagina, variabile, blocco o
+descrizione.
+
+**Collegare.** Selezionare in alto l'ingresso, poi in basso l'uscita. Si
+conferma con doppio clic o con **Collega**.
+
+**Scollegare.** Selezionare in alto l'ingresso collegato e premere
+**Scollega**.
+
+**Salvare.** Con **Salva** o `Ctrl+S`. Finché non si salva non viene scritto
+niente, e la barra in basso dice *MODIFICATO, non salvato*. Il primo
+salvataggio lascia il file com'era in `Connessioni.reg.bak`. Uscendo con
+modifiche non salvate, `lgconn` chiede cosa fare.
+
+Dal menu *Modifica* ci sono anche due pulizie:
+
+- **Aggiorna i dati copiati dalle pagine.** Riscrive variabile, tag,
+  descrizione e valore di ogni connessione con quelli attuali dello schema:
+  corregge gli errori "la compilazione userebbe il valore vecchio" di
+  `lgconn -c`.
+- **Togli le connessioni verso pagine assenti.**
+
+Cosa resta da fare in `config`: le icone di interfaccia e il loro filo
+interno al blocco si mettono nello schema, come sempre. `lgconn` collega fra
+loro icone già esistenti. Se un'icona non è collegata dentro lo schema,
+`lgconn` lo dice e non la propone.
+
+Le righe scritte da `lgconn` sono identiche a quelle che scriverebbe
+`config`. Quelle che non si toccano restano byte per byte come erano, e il
+file si legge con il `config` di sempre. *Interface Mode* resta disponibile
+per chi la preferisce.
+
+**`config` e `lgconn` aperti insieme.** Entrambi tengono in memoria le
+connessioni lette, e nessuno dei due riscrive il file se nel frattempo
+l'altro lo ha cambiato:
+- `lgconn` lo segnala al salvataggio e propone di mettere le sue connessioni
+  in `Connessioni.reg.lgconn`;
+- `config`, all'uscita da *Interface Mode*, mette le sue in
+  `Connessioni.reg.config` e lo dice ([OlConn.c](lib/Ol/OlConn.c),
+  `file_cambiato`).
+
+Fino all'ottobre 2026 `config` riscriveva il file in ogni caso, e cancellava
+senza avvisare le modifiche fatte nel frattempo da altri.
+
 #### Il file `Connessioni.reg`
 
 Una connessione per riga, campi separati da `|`
