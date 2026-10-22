@@ -77,6 +77,7 @@ typedef	struct
 	Widget	UxtogglePortInterUnmanaged;
 	Widget	UxtogglePortInterManaged;
 	Widget	UxtogglePortInterTag;
+	Widget	UxtoggleVarBalloon;
 	Widget	UxbuttonOkRegoDisplayMode;
 	Widget	UxbuttonCancelRegoDisplayMode;
 	int	UxstatoDispReg;
@@ -104,6 +105,7 @@ static _UxCtopRegoDisplayMode  *UxTopRegoDisplayModeContext;
 #define togglePortInterUnmanaged UxTopRegoDisplayModeContext->UxtogglePortInterUnmanaged
 #define togglePortInterManaged  UxTopRegoDisplayModeContext->UxtogglePortInterManaged
 #define togglePortInterTag      UxTopRegoDisplayModeContext->UxtogglePortInterTag
+#define toggleVarBalloon        UxTopRegoDisplayModeContext->UxtoggleVarBalloon
 #define buttonOkRegoDisplayMode UxTopRegoDisplayModeContext->UxbuttonOkRegoDisplayMode
 #define buttonCancelRegoDisplayMode UxTopRegoDisplayModeContext->UxbuttonCancelRegoDisplayMode
 #define statoDispReg            UxTopRegoDisplayModeContext->UxstatoDispReg
@@ -118,6 +120,8 @@ static _UxCtopRegoDisplayMode  *UxTopRegoDisplayModeContext;
 *******************************************************************************/
 
 Widget	popup_topRegoDisplayMode();
+Boolean PagBalloonGet(Widget);           /* balloon.c */
+void PagBalloonSet(Widget, Boolean);
 
 /*******************************************************************************
 Auxiliary code from the Declarations Editor:
@@ -238,6 +242,7 @@ static	void	activateCB_buttonOkRegoDisplayMode( UxWidget, UxClientData, UxCallba
 	
 	
 	SetRegoDisplayMode(drawing,statoDispReg, statoPort, statoInterfacePort);
+	PagBalloonSet(drawing,XmToggleButtonGetState(toggleVarBalloon));
 	XtDestroyWidget(topRegoDisplayMode);
 	}
 	UxTopRegoDisplayModeContext = UxSaveCtx;
@@ -275,7 +280,7 @@ static Widget	_Uxbuild_topRegoDisplayMode()
 			XmNx, 414,
 			XmNy, 167,
 			XmNwidth, 620,
-			XmNheight, 300,
+			XmNheight, 350,
 			NULL );
 	UxPutContext( topRegoDisplayMode, (char *) UxTopRegoDisplayModeContext );
 
@@ -580,6 +585,23 @@ static Widget	_Uxbuild_topRegoDisplayMode()
 	UxPutContext( togglePortInterTag, (char *) UxTopRegoDisplayModeContext );
 
 
+	/* Creation of toggleVarBalloon: il balloon con il nome completo delle
+	   variabili sulle porte, vedi balloon.c (ottobre 2026) */
+	toggleVarBalloon = XtVaCreateManagedWidget( "toggleVarBalloon",
+			xmToggleButtonWidgetClass,
+			formRegoDisplayMode,
+			RES_CONVERT( XmNlabelString,
+			   "Variable balloon: full variable name when the mouse is on a port" ),
+			RES_CONVERT( XmNselectColor, "#00c600" ),
+			XmNleftAttachment, XmATTACH_FORM,
+			XmNleftOffset, 10,
+			XmNtopAttachment, XmATTACH_WIDGET,
+			XmNtopOffset, 20,
+			XmNtopWidget, rowColRegoInterPortMode,
+			NULL );
+	UxPutContext( toggleVarBalloon, (char *) UxTopRegoDisplayModeContext );
+
+
 	/* Creation of buttonOkRegoDisplayMode */
 	buttonOkRegoDisplayMode = XtVaCreateManagedWidget( "buttonOkRegoDisplayMode",
 			xmPushButtonWidgetClass,
@@ -663,6 +685,7 @@ Widget	popup_topRegoDisplayMode( _Uxdrawing )
 	UxPopupInterface(rtrn,no_grab);
 	GetRegoDisplayMode(drawing,&statoDispReg, &statoPort, &statoInterfacePort);
 	SettaToggle(rtrn);
+	XmToggleButtonSetState(toggleVarBalloon,PagBalloonGet(drawing),False);
 	return(rtrn);
 }
 

@@ -656,3 +656,31 @@ il difetto c'era già.
   vecchio la stessa sequenza dà "different window"; con la sola correzione
   di `XlPort` cadeva in `XdFirstPoint`, da cui `DrawForgetCurrent`).
 
+#### Seguito (2026-10-22): zoom con Ctrl + rotella in `config`
+
+Richiesta dell'utente. `PagShell.c`: un dispatcher degli eventi
+(`XtSetEventDispatcher`, installato una volta da `PagZoomInstalla`) prende
+Ctrl + tasto 4/5 dentro una `PagShell`, anche sopra un'icona, che altrimenti
+ricevendo l'evento lo ignorerebbe; tutto il resto passa al dispatcher di
+prima. `PagZoomRotella` sceglie il gradino (100-400%), "preme" la voce del
+menu *Zoom* (stessa callback, menu allineato) e sposta le barre perché il
+punto sotto il puntatore resti fermo. Provato in container: sopra un'icona e
+sullo sfondo, su e giù, menu allineato, punto fermo. La rotella senza Ctrl
+non scorre la pagina, né prima né ora.
+
+#### Seguito (2026-10-22): balloon con il nome completo delle variabili
+
+Richiesta dell'utente. Nuovo `config/balloon.c` (in `config.mk`, APPL_OBJS) e
+casella *Variable balloon* in *Set visual mode* (`topRegoDisplayMode.c`). Il
+nome si calcola dalla pagina (porta + tag blocco + sigla task); il
+collegamento dal filo nella pagina (blocco o, via `Connessioni.reg`, icona di
+interfaccia) e da `proc/<pagina>_01.dat`, che però è fermo all'ultima
+compilazione: il balloon lo dichiara quando il `.pag` è più recente, e
+mostra le due fonti quando non coincidono. Semantica del `_01.dat` verificata
+sul file: `--CO--` è un ingresso *collegato*, `--IN--` senza `#` un ingresso
+libero. Il moto del mouse si segue sulla drawing area con la porta più
+vicina entro 8 pixel. Provato in container su RSL2: sommatore 44 (i tre nomi
+dell'esempio dell'utente), ingresso libero del PID, icona di interfaccia,
+ingresso alimentato da un'altra pagina, `.pag` più recente, uscita dalla
+pagina, chiusura della pagina con il balloon aperto.
+

@@ -5,6 +5,7 @@
 *******************************************************************************/
 
 #include <stdio.h>
+#include <string.h>
 
 #include <Xm/Xm.h>
 #include <Xm/MwmUtil.h>
@@ -20,6 +21,7 @@
 #include <Xm/RowColumn.h>
 #include <Xm/DrawingA.h>
 #include <Xm/ScrolledW.h>
+#include <Xm/ScrollBar.h>
 #include <Xm/Form.h>
 #include <Xm/MainW.h>
 #include <X11/Shell.h>
@@ -1758,6 +1760,136 @@ void PagStatusMsg(Widget w, int livello, char *msg)
 }
 
 /*
+	Zoom con Ctrl + rotella del mouse (ottobre 2026), in aggiunta a
+	Option -> Zoom: rotella su, gradino successivo (fino a 400%); rotella
+	giu', precedente (fino a 100%). Il gradino si cambia "premendo" la voce
+	del menu, cosi' passa dalla stessa callback e il menu resta giusto; poi
+	si spostano le barre di scorrimento perche' il punto sotto il puntatore
+	resti fermo.
+
+	La rotella arriva come tasto 4/5 alla finestra piu' interna sotto il
+	puntatore, cioe' spesso a un'icona, che la ignora: per questo non c'e'
+	un gestore sulla drawing area ma un dispatcher degli eventi, che prende
+	solo Ctrl + tasto 4/5 dentro una pagina e lascia passare tutto il resto
+	(la rotella senza Ctrl continua a scorrere la pagina).
+*/
+static XtEventDispatchProc PagZoomDispatcherPrec = NULL;      /* ButtonPress */
+static XtEventDispatchProc PagZoomDispatcherPrecRil = NULL;   /* ButtonRelease */
+
+/* sposta la barra in modo che il punto della drawing area a coordinata
+   pos_da finisca a distanza pos_clip dal bordo della finestra visibile */
+static void PagZoomScorri(Widget sb, int pos_da, int pos_clip)
+{
+	int val, slider, inc, pageinc, min = 0, max = 0;
+
+	if(sb == NULL || !XtIsManaged(sb))
+		return;
+	XtVaGetValues(sb, XmNminimum, &min, XmNmaximum, &max, NULL);
+	XmScrollBarGetValues(sb, &val, &slider, &inc, &pageinc);
+	val = min + pos_da - pos_clip;
+	if(val > max - slider) val = max - slider;
+	if(val < min) val = min;
+	XmScrollBarSetValues(sb, val, slider, inc, pageinc, True);
+}
+
+/* torna True se l'evento era per lo zoom di una pagina, e l'ha usato */
+static Boolean PagZoomRotella(Widget w, XEvent *ev)
+{
+	static float gradini[] = { 1.0, 2.0, 3.0, 4.0 };
+	_UxCPagShell *ctx;
+	Widget shell, toggle[4], clip = NULL, hsb = NULL, vsb = NULL;
+	Window figlio;
+	int i, attuale = 0, nuovo, dax, day, clx, cly;
+	float zoom, rapporto;
+	extern float get_def_zoom();
+
+	for(shell = w; shell != NULL && !XtIsShell(shell);
+	    shell = XtParent(shell))
+		;
+	if(shell == NULL || strcmp(XtName(shell), "PagShell") != 0)
+		return(False);
+	ctx = (_UxCPagShell *) UxGetContext(shell);
+	if(ctx == NULL || ctx->UxPagDrawingArea == NULL)
+		return(False);
+	/* la pagina deve averlo nel menu (non e' cosi' per ogni tipo) */
+	toggle[0] = ctx->UxZoom100TB; toggle[1] = ctx->UxZoom200TB;
+	toggle[2] = ctx->UxZoom300TB; toggle[3] = ctx->UxZoom400TB;
+	if(!XtIsSensitive(toggle[0]))
+		return(True);
+
+	zoom = get_def_zoom(ctx->UxPagDrawingArea);
+	for(i = 0; i < 4; i++)
+		if(zoom > gradini[i] - 0.01)
+			attuale = i;
+	nuovo = attuale + (ev->xbutton.button == Button4 ? 1 : -1);
+	if(nuovo < 0 || nuovo > 3)
+		return(True);
+
+	/* il punto sotto il puntatore, nella drawing area e nella finestra
+	   visibile (clip window), prima dello zoom */
+	XtVaGetValues(ctx->UxPagScrolledWindow, XmNclipWindow, &clip,
+	        XmNhorizontalScrollBar, &hsb, XmNverticalScrollBar, &vsb, NULL);
+	XTranslateCoordinates(ev->xbutton.display, ev->xbutton.root,
+	        XtWindow(ctx->UxPagDrawingArea),
+	        ev->xbutton.x_root, ev->xbutton.y_root, &dax, &day, &figlio);
+	clx = dax; cly = day;
+	if(clip != NULL)
+		XTranslateCoordinates(ev->xbutton.display, ev->xbutton.root,
+		        XtWindow(clip), ev->xbutton.x_root, ev->xbutton.y_root,
+		        &clx, &cly, &figlio);
+
+	XmToggleButtonSetState(toggle[nuovo], True, True);
+
+	rapporto = gradini[nuovo] / zoom;
+	PagZoomScorri(hsb, (int)(dax * rapporto), clx);
+	PagZoomScorri(vsb, (int)(day * rapporto), cly);
+	return(True);
+}
+
+static Boolean PagZoomDispatcher(XEvent *ev)
+{
+	if((ev->type == ButtonPress || ev->type == ButtonRelease) &&
+	   (ev->xbutton.button == Button4 || ev->xbutton.button == Button5) &&
+	   (ev->xbutton.state & ControlMask))
+		{
+		Widget w = XtWindowToWidget(ev->xany.display, ev->xany.window);
+		Boolean usato = False;
+
+		if(w != NULL)
+			{
+			/* al rilascio non si fa niente, ma non deve arrivare
+			   ad altri, se la pressione e' stata usata qui */
+			if(ev->type == ButtonPress)
+				usato = PagZoomRotella(w, ev);
+			else
+				{
+				Widget sh;
+				for(sh = w; sh != NULL && !XtIsShell(sh);
+				    sh = XtParent(sh))
+					;
+				usato = (sh != NULL &&
+				         strcmp(XtName(sh), "PagShell") == 0);
+				}
+			}
+		if(usato)
+			return(True);
+		}
+	if(ev->type == ButtonRelease)
+		return((*PagZoomDispatcherPrecRil)(ev));
+	return((*PagZoomDispatcherPrec)(ev));
+}
+
+static void PagZoomInstalla(Widget w)
+{
+	if(PagZoomDispatcherPrec != NULL)
+		return;
+	PagZoomDispatcherPrec = XtSetEventDispatcher(XtDisplay(w),
+	        ButtonPress, PagZoomDispatcher);
+	PagZoomDispatcherPrecRil = XtSetEventDispatcher(XtDisplay(w),
+	        ButtonRelease, PagZoomDispatcher);
+}
+
+/*
 	Edit -> Disconnect interface (e la stessa voce nel menu del tasto
 	destro): toglie le connessioni verso altri schemi delle icone di
 	interfaccia selezionate, scollega_interfacce in othercnf.c. Funziona
@@ -2646,6 +2778,7 @@ static Widget	_Uxbuild_PagShell()
 		(XtCallbackProc) PagStatusDistrutto, NULL );
 #ifndef DESIGN_TIME
 	XlPortSetMsgHandler( PagStatusMsg );
+	PagZoomInstalla( PagShell );
 #endif
 
 	/* Creation of PagScrolledWindow */

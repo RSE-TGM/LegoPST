@@ -28,7 +28,7 @@ then
 banner "NO PAGE"
 kMakeGlobpages -g globpages -p NO -w o_win 
 else
-echo "WARNING : globpages will be removed !!!"
+echo "WARNING : globpages will be removed !!! PLEASE WAIT ..."
 sleep 10
 kMakeGlobpages -g globpages -w o_win
 fi

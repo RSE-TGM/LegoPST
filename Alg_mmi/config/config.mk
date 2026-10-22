@@ -97,7 +97,7 @@ DRAWINTERFACES= $(PATHDRAW)/drawShell.c \
 
 APPL_OBJS	= UxXt.o pagedit.o pagina.o iconlib.o othercnf.o \
                   gestmem.o regolazione.o iconinterf.o comp_all.o UxMethod.o \
-                  gest_msg_out.o comp_pag_util.o regol_util.o
+                  gest_msg_out.o comp_pag_util.o regol_util.o balloon.o
 
 APPLREG_OBJS	= UxXt.o UxMethod.o comp_pag_util.o ClipBoardComp.o \
                   regol_util.o

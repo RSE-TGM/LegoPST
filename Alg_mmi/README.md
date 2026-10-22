@@ -144,6 +144,67 @@ I nomi dei file si compongono con due sole funzioni:
 > ([config.h:145](include/config.h#L145)). Impostarne una a mano non ha effetto
 > sull'altro programma.
 
+### Lo zoom di una pagina
+
+Due modi, equivalenti:
+
+- *Option → Zoom* nella pagina: 100%, 200%, 300%, 400%;
+- **Ctrl + rotella del mouse** sulla pagina, sopra un'icona o sullo sfondo:
+  la rotella in su passa al gradino successivo (fino a 400%), in giù al
+  precedente (fino a 100%). Il punto sotto il puntatore resta fermo, e il
+  menu *Zoom* segna sempre il gradino attuale
+  ([PagZoomRotella](config/PagShell.c)).
+
+I gradini sono solo quelli interi: le icone sono state fatte per fattori
+interi. La rotella **senza** Ctrl non fa scorrere la pagina (non lo ha mai
+fatto): si scorre con le barre.
+
+### Il nome completo delle variabili sulle porte (balloon)
+
+In *Option → Set visual mode* la casella **Variable balloon** accende, per
+quella pagina, un riquadro giallo che compare quando il mouse si ferma
+vicino a una porta di un'icona ([balloon.c](config/balloon.c)). Per il
+sommatore 44 della pagina RSL2 di `r_SLB1_0`:
+
+```
+I14441SL   INGRESSO 1 SOMMATORE A 2 INGRESSI
+<- U13I41SL
+```
+
+- **Il nome completo** è nome della porta + tag del blocco + sigla della
+  task: `I1` + `4441` + `SL`. La sigla sono le due lettere dopo `r_` nel nome
+  della directory, come in compilazione. Si calcola dalla pagina com'è
+  adesso.
+- **Il collegamento** (`<-` per un ingresso, `->` per un'uscita) viene da due
+  fonti:
+  - il filo nella pagina, quando arriva a un altro blocco o a un'icona di
+    interfaccia (per l'altro schema si legge `Connessioni.reg`:
+    `<- MVAR:U33X3QSL`). È lo stato attuale.
+  - `proc/<pagina>_01.dat`, che risolve anche i fili che passano per le
+    diramazioni e dà la descrizione della variabile, ma è **scritto solo
+    dalla compilazione dello schema**. Quando le due fonti non coincidono il
+    balloon le mostra entrambe (`(last compile: ...)`); quando il `.pag` è
+    stato salvato dopo l'ultima compilazione lo dice (`page saved after the
+    last compile`); per uno schema mai compilato dice che i collegamenti
+    vengono solo dalla pagina.
+- *not connected (model input)*: la compilazione ha lasciato l'ingresso
+  libero, cioè è un dato del modello.
+- Sopra un'icona di interfaccia: la variabile e l'altra pagina, da
+  `Connessioni.reg`.
+
+La zona sensibile è di qualche pixel attorno alla porta, che da sola è
+minuscola. La modalità vale finché la pagina resta aperta e non si salva nel
+`.pag`.
+
+Righe del `_01.dat` usate, per chi deve metterci le mani:
+
+| Riga | Significato |
+|---|---|
+| `UA4441SL --UA-- descrizione` | uscita del blocco |
+| `U13I41SL --IN-- #I14441SL#...<===3I41` | ingresso `I14441SL` alimentato da `U13I41SL` |
+| `I14441SL --CO-- descrizione` | ingresso collegato |
+| `IP4N41SL --IN-- descrizione` | ingresso libero, dato del modello |
+
 ### Collegare gli schemi di una task di regolazione
 
 In una task di regolazione si porta una variabile d'uscita di uno schema
