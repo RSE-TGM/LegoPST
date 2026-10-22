@@ -156,13 +156,15 @@ how it is built.</p>
   <div class="row1"><a class="tit" href="docs/BUILD.md">Building, and handling simulators</a>
     <span class="b md">md</span><span class="path">docs/BUILD.md</span></div>
   <p><b>Scope:</b> <code>make -f Makefile.mk</code>, the Docker image as a separate target
-  (<code>make docker</code>), versioning,
-  the <code>ksetsim</code>/<code>ksims</code> commands that pick the active simulator,
+  (<code>make docker</code>), versions and releases (the <code>VERSION</code> file, the
+  <code>vYYYY-N.M</code> tags, and <code>lgversione</code>, which releases a new version
+  in one command), the <code>ksetsim</code>/<code>ksims</code> commands that pick the active simulator,
   <code>creasim</code>, <code>kDiffS01</code>, and the build check that GitHub Actions runs
   from scratch on every push (warning threshold included).</p>
   <p class="use"><b>When you need it:</b> every time you build. It also holds the most expensive
   trap in the project: without <code>source .profile_legoroot</code> the include paths stay empty
-  and the build fails in a way that does not say why.</p>
+  and the build fails in a way that does not say why. And when you change the version:
+  <code>lgversione</code> does every step in the right order, Docker image included.</p>
 </div>
 
 <div class="card">

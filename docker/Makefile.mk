@@ -2,13 +2,28 @@
 # Modifica questo se il tuo script BuildImage costruisce un'immagine con un nome specifico.
 # Se BuildImage non produce un target tangibile che Make può tracciare,
 # useremo un file "timestamp" per forzare la riesecuzione.
-IMAGE_NAME := aguagliardi/legopst:2.0
+#
+#  Dal 2026-10-22 non e' piu' scritto qui: viene dal file VERSION della radice,
+#  le cifre dopo il trattino (2026-2.0 -> aguagliardi/legopst:2.0). Vedi
+#  docs/BUILD.md, "Versioni e rilasci", e il comando lgversione.
 DOCKERFILE := Dockerfile_LegoPST
 BUILD_SCRIPT := ./BuildImage
 
 # Versione letta dal file VERSION (versionato in git)
 VERSION_FILE := ../VERSION
 PROJECT_VERSION := $(shell cat $(VERSION_FILE) 2>/dev/null | tr -d '[:space:]')
+DOCKER_TAG := $(shell sed -n 's/^[0-9][0-9][0-9][0-9]-//p' $(VERSION_FILE) 2>/dev/null | tr -d '[:space:]')
+ifeq ($(DOCKER_TAG),)
+$(error VERSION deve essere nella forma AAAA-N.M (es. 2026-2.0), trovato "$(PROJECT_VERSION)")
+endif
+IMAGE_NAME := aguagliardi/legopst:$(DOCKER_TAG)
+
+#  I lanciatori si installano dai sorgenti .sh stampigliando versione e
+#  immagine di default, entrambe dal file VERSION. Il sorgente lgdock_socat.sh
+#  aveva VERSION=1.0 senza virgolette, e la vecchia sostituzione (che le
+#  cercava) lo lasciava com'era.
+STAMPA_LANCIATORE := sed -e 's/^VERSION=.*/VERSION="$(PROJECT_VERSION)"/' \
+	-e 's|^\(IMAGE_NAME="$${LG_DOCKER_IMAGE:-aguagliardi/legopst:\)[^}]*}"|\1$(DOCKER_TAG)}"|'
 
 # Dipendenze per la regola di build dell'immagine.
 #  Sono i SORGENTI .sh: accanto a loro sono vissute a lungo tre copie senza
@@ -88,15 +103,15 @@ build: check_docker $(BUILD_DEPENDENCIES)
 # 	@touch $(LAST_BUILD_STAMP) # Aggiorna il timestamp se la build ha successo
 
 $(LEGORT_BIN)/lgdock: lgdock.sh $(VERSION_FILE)
-	sed 's/^VERSION=".*"/VERSION="$(PROJECT_VERSION)"/' $< > $@
+	$(STAMPA_LANCIATORE) $< > $@
 	chmod 755 $@
 
 $(LEGORT_BIN)/lgdock_multi: lgdock_multi.sh $(VERSION_FILE)
-	sed 's/^VERSION=".*"/VERSION="$(PROJECT_VERSION)"/' $< > $@
+	$(STAMPA_LANCIATORE) $< > $@
 	chmod 755 $@
 
 $(LEGORT_BIN)/lgdock_socat: lgdock_socat.sh $(VERSION_FILE)
-	sed 's/^VERSION=".*"/VERSION="$(PROJECT_VERSION)"/' $< > $@
+	$(STAMPA_LANCIATORE) $< > $@
 	chmod 755 $@
 
 # Regola di pulizia (opzionale, ma buona pratica)

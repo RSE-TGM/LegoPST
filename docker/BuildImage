@@ -6,7 +6,17 @@
 #  legopst_slim: vedi l'intestazione di Dockerfile_LegoPST). Le esclusioni
 #  dalla copia stanno in Dockerfile_LegoPST.dockerignore, che BuildKit prende
 #  dal nome del Dockerfile.
-IMAGE_NAME="aguagliardi/legopst:2.0"
+#  Il nome dell'immagine viene dal file VERSION della radice: le cifre dopo il
+#  trattino (2026-2.0 -> aguagliardi/legopst:2.0). Vedi docs/BUILD.md,
+#  "Versioni e rilasci", e il comando lgversione.
+VERSIONE=$(tr -d '[:space:]' < "$(dirname "$0")/../VERSION" 2>/dev/null)
+TAG_IMMAGINE=${VERSIONE#[0-9][0-9][0-9][0-9]-}
+if [ -z "$VERSIONE" ] || [ "$TAG_IMMAGINE" = "$VERSIONE" ]; then
+    echo "ERRORE: il file VERSION deve essere nella forma AAAA-N.M (es. 2026-2.0),"
+    echo "        trovato \"$VERSIONE\"."
+    exit 1
+fi
+IMAGE_NAME="aguagliardi/legopst:$TAG_IMMAGINE"
 DOCKERFILE_PATH="LegoPST/docker/Dockerfile_LegoPST"
 PROCEED_AUTOMATICALLY=false
 DO_PUSH=false

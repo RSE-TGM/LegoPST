@@ -33,6 +33,9 @@
 #                 di problema, e la riga di Connessioni.reg ricostruita dalle
 #                 pagine per la task di regolazione della demo), poi
 #                 "lgconn -c" sulla stessa task deve produrre il rapporto
+#   9. versione   "lgversione --check": ogni file nomina l'immagine Docker del
+#                 file VERSION e i lanciatori lgdock portano la sua versione
+#                 (un riferimento dimenticato cambiando versione)
 #
 # Tutto avviene in una HOME provvisoria: la demo, i link legocad e sked, la
 # scelta del simulatore. killsim fra una prova e l'altra: nel container le IPC
@@ -260,6 +263,24 @@ else
         esito lgconn 0 "$(grep -m1 '^==' "$LOGDIR/8_lgconn.log" | tr -d '='); r_SLB1_0: $(sed -n 's/^esito: //p' "$LOGDIR/8_lgconn_c.log")"
     else
         esito lgconn 1 "lgconn -c uscito con $RC: $(tail -1 "$LOGDIR/8_lgconn_c.log")"
+    fi
+fi
+
+# --- 9. versione: riferimenti coerenti con VERSION ------------------------
+#  Nel container il checkout e' di un altro utente, e git rifiuta di lavorarci
+#  ("dubious ownership") finche' non lo si dichiara sicuro.
+if ! git rev-parse --git-dir >/dev/null 2>&1; then
+    git config --global --add safe.directory "$(pwd -P)" 2>/dev/null
+fi
+if ! git rev-parse --git-dir >/dev/null 2>&1; then
+    esito versione 0 "saltata: il checkout non ha il .git"
+else
+    Alg_rt/bin/lgversione --check > "$LOGDIR/9_versione.log" 2>&1
+    RC=$?
+    if [ $RC -eq 0 ]; then
+        esito versione 0 "VERSION $(tr -d '[:space:]' < VERSION): riferimenti all'immagine e lanciatori coerenti"
+    else
+        esito versione 1 "$(grep -m1 '^  ' "$LOGDIR/9_versione.log" | sed 's/^ *//') (lgversione --check)"
     fi
 fi
 

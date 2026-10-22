@@ -35,6 +35,8 @@ BUILD_DATE := $(shell date +%Y%m%d)
 #  Il numero di versione del progetto, versionato nel file VERSION: e' il
 #  ripiego quando git non c'e' (vedi la nota sulla regola version.h).
 PROJECT_VERSION := $(shell cat VERSION 2>/dev/null | tr -d '[:space:]')
+#  L'immagine Docker: le cifre dopo il trattino di VERSION (2026-2.0 -> :2.0)
+DOCKER_IMAGE := aguagliardi/legopst:$(shell sed -n 's/^[0-9][0-9][0-9][0-9]-//p' VERSION 2>/dev/null | tr -d '[:space:]')
 
 # Regola per generare version.h.
 # Questa regola dipende da 'force_version_h', che è un target .PHONY.
@@ -141,7 +143,7 @@ help:
 	@echo "  force_version_h  Forza il ricalcolo di version.h alla prossima build"
 	@echo ""
 	@echo "  docker           Compila (all) e poi costruisce l'immagine Docker"
-	@echo "                   aguagliardi/legopst:2.0 dalla copia sul disco"
+	@echo "                   $(DOCKER_IMAGE) dalla copia sul disco"
 	@echo "                   (docker/BuildImage -y). Senza le dipendenze"
 	@echo "                   deboli, senza gimp e senza il .git del repository:"
 	@echo "                   vedi docker/Dockerfile_LegoPST"
