@@ -213,11 +213,50 @@ included. After it, rebuild everything (`make -f Makefile.mk`) before
 committing, or restore them with `git checkout`. `docker` and `docker-push`
 rebuild by themselves.
 
-## Version Management
-The build system automatically generates `version.h` with:
-- Git version string from `git describe`
-- Build number from commit count
-- Build date
+## Versioni e rilasci
+
+**Il nome delle versioni** è `vAAAA-N.M`: l'anno, poi lo stesso numero
+dell'immagine Docker. La prima così battezzata è **`v2026-2.0`**, che va con
+`aguagliardi/legopst:2.0`. Prima c'era `v2026.1` (aprile 2026).
+
+**Da dove la leggono i programmi.** Il `make` della radice scrive `version.h`
+(non sta in git) a ogni build:
+
+```
+#define GIT_VERSION_STRING "v2026-2.0-18-g7a8af436"
+#define BUILD_NUMBER 301
+#define BUILD_DATE_STRING "20261022"
+```
+
+- `GIT_VERSION_STRING` viene da `git describe --tags --match 'v[0-9]*'`:
+  l'ultimo tag di rilascio (`v2026-2.0`), quanti commit sono venuti dopo
+  (`18`) e il commit attuale (`g7a8af436`); `-dirty` in fondo se c'erano
+  modifiche non committate. Con `-0-` si è esattamente sul rilascio.
+- `BUILD_NUMBER` è il numero di commit della storia, `BUILD_DATE_STRING` la
+  data del build.
+- Il file `VERSION` (versionato) dice il nome del rilascio, `2026-2.0`: lo
+  mostrano *About LegoPST* e l'indice della documentazione, ed è il ripiego
+  di `version.h` dove git non c'è (immagine Docker, bundle FMU):
+  `v2026-2.0-nogit`.
+
+**Contano solo i tag che cominciano con `v` e una cifra.** Gli altri tag
+(`prima-fase4`, `prima-revisione-codebase`, `demo-2.0`) sono segnalibri di
+lavoro e restano, ma non danno il nome alla versione. Prima del filtro
+(ottobre 2026) `git describe` prendeva il tag più vicino qualunque fosse, e
+la versione mostrata era `prima-fase4-18-g...`.
+
+**Battezzare una versione** (il tag lo mette chi fa i commit):
+
+```bash
+echo 2026-2.1 > VERSION                         # e commit insieme al resto
+git tag -a v2026-2.1 -m "LegoPST 2026-2.1: ..." # tag annotato, sul commit
+git push origin v2026-2.1
+make -f Makefile.mk                             # version.h -> v2026-2.1-0-g...
+```
+
+Se il numero cambia anche per Docker (`aguagliardi/legopst:2.1`), vanno
+aggiornati i riferimenti all'immagine (`lgdock`, la documentazione) e si
+rifà l'immagine con `make -f Makefile.mk docker-push`.
 
 ## Environment Setup
 Before building, source the environment script:

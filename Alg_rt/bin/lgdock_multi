@@ -13,7 +13,7 @@
 # =============================================================================
 # Gestione Parametri
 # =============================================================================
-VERSION="2.0"
+VERSION="2026-2.0"
 #  L'immagine da lanciare. Attenzione: in bash l'assegnazione non vuole
 #  spazi attorno all'uguale - scritta "IMAGE_NAME = ..." bash la esegue come
 #  un comando ("IMAGE_NAME: command not found") e la variabile resta VUOTA,

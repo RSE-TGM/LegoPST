@@ -26,7 +26,10 @@ VERSION_H = version.h
 VERSION_H_TMP = $(VERSION_H).tmp
 
 # Definizioni delle variabili Git. Vengono eseguite ogni volta che make viene avviato.
-GIT_VERSION := $(shell git describe --tags --always --long --dirty)
+#  Solo i tag di rilascio (v2026-2.0, v2026.1...): i segnalibri di lavoro
+#  (prima-fase4, demo-2.0...) non devono dare il nome alla versione. Vedi
+#  docs/BUILD.md, "Versioni e rilasci".
+GIT_VERSION := $(shell git describe --tags --match 'v[0-9]*' --always --long --dirty)
 GIT_COMMIT_COUNT := $(shell git rev-list --count HEAD)
 BUILD_DATE := $(shell date +%Y%m%d)
 #  Il numero di versione del progetto, versionato nel file VERSION: e' il

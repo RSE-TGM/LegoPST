@@ -13,7 +13,7 @@
 # =============================================================================
 # Gestione Parametri
 # =============================================================================
-VERSION="2.0"
+VERSION="2026-2.0"
 
 #  L'immagine da lanciare. Ce n'e' una sola (fino al 2026-09-27 erano due,
 #  legopst_multi e legopst_slim, con l'opzione -l per scegliere la seconda);

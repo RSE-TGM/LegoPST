@@ -541,7 +541,7 @@ The system uses hierarchical configuration:
 
 - **Recursive Makefiles**: Modular build
 - **Static Libraries**: Optimized linking
-- **Version Management**: The project version is defined in the `VERSION` file at the repository root. The build system (`Makefile.mk`) reads this file and injects the version into all scripts (`lgdock`, `lgrun`). The file `version.h` is auto-generated at build time with git commit hash and build number for C/Fortran code.
+- **Version Management**: releases are tagged `vYYYY-N.M` (the first is `v2026-2.0`, matching the Docker image `aguagliardi/legopst:2.0`) and the release name is also in the `VERSION` file at the repository root. `docker/Makefile.mk` and the installer stamp it into the `lgdock` launchers. At every build `Makefile.mk` writes `version.h` from `git describe --tags --match 'v[0-9]*'` (last release tag, commits since, commit hash), plus build number and date; `lghmi`, `lgdocindex` and `lgdock -v` show it. Procedure: [docs/BUILD.md](docs/BUILD.md), *Versioni e rilasci*.
 - **Target**: Linux x86_64 (Fedora 41 is the reference platform; Fedora 44 is supported, see [Fedora 44 compatibility](#fedora-44-compatibility))
 
 ### Other features
