@@ -564,3 +564,95 @@ task esistenti, perché il formato del file non cambia.
   `crea_rego_lib`, `draw` e `mmi`.
 - **Passo 4 (B), da decidere dopo l'uso dell'editor.** Resta anche da
   decidere se correggere la demo nuclear (le 2 righe e le 76 orfane).
+
+### Fase 7: alternativa B in `config`, collegare fuori da *Interface Mode* (2026-10-21, FATTA)
+
+Su richiesta dell'utente; *Interface Mode* resta com'è.
+
+- **Fatto nel codice:**
+  - `othercnf.c`:
+    - `proc_SelPort` accetta le porte di interfaccia anche fuori dalla
+      modalità.
+    - Nuova `CollegaInterfacceSuFile`. Rilegge `Connessioni.reg`, rifiuta se
+      una delle due porte vi risulta già collegata, usa la
+      `CreoNuovaInterfaccia` di sempre e salva subito.
+    - Nuova `scollega_interfacce`. In *Interface Mode* richiama
+      `delete_interface`. Fuori dalla modalità rilegge il file, toglie la
+      connessione, **salva prima** e poi libera le porte delle pagine aperte
+      (`libera_porta`); accetta anche una porta selezionata al posto
+      dell'icona.
+    - Messaggi accorciati: `SetMsg` usa `XmStringCreateSimple`, che non va
+      a capo, e i testi lunghi uscivano tagliati.
+  - `PagShell.c`: voce *Disconnect interface* nel menu *Edit* e nel menu
+    del tasto destro. La callback imposta il contesto della pagina
+    (`UxGetContext`).
+  - Il nuovo `config` è compilato.
+- **Provato** in un container con Xvfb e `xdotool`, sulla demo nuclear
+  (`r_SLB1_0`, pagine ACSP e ACTR in *Connect Mode*, fuori da *Interface
+  Mode*):
+  - collegamento: la riga viene scritta subito, e `lgconn -c` la trova
+    corretta;
+  - *Disconnect interface*: la riga viene tolta e salvata subito, e il
+    messaggio si legge per intero;
+  - ricollegando subito dopo la stessa coppia di porte il collegamento
+    passa: la porta è stata liberata anche nell'altra pagina (`PortSelect`
+    altrimenti l'avrebbe rifiutata come occupata).
+  - Tranello per le prove: senza window manager le finestre si aprono tutte
+    in (0,0), e vanno affiancate su coordinate positive. In *Connect Mode*
+    un clic sulla porta non seleziona l'icona: per *Disconnect interface*
+    bisogna uscirne.
+- **Documentato** in `Alg_mmi/README.md` (*Collegare gli schemi di una task
+  di regolazione*, ora con tre modi: nelle pagine, *Interface Mode*,
+  `lgconn`), `Alg_mmi/config/CONNESSIONI.md`, e le righe su `lgconn` in
+  `LGHMI.md`, `COMANDI_LG.md`, `DOCUMENTATION_INDEX.html`.
+- CI su un checkout vero (`git clone` + i file cambiati): build e prove.
+
+#### Seguito (2026-10-22): la riga di stato nelle pagine di `config`
+
+L'utente non riusciva a collegare: i clic rifiutati da `PortSelect` (porta
+già collegata, tipi diversi, stessa pagina) finivano solo su stderr come
+`XlWarning`, e a video il clic sembrava non fare niente.
+
+- `XlPort.c`/`XlPort.h`: `XlPortSetMsgHandler`. Chi usa le porte riceve i
+  rifiuti con un testo per l'utente; stderr resta com'era.
+- `PagShell.c`: la riga di stato `PagStatus` in fondo a ogni pagina, e
+  `PagStatusMsg(widget, livello, testo)`: verde per una conferma, giallo con
+  bip per un rifiuto, rosso per un errore. Il colore torna normale dopo 6 o
+  12 s; il timer si toglie se la pagina viene distrutta.
+- `othercnf.c`: suggerimento dopo il primo clic, conferma del collegamento
+  in tutte e due le pagine, e rifiuti e conferme di *Disconnect interface*
+  e del Delete nella riga di stato invece che nei popup. I popup restano
+  per gli errori sul file (`Connessioni.reg` non leggibile o cambiato da
+  altri).
+- Ricollegati `config`, `mmi`, `draw`, `compreg`, `conv_r`, `crea_rego_lib`
+  (usano `libXl.a`).
+- Provato in container: suggerimento, porta occupata, stessa pagina,
+  collegamento, scollegamento, ritorno del colore, chiusura della pagina
+  con il timer attivo.
+
+#### Seguito (2026-10-22): connessione in corso e pagina chiusa (difetto vecchio)
+
+L'utente: un collegamento normale fra due blocchi della stessa pagina non
+andava più ("Connection active on a different window" a ogni clic), e poi
+`config` è caduto. Riprodotto anche con il binario del commit precedente:
+il difetto c'era già.
+
+- Causa: un filo iniziato con il primo clic e mai finito, poi la pagina
+  chiusa. `XlPort` teneva in `wport` la porta distrutta, e ogni clic
+  successivo, anche nella stessa pagina riaperta, veniva rifiutato come
+  "su un'altra finestra"; `graphics.c` teneva in `dr_corrente` il draget
+  distrutto. Il programma cadeva alla prima occasione in cui li usava.
+- `XlPort.c`, `Destroy`: se la porta distrutta è il primo punto della
+  connessione in corso, la connessione si annulla.
+- `draw/graphics.c`: `DrawForgetCurrent(drawing)`, chiamata da
+  `EliminaDraget` (`config/pagina.c`) prima di distruggere la lista: se il
+  disegno in corso è su quella pagina, `dr_corrente` torna NULL.
+- `XlPort.c`, `PortSelect`: una porta di interfaccia scelta e non
+  completata non blocca più il resto (secondo clic sulla stessa porta:
+  annulla; clic su una porta di un blocco o su un'altra porta di
+  interfaccia della stessa pagina: la sostituisce).
+- Provato in container: filo iniziato, pagina chiusa e riaperta,
+  collegamento fra due blocchi riuscito, nessun crash (con il binario
+  vecchio la stessa sequenza dà "different window"; con la sola correzione
+  di `XlPort` cadeva in `XdFirstPoint`, da cui `DrawForgetCurrent`).
+

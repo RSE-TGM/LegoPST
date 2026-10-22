@@ -144,7 +144,7 @@ I nomi dei file si compongono con due sole funzioni:
 > ([config.h:145](include/config.h#L145)). Impostarne una a mano non ha effetto
 > sull'altro programma.
 
-### Collegare gli schemi di una task di regolazione (*Interface Mode*)
+### Collegare gli schemi di una task di regolazione
 
 In una task di regolazione si porta una variabile d'uscita di uno schema
 (una pagina) a una variabile d'ingresso di un altro schema attraverso le
@@ -156,32 +156,109 @@ In una task di regolazione si porta una variabile d'uscita di uno schema
   di interfaccia dell'altro schema.
 
 Le connessioni fra schemi non stanno nelle pagine: stanno in
-**`$LEGOMMI_PAG/Connessioni.reg`**
-([set_interface](config/othercnf.c#L3856)). Il file si legge quando si entra
-in *Interface Mode* e si **scrive solo quando se ne esce**.
+**`$LEGOMMI_PAG/Connessioni.reg`**. Le pagine se ne ricordano solo per
+disegnare le porte occupate.
 
-**Fare la connessione**
+**Prima di tutto, dentro ciascuno dei due schemi**, si collega la porta
+interna dell'icona di interfaccia al blocco: nello schema di partenza
+l'icona d'uscita al blocco che produce la variabile, nell'altro l'icona
+d'ingresso al blocco che la riceve. Si fa come ogni collegamento, con
+*Option → Connect Mode* nella pagina. Senza questo passo la connessione fra
+schemi viene rifiutata con *Cannot connect Interface Port That Is Not
+Internally Connected* ([CreoNuovaInterfaccia](config/othercnf.c#L4118)).
 
-1. **Dentro ciascuno dei due schemi, prima di tutto**, si collega la porta
-   interna dell'icona di interfaccia al blocco: nello schema di partenza
-   l'icona d'uscita al blocco che produce la variabile, nell'altro l'icona
-   d'ingresso al blocco che la riceve. Si fa come ogni collegamento,
-   con *Option → Connect Mode* nella pagina. Senza questo passo la connessione
-   fra schemi viene rifiutata con *Cannot connect Interface Port That Is Not
-   Internally Connected* ([CreoNuovaInterfaccia](config/othercnf.c#L3891)).
-2. **Chiudere tutte le pagine.** Con una pagina aperta la modalità non cambia,
+Poi le due porte di interfaccia si collegano in tre modi, che scrivono lo
+stesso file e si possono alternare: direttamente nelle pagine, in
+*Interface Mode*, oppure con l'editor `lgconn`.
+
+#### Collegare direttamente nelle pagine
+
+Si lavora come per un filo dentro lo schema, senza cambiare modalità e senza
+chiudere le pagine.
+
+1. Aprire le due pagine e attivare in entrambe *Option → Connect Mode*.
+2. Fare clic con il tasto **sinistro** sulla **porta di interfaccia** della
+   variabile d'uscita in uno schema: è il quadratino sulla punta esterna del
+   triangolo, non il triangolo. La riga di stato in fondo alla pagina
+   diventa verde e dice *Output selected: now click the interface INPUT port
+   in the other page*.
+3. Clic sinistro sulla **porta di interfaccia** della variabile d'ingresso
+   nell'altra pagina. L'ordine dei due clic non conta: `config` riconosce
+   l'ingresso dal tipo della porta.
+4. La connessione è **già salvata** in `Connessioni.reg`. Tutte e due le
+   pagine lo confermano nella riga di stato (*Connected ACSP <-> ACTR, saved
+   in Connessioni.reg*).
+
+**La riga di stato.** Ogni pagina di `config` ha in fondo una riga che
+dice com'è andato l'ultimo clic, senza aprire finestre
+([PagStatusMsg](config/PagShell.c)):
+
+- **verde**: fatto, oppure il passo successivo;
+- **gialla, con un bip**: clic rifiutato, e il perché;
+- dopo qualche secondo il colore torna normale, e il testo resta fino alla
+  notifica successiva.
+
+I rifiuti più comuni:
+
+| Riga di stato | Cosa fare |
+|---|---|
+| *Port already connected: Edit -> Disconnect interface frees it* | la porta è già collegata a un altro schema: scollegarla prima, o sceglierne una libera (`lgconn` mostra quelle libere) |
+| *Wrong port: an output goes to an input of the same kind (analog/digital)* | due ingressi, due uscite, o analogico con digitale: cliccare un'altra porta, il primo clic resta valido |
+| *Not connected: an interface port goes to another page* | i due clic sono nella stessa pagina: si ricomincia dal primo |
+| *Not connected: an interface port goes to an interface port of another page* | il secondo clic è finito sulla porta di un blocco |
+| *Not connected: in this page the interface icon has no wire to a block, draw it first* | manca il filo interno allo schema (vedi sopra) |
+| *Not connected: Connessioni.reg already has one of the two ports (changed by lgconn?): reopen the pages* | nel frattempo `lgconn` o un altro `config` ha collegato una delle due porte: riaprire le pagine |
+
+Fino all'ottobre 2026 questi rifiuti finivano solo sul terminale da cui era
+partito `config`, come `XlWarning`, e a video il clic sembrava non fare
+niente. Sul terminale ci sono ancora.
+
+Una porta di interfaccia scelta con il primo clic non blocca il resto: un
+secondo clic sulla stessa porta annulla la scelta (*Selection cancelled*), e
+un clic sulla porta di un blocco la abbandona e comincia un filo normale.
+Un filo normale lasciato a metà si annulla con il tasto destro.
+
+Prima di scrivere, `config` rilegge il file
+([CollegaInterfacceSuFile](config/othercnf.c#L1860)), per non sovrascrivere
+le connessioni fatte nel frattempo da `lgconn` o da un altro `config`.
+
+**Scollegare**
+
+1. Fuori dal *Connect Mode*, selezionare l'icona di interfaccia collegata,
+   oppure la sua porta. Si possono selezionare più icone insieme.
+2. **Disconnect interface**, dal menu *Edit* della pagina o dal menu del
+   tasto destro ([scollega_interfacce](config/othercnf.c#L1909)).
+   La connessione viene tolta e salvata subito, e la porta torna libera
+   anche nell'altra pagina, se è aperta. La riga di stato conferma con
+   *Disconnected N connection(s) to other pages, saved in Connessioni.reg*.
+
+Con *Connect Mode* attivo un clic sulla porta non seleziona l'icona: per
+scollegare, prima si esce da *Connect Mode*.
+
+L'icona collegata non si cancella con il Delete: la riga di stato risponde
+*Not deleted: the icon is connected to another page, Edit -> Disconnect
+interface first*. Prima si scollega, poi si cancella.
+
+Se `Connessioni.reg` è stato cambiato da un altro programma fra la lettura e
+la scrittura, `config` non lo sovrascrive. Lascia il risultato in
+`Connessioni.reg.config` e lo dice (*Connessioni.reg changed elsewhere*).
+
+#### Collegare in *Interface Mode*
+
+Il modo storico. Il file si legge quando si entra in *Interface Mode* e si
+**scrive solo quando se ne esce**
+([set_interface](config/othercnf.c#L4074)).
+
+1. **Chiudere tutte le pagine.** Con una pagina aperta la modalità non cambia,
    e compare *Close all the page first.*
-3. Nella finestra principale di `config`, menu **Interface Mode**, attivare la
+2. Nella finestra principale di `config`, menu **Interface Mode**, attivare la
    voce a spunta **Interface Mode**. Buona parte dei menu principali si spegne,
    e nelle pagine aperte da qui il *Connect Mode* è già attivo.
-4. Aprire le due pagine.
-5. Fare clic sulla **porta di interfaccia** della variabile d'uscita in uno
-   schema, poi sulla **porta di interfaccia** della variabile d'ingresso
-   nell'altro. L'ordine non conta: `config` riconosce l'ingresso dal tipo della
-   porta. In questa modalità rispondono **solo** le porte di interfaccia; fuori
-   da questa modalità, al contrario, le porte di interfaccia non si possono
-   collegare ([proc_SelPort](config/othercnf.c#L3247)).
-6. Chiudere le pagine e **togliere la spunta** da *Interface Mode*: è qui che la
+3. Aprire le due pagine.
+4. Fare clic sulle due **porte di interfaccia**, come sopra. In questa
+   modalità rispondono **solo** le porte di interfaccia
+   ([proc_SelPort](config/othercnf.c#L3459)).
+5. Chiudere le pagine e **togliere la spunta** da *Interface Mode*: è qui che la
    connessione viene salvata in `Connessioni.reg`. Finché si resta nella
    modalità, non è scritta su disco.
 
@@ -190,10 +267,10 @@ in *Interface Mode* e si **scrive solo quando se ne esce**.
 1. Con le pagine chiuse, entrare in *Interface Mode* e aprire la pagina con
    l'icona di interfaccia collegata.
 2. Selezionare l'icona di interfaccia.
-3. **Delete**, dal menu *Edit* della pagina o dal menu del tasto destro. In
-   *Interface Mode* il Delete **non cancella l'icona**: toglie solo la sua
-   connessione verso l'altro schema e libera la porta
-   ([delete_interface](config/othercnf.c#L1805)).
+3. **Delete**, oppure *Disconnect interface*, dal menu *Edit* della pagina o
+   dal menu del tasto destro. In *Interface Mode* il Delete **non cancella
+   l'icona**: toglie solo la sua connessione verso l'altro schema e libera la
+   porta ([delete_interface](config/othercnf.c#L2017)).
 4. Chiudere le pagine e uscire da *Interface Mode* per salvare.
 
 Per cancellare l'icona stessa, o il filo interno allo schema, si lavora fuori
@@ -201,8 +278,8 @@ da *Interface Mode*, con il Delete normale della pagina.
 
 #### Collegare e scollegare con l'editor `lgconn` (consigliato)
 
-`lgconn` fa lo stesso lavoro di *Interface Mode* senza aprire `config` e senza
-aprire le pagine. Si lancia in due modi:
+`lgconn` fa lo stesso lavoro senza aprire `config` e senza aprire le
+pagine, e mostra tutte le connessioni della task in una tabella. Si lancia in due modi:
 - da **lghmi**, selezionando la task di regolazione e scegliendo *Tools →
   lgconn - connections between the schemes of the selected regulation task*;
 - da terminale, con `lgconn <directory della task>`.
@@ -248,8 +325,7 @@ loro icone già esistenti. Se un'icona non è collegata dentro lo schema,
 
 Le righe scritte da `lgconn` sono identiche a quelle che scriverebbe
 `config`. Quelle che non si toccano restano byte per byte come erano, e il
-file si legge con il `config` di sempre. *Interface Mode* resta disponibile
-per chi la preferisce.
+file si legge con il `config` di sempre.
 
 **`config` e `lgconn` aperti insieme.** Entrambi tengono in memoria le
 connessioni lette, e nessuno dei due riscrive il file se nel frattempo
@@ -259,6 +335,11 @@ l'altro lo ha cambiato:
 - `config`, all'uscita da *Interface Mode*, mette le sue in
   `Connessioni.reg.config` e lo dice ([OlConn.c](lib/Ol/OlConn.c),
   `file_cambiato`).
+
+Collegando direttamente nelle pagine il rischio è minore: `config` rilegge
+il file a ogni collegamento e a ogni *Disconnect interface*. Resta il fatto
+che le porte disegnate nelle pagine aperte non si aggiornano da sole: dopo un
+salvataggio di `lgconn` conviene riaprirle.
 
 Fino all'ottobre 2026 `config` riscriveva il file in ogni caso, e cancellava
 senza avvisare le modifiche fatte nel frattempo da altri.

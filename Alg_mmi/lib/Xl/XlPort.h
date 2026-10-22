@@ -154,6 +154,11 @@ Boolean XlCheckPort(Widget );
 Boolean XlPortIsInput(Widget );
 Boolean XlPortIsOutput(Widget );
 void XlPortPosizionaLabel();
+/* chi usa le porte (config) puo' farsi passare i rifiuti di PortSelect,
+   che altrimenti finiscono solo su stderr: livello 0 informazione,
+   1 rifiuto, 2 errore */
+typedef void (*XlPortMsgProc)(Widget, int, char *);
+void XlPortSetMsgHandler(XlPortMsgProc);
 
 #endif /* _XlPort_h */
 

@@ -71,6 +71,8 @@ extern void assign_name();
 extern swidget topLevelShell;
 
 static Boolean CreoNuovaInterfaccia();
+static Boolean CollegaInterfacceSuFile(Widget, Widget);
+void PagStatusMsg(Widget, int, char *);    /* PagShell.c */
 extern void draw_conn(XdConnDraget);
 
 extern int OlFindConnectionByPort(OlConnObject , char *, char* ,char *);
@@ -1795,6 +1797,213 @@ int move_widget(PAGINA *pag,Widget wid,XEvent *eve)
    return(True);
 }
 
+/*----------------------------------------------------------------------
+ * Connessioni fra schemi fuori da Interface Mode (ottobre 2026).
+ *
+ * Fuori dalla modalita' conn_obj non resta caricato: come fanno gia'
+ * PostOpenPage2, scrivi_connessioni e le altre, si rilegge Connessioni.reg,
+ * si fa l'operazione e lo si risalva subito. Cosi' il file e' sempre quello
+ * vero anche se nel frattempo lo ha cambiato lgconn, e OlSaveConn rifiuta
+ * comunque di sovrascrivere un file cambiato fra la lettura e la scrittura.
+ * In Interface Mode tutto resta come prima.
+ *----------------------------------------------------------------------*/
+
+extern Boolean StateInterfaceMode;
+void delete_interface(PAGINA *);
+
+static void path_connessioni(char *file_conn)
+{
+#ifndef VMS
+   strcpy(file_conn,XlGetenv(ENVPAG));
+   strcat(file_conn,"/");
+#else
+   strcpy(file_conn,XlConvDirVms(XlGetenv(ENVPAG)));
+#endif
+   strcat(file_conn,"Connessioni.reg");
+}
+
+/* La pagina aperta con questo nome, NULL se non e' aperta. */
+static PAGINA *pagina_aperta(char *nome)
+{
+   extern PAGINA *pagine;
+   PAGINA *p;
+
+   for(p = pagine; p != NULL; p = p->pagsucc)
+      if(p->drawing != NULL && strcmp(p->nomepag,nome) == 0)
+         return(p);
+   return(NULL);
+}
+
+/* Libera la porta di interfaccia "icona.porta" della pagina, se e' aperta. */
+static void libera_porta(char *nomepag, char *icona, char *porta)
+{
+   PAGINA *p;
+   Widget wi, wp;
+   Arg arg[1];
+
+   if((p = pagina_aperta(nomepag)) == NULL)
+      return;
+   if((wi = XtNameToWidget(p->drawing,icona)) == NULL)
+      return;
+   if((wp = XtNameToWidget(wi,porta)) == NULL)
+      return;
+   XtSetArg(arg[0],XlNportNameConnect,"");
+   XtSetValues(wp,arg,1);
+   XlSetResourceByWidget(&p->db,wp,XlNportNameConnect,"");
+   XClearArea(XtDisplay(wp),XtWindow(wp),0,0,0,0,True);
+}
+
+/*
+   Collega due porte di interfaccia (gia' controllate da XlPort: una
+   d'uscita e una d'ingresso, stesso tipo, pagine diverse) e scrive subito
+   la connessione in Connessioni.reg.
+*/
+static Boolean CollegaInterfacceSuFile(Widget w1, Widget w2)
+{
+   extern PAGINA *GetPaginaFromWidget();
+   char file_conn[FILENAME_MAX];
+   PAGINA *p1, *p2;
+   Boolean ok;
+
+   path_connessioni(file_conn);
+   conn_obj = OlCreateConn(file_conn);
+   if(conn_obj == NULL)
+      {
+      SetMsg(topLevelShell,NULL,WRNMSG,"ConfigWarning",
+         "Cannot read Connessioni.reg: connection not made.",
+         NULL,False,NULL,False,NULL);
+      return(False);
+      }
+   p1 = GetPaginaFromWidget(XtParent(XtParent(w1)));
+   p2 = GetPaginaFromWidget(XtParent(XtParent(w2)));
+   if(OlFindConnectionByPort(conn_obj,XtName(w1),XtName(XtParent(w1)),p1->nomepag) >= 0 ||
+      OlFindConnectionByPort(conn_obj,XtName(w2),XtName(XtParent(w2)),p2->nomepag) >= 0)
+      {
+      PagStatusMsg(w1,1,
+         "Not connected: Connessioni.reg already has one of the two ports (changed by lgconn?): reopen the pages");
+      OlDestroyConn(conn_obj);
+      conn_obj = NULL;
+      return(False);
+      }
+   ok = CreoNuovaInterfaccia(w1,w2);
+   if(ok && !OlSaveConn(conn_obj))
+      {
+      SetMsg(topLevelShell,NULL,WRNMSG,"ConfigWarning",
+         "Connessioni.reg changed elsewhere: see .config",
+         NULL,False,NULL,False,NULL);
+      ok = False;
+      }
+   OlDestroyConn(conn_obj);
+   conn_obj = NULL;
+   return(ok);
+}
+
+/*
+   Edit -> Disconnect interface: toglie le connessioni verso altri schemi
+   delle icone di interfaccia selezionate. In Interface Mode e' il Delete di
+   sempre (delete_interface, salvato all'uscita dalla modalita'); fuori, il
+   file si rilegge e si risalva subito, e si liberano le porte di entrambe
+   le pagine, se aperte. Si salva PRIMA di toccare le porte: se il salvataggio
+   viene rifiutato, quello che si vede resta uguale al file.
+*/
+void scollega_interfacce(PAGINA *pag)
+{
+   extern int get_selected();
+   Cardinal num_selected, num_figli;
+   Widget *selected, *figli;
+   char file_conn[FILENAME_MAX];
+   char altra_pag[MAXCHAR_PAGNAME+20], altra_ico[50], altra_porta[50];
+   char msg[200];
+   /* le porte da liberare dopo il salvataggio: pagina, icona, porta */
+   char (*libere)[3][MAXCHAR_PAGNAME+50] = NULL;
+   int nlibere = 0;
+   int i, j, ret, tolte = 0;
+   CONNESSIONE *c;
+
+   if(StateInterfaceMode)
+      {
+      delete_interface(pag);
+      return;
+      }
+   if(get_selected(pag,&selected,&num_selected) == False || num_selected == 0)
+      {
+      PagStatusMsg(pag->drawing,1,
+         "Select the interface icons to disconnect, then Edit -> Disconnect interface");
+      return;
+      }
+   path_connessioni(file_conn);
+   conn_obj = OlCreateConn(file_conn);
+   if(conn_obj == NULL)
+      return;
+   for(i=0;i<num_selected;i++)
+      {
+      Widget icona = selected[i];
+
+      /* selezionata una porta dell'icona invece dell'icona: va bene lo stesso */
+      if(XlIsPort(icona) && XlIsInterfaceIconReg(XtParent(icona)))
+         icona = XtParent(icona);
+      if(!XlIsInterfaceIconReg(icona))
+         continue;
+      get_child(icona,&figli,&num_figli);
+      for(j=0;j<num_figli;j++)
+         {
+         if(!XlIsInterfacePort(figli[j]))
+            continue;
+         ret = OlFindConnectionByPort(conn_obj,XtName(figli[j]),
+                  XtName(icona),pag->nomepag);
+         if(ret < 0)
+            continue;
+         c = OlGetConn(conn_obj,ret);
+         if(strcmp(c->u_nome_pagina,pag->nomepag) == 0 &&
+            strcmp(c->u_nome_porta_int,XtName(figli[j])) == 0)
+            {
+            strcpy(altra_pag,c->i_nome_pagina);
+            strcpy(altra_ico,c->i_nome_icona_int);
+            strcpy(altra_porta,c->i_nome_porta_int);
+            }
+         else
+            {
+            strcpy(altra_pag,c->u_nome_pagina);
+            strcpy(altra_ico,c->u_nome_icona_int);
+            strcpy(altra_porta,c->u_nome_porta_int);
+            }
+         OlDelConnection(conn_obj,ret);
+         libere = (char (*)[3][MAXCHAR_PAGNAME+50])
+                  XtRealloc((char*)libere,(nlibere+2)*sizeof(*libere));
+         strcpy(libere[nlibere][0],pag->nomepag);
+         strcpy(libere[nlibere][1],XtName(icona));
+         strcpy(libere[nlibere][2],XtName(figli[j]));
+         strcpy(libere[nlibere+1][0],altra_pag);
+         strcpy(libere[nlibere+1][1],altra_ico);
+         strcpy(libere[nlibere+1][2],altra_porta);
+         nlibere += 2;
+         tolte++;
+         }
+      }
+   if(tolte == 0)
+      {
+      PagStatusMsg(pag->drawing,1,
+         "The selected icons have no connection to other pages");
+      }
+   else if(!OlSaveConn(conn_obj))
+      {
+      SetMsg(topLevelShell,NULL,WRNMSG,"ConfigWarning",
+         "Connessioni.reg changed elsewhere: not saved",
+         NULL,False,NULL,False,NULL);
+      }
+   else
+      {
+      for(i=0;i<nlibere;i++)
+         libera_porta(libere[i][0],libere[i][1],libere[i][2]);
+      sprintf(msg,"Disconnected %d connection(s) to other pages, saved in Connessioni.reg",tolte);
+      PagStatusMsg(pag->drawing,0,msg);
+      }
+   if(libere != NULL)
+      XtFree((char*)libere);
+   OlDestroyConn(conn_obj);
+   conn_obj = NULL;
+}
+
 /*--------------------------------------
  *
  * routine delete in InterfaceMode On
@@ -1891,7 +2100,7 @@ int delete_widget(PAGINA *pag)
       */
       if(XlInterfaceIconRegIsConnected(selected[i]))
          { 
-            SetMsg(topLevelShell,NULL,INFMSG,"ConfigInfo","Selected Widget is a connected Interface IconReg",NULL,False,NULL,False,NULL);
+            PagStatusMsg(selected[i],1,"Not deleted: the icon is connected to another page, Edit -> Disconnect interface first");
             return(False);
          }
 
@@ -3279,18 +3488,22 @@ ev.xbutton.x = x + px + width/2;
 ev.xbutton.y = y + py + height/2;
 
 /*
-	se la porta e' di interfaccia puo' essere connessa solo
-	in InterfaceMode
+	Le porte di interfaccia (connessioni fra schemi) si collegano anche
+	fuori da Interface Mode, con il Connect Mode della pagina: la
+	connessione va subito in Connessioni.reg (CollegaInterfacceSuFile).
+	Fino all'ottobre 2026 qui si rifiutavano, e per collegare due schemi
+	bisognava chiudere tutte le pagine ed entrare in Interface Mode.
 */
-if(XlIsInterfacePort(w) && !StateInterfaceMode)
-	return(False);
 
 /*
 	se si e' in InterfaceMode possono essere connesse solo le
 	porte di interfaccia
 */
 if(!XlIsInterfacePort(w) && StateInterfaceMode)
+	{
+	PagStatusMsg(w,1,"In Interface Mode only the interface ports connect");
 	return(False);
+	}
 
 if(modo == 1)
         {
@@ -3301,6 +3514,10 @@ if(modo == 1)
         	FirstPointConn(XtParent(XtParent(w)),&ev,gcPort);
         	add_def_translation(XtParent(XtParent(w)), regPoliTable);
 		}
+	else
+		PagStatusMsg(w,0,XlPortIsOutput(w) ?
+		   "Output selected: now click the interface INPUT port in the other page" :
+		   "Input selected: now click the interface OUTPUT port in the other page");
         }
 else
         {
@@ -3315,6 +3532,11 @@ else
 		Boolean ConnOk;
 		ConnOk=CreoNuovaInterfaccia(w,wseconda);
 		if(ConnOk==False)
+			return(False);
+		}
+	else if(XlIsInterfacePort(w))
+		{
+		if(!CollegaInterfacceSuFile(w,wseconda))
 			return(False);
 		}
 /*
@@ -3369,6 +3591,18 @@ printf("DEBUG:other_c.c: sel2 wid =%s set a %s\n",XtName(w),resPorta);
 	if(!(XlIsInterfaceIconReg(XtParent(w)) || 
 		XlIsInterfaceIconReg(XtParent(wseconda))))
         		PropagaValore(w,wseconda);
+	if(XlIsInterfacePort(w))
+		{
+		char msg[MAXCHAR_PAGNAME*2+100];
+		PAGINA *p1 = GetPaginaFromWidget(XtParent(XtParent(w)));
+		PAGINA *p2 = GetPaginaFromWidget(XtParent(XtParent(wseconda)));
+
+		sprintf(msg,"Connected %s <-> %s, %s",p2->nomepag,p1->nomepag,
+		   StateInterfaceMode ? "saved when leaving Interface Mode" :
+		   "saved in Connessioni.reg");
+		PagStatusMsg(w,0,msg);
+		PagStatusMsg(wseconda,0,msg);
+		}
         }
 return(True);
 }
@@ -3974,7 +4208,7 @@ if(nome_porta_ing == NULL || strlen(nome_porta_ing)==0)
 	{
 	fprintf(stderr,
 		"Cannot connect Interface Port Not Internally Connected\n");
-        SetMsg(topLevelShell,NULL,INFMSG,"Warning","Cannot connect Interface Port That Is Not Internally Connected",NULL,False,NULL,False,NULL);
+        PagStatusMsg(w_ing,1,"Not connected: in this page the interface icon has no wire to a block, draw it first");
 	return(False);
 	}
 /*
@@ -4023,7 +4257,7 @@ if(nome_porta_usc == NULL || strlen(nome_porta_usc)==0)
 	{
 	fprintf(stderr,
 		"Cannot connect Interface Port Not Internally Connected\n");
-        SetMsg(topLevelShell,NULL,INFMSG,"Warning","Cannot connect Interface Port That Is Not Internally Connected",NULL,False,NULL,False,NULL);
+        PagStatusMsg(w_usc,1,"Not connected: in this page the interface icon has no wire to a block, draw it first");
 	return(False);
 	}
 icon_usc=get_wid_icon_conn(XtParent(XtParent(wf_usc)),nome_porta_usc);

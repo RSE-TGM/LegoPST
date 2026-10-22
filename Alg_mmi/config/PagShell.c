@@ -1684,6 +1684,112 @@ static	void	activateCB_FDuplicateAll( UxWidget, UxClientData, UxCallbackArg )
 	UxPagShellContext = UxSaveCtx;
 }
 
+/*
+	La riga di stato in fondo alla pagina (PagStatus, ottobre 2026): le
+	notifiche che non devono fermare il lavoro con un popup, in primo
+	luogo i clic rifiutati nel collegare le porte, che prima finivano solo
+	su stderr. Il colore dice il livello (0 verde: fatto; 1 giallo:
+	rifiutato, con un bip; 2 rosso: errore) e dopo qualche secondo torna
+	normale; il testo resta fino alla notifica successiva.
+	w e' un qualunque widget della pagina.
+*/
+#define PAGSTATUS_MS_OK      6000
+#define PAGSTATUS_MS_AVVISO 12000
+
+static void PagStatusNormale(XtPointer client_data, XtIntervalId *id)
+{
+	Widget lab = (Widget) client_data;
+	Pixel bg, fg;
+
+	XtVaGetValues(XtParent(lab), XmNbackground, &bg,
+	              XmNforeground, &fg, NULL);
+	XtVaSetValues(lab, XmNbackground, bg, XmNforeground, fg,
+	              XmNuserData, (XtPointer) 0, NULL);
+}
+
+static void PagStatusDistrutto(Widget lab, XtPointer cd, XtPointer cb)
+{
+	XtPointer id = NULL;
+
+	XtVaGetValues(lab, XmNuserData, &id, NULL);
+	if(id != NULL)
+		XtRemoveTimeOut((XtIntervalId) id);
+}
+
+void PagStatusMsg(Widget w, int livello, char *msg)
+{
+	static char *sfondo[] = { "PaleGreen", "Yellow", "Red" };
+	static char *testo[]  = { "Black", "Black", "White" };
+	Widget shell, lab;
+	XtPointer id = NULL;
+	XmString xs;
+
+	if(w == NULL || msg == NULL)
+		return;
+	if(livello < 0) livello = 0;
+	if(livello > 2) livello = 2;
+	for(shell = w; shell != NULL && !XtIsShell(shell);
+	    shell = XtParent(shell))
+		;
+	lab = (shell != NULL) ? XtNameToWidget(shell, "*PagStatus") : NULL;
+	if(lab == NULL)
+		{
+		fprintf(stderr, "config: %s\n", msg);
+		return;
+		}
+	xs = XmStringCreateSimple(msg);
+	XtVaSetValues(lab, XmNlabelString, xs,
+	        XtVaTypedArg, XmNbackground, XmRString,
+	            sfondo[livello], strlen(sfondo[livello]) + 1,
+	        XtVaTypedArg, XmNforeground, XmRString,
+	            testo[livello], strlen(testo[livello]) + 1,
+	        NULL);
+	XmStringFree(xs);
+	if(livello > 0)
+		XBell(XtDisplay(lab), 0);
+	XtVaGetValues(lab, XmNuserData, &id, NULL);
+	if(id != NULL)
+		XtRemoveTimeOut((XtIntervalId) id);
+	id = (XtPointer) XtAppAddTimeOut(XtWidgetToApplicationContext(lab),
+	        livello == 0 ? PAGSTATUS_MS_OK : PAGSTATUS_MS_AVVISO,
+	        PagStatusNormale, (XtPointer) lab);
+	XtVaSetValues(lab, XmNuserData, id, NULL);
+	XmUpdateDisplay(lab);
+}
+
+/*
+	Edit -> Disconnect interface (e la stessa voce nel menu del tasto
+	destro): toglie le connessioni verso altri schemi delle icone di
+	interfaccia selezionate, scollega_interfacce in othercnf.c. Funziona
+	anche fuori da Interface Mode (ottobre 2026).
+*/
+static	void	activateCB_Disconnect( UxWidget, UxClientData, UxCallbackArg )
+	Widget		UxWidget;
+	XtPointer	UxClientData, UxCallbackArg;
+{
+	_UxCPagShell            *UxSaveCtx, *UxContext;
+
+	/*
+	   il contesto della pagina da cui arriva il clic: senza, actual_page
+	   sarebbe quella dell'ultimo contesto attivo, cioe' un'altra pagina
+	   quando ce n'e' piu' d'una aperta
+	*/
+	UxSaveCtx = UxPagShellContext;
+	UxPagShellContext = UxContext =
+			(_UxCPagShell *) UxGetContext( UxWidget );
+	{
+#ifndef DESIGN_TIME
+	extern void scollega_interfacce();
+
+	if(WidSelectedAreInEdit(actual_page) == False)
+	   scollega_interfacce(actual_page);
+	else
+	   SetMsg(NULL,NULL,WRNMSG,"ConfigWarning","Selected Widget Is In Edit",NULL,False,NULL,False,NULL);
+#endif
+	}
+	UxPagShellContext = UxSaveCtx;
+}
+
 static	void	activateCB_FDeleteAll( UxWidget, UxClientData, UxCallbackArg )
 	Widget		UxWidget;
 	XtPointer	UxClientData, UxCallbackArg;
@@ -2519,6 +2625,29 @@ static Widget	_Uxbuild_PagShell()
 	UxPutContext( PagForm1, (char *) UxPagShellContext );
 
 
+	/* Creation of PagStatus: la riga di stato, vedi PagStatusMsg */
+	{
+	Widget PagStatus;
+	PagStatus = XtVaCreateManagedWidget( "PagStatus",
+			xmLabelWidgetClass,
+			PagForm1,
+			RES_CONVERT( XmNlabelString, " " ),
+			XmNalignment, XmALIGNMENT_BEGINNING,
+			XmNrecomputeSize, FALSE,
+			XmNmarginHeight, 4,
+			XmNmarginWidth, 8,
+			XmNuserData, (XtPointer) 0,
+			XmNbottomAttachment, XmATTACH_FORM,
+			XmNleftAttachment, XmATTACH_FORM,
+			XmNrightAttachment, XmATTACH_FORM,
+			NULL );
+	UxPutContext( PagStatus, (char *) UxPagShellContext );
+	XtAddCallback( PagStatus, XmNdestroyCallback,
+		(XtCallbackProc) PagStatusDistrutto, NULL );
+#ifndef DESIGN_TIME
+	XlPortSetMsgHandler( PagStatusMsg );
+#endif
+
 	/* Creation of PagScrolledWindow */
 	PagScrolledWindow = XtVaCreateManagedWidget( "PagScrolledWindow",
 			xmScrolledWindowWidgetClass,
@@ -2526,7 +2655,8 @@ static Widget	_Uxbuild_PagShell()
 			XmNscrollingPolicy, XmAUTOMATIC,
 			XmNx, 0,
 			XmNy, 0,
-			XmNbottomAttachment, XmATTACH_FORM,
+			XmNbottomAttachment, XmATTACH_WIDGET,
+			XmNbottomWidget, PagStatus,
 			XmNleftAttachment, XmATTACH_FORM,
 			XmNrightAttachment, XmATTACH_FORM,
 			XmNtopAttachment, XmATTACH_FORM,
@@ -2534,6 +2664,7 @@ static Widget	_Uxbuild_PagShell()
 			XmNtraversalOn, FALSE,
 			NULL );
 	UxPutContext( PagScrolledWindow, (char *) UxPagShellContext );
+	}
 
 
 	/* Creation of PagDrawingArea */
@@ -2661,6 +2792,18 @@ static Widget	_Uxbuild_PagShell()
 		(XtPointer) UxPagShellContext );
 
 	UxPutContext( menu3DeleteAll, (char *) UxPagShellContext );
+
+	{
+	Widget w = XtVaCreateManagedWidget( "menu3Disconnect",
+			xmPushButtonWidgetClass,
+			menu3,
+			RES_CONVERT( XmNlabelString, "Disconnect interface" ),
+			NULL );
+	XtAddCallback( w, XmNactivateCallback,
+		(XtCallbackProc) activateCB_Disconnect,
+		(XtPointer) UxPagShellContext );
+	UxPutContext( w, (char *) UxPagShellContext );
+	}
 
 
 	/* Creation of menu3CutAll */
@@ -3080,6 +3223,18 @@ static Widget	_Uxbuild_PagShell()
 		(XtPointer) UxPagShellContext );
 
 	UxPutContext( FDeleteAll, (char *) UxPagShellContext );
+
+	{
+	Widget w = XtVaCreateManagedWidget( "FDisconnect",
+			xmPushButtonWidgetClass,
+			FEdit,
+			RES_CONVERT( XmNlabelString, "Disconnect interface" ),
+			NULL );
+	XtAddCallback( w, XmNactivateCallback,
+		(XtCallbackProc) activateCB_Disconnect,
+		(XtPointer) UxPagShellContext );
+	UxPutContext( w, (char *) UxPagShellContext );
+	}
 
 
 	/* Creation of FCutAll */

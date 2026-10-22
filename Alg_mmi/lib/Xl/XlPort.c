@@ -877,6 +877,20 @@ Widget w;
 XlPortWidget cw= (XlPortWidget) w;
 
 /*
+	se la porta era il primo punto di una connessione in corso, la
+	connessione si annulla: altrimenti wport resterebbe a puntare a un
+	widget distrutto. PortSelect lo confrontava a ogni clic ("Connection
+	active on a different window", anche riaprendo la stessa pagina) e
+	prima o poi il programma cadeva. Succedeva chiudendo la pagina dopo
+	aver scelto una porta senza completare la connessione.
+*/
+if(xlPortClassRec.xlport_class.wport == w)
+	{
+	xlPortClassRec.xlport_class.wport = NULL;
+	xlPortClassRec.xlport_class.stato_porte = CONNESSIONE_PORTE_NON_ATTIVA;
+	}
+
+/*
 	se necessario distruggo la label
 */
 if(cw->port.wLabel!=NULL)
@@ -1188,6 +1202,25 @@ else
 
 
 
+/*
+	Avvisi di PortSelect: su stderr come sempre, e a chi ha registrato
+	un gestore (config li mostra nella riga di stato della pagina: prima
+	dell'ottobre 2026 un clic rifiutato non dava nessun segno a video).
+*/
+static XlPortMsgProc port_msg_handler = NULL;
+
+void XlPortSetMsgHandler(XlPortMsgProc proc)
+{
+port_msg_handler = proc;
+}
+
+static void PortAvviso(Widget w, char *stderr_msg, char *msg)
+{
+XlWarning("XlPort","PortSelect",stderr_msg);
+if(port_msg_handler != NULL)
+	(*port_msg_handler)(w,1,msg);
+}
+
 static void PortSelect(Widget w)
 {
 XlPortWidget cw = (XlPortWidget) w;
@@ -1204,6 +1237,31 @@ unsigned long valuemask= GCForeground | GCBackground | GCLineWidth
 
 if(!cw->port.connectMode)
 	return;
+
+/*
+	Una porta di interfaccia scelta col primo clic e mai completata non
+	deve bloccare il resto (ottobre 2026: fuori da Interface Mode il primo
+	clic su una porta di interfaccia resta in attesa, prima veniva
+	rifiutato). Un nuovo clic sulla stessa porta annulla la scelta; un clic
+	su una porta di un blocco, o su un'altra porta di interfaccia della
+	stessa pagina, la sostituisce e fa ripartire da li'.
+*/
+if(xlPortClassRec.xlport_class.stato_porte == CONNESSIONE_PORTE_ATTIVA &&
+   xlPortClassRec.xlport_class.wport != NULL &&
+   XlIsInterfacePort((Widget)xlPortClassRec.xlport_class.wport))
+	{
+	if(xlPortClassRec.xlport_class.wport == w)
+		{
+		XlPortResetConnection();
+		if(port_msg_handler != NULL)
+			(*port_msg_handler)(w,0,"Selection cancelled");
+		return;
+		}
+	if(!XlIsInterfacePort(w) ||
+	   XtParent(XtParent(xlPortClassRec.xlport_class.wport)) ==
+	   XtParent(XtParent(w)))
+		XlPortResetConnection();
+	}
 
 /*
 	non possono essere connesse port di interfaccia con port normali
@@ -1233,14 +1291,14 @@ if(!XlIsInterfacePort((Widget)w))
      if(XtParent(XtParent(xlPortClassRec.xlport_class.wport))!=
 	  XtParent(XtParent(w))) 
 	  {
-	  XlWarning("XlPort","PortSelect",
-		  "Connection active on a different window");
+	  PortAvviso(w,"Connection active on a different window",
+		  "A connection is in progress in another page: finish it there, or right click there to cancel");
 	  return;
           }
       if(XlIsInterfacePort((Widget)xlPortClassRec.xlport_class.wport))
           {
-          XlWarning("XlPort","PortSelect",
-                "Try to connect not homogenous port (interface with normal)");
+          PortAvviso(w,"Try to connect not homogenous port (interface with normal)",
+                "Not connected: an interface port goes to an interface port of another page");
 	  XlPortResetConnection();
           return;
           }
@@ -1254,15 +1312,15 @@ else
      if(XtParent(XtParent(xlPortClassRec.xlport_class.wport))==
 	  XtParent(XtParent(w))) 
 	  {
-	  XlWarning("XlPort","PortSelect",
-		  "Connection active allowed on different window");
+	  PortAvviso(w,"Connection active allowed on different window",
+		  "Not connected: an interface port goes to another page");
 	  XlPortResetConnection();
 	  return;
 	  }
       if(!XlIsInterfacePort((Widget)xlPortClassRec.xlport_class.wport))
           {
-          XlWarning("XlPort","PortSelect",
-                "Try to connect not homogenous port (interface with normal)");
+          PortAvviso(w,"Try to connect not homogenous port (interface with normal)",
+                "Not connected: a block port goes to a block port of the same page");
 	  XlPortResetConnection();
           return;
           }
@@ -1285,8 +1343,8 @@ if(xlPortClassRec.xlport_class.stato_porte == CONNESSIONE_PORTE_ATTIVA)
 		((tipo_1 == OUTPUT_PORT_D)&&(tipo_2 != INPUT_PORT_D)) 
 	  )
 		{
-		XlWarning("XlPort","PortSelect",
-			"Try to connect not homogenous port");
+		PortAvviso(w,"Try to connect not homogenous port",
+			"Wrong port: an output goes to an input of the same kind (analog/digital)");
 		return;
 		}
 	}
@@ -1305,8 +1363,10 @@ if(xlPortClassRec.xlport_class.stato_porte== CONNESSIONE_PORTE_NON_ATTIVA)
         if(cw->port.nome_port_connect!=NULL)
 	  if(strlen(cw->port.nome_port_connect)!=0)
 		{
-		XlWarning("XlPort","PortSelect",
-			"Tryed to connect busy port !!");
+		PortAvviso(w,"Tryed to connect busy port !!",
+			XlIsInterfacePort((Widget)cw) ?
+			"Port already connected: Edit -> Disconnect interface frees it" :
+			"Port already connected");
                 if(XlIsInterfacePort((Widget)cw))
 	        	XlPortResetConnection();
 		return;
@@ -1319,8 +1379,10 @@ else
         if(cw->port.nome_port_connect!=NULL)
 	    if(strlen(cw->port.nome_port_connect)!=0)
 		{
-		XlWarning("XlPort","PortSelect",
-			"Tryed to connect busy port !!");
+		PortAvviso(w,"Tryed to connect busy port !!",
+			XlIsInterfacePort((Widget)cw) ?
+			"Port already connected: Edit -> Disconnect interface frees it" :
+			"Port already connected");
                 if(XlIsInterfacePort((Widget)cw))
 	        	XlPortResetConnection();
 		return;

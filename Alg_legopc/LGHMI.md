@@ -865,7 +865,7 @@ processi indipendenti: chiuderli non chiude `lghmi`, e viceversa.
 
 **`lgconn`** apre l'editor delle connessioni fra gli schemi della task di
 regolazione selezionata nel riquadro *Regulation tasks* (`Connessioni.reg`,
-quelle che in `config` si fanno in *Interface Mode*). Basta il riquadro delle
+quelle che in `config` si fanno fra le porte di interfaccia). Basta il riquadro delle
 regolazioni, non serve un simulatore corrente: legge e scrive solo file della
 task. Come per *kCompile*, la task deve appartenere all'area di lavoro
 corrente. Guida in [Alg_mmi/README.md](../Alg_mmi/README.md), *Collegare gli

@@ -36,6 +36,7 @@ static char *_csrc = "@(#) %filespec: graphics.c-10 %  (%full_filespec: graphics
 #include <Xd/Xd.h>
 #include <Xd/XdListaP.h>
 #include <Xd/XdUndoP.h>
+#include <Xd/XdCoreP.h>   /* dr_corrente->xdcore.wid in DrawForgetCurrent */
 
 #include <Xl/Xl.h>
 #include <Xl/XlPort.h>
@@ -544,6 +545,20 @@ XdFirstPoint(dr_corrente,ev);
 }
 
 
+
+/*
+ DrawForgetCurrent: chi distrugge la lista dei draget di una drawing area
+ (config, chiudendo una pagina) chiama prima questa. Se il disegno in corso,
+ per esempio un filo iniziato col primo clic e mai finito, sta su quella
+ drawing area, dr_corrente va dimenticato: punterebbe a un draget distrutto,
+ e il primo clic su una porta di una pagina aperta dopo farebbe cadere il
+ programma in XdFirstPoint (ottobre 2026).
+*/
+void DrawForgetCurrent(Widget wid)
+{
+if(dr_corrente != NULL && dr_corrente->xdcore.wid == wid)
+	dr_corrente = NULL;
+}
 
 void SecondPointConn(wid,ev)
 Widget wid;

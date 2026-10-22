@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # lgconn - le connessioni fra gli schemi di una task di regolazione
-# (Connessioni.reg, quelle che in config si fanno in Interface Mode).
+# (Connessioni.reg, quelle che in config si fanno fra le porte di interfaccia).
 #
 # Uso:
 #   lgconn [DIR]           l'editor: gli ingressi di interfaccia di tutti gli

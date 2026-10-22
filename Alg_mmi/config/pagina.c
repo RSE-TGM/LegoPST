@@ -2012,9 +2012,12 @@ XdListaUndo  l_undo;
 XdLista      ListaDraget;
 XdLista      ListaDragetUndo;
 extern void proc_DeleteConn();
+extern void DrawForgetCurrent(Widget);
 /*
-        elimina i draget
+        elimina i draget; prima, il filo eventualmente lasciato a meta'
+        in questa pagina non deve restare il "disegno in corso"
 */
+   DrawForgetCurrent(pag->drawing);
    XdSetDeleteConn((caddr_t)NULL);
    DrawDeleteAll(pag->drawing,NULL);
    XdSetDeleteConn((caddr_t)proc_DeleteConn);

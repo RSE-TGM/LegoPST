@@ -13,14 +13,22 @@ Ricostruito dai sorgenti:
 
 | | Modalità | Cosa si connette |
 |---|---|---|
-| **Dentro un singolo schema** | normale (Interface Mode **OFF**) | solo le porte **interne** allo schema |
-| **Tra schemi diversi** | **Interface Mode ON** | solo le porte **di interfaccia** (ponte tra pagine) |
+| **Dentro un singolo schema** | normale (Interface Mode **OFF**) | le porte **interne** allo schema |
+| **Tra schemi diversi** | normale, salvato subito | le porte **di interfaccia** (ponte tra pagine) |
+| **Tra schemi diversi** | **Interface Mode ON**, salvato all'uscita | solo le porte **di interfaccia** |
 
-La regola è imposta dal codice: una porta di interfaccia è connettibile **solo**
-se Interface Mode è attivo, e in Interface Mode si connettono **solo** porte di
-interfaccia ([othercnf.c `proc_SelPort`](othercnf.c)).
+In Interface Mode si connettono **solo** porte di interfaccia
+([othercnf.c `proc_SelPort`](othercnf.c)). Fuori dalla modalità, dall'ottobre
+2026, si connettono anche le porte di interfaccia: `CollegaInterfacceSuFile`
+rilegge `Connessioni.reg` e lo scrive subito, e *Edit → Disconnect interface*
+(`scollega_interfacce`) scollega. I clic rifiutati (porta occupata, tipi
+diversi, stessa pagina) compaiono nella riga di stato della pagina
+(`PagStatusMsg` in `PagShell.c`, registrata in `XlPort` con
+`XlPortSetMsgHandler`), oltre che su stderr. La guida per l'utente è in
+[Alg_mmi/README.md](../README.md), *Collegare gli schemi di una task di
+regolazione*.
 
-### Attivare/disattivare Interface Mode
+### Attivare/disattivare Interface Mode (il modo storico)
 
 - Voce di menù **"Interface Mode"** nel top-level di `config` (toggle
   `StateInterfaceMode`).
@@ -47,8 +55,8 @@ Seleziona il punto di partenza e attiva il disegno della connessione.
 | **Movimento mouse** | `draw_draget()` | La linea insegue il puntatore |
 
 **3. Completamento** — **clic sinistro sulla seconda porta**: registra la
-connessione (`proc_SelPort` modo 2). In Interface Mode viene prima verificata la
-compatibilità dell'interfaccia (`CreoNuovaInterfaccia`).
+connessione (`proc_SelPort` modo 2). Fra due porte di interfaccia viene prima
+verificata la compatibilità (`CreoNuovaInterfaccia`).
 
 ### In sintesi
 
