@@ -228,9 +228,10 @@ d'ingresso al blocco che la riceve. Si fa come ogni collegamento, con
 schemi viene rifiutata con *Cannot connect Interface Port That Is Not
 Internally Connected* ([CreoNuovaInterfaccia](config/othercnf.c#L4118)).
 
-Poi le due porte di interfaccia si collegano in tre modi, che scrivono lo
-stesso file e si possono alternare: direttamente nelle pagine, in
-*Interface Mode*, oppure con l'editor `lgconn`.
+Poi le due porte di interfaccia si collegano in due modi, che scrivono lo
+stesso file e si possono alternare: direttamente nelle pagine, oppure con
+l'editor `lgconn` (anche da `config`, menu *Scheme Conn.*). Il terzo modo
+storico, *Interface Mode*, è disattivato dall'ottobre 2026 (vedi sotto).
 
 #### Collegare direttamente nelle pagine
 
@@ -304,7 +305,15 @@ Se `Connessioni.reg` è stato cambiato da un altro programma fra la lettura e
 la scrittura, `config` non lo sovrascrive. Lascia il risultato in
 `Connessioni.reg.config` e lo dice (*Connessioni.reg changed elsewhere*).
 
-#### Collegare in *Interface Mode*
+#### Collegare in *Interface Mode* (disattivato)
+
+**Dal 26 ottobre 2026 la spunta *Interface Mode* è disattivata**: resta,
+in grigio, nel menu *Scheme Conn.* della finestra principale, dopo la voce
+di `lgconn`. Gli stessi collegamenti si fanno nelle pagine, salvati subito,
+o con `lgconn`. Il codice della modalità è intatto: per riattivarla basta
+togliere `XmNsensitive, FALSE` dalla creazione di `Mode` in
+[topLevelShell.c](config/topLevelShell.c) e ricompilare. Quel che segue
+descrive come funzionava.
 
 Il modo storico. Il file si legge quando si entra in *Interface Mode* e si
 **scrive solo quando se ne esce**
@@ -312,8 +321,9 @@ Il modo storico. Il file si legge quando si entra in *Interface Mode* e si
 
 1. **Chiudere tutte le pagine.** Con una pagina aperta la modalità non cambia,
    e compare *Close all the page first.*
-2. Nella finestra principale di `config`, menu **Interface Mode**, attivare la
-   voce a spunta **Interface Mode**. Buona parte dei menu principali si spegne,
+2. Nella finestra principale di `config`, menu **Scheme Conn.** (fino
+   all'ottobre 2026 si chiamava *Interface Mode*), attivare la voce a spunta
+   **Interface Mode**. Buona parte dei menu principali si spegne,
    e nelle pagine aperte da qui il *Connect Mode* è già attivo.
 3. Aprire le due pagine.
 4. Fare clic sulle due **porte di interfaccia**, come sopra. In questa
@@ -340,7 +350,13 @@ da *Interface Mode*, con il Delete normale della pagina.
 #### Collegare e scollegare con l'editor `lgconn` (consigliato)
 
 `lgconn` fa lo stesso lavoro senza aprire `config` e senza aprire le
-pagine, e mostra tutte le connessioni della task in una tabella. Si lancia in due modi:
+pagine, e mostra tutte le connessioni della task in una tabella. Si lancia in tre modi:
+- da **config**, nella finestra principale: *Scheme Conn. → lgconn - Manage
+  sch. connections*, sulla task aperta in `config`
+  ([activateCB_Lgconn](config/topLevelShell.c)). Non parte se `config` è in
+  *Interface Mode*, che tiene le connessioni in memoria e le scrive
+  all'uscita. Le pagine già aperte in `config` vedono le modifiche di
+  `lgconn` solo dopo averle riaperte;
 - da **lghmi**, selezionando la task di regolazione e scegliendo *Tools →
   lgconn - connections between the schemes of the selected regulation task*;
 - da terminale, con `lgconn <directory della task>`.
@@ -358,7 +374,9 @@ La finestra ha due tabelle:
   schema, dello stesso tipo (analogico o digitale).
 
 Le caselle *Cerca* filtrano le due tabelle per pagina, variabile, blocco o
-descrizione.
+descrizione. Il menu **?** apre una guida rapida (cos'è `lgconn` e come si
+usa, in una finestra di `lgconn` stesso) e, nel browser, questa guida e gli
+altri documenti.
 
 **Collegare.** Selezionare in alto l'ingresso, poi in basso l'uscita. Si
 conferma con doppio clic o con **Collega**.

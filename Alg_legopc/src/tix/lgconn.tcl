@@ -17,6 +17,9 @@
 namespace eval ::lgconn {}
 set ::lgconn::_qui [file dirname [file normalize [info script]]]
 source [file join $::lgconn::_qui lgconn_dati.tcl]
+#  openhelp.tcl apre i documenti (.md -> HTML) nel browser, per il menu "?";
+#  senza, la guida rapida funziona lo stesso e le altre voci lo dicono.
+catch {source [file join $::lgconn::_qui openhelp.tcl]}
 
 #  Il rapporto del controllo come testo, e il numero di errori.
 proc ::lgconn::testo_rapporto {task {note 0}} {
@@ -436,6 +439,124 @@ proc ::lgconn::gui::mostra_rapporto {} {
     $w.t configure -state disabled
 }
 
+# ---------------------------------------------------------------------------
+# Menu "?": in cima la guida rapida, in una finestra di lgconn (cos'e' e come
+# si usa, in breve); sotto i documenti completi, aperti nel browser come nel
+# "?" di lghmi e lgmkstaz. Solo ASCII: con LANG=POSIX Tcl non decodifica
+# l'UTF-8.
+# ---------------------------------------------------------------------------
+
+proc ::lgconn::gui::testo_guida {} {
+    return {lgconn - le connessioni fra gli schemi di una task di regolazione
+
+COS'E'
+In una task di regolazione (directory r_...) le variabili passano da uno
+schema (una pagina) all'altro attraverso le icone di interfaccia: l'uscita
+di uno schema collegata all'ingresso di un altro. Queste connessioni non
+stanno nelle pagine ma nel file Connessioni.reg della task. lgconn le mostra
+tutte in una tabella e permette di farle, toglierle e controllarle, senza
+aprire config e senza aprire le pagine.
+
+LA FINESTRA
+- In alto, tutti gli ingressi di interfaccia della task, con l'uscita a cui
+  sono collegati e lo stato: collegato; libero (in grigio); avvisi (in
+  giallo); errori (in rosso).
+- In basso, le uscite che si possono collegare all'ingresso scelto: libere,
+  dello stesso tipo (analogico o digitale), collegate a un blocco dentro il
+  loro schema.
+- Cerca: filtra le due tabelle per pagina, variabile, blocco o descrizione.
+
+COME SI USA
+- Collegare: selezionare l'ingresso in alto, poi doppio clic sull'uscita in
+  basso (oppure Modifica -> Collega).
+- Scollegare: selezionare l'ingresso collegato, Modifica -> Scollega.
+- Salvare: File -> Salva (Ctrl+S). Finche' non si salva non si scrive
+  niente; il primo salvataggio lascia la copia Connessioni.reg.bak.
+- Controllare: Verifica -> Rapporto completo (gli stessi controlli di
+  "lgconn -c"). Gli errori sono connessioni che la compilazione userebbe
+  sbagliate; gli avvisi, connessioni verso pagine che non ci sono piu'.
+- Pulire: Modifica -> Aggiorna i dati copiati dalle pagine (corregge
+  variabili e tag invecchiati); Modifica -> Togli le connessioni verso pagine
+  assenti.
+- Dopo il salvataggio la task di regolazione va ricompilata, perche' le
+  connessioni nuove entrino nel simulatore.
+
+DA SAPERE
+- Le icone di interfaccia, e il loro filo verso il blocco dentro lo schema,
+  si disegnano in config: lgconn collega fra loro icone che esistono gia'.
+  Un'icona non collegata a un blocco nel suo schema non viene proposta.
+- Con config aperto insieme: nessuno dei due sovrascrive Connessioni.reg se
+  l'altro lo ha cambiato; le pagine aperte in config vedono le modifiche
+  solo dopo averle riaperte.
+- Si apre anche da config (menu Scheme Conn.) e da lghmi (menu Tools).
+  Da terminale: "lgconn DIR" apre questo editor, "lgconn -c DIR" controlla
+  senza grafica.
+
+La guida completa e' nel menu "?": Alg_mmi/README.md, sezione "Collegare
+gli schemi di una task di regolazione".
+}
+}
+
+proc ::lgconn::gui::mostra_guida {} {
+    set w .guida
+    if {[winfo exists $w]} { raise $w; return }
+    toplevel $w
+    wm title $w "lgconn - guida rapida"
+    text $w.t -wrap word -width 80 -height 40 -yscrollcommand [list $w.s set]
+    scrollbar $w.s -command [list $w.t yview]
+    button $w.chiudi -text Chiudi -command [list destroy $w]
+    pack $w.chiudi -side bottom -pady 4
+    pack $w.s -side right -fill y
+    pack $w.t -fill both -expand 1
+    $w.t insert end [testo_guida]
+    #  i titoli delle sezioni (righe tutte maiuscole) in grassetto
+    $w.t tag configure titolo -font [concat [font actual TkFixedFont] -weight bold]
+    set n [lindex [split [$w.t index end] .] 0]
+    for {set i 1} {$i <= $n} {incr i} {
+        set riga [$w.t get $i.0 "$i.0 lineend"]
+        if {$i == 1 || ($riga ne "" && [regexp {^[A-Z' ]+$} $riga])} {
+            $w.t tag add titolo $i.0 "$i.0 lineend"
+        }
+    }
+    $w.t configure -state disabled
+    bind $w <Escape> [list destroy $w]
+}
+
+#  Un documento nel browser (openhelp.tcl); il messaggio va nella barra di
+#  stato.
+proc ::lgconn::gui::apri_documento {relativo} {
+    variable stato
+    if {[llength [info procs aiuto_apri_documento]] == 0} {
+        tk_messageBox -icon error -title lgconn -parent . -message \
+            "openhelp.tcl non caricato: non posso aprire la documentazione."
+        return
+    }
+    set messaggio [aiuto_apri_documento $relativo]
+    if {$messaggio ne ""} { set stato $messaggio }
+}
+
+proc ::lgconn::gui::costruisci_menu_aiuto {m} {
+    if {[lsearch -exact [font names] fontMenuRilievo] < 0} {
+        font create fontMenuRilievo {*}[font actual TkMenuFont]
+        font configure fontMenuRilievo -weight bold
+    }
+    $m add command -label "Guida rapida: cos'e' lgconn e come si usa" \
+        -font fontMenuRilievo -command ::lgconn::gui::mostra_guida
+    $m add separator
+    #  Una voce che punta a un file assente nasce SPENTA invece di sparire
+    #  (stessa scelta di lghmi e lgmkstaz).
+    foreach {etichetta relativo} {
+        "Guida completa: collegare gli schemi (Alg_mmi/README.md)"  Alg_mmi/README.md
+        "I comandi lg* (docs/COMANDI_LG.md)"                        docs/COMANDI_LG.md
+        "Indice della documentazione"                                DOCUMENTATION_INDEX.html
+    } {
+        set c_e [expr {[info exists ::env(LEGOROOT)] && $::env(LEGOROOT) ne "" \
+                       && [file exists [file join $::env(LEGOROOT) $relativo]]}]
+        $m add command -label $etichetta -state [expr {$c_e ? "normal" : "disabled"}] \
+            -command [list ::lgconn::gui::apri_documento $relativo]
+    }
+}
+
 proc ::lgconn::gui::costruisci {} {
     wm geometry . 1250x760
     wm protocol . WM_DELETE_WINDOW ::lgconn::gui::esci
@@ -465,6 +586,9 @@ proc ::lgconn::gui::costruisci {} {
     menu .mb.verifica -tearoff 0
     .mb add cascade -label "Verifica" -menu .mb.verifica
     .mb.verifica add command -label "Rapporto completo" -command ::lgconn::gui::mostra_rapporto
+    menu .mb.aiuto -tearoff 0
+    .mb add cascade -label "?" -menu .mb.aiuto
+    costruisci_menu_aiuto .mb.aiuto
 
     frame .cerca
     label .cerca.l -text "Cerca:"

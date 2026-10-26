@@ -684,3 +684,19 @@ dell'esempio dell'utente), ingresso libero del PID, icona di interfaccia,
 ingresso alimentato da un'altra pagina, `.pag` più recente, uscita dalla
 pagina, chiusura della pagina con il balloon aperto.
 
+#### Seguito (2026-10-26): menu *Scheme Conn.* in `config`
+
+Richiesta dell'utente: *Interface Mode* è ormai di contorno. Nella finestra
+principale di `config` il menu *Interface Mode* si chiama **Scheme Conn.**;
+dentro restano la spunta *Interface Mode* e, nuova, **lgconn - Manage sch.
+connections**, che lancia `lgconn $LEGOMMI_PAG` in background
+(`activateCB_Lgconn`, `topLevelShell.c`). Rifiutata, con un messaggio, mentre
+`config` è in *Interface Mode*. Provato in container: menu, `lgconn` aperto
+sulla task (padre il processo 1, nessuno zombie), rifiuto in *Interface Mode*.
+
+Poi, stesso giorno: su richiesta dell'utente la spunta *Interface Mode* è
+**disattivata ma non tolta** (`XmNsensitive, FALSE`) e messa dopo la voce di
+`lgconn`, che diventa la prima del menu. Il codice della modalità è intatto.
+Provato in container: menu nel nuovo ordine, spunta in grigio, il clic non
+attiva niente.
+

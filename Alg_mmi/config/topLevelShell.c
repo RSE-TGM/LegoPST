@@ -52,6 +52,7 @@
 
 #include <stdlib.h>
 #include <unistd.h>
+#include <sys/wait.h>
 #ifndef LINUX
 //#include <sys/access.h>
 #endif
@@ -2021,6 +2022,61 @@ static	void	valueChangedCB_Mode( UxWidget, UxClientData, UxCallbackArg )
 	UxTopLevelShellContext = UxSaveCtx;
 }
 
+/*
+	Scheme Conn. -> lgconn - Manage sch. connections (ottobre 2026): apre
+	l'editor delle connessioni fra gli schemi (lgconn) sulla task che config
+	sta modificando, cioe' la directory delle pagine ($LEGOMMI_PAG), dove sta
+	Connessioni.reg. Parte in background: config resta usabile. Le pagine
+	gia' aperte non vedono le modifiche fatte da lgconn finche' non si
+	riaprono; config comunque non sovrascrive un Connessioni.reg cambiato
+	da altri (OlConn.c).
+*/
+static	void	activateCB_Lgconn( UxWidget, UxClientData, UxCallbackArg )
+	Widget		UxWidget;
+	XtPointer	UxClientData, UxCallbackArg;
+
+{
+	_UxCtopLevelShell       *UxSaveCtx, *UxContext;
+
+	UxSaveCtx = UxTopLevelShellContext;
+	UxTopLevelShellContext = UxContext =
+			(_UxCtopLevelShell *) UxGetContext( UxWidget );
+	{
+	char *dir = getenv(ENVPAG);
+	char comando[FILENAME_MAX + 200];
+	int ret;
+
+	if(StateInterfaceMode)
+	   {
+	   /* in Interface Mode config tiene le connessioni in memoria e le
+	      scrive all'uscita: due programmi sullo stesso file */
+	   SetMsg(topLevelShell,NULL,WRNMSG,"ConfigWarning",
+	      "Leave Interface Mode first.",
+	      NULL,False,NULL,False,NULL);
+	   }
+	else if(dir == NULL || dir[0] == 0 || strchr(dir, '\'') != NULL)
+	   {
+	   SetMsg(topLevelShell,NULL,WRNMSG,"ConfigWarning",
+	      "No task loaded: open a Context first.",
+	      NULL,False,NULL,False,NULL);
+	   }
+	else
+	   {
+	   /* sh lancia lgconn in background ed esce subito: niente processo
+	      zombie, e config non aspetta */
+	   sprintf(comando,
+	      "command -v lgconn >/dev/null 2>&1 || exit 127; "
+	      "lgconn '%s' >/dev/null 2>&1 &", dir);
+	   ret = system(comando);
+	   if(ret == -1 || !WIFEXITED(ret) || WEXITSTATUS(ret) != 0)
+	      SetMsg(topLevelShell,NULL,WRNMSG,"ConfigWarning",
+	         "Cannot start lgconn: is the LegoPST profile loaded?",
+	         NULL,False,NULL,False,NULL);
+	   }
+	}
+	UxTopLevelShellContext = UxSaveCtx;
+}
+
 static	void	singleSelectionCB_ListPagine( UxWidget, UxClientData, UxCallbackArg )
 	Widget		UxWidget;
 	XtPointer	UxClientData, UxCallbackArg;
@@ -2774,11 +2830,38 @@ static Widget	_Uxbuild_topLevelShell()
 	UxPutContext( InterfaceMode, (char *) UxTopLevelShellContext );
 
 
-	/* Creation of Mode */
+	/* Creation of the lgconn entry (ottobre 2026), vedi activateCB_Lgconn.
+	   E' la prima voce del menu Scheme Conn.: il modo consigliato. */
+	{
+	Widget sep, lgconnItem;
+
+	lgconnItem = XtVaCreateManagedWidget( "Lgconn",
+			xmPushButtonWidgetClass,
+			InterfaceMode,
+			RES_CONVERT( XmNlabelString, "lgconn - Manage sch. connections" ),
+			NULL );
+	XtAddCallback( lgconnItem, XmNactivateCallback,
+		(XtCallbackProc) activateCB_Lgconn,
+		(XtPointer) UxTopLevelShellContext );
+	UxPutContext( lgconnItem, (char *) UxTopLevelShellContext );
+	sep = XtVaCreateManagedWidget( "SchemeConnSep",
+			xmSeparatorWidgetClass,
+			InterfaceMode,
+			NULL );
+	UxPutContext( sep, (char *) UxTopLevelShellContext );
+	}
+
+
+	/* Creation of Mode: la spunta Interface Mode. Dall'ottobre 2026 e'
+	   DISATTIVATA (decisione dell'utente): le connessioni fra schemi si
+	   fanno nelle pagine (Connect Mode, salvate subito) o con lgconn.
+	   Resta nel menu, e tutto il codice della modalita' e' intatto: per
+	   riattivarla basta togliere XmNsensitive qui sotto. */
 	Mode = XtVaCreateManagedWidget( "Mode",
 			xmToggleButtonWidgetClass,
 			InterfaceMode,
 			RES_CONVERT( XmNlabelString, "Interface Mode" ),
+			XmNsensitive, FALSE,
 			NULL );
 	XtAddCallback( Mode, XmNvalueChangedCallback,
 		(XtCallbackProc) valueChangedCB_Mode,
@@ -2787,11 +2870,13 @@ static Widget	_Uxbuild_topLevelShell()
 	UxPutContext( Mode, (char *) UxTopLevelShellContext );
 
 
-	/* Creation of menu2_top_b1 */
+	/* Creation of menu2_top_b1: era "Interface Mode", dall'ottobre 2026
+	   "Scheme Conn." (la modalita' Interface Mode resta, come voce a
+	   spunta dentro il menu) */
 	menu2_top_b1 = XtVaCreateManagedWidget( "menu2_top_b1",
 			xmCascadeButtonGadgetClass,
 			menu2,
-			RES_CONVERT( XmNlabelString, "Interface Mode" ),
+			RES_CONVERT( XmNlabelString, "Scheme Conn." ),
 			XmNsubMenuId, InterfaceMode,
 			NULL );
 	UxPutContext( menu2_top_b1, (char *) UxTopLevelShellContext );

@@ -30,8 +30,12 @@ regolazione*.
 
 ### Attivare/disattivare Interface Mode (il modo storico)
 
-- Voce di menù **"Interface Mode"** nel top-level di `config` (toggle
-  `StateInterfaceMode`).
+- Voce a spunta **"Interface Mode"** nel menu **Scheme Conn.** della finestra
+  principale di `config` (toggle `StateInterfaceMode`; fino all'ottobre 2026
+  anche il menu si chiamava *Interface Mode*). **Dal 26 ottobre 2026 è
+  disattivata** (`XmNsensitive, FALSE` nella creazione di `Mode`): resta in
+  grigio dopo *lgconn - Manage sch. connections*, la prima voce del menu,
+  che apre l'editor `lgconn` sulla task.
 - **Richiede tutte le pagine chiuse**: se ci sono schemi aperti, `config`
   rifiuta con il messaggio *"Close all the page first."*.
 - Flusso tipico per collegare tra schemi: **chiudi tutti gli schemi → attiva
