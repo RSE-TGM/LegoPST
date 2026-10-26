@@ -142,6 +142,109 @@ proc aiuto_md_in_html {doc} {
 #  Apre un documento del repository nel browser. Il browser lo sceglie
 #  browser_disponibile di openhelp.tcl, la stessa di legopc, che scorre una
 #  lista di candidati partendo da $LG_BROWSER.
+# ---------------------------------------------------------------------------
+# La finestrella "Starting firefox ..." mentre il browser arriva, come in
+# lghelp (Alg_rt/bin/lghelp, mostra_attesa): una barra animata al centro
+# dello schermo, che si chiude da sola al primo di tre segnali:
+#   - il window manager conosce una finestra in piu' (xprop; non tutti lo
+#     dicono: WSLg no);
+#   - aumentano i processi con cui i browser disegnano le pagine
+#     (-isForBrowser per Firefox, --type=renderer per Chromium,
+#     QtWebEngineProcess per Falkon): funziona anche dove xprop non serve;
+#   - scade un tempo massimo, breve se il browser era gia' aperto (si apre
+#     solo una scheda, non arriva niente di nuovo da vedere).
+# Qui e' una toplevel dell'applicazione, non un wish a parte: la usano lghmi,
+# lgmkstaz e lgconn, che aprono la documentazione da aiuto_apri_documento.
+# Non blocca niente: il controllo gira con after.
+# ---------------------------------------------------------------------------
+namespace eval ::aiuto_attesa {
+    variable t0 0
+    variable massimo 20000
+    variable finestre -1
+    variable disegnavano 0
+    variable controllo ""
+}
+
+#  Quante finestre conosce il window manager, -1 se non si puo' sapere.
+proc ::aiuto_attesa::conta {} {
+    if {[catch {exec xprop -root -notype _NET_CLIENT_LIST} out]} { return -1 }
+    if {[string first "window id" $out] < 0} { return -1 }
+    return [llength [regexp -all -inline {0x[0-9a-fA-F]+} $out]]
+}
+
+#  Quanti processi "che disegnano pagine" ha l'utente: conta l'AUMENTO, perche'
+#  ce ne possono essere gia' (un altro browser, un editor con lo stesso motore).
+proc ::aiuto_attesa::disegnano {} {
+    if {[catch {exec id -u} uid]} { return 0 }
+    if {[catch {exec pgrep -u $uid -f -- {-isForBrowser|--type=renderer|QtWebEngineProcess}} out]} { return 0 }
+    return [llength [split [string trim $out] \n]]
+}
+
+proc aiuto_attesa_chiudi {} {
+    variable ::aiuto_attesa::controllo
+    if {$controllo ne ""} { after cancel $controllo; set controllo "" }
+    catch {destroy .aiutoAttesa}
+}
+
+#  La finestra; il controllo parte con aiuto_attesa_osserva, dopo il lancio.
+proc aiuto_attesa_mostra {browser} {
+    aiuto_attesa_chiudi
+    set nome [file tail $browser]
+    set ::aiuto_attesa::massimo 20000
+    if {![catch {exec id -u} uid] && ![catch {exec pgrep -u $uid -x $nome}]} {
+        set ::aiuto_attesa::massimo 3000
+    }
+    set ::aiuto_attesa::finestre [::aiuto_attesa::conta]
+    set ::aiuto_attesa::disegnavano [::aiuto_attesa::disegnano]
+    set w .aiutoAttesa
+    if {[catch {toplevel $w}]} { return }
+    wm withdraw $w
+    wm overrideredirect $w 1
+    catch {wm attributes $w -topmost 1}
+    frame $w.f -bd 1 -relief solid -padx 22 -pady 14
+    label $w.f.t -text "LegoPST documentation" -font {Helvetica 12 bold}
+    label $w.f.s -text "Starting $nome ..."
+    pack $w.f.t $w.f.s -side top
+    if {[catch {
+        ttk::progressbar $w.f.p -mode indeterminate -length 260
+        pack $w.f.p -side top -pady {10 2}
+        $w.f.p start 12
+    }]} {
+        label $w.f.p -text "..."
+        pack $w.f.p -side top -pady {10 2}
+    }
+    pack $w.f
+    update idletasks
+    set x [expr {([winfo screenwidth $w]  - [winfo reqwidth $w])  / 2}]
+    set y [expr {([winfo screenheight $w] - [winfo reqheight $w]) / 2}]
+    wm geometry $w +$x+$y
+    wm deiconify $w
+    raise $w
+    #  disegnata subito: subito dopo c'e' la conversione dei documenti, che
+    #  tiene occupato l'interprete anche piu' di un secondo
+    update
+    set ::aiuto_attesa::t0 [clock milliseconds]
+}
+
+proc aiuto_attesa_osserva {} {
+    variable ::aiuto_attesa::controllo
+    if {![winfo exists .aiutoAttesa]} { return }
+    set passati [expr {[clock milliseconds] - $::aiuto_attesa::t0}]
+    if {$passati >= $::aiuto_attesa::massimo} { aiuto_attesa_chiudi; return }
+    #  almeno un secondo: una finestra che lampeggia e sparisce non dice niente
+    if {$passati >= 1000} {
+        set prima $::aiuto_attesa::finestre
+        if {($prima >= 0 && [::aiuto_attesa::conta] > $prima) \
+                || [::aiuto_attesa::disegnano] > $::aiuto_attesa::disegnavano} {
+            #  il segnale arriva prima che il browser sia disegnato: si resta
+            #  un momento sopra, invece di lasciare lo schermo vuoto
+            set controllo [after 2000 aiuto_attesa_chiudi]
+            return
+        }
+    }
+    set controllo [after 250 aiuto_attesa_osserva]
+}
+
 proc aiuto_apri_documento {relativo} {
     global env
     if {![info exists env(LEGOROOT)] || $env(LEGOROOT) eq ""} {
@@ -163,6 +266,9 @@ proc aiuto_apri_documento {relativo} {
             "No browser available.\nCheck LG_BROWSER (currently: '$preferito')."
         return ""
     }
+    #  l'attesa compare PRIMA di preparare la copia navigabile: al primo
+    #  lancio la conversione dei documenti prende piu' di un secondo
+    aiuto_attesa_mostra $browser
     #  La copia navigabile (lgdocindex.tcl): l'indice e i .md che cita,
     #  convertiti in HTML con i collegamenti riscritti. Se il documento chiesto
     #  ne fa parte si apre da li', cosi' anche i collegamenti che contiene
@@ -200,9 +306,11 @@ proc aiuto_apri_documento {relativo} {
         }
     }
     if {[catch {exec $browser $doc &} err]} {
+        aiuto_attesa_chiudi
         tk_messageBox -icon error -title "Documentation" -parent . -message \
             "Cannot start the browser:\n$browser $doc\n\n$err"
         return ""
     }
+    aiuto_attesa_osserva
     return "Opened in the browser: $relativo$nota"
 }

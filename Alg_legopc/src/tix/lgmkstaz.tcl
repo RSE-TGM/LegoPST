@@ -787,7 +787,7 @@ proc ::lgmkstaz::documenti_aiuto {} {
 }
 
 proc ::lgmkstaz::apri_documento {relativo} {
-    if {[llength [info procs aiuto_apri_documento]] == 0} {
+    if {[llength [info procs ::aiuto_apri_documento]] == 0} {
         tk_messageBox -icon error -title lgmkstaz -parent . -message \
             "openhelp.tcl non caricato: non posso aprire la documentazione."
         return

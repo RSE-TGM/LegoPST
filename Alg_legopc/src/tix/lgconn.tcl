@@ -526,7 +526,7 @@ proc ::lgconn::gui::mostra_guida {} {
 #  stato.
 proc ::lgconn::gui::apri_documento {relativo} {
     variable stato
-    if {[llength [info procs aiuto_apri_documento]] == 0} {
+    if {[llength [info procs ::aiuto_apri_documento]] == 0} {
         tk_messageBox -icon error -title lgconn -parent . -message \
             "openhelp.tcl non caricato: non posso aprire la documentazione."
         return

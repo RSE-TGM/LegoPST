@@ -1407,7 +1407,12 @@ Dettagli d'implementazione:
   ragionato, così il meccanismo resta uno solo. Il browser lo sceglie
   `browser_disponibile` di [src/tix/openhelp.tcl](src/tix/openhelp.tcl), la
   stessa di `legopc`, partendo da `$LG_BROWSER`. Sui `.md` passa prima un
-  convertitore, **se c'è**: vedi sotto;
+  convertitore, **se c'è**: vedi sotto. Mentre il browser parte, al centro
+  dello schermo c'è la stessa **finestrella di attesa** di `lghelp` (*Starting
+  firefox ...*, con la barra animata), che si chiude da sola quando il browser
+  compare, o al più tardi dopo 20 secondi (3 se era già aperto):
+  `aiuto_attesa_mostra` in `openhelp.tcl`, quindi anche in `lgmkstaz` e
+  `lgconn`;
 - il manuale dei moduli si apre con `open_hlp`, la stessa proc della voce *Help*
   di `legopc`. `openhelp.tcl` viene sorgiato dentro un `catch`: se manca si perde
   solo il menù `?`, non il selettore;

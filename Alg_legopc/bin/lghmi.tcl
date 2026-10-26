@@ -3340,7 +3340,7 @@ proc documenti_aiuto {} {
 #  La conversione .md -> HTML e l'apertura nel browser stanno in openhelp.tcl,
 #  condivise con lgmkstaz. Qui resta solo il raccordo con la riga di stato.
 proc apri_documento {relativo} {
-    if {[llength [info procs aiuto_apri_documento]] == 0} {
+    if {[llength [info procs ::aiuto_apri_documento]] == 0} {
         tk_messageBox -icon error -title "Documentation" -parent . -message \
             "openhelp.tcl non caricato: non posso aprire la documentazione."
         return

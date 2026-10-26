@@ -376,7 +376,8 @@ La finestra ha due tabelle:
 Le caselle *Cerca* filtrano le due tabelle per pagina, variabile, blocco o
 descrizione. Il menu **?** apre una guida rapida (cos'è `lgconn` e come si
 usa, in una finestra di `lgconn` stesso) e, nel browser, questa guida e gli
-altri documenti.
+altri documenti; mentre il browser parte c'è la finestrella di attesa
+(*Starting firefox ...*), come in `lghelp`.
 
 **Collegare.** Selezionare in alto l'ingresso, poi in basso l'uscita. Si
 conferma con doppio clic o con **Collega**.

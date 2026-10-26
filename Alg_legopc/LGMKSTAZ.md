@@ -373,7 +373,8 @@ configurazione va riallineata: `kCompStaz`, o `kUpSim` per rifare tutto (vedi
 Apre la documentazione nel browser, con lo stesso meccanismo del `?` di
 [`lghmi`](LGHMI.md) — condiviso in `openhelp.tcl`: i `.md` passano prima dal
 convertitore `md2html.tcl` (Tcl puro, niente da installare), perché un browser
-da solo mostrerebbe il sorgente Markdown.
+da solo mostrerebbe il sorgente Markdown. Mentre il browser parte compare la
+finestrella di attesa (*Starting firefox ...*), come in `lghelp`.
 
 | Voce | Documento |
 |---|---|
