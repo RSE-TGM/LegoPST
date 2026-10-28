@@ -388,7 +388,7 @@ demo finisce dove `lghmi` la cercherà, anche nel container.
 
 | Comando | Tipo | Scopo |
 |---|---|---|
-| `lgversion` | script | Stampa **quale LegoPST stai usando**: `LEGOROOT`, il file `version.h` letto, e da lì versione Git, numero di build e data di build. Se `version.h` manca lo **genera** al volo lanciando `make -f Makefile.mk version.h` in `$LEGOROOT` (servono `git` e `make`). Fallisce subito, con un messaggio esplicito, se `LEGOROOT` non è impostata — il che lo rende anche un controllo veloce del fatto che il profilo sia stato sorgiato. |
+| `lgversion` | script | Stampa **quale LegoPST stai usando**: `LEGOROOT`, la fonte, versione Git, numero di build e data. Se `$LEGOROOT` è un checkout git la versione è calcolata da git al momento, quindi è già giusta dopo un `git pull` senza ricompilare (la data è quella dell'ultimo commit). Senza git legge `version.h`, e se manca lo **genera** lanciando `make -f Makefile.mk version.h`. `lgversion --define` stampa solo le tre righe `#define` (senza mai lanciare `make`): la usano *About LegoPc*, *About LegoPST* e l'indice della documentazione. Fallisce subito, con un messaggio esplicito, se `LEGOROOT` non è impostata — il che lo rende anche un controllo veloce del fatto che il profilo sia stato sorgiato. |
 
 È la prima cosa da eseguire quando si segnala un problema: senza versione e numero
 di build, una segnalazione non è verificabile.

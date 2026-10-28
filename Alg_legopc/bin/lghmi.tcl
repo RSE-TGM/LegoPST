@@ -3352,13 +3352,15 @@ proc apri_documento {relativo} {
 
 # --- Menu "?" : versione dell'ambiente -----------------------------------
 
-#  Versione di LegoPST, dalla stessa fonte che usa legopc: $LEGOROOT/version.h,
-#  generato dal Makefile (bersaglio "version.h") a partire da git.
+#  Versione di LegoPST, dalla stessa fonte che usa legopc: "lgversion --define",
+#  che la calcola da git se $LEGOROOT e' un checkout (dopo un git pull e' gia'
+#  quella giusta: gli eseguibili arrivano con git) e altrimenti ripete
+#  $LEGOROOT/version.h. Se lgversion non risponde si legge version.h qui.
 #
 #  A differenza di legopc, qui il file NON viene generato se manca: lghmi puo'
 #  girare dove il repository non e' scrivibile - per esempio dentro un bundle
-#  FMU - e un selettore non deve mettersi a invocare make. Se manca si dice come
-#  ottenerlo.
+#  FMU - e un selettore non deve mettersi a invocare make (lgversion --define
+#  non lo fa). Se manca si dice come ottenerlo.
 proc versione_legopst {} {
     global env
     set fuori [dict create versione "" build "" data "" nota ""]
@@ -3366,16 +3368,21 @@ proc versione_legopst {} {
         dict set fuori nota "LEGOROOT not defined: LegoPST profile not sourced."
         return $fuori
     }
-    set vf [file join $env(LEGOROOT) version.h]
-    if {![file exists $vf]} {
-        dict set fuori nota "version.h missing. Generate it with:\n    make -C $env(LEGOROOT) -f Makefile.mk version.h"
-        return $fuori
+    set lgv [file join $env(LEGOROOT) util97 bin lgversion]
+    if {[catch {exec $lgv --define} testo]} {
+        set vf [file join $env(LEGOROOT) version.h]
+        if {![file exists $vf]} {
+            dict set fuori nota "version.h missing. Generate it with:\n    make -C $env(LEGOROOT) -f Makefile.mk version.h"
+            return $fuori
+        }
+        if {[catch {open $vf r} fd]} {
+            dict set fuori nota "version.h not readable: $vf"
+            return $fuori
+        }
+        set testo [read $fd]
+        close $fd
     }
-    if {[catch {open $vf r} fd]} {
-        dict set fuori nota "version.h not readable: $vf"
-        return $fuori
-    }
-    while {[gets $fd riga] >= 0} {
+    foreach riga [split $testo \n] {
         if {[regexp {^#define\s+GIT_VERSION_STRING\s+"([^"]+)"} $riga -> v]} {
             dict set fuori versione $v
         } elseif {[regexp {^#define\s+BUILD_NUMBER\s+(\d+)} $riga -> v]} {
@@ -3384,7 +3391,6 @@ proc versione_legopst {} {
             dict set fuori data $v
         }
     }
-    close $fd
     return $fuori
 }
 

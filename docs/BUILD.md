@@ -266,7 +266,8 @@ Il file `VERSION`, nella radice e in git, contiene una riga sola, oggi
 | `version.h` (non in git) | a ogni `make`, da `git describe --tags --match 'v[0-9]*'`: `v2026-2.0-18-g7a8af436` = 18 commit dopo il rilascio, al commit `7a8af436` (`-dirty` se c'erano modifiche, `-0-` esattamente sul rilascio). Senza git (immagine Docker, bundle FMU): `v2026-2.0-nogit` dal file `VERSION` |
 | immagine `aguagliardi/legopst:2.0` | le cifre dopo il trattino. `docker/Makefile.mk` e `docker/BuildImage` la calcolano da `VERSION` |
 | lanciatori `lgdock`, `lgdock_multi`, `lgdock_socat` | il `make` li installa da `docker/*.sh` scrivendoci versione e immagine di default |
-| *About LegoPST*, indice della documentazione, `lgdock -v` | leggono `VERSION` e `version.h` |
+| `lgversion`, *About LegoPST*, *About LegoPc*, indice della documentazione | dove `$LEGOROOT` e' un checkout git, calcolano la versione da git al momento (`lgversion --define`): eseguibili e librerie arrivano con `git pull`, mentre `version.h` resta quello dell'ultimo `make` fatto in quella copia. Senza git leggono `version.h`. L'indice legge anche `VERSION` |
+| `lgdock -v` | legge `VERSION` e `version.h` |
 
 Contano come rilasci **solo i tag che cominciano con `v` e una cifra**. Gli
 altri (`prima-fase4`, `prima-revisione-codebase`, `demo-2.0`) sono segnalibri

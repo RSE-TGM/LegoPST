@@ -3778,41 +3778,48 @@ proc CreateBanner {} {
        return
    }
 
-   # --- INIZIO PARSING DEL FILE version.h ---
+   # --- INIZIO LETTURA DELLA VERSIONE ---
+   #  La da' "lgversion --define", nella forma di version.h: da git se
+   #  $LEGOROOT e' un checkout (dopo un git pull e' gia' quella giusta, gli
+   #  eseguibili arrivano con git), altrimenti da version.h. Se lgversion non
+   #  risponde si legge version.h qui, generandolo se manca.
 
-   # Imposta valori di default. Utili se il file non esiste o è incompleto.
+   # Imposta valori di default. Utili se la versione non si trova o è incompleta.
    set git_version "N/A"
    set build_number "N/A"
    set build_date "N/A"
 
    set version_file "$env(LEGOROOT)/version.h"
+   set testo ""
 
-# Controlla se il file esiste
-   if {![file exists $version_file]} {
-       # Se il file non esiste, lo generiamo
-       puts "Info: Genero il file di versione mancante..."
-       if {[catch {exec make -s -C $env(LEGOROOT) -f Makefile.mk version.h} result]} {
-           puts "ERRORE: Impossibile generare il file di versione 'version.h'."
-           puts "Dettagli: $result"
-        #    tk_messageBox -icon error -title "Errore" -message "Impossibile generare il file 'version.h'"
-        #    return
-       } else {
-           puts "Info: File di versione generato con successo."
-       }
-   } else {
-	   # Se il file version.h esiste, lo leggiamo per estrarre le informazioni
-       set f [open $version_file r]
-       while {[gets $f line] >= 0} {
-           # Controlliamo le righe una per una con elseif
-           if {[regexp {^#define\s+GIT_VERSION_STRING\s+"([^"]+)"} $line -> local_git_version]} {
-               set git_version $local_git_version
-           } elseif {[regexp {^#define\s+BUILD_NUMBER\s+(\d+)} $line -> local_build_number]} {
-               set build_number $local_build_number
-           } elseif {[regexp {^#define\s+BUILD_DATE_STRING\s+"([^"]+)"} $line -> local_build_date]} {
-               set build_date $local_build_date
+   if {[catch {exec $env(LEGOROOT)/util97/bin/lgversion --define} testo]} {
+       set testo ""
+       # Controlla se il file esiste
+       if {![file exists $version_file]} {
+           # Se il file non esiste, lo generiamo
+           puts "Info: Genero il file di versione mancante..."
+           if {[catch {exec make -s -C $env(LEGOROOT) -f Makefile.mk version.h} result]} {
+               puts "ERRORE: Impossibile generare il file di versione 'version.h'."
+               puts "Dettagli: $result"
+           } else {
+               puts "Info: File di versione generato con successo."
            }
        }
-       close $f
+       if {[file exists $version_file] && ![catch {open $version_file r} f]} {
+           set testo [read $f]
+           close $f
+       }
+   }
+
+   foreach line [split $testo \n] {
+       # Controlliamo le righe una per una con elseif
+       if {[regexp {^#define\s+GIT_VERSION_STRING\s+"([^"]+)"} $line -> local_git_version]} {
+           set git_version $local_git_version
+       } elseif {[regexp {^#define\s+BUILD_NUMBER\s+(\d+)} $line -> local_build_number]} {
+           set build_number $local_build_number
+       } elseif {[regexp {^#define\s+BUILD_DATE_STRING\s+"([^"]+)"} $line -> local_build_date]} {
+           set build_date $local_build_date
+       }
    }
 
    # --- FINE PARSING ---

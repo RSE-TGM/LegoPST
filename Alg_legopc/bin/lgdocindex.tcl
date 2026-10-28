@@ -136,14 +136,18 @@ proc lgdocindex::riscrivi {html dir se_stessa root cache codaVar} {
 #  a ogni build e da un'installazione all'altra. Per questo non sta scritta nel
 #  file: la si legge qui, quando la copia viene generata, cioe' ogni volta che
 #  la documentazione si apre. Le fonti sono quelle di lgversion e di About
-#  LegoPST: il file VERSION e version.h (git describe, numero e data di build).
-#  Come per lghmi, version.h NON si genera se manca: qui non si invoca make.
+#  LegoPST: il file VERSION e "lgversion --define" (git describe, numero e
+#  data, da git se $root e' un checkout, altrimenti da version.h). Se lgversion
+#  non risponde si legge version.h. Come per lghmi, version.h NON si genera se
+#  manca: qui non si invoca make (lgversion --define non lo fa).
 #  Ritorna "" se non c'e' niente da mostrare, e il riquadro resta nascosto.
 proc lgdocindex::riquadro_versione {root} {
     set ver ""
     catch { set ver [string trim [leggi [file join $root VERSION]]] }
     set git ""; set num ""; set data ""
-    if {![catch {leggi [file join $root version.h]} h]} {
+    set lgv [file join $root util97 bin lgversion]
+    if {![catch {exec env LEGOROOT=$root $lgv --define} h]
+        || ![catch {leggi [file join $root version.h]} h]} {
         regexp {#define\s+GIT_VERSION_STRING\s+"([^"]+)"} $h -> git
         regexp {#define\s+BUILD_NUMBER\s+(\d+)} $h -> num
         regexp {#define\s+BUILD_DATE_STRING\s+"([^"]+)"} $h -> data

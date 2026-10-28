@@ -1377,7 +1377,7 @@ costruire si apre l'originale, come prima.
 In testa all'indice, in alto a destra, la copia porta un riquadro con la
 **versione installata**: `LegoPST <VERSION>`, la versione git, numero e data di
 build, e la directory dell'installazione (`$LEGOROOT`). Si legge da `VERSION` e
-`version.h` nel momento in cui la copia viene generata, cioè a ogni apertura —
+da `lgversion --define` (git se c'è, altrimenti `version.h`) nel momento in cui la copia viene generata, cioè a ogni apertura —
 le stesse fonti di *About LegoPST* e di `lgversion`. Nel file
 `DOCUMENTATION_INDEX.html` del repository il riquadro c'è ma è vuoto e
 nascosto: la versione non può stare scritta in un file uguale per tutti. Fino a ottobre 2026 si convertiva
