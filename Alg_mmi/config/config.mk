@@ -23,7 +23,6 @@ X_INCLUDE=-I. -I/usr/local/include -I/usr/include -I/usr/include/uil -I/usr/incl
 C_FLAGS=-g  -DLINUX  -DXT_CODE -DXOPEN_CATALOG -DUNIX -DXPRINTER_USED -DXLIB_ILLEGAL_ACCESS -I$(LEGOROOT_LIB)/dcethreads_include -I$(LEGOROOT_LIB)/sqlite_include  -I/usr/include
 #VERSIONE=-DBANCO_MANOVRA -DSCADA -DBACKTRACK -DF22_APPEND -DSNAP_PIAC -DPIACENZA -DREPLAY -DMFFR -DSAVEPERT
 LINKER_OPTIONS=-fcommon
-UXCGEN=run_uxcgen12.sh $@ $<
 #
 #       Makefile Header:               config.mk
 #       Subsystem:              10
@@ -51,7 +50,7 @@ UXCGEN=run_uxcgen12.sh $@ $<
 #
 #  	$Date: 92/04/23 14:57:07 $ 		$Revision: 1.28.37.5.45.1 $
 #########################################################################
-.SUFFIXES: .i .o .c .h
+.SUFFIXES: .o .c .h
 EXECREGCOMP	= $(LEGOMMI_BIN)/compreg
 MAINREGCOMP	= comp_reg.c
 EXECUTABLE	= $(LEGOMMI_BIN)/config
@@ -183,14 +182,10 @@ $(info -------->  DEBUG ALL_OBJS impostata a = $(OBJS))
 $(info -------->  )
 
 OBJS_REG = $(MAINREGCOMP:.c=.o) $(APPLREG_OBJS) 
-IFILES= $(INTERFACES:.c=.i) $(RESINTERFACES:.c=.i) $(VARINTERFACES:.c=.i) $(DRAWINTERFACES:.c=.i)
 all: $(EXECUTABLE) $(INTERFACES) $(RESINTERFACES) $(VARINTERFACES) \
 	$(DRAWINTERFACES) $(EXECREGCOMP) 
 .c.o:
 	$(CC) -c  $(CFLAGS) $< -o $@ 
-#
-#.i.c:
-#	$(UXCGEN)
 #
 
 $(EXECUTABLE): $(OBJS) $(LIBRERIE) $(LNKOBJ)

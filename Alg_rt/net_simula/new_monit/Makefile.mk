@@ -72,7 +72,7 @@ MOTIF_VER=11
 #
 #  	$Date: 92/03/02 14:32:00 $ 		$Revision: 1.28.37.3 $
 #########################################################################
-.SUFFIXES: .i .o .c .h
+.SUFFIXES: .o .c .h
 EXECUTABLE	= $(LEGORT_BIN)/banco
 MAIN		= banco.c
 INTERFACES	= 	masterMenu.c \
@@ -143,7 +143,6 @@ APPL_LIBS       = 	$(LEGOROOT_LIB)/libutilx.a  \
 LIBS		= $(APPL_LIBS) $(X_LIBS) $(C_LIB) $(STUB_LIBS) -lm $(SQLITE_LIB) -lsqlite3                
 
 OBJS = $(MAIN:.c=.o) $(INTERFACES:.c=.o) $(APPL_OBJS)
-IFILES= $(INTERFACES:.c=.i)
 all: $(EXECUTABLE) $(INTERFACES)
 
 .c.o:
@@ -151,9 +150,6 @@ all: $(EXECUTABLE) $(INTERFACES)
 
 malfunzioni.o: malfunzioni.c
 	$(CC) -c $(CFLAGS) $< -o $@
-#
-#.i.c:
-#	$(UXCGEN)
 #
 
 $(EXECUTABLE): $(OBJS) $(APPL_LIBS)

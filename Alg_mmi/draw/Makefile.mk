@@ -22,7 +22,6 @@ X_INCLUDE=-I. -I/usr/local/include -I/usr/include -I/usr/include/uil -I/usr/incl
 C_FLAGS=-g -DLINUX  -DXT_CODE -DXOPEN_CATALOG -DUNIX -DXPRINTER_USED -DXLIB_ILLEGAL_ACCESS -I$(LEGOROOT_LIB)/dcethreads_include -I$(LEGOROOT_LIB)/sqlite_include  -I/usr/include
 #VERSIONE=-DBANCO_MANOVRA -DSCADA -DBACKTRACK -DF22_APPEND -DSNAP_PIAC -DPIACENZA -DREPLAY -DMFFR -DSAVEPERT
 LINKER_OPTIONS=
-UXCGEN=run_uxcgen12.sh $@ $<
 #
 #	Makefile Header:               Makefile.mk
 #       Subsystem:              34
@@ -76,7 +75,7 @@ UXCGEN=run_uxcgen12.sh $@ $<
 #
 #  	$Date: 92/03/02 14:32:00 $ 		$Revision: 1.28.37.3 $
 #########################################################################
-.SUFFIXES: .i .o .c .h
+.SUFFIXES: .o .c .h
 EXECUTABLE	= $(LEGOMMI_BIN)/draw
 MAIN		= draw.c
 INTERFACES	= 	drawShell.c \
@@ -132,14 +131,10 @@ LIBRERIE	= $(LEGOMMI_LIB)/libXl.a $(LEGOMMI_LIB)/libOl.a\
 			$(LEGOMMI_LIB)/libCs.a $(LEGOMMI_LIB)/libXd.a
 
 OBJS = $(MAIN:.c=.o) $(INTERFACES:.c=.o) $(APPL_OBJS)
-IFILES= $(INTERFACES:.c=.i)
 all: $(EXECUTABLE) $(INTERFACES) 
 
 .c.o:
 	$(CC) -c $(CFLAGS) $< -o $@
-#
-#.i.c:
-#	$(UXCGEN)
 #
 
 $(EXECUTABLE): $(OBJS) $(LIBRERIE)

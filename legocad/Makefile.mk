@@ -21,7 +21,6 @@ F_LIB= -lm
 MOTIF_VER=11
 HHHOME=$(TOOLS)/hyperhelp
 HYPERHELP_OBJ = $(HHHOME)/winhelp/decaosf/winhelp.o
-UXCGEN=run_uxcgen.sh $@ $<
 #------------------------ C preprocessor
 CPP=cpp
 #CPPFLAGS=-P -C -DLINUX

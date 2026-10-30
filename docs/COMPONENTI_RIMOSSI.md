@@ -35,6 +35,23 @@ git tag prima-fase4 d9b500a2      # una volta sola
 git checkout prima-fase4 -- Alg_rt/net_simula/monitor
 ```
 
+## File di interfaccia UIM/X (`.i`, `.prj`), ottobre 2026
+
+Commit di riferimento: **`e1aa4d70`** (*config: copia dalla palette Add Icon
+col tasto sinistro…*, 2026-10-30), l'ultimo che li contiene.
+
+| Rimosso | Cos'era | Perché è stato tolto |
+|---|---|---|
+| 183 file `.i` (`Alg_mmi/config`, `draw`, `run_time`, `resource`, `lib/Xl`, `lib/Xd`; `Alg_rt/net_simula/new_monit`; `legocad/main`, `topsim`, `topologia`, `librarian`, `autodoc`, `dati_legocad`, `filtri`, `know`, `calcstaz`, `editf01`, `info`) | descrizioni delle finestre Motif scritte da **UIM/X** (detto anche AIC), il generatore di interfacce degli anni '90: da ogni `X.i` UIM/X produceva il `X.c` | **Non sono SWIG**, anche se l'estensione lo fa pensare. La regola che li trasformava in `.c` (`.i.c:` con `$(UXCGEN)`) era commentata in tutti i makefile, UIM/X non c'è più e non si trova; da anni si modificano a mano i `.c`, che quindi non corrispondono più ai `.i`: rigenerarli cancellerebbe quelle modifiche. Qualcuno li ritoccava ogni tanto per tenerli allineati (`masterMenu.i`, `selVar.i`), altri no: non erano affidabili nemmeno come documentazione |
+| 18 file `.prj` (`config.prj`, `draw.prj`, `run_time.prj`, `banco.prj`, `legocad.prj`…) | i **progetti** di UIM/X: elenco delle interfacce e makefile generato | Stessa ragione; nessun makefile li usava |
+| `Alg_mmi/utilities/cancella.sh` | per ogni `X.i` cancellava `X.c` (pensato per rigenerarli) | **Pericoloso**: lanciato oggi avrebbe cancellato sorgenti veri |
+| `Alg_mmi/utilities/togli_sccsId.sh` | toglieva la riga SCCS dai `.i` | Serviva solo alla migrazione sotto Continuus |
+| nei makefile: `.i` da `.SUFFIXES`, la variabile `IFILES`, la regola `.i.c` commentata, la variabile `UXCGEN` (48 file) | — | Non le usava nessun target |
+
+Le intestazioni dei `.c` (*Generated from interface file X.i*, *modulo X.i*)
+sono rimaste come traccia storica. Per guardare com'era disegnata una finestra
+in UIM/X: `git show e1aa4d70:Alg_mmi/config/PagShell.i`.
+
 ## Fase 4, ottobre 2026
 
 Commit di riferimento: **`d9b500a2`** (*ci: prove di funzionamento dopo il

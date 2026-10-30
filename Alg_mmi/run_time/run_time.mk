@@ -22,7 +22,6 @@ X_INCLUDE=-I. -I/usr/local/include -I/usr/include -I/usr/include/uil -I/usr/incl
 C_FLAGS=-g -fcommon -DLINUX  -DXT_CODE -DXOPEN_CATALOG -DUNIX -DXPRINTER_USED -DXLIB_ILLEGAL_ACCESS -I$(LEGOROOT_LIB)/dcethreads_include -I$(LEGOROOT_LIB)/sqlite_include  -I/usr/include
 #VERSIONE=-DBANCO_MANOVRA -DSCADA -DBACKTRACK -DF22_APPEND -DSNAP_PIAC -DPIACENZA -DREPLAY -DMFFR -DSAVEPERT
 LINKER_OPTIONS=
-UXCGEN=run_uxcgen12.sh $@ $<
 #
 #       Makefile Header:               run_time.mk
 #       Subsystem:              1
@@ -54,7 +53,7 @@ UXCGEN=run_uxcgen12.sh $@ $<
 #
 #  	$Date: 92/04/23 14:57:07 $ 		$Revision: 1.28.37.5.45.1 $
 #########################################################################
-.SUFFIXES: .i .o .c .h
+.SUFFIXES: .o .c .h
 EXECUTABLE	= $(LEGOMMI_BIN)/mmi
 MAIN		= run_time.c
 INTERFACES	= 	topLevelShell1.c \
@@ -111,16 +110,12 @@ LIBS		= $(APPL_LIBS)  $(SQLITE_LIB) $(X_LIBS) $(C_LIB) $(STUB_LIBS) -lm
 
 
 OBJS = $(MAIN:.c=.o) $(INTERFACES:.c=.o) $(APPL_OBJS)
-IFILES= $(INTERFACES:.c=.i)
 all: $(EXECUTABLE) $(OBJS) $(INTERFACES) 
 
 
 .c.o:
 	$(CC) -c $(CFLAGS) $< -o $@
 
-#
-#.i.c:
-#	$(UXCGEN)
 #
 
 $(EXECUTABLE): $(OBJS) $(APPL_LIBS)

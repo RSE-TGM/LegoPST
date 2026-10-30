@@ -25,7 +25,6 @@ X_INCLUDE=-I. -I/usr/local/include -I/usr/include -I/usr/include/uil -I/usr/incl
 C_FLAGS=-g -DLINUX  -DXT_CODE -DXOPEN_CATALOG -DUNIX -DXPRINTER_USED -DXLIB_ILLEGAL_ACCESS -I$(LEGOROOT_LIB)/dcethreads_include  -I/usr/include
 #VERSIONE=-DBANCO_MANOVRA -DSCADA -DBACKTRACK -DF22_APPEND -DSNAP_PIAC -DPIACENZA -DREPLAY -DMFFR -DSAVEPERT
 LINKER_OPTIONS=--allow-multiple-definition
-UXCGEN=run_uxcgen12.sh $@ $<
 #
 #	Makefile Header:               Makefile.mk
 #       Subsystem:              43

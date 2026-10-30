@@ -32,7 +32,6 @@ F_LIB=-lgfortran -lm
 MOTIF_VER=11
 HHHOME=$(TOOLS)/hyperhelp
 HYPERHELP_OBJ = $(HHHOME)/winhelp/decaosf/winhelp.o
-UXCGEN=run_uxcgen.sh $@ $<
 #------------------------ C preprocessor
 CPP=cpp
 #CPPFLAGS=-P -C -DLINUX
@@ -97,7 +96,7 @@ CPP=cpp
 #   data 96/03/22
 #   reserved @(#)legocad.mk	2.27
 #
-.SUFFIXES: .i .o .c .h
+.SUFFIXES: .o .c .h
 EXECUTABLE	= $(LEGOCAD_BIN)/legocad
 MAIN		= legocad.c
 INTERFACES	= 	applicationShell1.c \
@@ -134,13 +133,9 @@ LIBUTIL= $(LEGOCAD_LIB)/liblegocad.a $(LEGOROOT_LIB)/libutilx.a \
 LIBS		= $(LIBUTIL) $(X_LIBS) -lbsd $(STUB_LIBS) -lm
 OBJS = $(MAIN:.c=.o) $(INTERFACES:.c=.o) $(APPL_OBJS)
 
-IFILES= $(INTERFACES:.c=.i)
 all: $(EXECUTABLE) $(INTERFACES) 
 .c.o:
 	$(CC) -c $(CFLAGS) $< -o $@
-#
-#.i.c:
-#	$(UXCGEN)
 #
 
 $(EXECUTABLE): $(OBJS) $(LIBUTIL)

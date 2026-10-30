@@ -30,14 +30,13 @@ XL_PERMISSIVE=-Wno-error=incompatible-pointer-types -Wno-error=int-conversion -W
 C_FLAGS=-g -Werror=implicit-function-declaration $(XL_PERMISSIVE) -fcommon -DLINUX  -DXT_CODE -DXOPEN_CATALOG -DUNIX -DXPRINTER_USED -DXLIB_ILLEGAL_ACCESS -I$(LEGOROOT_LIB)/dcethreads_include -I$(LEGOROOT_LIB)/sqlite_include  -I/usr/include
 #VERSIONE=-DBANCO_MANOVRA -DSCADA -DBACKTRACK -DF22_APPEND -DSNAP_PIAC -DPIACENZA -DREPLAY -DMFFR -DSAVEPERT
 LINKER_OPTIONS=-fcommon
-UXCGEN=run_uxcgen12.sh $@ $<
 #
 #	Makefile Header:               Makefile.mk
 #       Subsystem:              50
 #       Description:
 #       %created_by:    lomgr %
 #       %date_created:  Wed May 10 10:57:05 2000 %
-.SUFFIXES: .i .o .c .h
+.SUFFIXES: .o .c .h
 INTERFACES = XlCurve_dialog.c XlCurve_date.c XlCurve_conf.c \
              XlCurve_confVar.c XlCurve_selVar.c \
              XlCurve_warningBox.c
@@ -80,7 +79,6 @@ OGGETTI  = XlAnObjList.o  XlCore.o XlLed.o XlCai.o XlCaiAll.o XlCaiVar.o\
 	XlCurve_func.o XlGif.o XlPixvar.o
 
 OBJS = $(INTERFACES:.c=.o) $(OGGETTI)
-IFILES= $(INTERFACES:.c=.i) 
 all:  $(LEGOMMI_LIB)/libXl.a $(INTERFACES)
 
 $(LEGOMMI_LIB)/libXl.a : $(OBJS)
@@ -90,9 +88,6 @@ $(LEGOMMI_LIB)/libXl.a : $(OBJS)
 
 .c.o:
 	$(CC) -c $(CFLAGS) $< -o $@
-#
-#.i.c:
-# $(UXCGEN)
 #
 
 get_gui_builder:

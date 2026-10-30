@@ -1096,5 +1096,5 @@ da `${KPAGES}_<id>` (lo fa `kMmi`) o con `-Context <file>`.
   [topLevelShell.c](config/topLevelShell.c)), conferma e salvataggio del
   Context compresi. Vale per ogni shell Motif che non sia quella
   dell'applicazione: se la X deve chiudere il programma, va detto esplicitamente.
-  La modifica è nel `.c`, non nel `topLevelShell.i` di UIM/X, che va tenuto
-  allineato a mano se mai lo si rigenera.
+  La modifica è nel `.c`: i `.i` di UIM/X da cui erano stati generati i
+  `.c` sono stati tolti (vedi [COMPONENTI_RIMOSSI](../docs/COMPONENTI_RIMOSSI.md)).

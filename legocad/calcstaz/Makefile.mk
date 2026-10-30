@@ -32,7 +32,6 @@ F_LIB= -lm
 MOTIF_VER=11
 HHHOME=$(TOOLS)/hyperhelp
 HYPERHELP_OBJ = $(HHHOME)/winhelp/decaosf/winhelp.o
-UXCGEN=run_uxcgen.sh $@ $<
 #------------------------ C preprocessor
 CPP=cpp
 #CPPFLAGS=-P -C -DLINUX
@@ -50,7 +49,7 @@ CPP=cpp
 #       %created_by:    lomgr %
 #       %date_created:  Wed Jan 15 11:44:49 2003 %
 #
-.SUFFIXES: .i .o .c .h
+.SUFFIXES: .o .c .h
 CFLAGSINCL = $(X_INCLUDE) -I$(LEGOROOT_INCLUDE) -I$(LEGOCAD_INCLUDE) 
 CFLAGS = $(C_FLAGS) $(X_FLAGS) $(CFLAGSINCL) -D$(OS) -DMAIN
 UIL = $(UIL_COMPILER)
@@ -61,13 +60,9 @@ LIBUTIL = $(LEGOROOT_LIB)/libutil.a $(LEGOROOT_LIB)/libutilx.a \
 INTERFACES = fileSelectionBox.c
 SORGENTI = calcstaz.c jacobian.c  UxXt.c
 OGGETTI = calcstaz.o jacobian.o $(INTERFACES:.c=.o) UxXt.o
-IFILES=$(INTERFACES:.c=.i)
 
 all:  $(LEGOCAD_UID)/calcstaz.uid $(LEGOCAD_BIN)/calcstaz $(INTERFACES) 
 
-#
-#.i.c:
-#	$(UXCGEN)
 #
 
 $(LEGOCAD_BIN)/calcstaz: $(OGGETTI) $(LIBUTIL)

@@ -33,7 +33,6 @@ F_LIB=-lm
 MOTIF_VER=11
 HHHOME=$(TOOLS)/hyperhelp
 HYPERHELP_OBJ = $(HHHOME)/winhelp/decaosf/winhelp.o
-UXCGEN=run_uxcgen.sh $@ $<
 #------------------------ C preprocessor
 CPP=cpp
 #CPPFLAGS=-P -C -DLINUX
@@ -93,7 +92,7 @@ CPP=cpp
 #
 #  	$Date: 92/03/02 14:32:00 $ 		$Revision: 1.28.37.3 $
 #########################################################################
-.SUFFIXES: .i .o .c .h
+.SUFFIXES: .o .c .h
 
 EXECUTABLE	= $(LEGOCAD_BIN)/linfo
 MAIN		= linfo.c
@@ -126,15 +125,11 @@ LIBUTIL         = $(LEGOCAD_LIB)/liblegocad.a $(LEGOROOT_LIB)/libutilx.a \
 LIBS		= $(LIBUTIL)  $(X_LIBS) -lbsd $(STUB_LIBS) -lm
 
 OBJS = $(MAIN:.c=.o) $(INTERFACES:.c=.o) $(APPL_OBJS)
-IFILES= $(INTERFACES:.c=.i)
 all: $(EXECUTABLE) $(INTERFACES) 
 
 .c.o:
 	$(CC) -c $(CFLAGS) $< -o $@
 
-#
-#.i.c:
-#	$(UXCGEN)
 #
 
 $(EXECUTABLE): $(OBJS) $(LIBUTIL)
