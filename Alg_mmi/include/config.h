@@ -131,9 +131,11 @@
 #define MAXWIDFORLIST 300       /* numero massimo di widget per lista */
 
 /* definizioni stringhe translation table */
-#define ADD_ICON_TRANS      "#override <Btn2Down>: istanzia_widget(%lx)"
-#define ADD_ICON_PARENT     "#augment  <Btn2Down>: istanzia_widget_parent(%lx)"
-#define ADD_ICON_PARENT_PARENT     "#augment  <Btn2Down>: istanzia_widget_parent_parent(%lx)"
+/* copia di un'icona dalla palette (Add Icon) alla pagina: tasto sinistro
+   premuto e trascinato, o tasto centrale. Due %lx: stesso ICONLIB. */
+#define ADD_ICON_TRANS      "#override <Btn2Down>: istanzia_widget(%lx)\n<Btn1Motion>: istanzia_widget(%lx)"
+#define ADD_ICON_PARENT     "#augment  <Btn2Down>: istanzia_widget_parent(%lx)\n<Btn1Motion>: istanzia_widget_parent(%lx)"
+#define ADD_ICON_PARENT_PARENT     "#augment  <Btn2Down>: istanzia_widget_parent_parent(%lx)\n<Btn1Motion>: istanzia_widget_parent_parent(%lx)"
 #define SELECT_ZONE_TRANS   "#override <Btn1Down>: select_zone(%lx %lx)\n<KeyPress>Right:move_tasti()\n<KeyPress>Left:move_tasti()\n<KeyPress>Up:move_tasti()\n<KeyPress>Down:move_tasti()"
 #define SELECT_ZONE_AUGM    "#augment  <Btn1Down>: select_zone(%lx)\n<KeyPress>Right:move_tasti()\n<KeyPress>Left:move_tasti()\n<KeyPress>Up:move_tasti()\n<KeyPress>Down:move_tasti()"
 /* move/resize: tasto centrale, oppure tasto sinistro premuto e trascinato

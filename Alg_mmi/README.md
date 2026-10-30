@@ -171,8 +171,11 @@ quello centrale, a qualunque zoom
   spostano tutte le icone selezionate (e gli elementi di sfondo
   selezionati);
 - l'icona si prende in qualunque punto, anche sulla scritta interna
-  ("UA") o sul bordo; col tasto sinistro **non** su una porta, che serve
-  alle connessioni;
+  ("UA"), sul disegno interno di un'icona di `LIB_pictograph` (un
+  `XlComposite`: il clic seleziona solo quel pezzo, ma trascinando si
+  sposta l'icona intera) o sul bordo; col tasto sinistro **non** su una
+  porta, che serve alle connessioni. I pezzi interni si spostano uno per
+  uno solo nelle pagine di libreria, dove le icone si disegnano;
 - trascinata oltre il bordo della pagina, si ferma al bordo;
 - lo spostamento segue la griglia (*snap*) moltiplicata per lo zoom.
 
@@ -190,8 +193,37 @@ un'icona di regolazione ne selezionava la scritta interna: in tutti
 questi casi la pressione non faceva niente, e sembrava che il
 trascinamento si "inceppasse". In più il primo tratto del movimento
 andava perso, e un'icona portata oltre il bordo tornava al suo posto
-senza messaggi. Il tasto centrale per il trascinamento è la convenzione
+senza messaggi. Trascinare il pezzo interno di un `XlComposite` in una
+pagina di regolazione faceva crashare `config`: `select_connections`
+passava il composite a `manage_all_conn`, che vuole la drawing della
+pagina. Il tasto centrale per il trascinamento è la convenzione
 Motif degli anni '90 (sinistro seleziona, centrale trascina, destro menu).
+
+### Copiare un'icona da una libreria (Add Icon)
+
+Dal menu **Add Icon** della pagina si apre la palette di una libreria
+(`IconShell`). Un'icona si copia nella pagina **premendo e trascinando**
+col tasto sinistro (o col centrale, come prima)
+([do_rubber](config/othercnf.c)):
+
+- durante il trascinamento il contorno dell'icona si vede **nella pagina**
+  sotto il puntatore, grande come sarà a quello zoom e agganciato alla
+  griglia; il punto per cui l'icona è stata presa resta sotto il
+  puntatore, e l'icona viene posata esattamente dove si vede il contorno;
+- un clic semplice nella palette seleziona soltanto l'icona.
+
+Prima di ottobre 2026 il contorno si disegnava sulla root window dello
+schermo: sotto WSLg (XWayland senza desktop X) la root non si vede e il
+contorno non compariva; e l'icona veniva posata con l'angolo in alto a
+sinistra sul puntatore.
+
+**Selezione nella palette.** Cliccando un'icona si deselezionano le altre.
+Prima, nella palette di REGOLIB le icone restavano tutte selezionate,
+mentre in LIB_pictograph no: la `Select` della libreria Xl deseleziona
+solo i fratelli `XlCore`, e le icone di regolazione (`XlIconReg`) derivano
+da `XlManager`. Nelle pagine non si notava perché `config` deseleziona
+tutto da sé ([proc_deselect](config/othercnf.c)), che ora lo fa anche
+nella palette.
 
 ### Chiudere una pagina: modifiche non salvate
 

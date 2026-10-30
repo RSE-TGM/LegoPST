@@ -375,7 +375,8 @@ int get_selected(PAGINA *pag,Widget **selezionati,Cardinal *num_selezionati)
    if(top && notop)
    {
       SetMsg(topLevelShell,NULL,INFMSG,"ConfigInfo","Not Omogeneous Selection",NULL,False,NULL,False,NULL);
-      libera_memoria((char*)selezionati);
+      libera_memoria((char*)*selezionati);
+      *selezionati = NULL;
       *num_selezionati=0;
       return(False);
    }
@@ -1362,10 +1363,13 @@ void PagMemoBtnPress(Widget w,XtPointer client_data,String action,
  * selezionato, cosi' basta premere e trascinare:
  *  - se lui (o un suo antenato fino alla drawing) e' gia' selezionato si
  *    lascia la selezione com'e' (cosi' si spostano piu' oggetti insieme);
- *  - in una pagina che non e' di libreria il figlio selezionato di
- *    un'icona di regolazione non conta (un clic al centro dell'icona
- *    seleziona la scritta interna, che non si sposta da sola): si
- *    seleziona l'icona;
+ *  - in una pagina che non e' di libreria un pezzo interno selezionato
+ *    non conta: un clic al centro di un'icona di regolazione seleziona
+ *    la scritta interna, un clic su un'icona di LIB_pictograph (un
+ *    XlComposite) il disegno interno, ma trascinando si vuole spostare
+ *    l'icona intera: si seleziona l'icona. I pezzi interni si spostano
+ *    uno per uno solo nelle pagine di libreria, dove le icone si
+ *    disegnano;
  *  - altrimenti si seleziona l'oggetto di primo livello, deselezionando
  *    il resto. Col tasto sinistro questo non si fa se il clic non ha
  *    selezionato niente (es. Connect Mode): il trascinamento non parte.
@@ -1396,8 +1400,7 @@ static Boolean PagPrepareMoveSelection(PAGINA *pag,Widget wid,Boolean btn1)
    if(btn1 && selchain == NULL)
       return(False);
 
-   if( selchain != NULL && selchain != top &&
-       PagGetType(pag) != TYPE_LIBRERIA && XlIsIconReg(XtParent(selchain)) )
+   if( selchain != NULL && selchain != top && PagGetType(pag) != TYPE_LIBRERIA )
       selchain = NULL;
 
    if(selchain != NULL)
@@ -2936,7 +2939,93 @@ int add_composite_child(PAGINA *pagina,Widget parent,WidgetClass wid_class,char 
  *
  *---------------------------------------------------------------------*/
 
-void do_rubber(ICONLIB *plib,WidgetClass wid_class,Widget wid,Dimension w,Dimension h)
+/*-----------------------------------------------------------------------
+ * Contorno dell'icona durante la copia da una libreria (ottobre 2026).
+ *
+ * Prima il rettangolo si disegnava sulla root window: sotto WSLg
+ * (XWayland senza desktop X) la root non si vede, e il contorno non
+ * compariva. Ora si disegna nella drawing area della pagina sotto il
+ * puntatore, grande come sara' l'icona allo zoom di quella pagina e
+ * agganciato alla griglia, come nel move di un'icona dentro la pagina.
+ *-----------------------------------------------------------------------*/
+typedef struct {
+   Widget drawing;      /* drawing su cui e' disegnato (NULL: nessuno) */
+   GC gc;
+   int x, y;
+   unsigned int w, h;
+} CONTORNO_COPIA;
+
+/* la drawing area di una pagina aperta sotto il punto (root): NULL se
+   il puntatore non e' su una pagina; in *x,*y le coordinate nella drawing */
+static Widget drawing_sotto(int xr, int yr, int *x, int *y)
+{
+   extern PAGINA *pagine;
+   Window root = RootWindow(UxDisplay,UxScreen), src = root, child = root;
+   Window ultimo = None;
+   int tx, ty;
+   Widget w;
+   PAGINA *p;
+
+   while(child != None)
+   {
+      if( !XTranslateCoordinates(UxDisplay,root,child,xr,yr,&tx,&ty,&src) )
+         return(NULL);
+      ultimo = child;
+      child = src;
+   }
+   if(ultimo == None || (w = XtWindowToWidget(UxDisplay,ultimo)) == NULL)
+      return(NULL);
+   for( ; w != NULL; w = XtParent(w))
+      for(p=pagine; p != NULL; p=p->pagsucc)
+         if(w == p->drawing)
+         {
+            XTranslateCoordinates(UxDisplay,root,XtWindow(w),xr,yr,x,y,&child);
+            return(w);
+         }
+   return(NULL);
+}
+
+static void contorno_disegna(CONTORNO_COPIA *c)
+{
+   if(c->drawing != NULL && c->w > 1 && c->h > 1)
+      XDrawRectangle(UxDisplay,XtWindow(c->drawing),c->gc,c->x,c->y,c->w-1,c->h-1);
+}
+
+/* sposta il contorno nel punto (root) xr,yr; w0,h0: dimensioni a zoom 1 */
+static void contorno_muovi(CONTORNO_COPIA *c, int xr, int yr, int w0, int h0,
+                           int px0, int py0)
+{
+   extern float get_def_zoom();
+   Widget d;
+   int x, y, Step;
+   float zoom;
+
+   contorno_disegna(c);          /* cancella il precedente (xor) */
+   c->drawing = NULL;
+
+   if( (d = drawing_sotto(xr,yr,&x,&y)) == NULL )
+      return;
+   zoom = get_def_zoom(d);
+   Step = get_step(d) * zoom;
+   if(Step < 1)
+      Step = 1;
+   x -= (int)(px0 * zoom);       /* il punto di presa resta sotto il puntatore */
+   y -= (int)(py0 * zoom);
+   if(x < 0) x = 0;
+   if(y < 0) y = 0;
+   point_on_grid(x,y,&x,&y,Step);
+
+   c->drawing = d;
+   c->gc = SetXorGc(d);
+   c->x = x;
+   c->y = y;
+   c->w = (unsigned int)(w0 * zoom);
+   c->h = (unsigned int)(h0 * zoom);
+   contorno_disegna(c);
+   XFlush(UxDisplay);
+}
+
+void do_rubber(ICONLIB *plib,WidgetClass wid_class,Widget wid,Dimension w,Dimension h,int presa_x0,int presa_y0)
 {
    extern void PagSetTagReg();
    void SetSetMode();
@@ -2970,7 +3059,19 @@ void do_rubber(ICONLIB *plib,WidgetClass wid_class,Widget wid,Dimension w,Dimens
    int Step;
    float f_zoom;
    extern float get_def_zoom();
-   
+   CONTORNO_COPIA contorno;
+   Dimension w0 = 0, h0 = 0;
+
+   contorno.drawing = NULL;
+/* dimensioni dell'icona a zoom 1: il contorno le scala con lo zoom
+   della pagina su cui passa */
+   get_something_val(wid,XlNwidth0,(XtPointer)&w0);
+   get_something_val(wid,XlNheight0,(XtPointer)&h0);
+   if(w0 == 0 || h0 == 0)
+   {
+      w0 = w;
+      h0 = h;
+   }
 
 
 /* grab (cattura) del mouse pointer */
@@ -3003,14 +3104,8 @@ void do_rubber(ICONLIB *plib,WidgetClass wid_class,Widget wid,Dimension w,Dimens
             XQueryPointer(UxDisplay,RootWindow(UxDisplay,UxScreen),&root,&child,
                           &x_root,&y_root,&wx,&wy,&mask);
 
-/* disegno il rubber sulla main window */
-            if(volte)
-               XDrawRectangle(UxDisplay,RootWindow(UxDisplay,UxScreen),
-                           xorGC,xprec,yprec,(unsigned int )w,(unsigned int )h);
-      
-            
-            XDrawRectangle(UxDisplay,RootWindow(UxDisplay,UxScreen),
-                           xorGC,x_root,y_root,(unsigned int )w,(unsigned int )h);
+/* disegno il contorno sulla pagina sotto il puntatore */
+            contorno_muovi(&contorno,x_root,y_root,w0,h0,presa_x0,presa_y0);
             yprec = y_root;
             xprec = x_root;
              
@@ -3034,6 +3129,10 @@ void do_rubber(ICONLIB *plib,WidgetClass wid_class,Widget wid,Dimension w,Dimens
 /* ho terminato il ciclo con un buttonrelease */
    XUngrabPointer(UxDisplay,CurrentTime);
 
+/* cancello il contorno */
+   contorno_disegna(&contorno);
+   contorno.drawing = NULL;
+
 /* inizializzazione lista children */
    strcpy(lista,"");
 
@@ -3044,11 +3143,13 @@ void do_rubber(ICONLIB *plib,WidgetClass wid_class,Widget wid,Dimension w,Dimens
       Step = get_step(pagina->drawing);
       f_zoom= get_def_zoom(pagina->drawing);
       Step= Step * f_zoom;
+/* l'icona va dove si vedeva il contorno: il punto per cui e' stata presa
+   nella libreria resta sotto il puntatore */
+      wx -= (int)(presa_x0 * f_zoom);
+      wy -= (int)(presa_y0 * f_zoom);
+      if(wx < 0) wx = 0;
+      if(wy < 0) wy = 0;
       point_on_grid(wx,wy,&wx,&wy,Step);
-
-/* cancello il rubber */
-      XDrawRectangle(UxDisplay,RootWindow(UxDisplay,UxScreen),
-                  xorGC,xprec,yprec,w,h);
 
 /* assegno il nome allo widget se lo ho posto sulla pagina */
       assign_name(pagina,dove,parent,new_name);
@@ -3251,10 +3352,6 @@ void do_rubber(ICONLIB *plib,WidgetClass wid_class,Widget wid,Dimension w,Dimens
    }
    else
    {
-/* cancello il rubber */
-      XDrawRectangle(UxDisplay,RootWindow(UxDisplay,UxScreen),
-                  xorGC,xprec,yprec,w,h);
-
       SetMsg(topLevelShell,NULL,INFMSG,"ConfigInfo","Proposed Parent Not Valid",NULL,False,NULL,False,NULL);
    }
 
@@ -3290,7 +3387,36 @@ void istanzia_widget(Widget wid,XEvent *eve,String *param,Cardinal *nparam)
    classe = XtClass(wid); 
    get_something_val(wid,XmNwidth, (XtPointer) &w);
    get_something_val(wid,XmNheight, (XtPointer)&h);
-   do_rubber(plib,classe,wid,w,h);
+
+/* il punto in cui l'icona e' stata presa, nelle sue coordinate a zoom 1:
+   col tasto sinistro la pressione (il move parte dal primo motion), col
+   centrale l'evento stesso */
+   {
+      int xr, yr, px, py;
+      Window ch;
+      Dimension w0 = 0, h0 = 0;
+
+      if( eve->type == MotionNotify && ultimo_btn1_valido )
+      {
+         xr = ultimo_btn1.xbutton.x_root;
+         yr = ultimo_btn1.xbutton.y_root;
+      }
+      else
+      {
+         xr = eve->xbutton.x_root;
+         yr = eve->xbutton.y_root;
+      }
+      ultimo_btn1_valido = False;
+      XTranslateCoordinates(UxDisplay,RootWindow(UxDisplay,UxScreen),XtWindow(wid),
+                            xr,yr,&px,&py,&ch);
+      get_something_val(wid,XlNwidth0,(XtPointer)&w0);
+      get_something_val(wid,XlNheight0,(XtPointer)&h0);
+      if(w0 > 0 && w > 0) px = px * (int)w0 / (int)w;
+      if(h0 > 0 && h > 0) py = py * (int)h0 / (int)h;
+      if(px < 0 || px > (int)(w0 ? w0 : w)) px = 0;
+      if(py < 0 || py > (int)(h0 ? h0 : h)) py = 0;
+      do_rubber(plib,classe,wid,w,h,px,py);
+   }
 }
 
 
@@ -3604,6 +3730,16 @@ void proc_deselect(Widget wgtsel)
 //         DeselectAllDraget(drawing);
 // GUAG2025 forse False
          DeselectAllDraget(drawing, False);
+         set_something_val(wgtsel,XlNselected,(XtArgVal)True);
+      }
+      else if( drawing != NULL && XtIsComposite(drawing) )
+      {
+/* non e' una pagina: la palette delle icone (Add Icon). Le icone di
+   regolazione (XlIconReg) derivano da XlManager e non da XlCore, e la
+   Select della libreria Xl deseleziona solo i fratelli XlCore: senza
+   questo restavano tutte selezionate, mentre quelle di LIB_pictograph
+   (XlCore) si deselezionavano. */
+         pag_deselect_all(drawing);
          set_something_val(wgtsel,XlNselected,(XtArgVal)True);
       }
    }
@@ -4174,7 +4310,23 @@ for(i=0;i<num_selected;i++)
  a managed tutte le connessioni
 */
 if(operazione == RECTMOVE && num_selected)
-      manage_all_conn(XtParent(selected[0]));
+   {
+/* manage_all_conn vuole la drawing della pagina: un pezzo interno di un
+   XlComposite ha per padre il composite, e passarlo faceva crashare */
+   extern PAGINA *pagine;
+   PAGINA *p;
+   Widget w;
+   for(w=XtParent(selected[0]); w != NULL; w=XtParent(w))
+      {
+      for(p=pagine; p != NULL && p->drawing != w; p=p->pagsucc)
+         ;
+      if(p != NULL)
+         {
+         manage_all_conn(w);
+         break;
+         }
+      }
+   }
 }
 
 void select_conn_icon(selected,rubber,operazione)

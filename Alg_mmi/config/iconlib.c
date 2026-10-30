@@ -202,13 +202,13 @@ void iconlib_def_translation(ICONLIB *iconlib)
 printf("numero_children=%d\n",num_children);
    for(i=0;i<num_children;i++)
    {
-      sprintf(stringa,ADD_ICON_TRANS,iconlib);
+      sprintf(stringa,ADD_ICON_TRANS,iconlib,iconlib);
       add_def_translation(children[i],stringa);
 
       if( XlIsXlManager(children[i]) && XlIsXlComposite(children[i]) )
       {
          get_child(children[i],&xlwid,&nxlwid);
-         sprintf(stringa,ADD_ICON_PARENT,iconlib);
+         sprintf(stringa,ADD_ICON_PARENT,iconlib,iconlib);
 
          for(j=0;j<nxlwid;j++)
             add_def_translation(xlwid[j],stringa);
@@ -221,7 +221,7 @@ printf("numero_children=%d\n",num_children);
 
          for(j=0;j<nxlwid;j++)
 	    {
-            sprintf(stringa,ADD_ICON_PARENT,iconlib);
+            sprintf(stringa,ADD_ICON_PARENT,iconlib,iconlib);
             add_def_translation(xlwid[j],stringa);
 /*
  Gestione per l'oggetto grafici: viene gestito un altro
@@ -230,7 +230,7 @@ printf("numero_children=%d\n",num_children);
 	    if(XtIsComposite(xlwid[j]))
 		{
           	get_child(xlwid[j],&xl2wid,&n2xlwid);
-         	sprintf(stringa,ADD_ICON_PARENT_PARENT,iconlib);
+         	sprintf(stringa,ADD_ICON_PARENT_PARENT,iconlib,iconlib);
 		for(k=0; k< n2xlwid; k++)
             		add_def_translation(xl2wid[k],stringa);
 		}
