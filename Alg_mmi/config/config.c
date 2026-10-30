@@ -67,6 +67,7 @@ extern void istanzia_widget_parent();
 extern void istanzia_widget();
 extern void select_zone();
 extern void move_or_resize();
+extern void PagMemoBtnPress();
 extern void XlSetSelectRunTime();
 extern void proc_deselect();
 extern void proc_SelPort();
@@ -272,6 +273,8 @@ if(comm_found!=0)
          UxInitGraphics(); 
 
          XtAppAddActions(UxAppContext,actions,XtNumber(actions));
+         /* ricorda dove si preme il Button1, per il move col tasto sinistro */
+         XtAppAddActionHook(UxAppContext,(XtActionHookProc)PagMemoBtnPress,NULL);
 
          XlSetSelectRunTime((caddr_t)proc_deselect);
          XlSetSelectPort((caddr_t)proc_SelPort);

@@ -205,27 +205,29 @@ int filtro(XEvent *eve)
 int which_rectangle(Widget wid,Position x,Position y)
 {
    extern void get_geometry();
-   int i,ixp,iyp;
    Dimension width,height;
    Position wx,wy;
-
+   int bx,by,col,riga;
+   static int rect[3][3] = { { RECT1, RECT2,    RECT3 },
+                             { RECT8, RECTMOVE, RECT4 },
+                             { RECT7, RECT6,    RECT5 } };
 
    get_geometry(wid,&wx,&wy,&width,&height);
 
-   ixp = ((float)x/(float)width)*100.0;
-   iyp = ((float)y/(float)height)*100.0;
+/* le maniglie di resize sono una fascia lungo il bordo larga al piu'
+   MANIGLIA_RESIZE pixel (un quarto del lato per gli oggetti piccoli):
+   tutto l'interno e' area di move. Prima erano il 25% di ogni lato, e
+   su un'icona di 32 pixel l'area di move era un quadratino di 16. */
+   bx = width/4;  if(bx > MANIGLIA_RESIZE) bx = MANIGLIA_RESIZE;
+   by = height/4; if(by > MANIGLIA_RESIZE) by = MANIGLIA_RESIZE;
 
+   if( x < 0 || y < 0 || x > (int)width || y > (int)height )
+      return(False);
 
-   for(i=0;i<RectangleWidgetNum;i++)
-      if(
-          (ixp >=  RectanglesWidget[i].px ) &&
-          (iyp >=  RectanglesWidget[i].py ) &&
-          (ixp <= (RectanglesWidget[i].px + RectanglesWidget[i].pwidth) ) &&
-          (iyp <= (RectanglesWidget[i].py + RectanglesWidget[i].pheight))
-        )
-        return(RectanglesWidget[i].rect);
+   col  = (x < bx) ? 0 : ( (x >= (int)width  - bx) ? 2 : 1 );
+   riga = (y < by) ? 0 : ( (y >= (int)height - by) ? 2 : 1 );
 
-   return(False);
+   return(rect[riga][col]);
 }
 
 /*-----------------------------------------------------------------
@@ -756,8 +758,11 @@ void disegna_linee(Window win,XRectangle *rubb,int nrub)
  *
  *------------------------------------------------------------------------*/
 
-int draw_rubber(Widget drawing,Window win,XRectangle *rubber,int nrubber,XRectangle limiti,int operaz)
+int draw_rubber(Widget drawing,Window win,XRectangle *rubber,int nrubber,XRectangle limiti,int operaz,XEvent *inizio)
 {
+   int worig_x,worig_y;    /* origine di win rispetto alla root */
+   int dxmin,dxmax,dymin,dymax,xpress,ypress;
+   Window wchild;
    extern void MovePick();
    Boolean fine=False;
    XEvent eve;
@@ -781,13 +786,19 @@ int draw_rubber(Widget drawing,Window win,XRectangle *rubber,int nrubber,XRectan
   
 
 
-   if ( XGrabPointer(UxDisplay, win, True,
+/* owner_events False: tutti gli eventi del puntatore arrivano riferiti a
+   win; le coordinate si ricavano comunque da x_root/y_root, che non
+   dipendono dalla finestra su cui e' riportato l'evento */
+   if ( XGrabPointer(UxDisplay, win, False,
                       ButtonReleaseMask|PointerMotionMask,
                      GrabModeSync, GrabModeAsync,
                      None, None, CurrentTime) !=  GrabSuccess)
    {
       return(0);
    }
+
+   XTranslateCoordinates(UxDisplay,win,DefaultRootWindow(UxDisplay),0,0,
+                         &worig_x,&worig_y,&wchild);
 
    if((locale = (XRectangle *)alloca_memoria(nrubber,(int)sizeof(XRectangle))) == NULL)
        return(False);
@@ -801,6 +812,51 @@ int draw_rubber(Widget drawing,Window win,XRectangle *rubber,int nrubber,XRectan
    Step = get_step(drawing);
    f_zoom= get_def_zoom(drawing);
    Step= Step*f_zoom;
+   if(Step < 1)
+      Step = 1;
+
+/* il trascinamento parte dal punto in cui e' stato premuto il tasto
+   (o dal primo motion del Button1), non dal primo motion ricevuto qui:
+   prima il tratto percorso fino ad allora andava perso */
+   if(inizio != NULL)
+   {
+      point_on_grid(inizio->xbutton.x_root - worig_x,
+                    inizio->xbutton.y_root - worig_y,
+                    &xpress,&ypress,Step);
+      xinizio = xold = xpress;
+      yinizio = yold = ypress;
+      prima_volta = False;
+
+/* gli oggetti di sfondo selezionati prendono come riferimento il primo
+   motion che ricevono: glielo si da' nel punto di partenza */
+      if(operaz == RECTMOVE)
+      {
+         XEvent ev0;
+         ev0 = *inizio;
+         ev0.type = MotionNotify;
+         ev0.xmotion.window = win;
+         ev0.xmotion.x = xpress;
+         ev0.xmotion.y = ypress;
+         MovePick(XtWindowToWidget(UxDisplay,win),&ev0);
+      }
+   }
+
+/* nel move il rubber non esce dai limiti (quelli di isinlimit): arrivato
+   al bordo si ferma li', invece di rifiutare la move al rilascio */
+   dxmin = dymin = -32000;
+   dxmax = dymax =  32000;
+   if(operaz == RECTMOVE)
+      for(i=0;i<nrubber;i++)
+      {
+         if( (limiti.x + 1 - locale[i].x) > dxmin )
+            dxmin = limiti.x + 1 - locale[i].x;
+         if( (limiti.y + 1 - locale[i].y) > dymin )
+            dymin = limiti.y + 1 - locale[i].y;
+         if( ((int)limiti.width  - 1 - (locale[i].x + (int)locale[i].width))  < dxmax )
+            dxmax = (int)limiti.width  - 1 - (locale[i].x + (int)locale[i].width);
+         if( ((int)limiti.height - 1 - (locale[i].y + (int)locale[i].height)) < dymax )
+            dymax = (int)limiti.height - 1 - (locale[i].y + (int)locale[i].height);
+      }
 
    volte = 0;
    while(!fine)
@@ -819,8 +875,8 @@ int draw_rubber(Widget drawing,Window win,XRectangle *rubber,int nrubber,XRectan
 /* effettua la query del pointer solo se il movemento del pointer e' consistente */ 
             while(XCheckTypedEvent(UxDisplay,MotionNotify,&eve));
 
-            pwin_x = eve.xmotion.x;
-            pwin_y = eve.xmotion.y;
+            pwin_x = eve.xmotion.x_root - worig_x;
+            pwin_y = eve.xmotion.y_root - worig_y;
 
 
             point_on_grid(pwin_x,pwin_y,&pwin_x,&pwin_y,Step);
@@ -829,8 +885,8 @@ int draw_rubber(Widget drawing,Window win,XRectangle *rubber,int nrubber,XRectan
             if(prima_volta)  
             {
 
-               xinizio = pwin_x;
-               yinizio = pwin_y;
+               xinizio = xpress = pwin_x;
+               yinizio = ypress = pwin_y;
                      
                xold = pwin_x; 
                yold = pwin_y; 
@@ -840,7 +896,18 @@ int draw_rubber(Widget drawing,Window win,XRectangle *rubber,int nrubber,XRectan
     
             }
 
-           
+            if(operaz == RECTMOVE)
+            {
+               if(pwin_x - xpress < dxmin) pwin_x = xpress + dxmin;
+               if(pwin_x - xpress > dxmax) pwin_x = xpress + dxmax;
+               if(pwin_y - ypress < dymin) pwin_y = ypress + dymin;
+               if(pwin_y - ypress > dymax) pwin_y = ypress + dymax;
+            }
+
+/* gli oggetti del disegno di sfondo selezionati seguono lo stesso punto */
+            eve.xmotion.window = win;
+            eve.xmotion.x = pwin_x;
+            eve.xmotion.y = pwin_y;
             MovePick(XtWindowToWidget(UxDisplay,win),&eve);
 
             switch(operaz)
@@ -1180,6 +1247,8 @@ locale[0].height +=1;
       }
       volte++;
    }
+   libera_memoria((char*)locale);
+   return(1);
 }
 
 /*------------------------------------------------------------
@@ -1215,6 +1284,145 @@ int isinto(int x,int y,XRectangle limite)
 }
 
 /*-----------------------------------------------------------------------------
+ * PagMemoBtnPress
+ *
+ * Action hook (registrato in config.c): ricorda l'ultima pressione del
+ * Button1. Il move col tasto sinistro parte dal primo <Btn1Motion>, quando
+ * il puntatore si e' gia' mosso: per non perdere quel tratto il move parte
+ * dal punto in cui il tasto e' stato premuto.
+ *-----------------------------------------------------------------------------*/
+static XEvent ultimo_btn1;
+static Boolean ultimo_btn1_valido = False;
+
+/* la selezione com'era prima della pressione, se si e' premuto su un
+   oggetto gia' selezionato: Seleziona() la riduce all'oggetto premuto, ma
+   se poi si trascina vanno spostati tutti quelli selezionati */
+static PAGINA *sel_prima_pag = NULL;
+static Widget *sel_prima = NULL;
+static Cardinal sel_prima_num = 0;
+
+static void PagSelPrimaLibera(void)
+{
+   if(sel_prima != NULL)
+      libera_memoria((char*)sel_prima);
+   sel_prima = NULL;
+   sel_prima_num = 0;
+   sel_prima_pag = NULL;
+}
+
+void PagMemoBtnPress(Widget w,XtPointer client_data,String action,
+                     XEvent *eve,String *params,Cardinal *nparams)
+{
+   extern PAGINA *pagine;
+   PAGINA *pag;
+   Widget c;
+   Boolean premuto_selezionato = False;
+
+   if( eve == NULL || eve->type != ButtonPress || eve->xbutton.button != Button1 )
+      return;
+
+   ultimo_btn1 = *eve;
+   ultimo_btn1_valido = True;
+
+   PagSelPrimaLibera();
+   if( w == NULL || !XtIsWidget(w) )
+      return;
+
+   for(c=w; c != NULL; c=XtParent(c))
+   {
+      if( iswidsel(c) )
+         premuto_selezionato = True;
+      for(pag=pagine; pag != NULL; pag=pag->pagsucc)
+         if(XtParent(c) == pag->drawing)
+            break;
+      if(pag != NULL)
+         break;
+   }
+   if(pag == NULL || !premuto_selezionato)
+      return;
+
+   if( get_selected(pag,&sel_prima,&sel_prima_num) == False )
+   {
+      sel_prima = NULL;
+      sel_prima_num = 0;
+      return;
+   }
+   if(sel_prima_num < 2)
+   {
+      PagSelPrimaLibera();
+      return;
+   }
+   sel_prima_pag = pag;
+}
+
+/*-----------------------------------------------------------------------------
+ * PagPrepareMoveSelection
+ *
+ * Prima di un move/resize fa in modo che l'oggetto sotto il puntatore sia
+ * selezionato, cosi' basta premere e trascinare:
+ *  - se lui (o un suo antenato fino alla drawing) e' gia' selezionato si
+ *    lascia la selezione com'e' (cosi' si spostano piu' oggetti insieme);
+ *  - in una pagina che non e' di libreria il figlio selezionato di
+ *    un'icona di regolazione non conta (un clic al centro dell'icona
+ *    seleziona la scritta interna, che non si sposta da sola): si
+ *    seleziona l'icona;
+ *  - altrimenti si seleziona l'oggetto di primo livello, deselezionando
+ *    il resto. Col tasto sinistro questo non si fa se il clic non ha
+ *    selezionato niente (es. Connect Mode): il trascinamento non parte.
+ *-----------------------------------------------------------------------------*/
+void proc_deselect(Widget);
+
+static Boolean PagPrepareMoveSelection(PAGINA *pag,Widget wid,Boolean btn1)
+{
+   extern int PagGetType();
+   Widget top,w,selchain=NULL;
+
+   for(top=wid; top != NULL && XtParent(top) != pag->drawing; top=XtParent(top))
+      ;
+   if(top == NULL)
+      return(False);
+
+   for(w=wid; w != NULL; w=XtParent(w))
+   {
+      if( iswidsel(w) )
+      {
+         selchain = w;
+         break;
+      }
+      if(w == top)
+         break;
+   }
+
+   if(btn1 && selchain == NULL)
+      return(False);
+
+   if( selchain != NULL && selchain != top &&
+       PagGetType(pag) != TYPE_LIBRERIA && XlIsIconReg(XtParent(selchain)) )
+      selchain = NULL;
+
+   if(selchain != NULL)
+      return(True);
+
+   proc_deselect(top);
+   return(True);
+}
+
+/*-----------------------------------------------------------------------------
+ * PagWidResizable
+ *
+ * True se resize_widget accetta lo widget (non toglie dalla lista icone di
+ * regolazione, loro figli e porte): per gli altri tutta l'area e' di move.
+ *-----------------------------------------------------------------------------*/
+static Boolean PagWidResizable(Widget w)
+{
+   if( XlIsIconReg(w) || XlIsPort(w) )
+      return(False);
+   if( XtParent(w) != NULL && XlIsIconReg(XtParent(w)) )
+      return(False);
+   return(True);
+}
+
+/*-----------------------------------------------------------------------------
  * 
  * move_or_resize
  *
@@ -1224,22 +1432,20 @@ int isinto(int x,int y,XRectangle limite)
  *             Cardinal nparam;   numero parametri
  *
  * Description: Questa funzione di translation viene attivata con la Press    
- *              del Button2 e stabilisce se effettuare  lo spostamento o il resize
+ *              del Button2, o con il primo Motion del Button1 premuto,
+ *              e stabilisce se effettuare lo spostamento o il resize
  *              widget selezionati.
  *
  *-----------------------------------------------------------------------------*/
 int move_or_resize(Widget wid,XEvent *eve,String *param,Cardinal *nparam)
 {
    PAGINA *pag;
-   Cardinal num_selected,num_children,nnipoti;
-   Widget *selected,widmove;
-   WidgetList children,nipoti;
-   int x,y;
-   Position px,py;
-   Dimension width,height;
-   int id_rect,i,j,n;
-   Boolean good=False; 
-   Window wsrc,wdst,wind;
+   Cardinal num_selected;
+   Widget *selected,target,w;
+   int x,y,ex,ey,id_rect,i;
+   Window ewin,wind;
+   Boolean btn1;
+   XEvent partenza;
 
    if( *nparam < 1)
       return(False);
@@ -1250,83 +1456,96 @@ int move_or_resize(Widget wid,XEvent *eve,String *param,Cardinal *nparam)
       return(False);
    }
 
+   btn1 = (eve->type == MotionNotify);
+   if(btn1)
+   {
+      ewin = eve->xmotion.window;
+      ex = eve->xmotion.x;
+      ey = eve->xmotion.y;
+/* sulle porte il tasto sinistro serve alle connessioni */
+      if( XlIsPort(wid) )
+         return(False);
+   }
+   else
+   {
+      ewin = eve->xbutton.window;
+      ex = eve->xbutton.x;
+      ey = eve->xbutton.y;
+   }
+
+/* tasto sinistro premuto su un oggetto di una selezione multipla:
+   Seleziona() l'ha ridotta all'oggetto premuto, la si ripristina */
+   if( btn1 && sel_prima_pag == pag )
+   {
+      Widget c;
+      Boolean dentro = False;
+      for(c=wid; c != NULL && c != pag->drawing && !dentro; c=XtParent(c))
+         for(i=0;i<sel_prima_num;i++)
+            if(sel_prima[i] == c)
+            {
+               dentro = True;
+               break;
+            }
+      if(dentro)
+      {
+         pag_deselect_all(pag->drawing);
+         for(i=0;i<sel_prima_num;i++)
+            set_something_val(sel_prima[i],XlNselected,(XtArgVal)True);
+      }
+   }
+   if(btn1)
+      PagSelPrimaLibera();
+
+   if( !PagPrepareMoveSelection(pag,wid,btn1) )
+      return(False);
+
+/* col tasto sinistro si parte dal punto premuto (vedi PagMemoBtnPress) */
+   if( btn1 && ultimo_btn1_valido &&
+       ultimo_btn1.xbutton.display == eve->xmotion.display &&
+       eve->xmotion.time - ultimo_btn1.xbutton.time < 30000 )
+   {
+      ex = ultimo_btn1.xbutton.x_root;
+      ey = ultimo_btn1.xbutton.y_root;
+      partenza = *eve;
+      partenza.xmotion.x_root = ex;
+      partenza.xmotion.y_root = ey;
+      eve = &partenza;
+      ewin = DefaultRootWindow(UxDisplay);
+   }
+   ultimo_btn1_valido = False;
+
 /* recupero gli widget selezionati */
    if(get_selected(pag,&selected,&num_selected) == False)
    {
      return(False);
    }
 
-   x = eve->xbutton.x;
-   y = eve->xbutton.y;
+/* lo widget selezionato che contiene il punto premuto: puo' essere wid
+   stesso o un suo antenato (XlComposite, XlManager, icona di regolazione) */
+   target = NULL;
+   for(w=wid; w != NULL && w != pag->drawing && target == NULL; w=XtParent(w))
+      for(i=0;i<num_selected;i++)
+         if(selected[i] == w)
+         {
+            target = w;
+            break;
+         }
 
-/* ATTENZIONE allo widget XlComposite 
-  puo' accadere che lo widget che riceve l'evento
-  di button press non sia selezionato ma figlio di
-  un XlComposite selezionato
-*/
-
-   for(i=0;i<num_selected;i++)
+   if(target == NULL)
    {
-      if( (wid != selected[i])  && XlIsXlComposite( selected[i]) )
-      {
-          get_child(selected[i],&children,&num_children);
-           
-          for(j=0;j<num_children;j++) 
-          {
-             if( wid == children[j] )
-             {
-                wsrc = XtWindow(wid);
-                wdst = XtWindow(selected[i]);
-                XTranslateCoordinates(UxDisplay,wsrc,wdst,
-                                      eve->xbutton.x,eve->xbutton.y,
-                                      &x,&y,&wind);
-                wid = selected[i];
-                break;
-             }
-          }
-      }
-/* gestione per goggetto grafico */
-      else if( (wid != selected[i])  && XlIsXlManager( selected[i]) )
-      {
-          get_child(selected[i],&children,&num_children);
-          for(j=0;j<num_children;j++) 
-          {
-             if( wid == children[j] )
-             {
-                wsrc = XtWindow(wid);
-                wdst = XtWindow(selected[i]);
-                XTranslateCoordinates(UxDisplay,wsrc,wdst,
-                                      eve->xbutton.x,eve->xbutton.y,
-                                      &x,&y,&wind);
-                wid = selected[i];
-                break;
-             }
-             else if( XtIsComposite(children[j]) )
-             {
-                get_child(children[j],&nipoti,&nnipoti);
+      libera_memoria((char*)selected);
+      return(False);
+   }
 
-                for(n=0;n<nnipoti;n++) 
-	        {
+   XTranslateCoordinates(UxDisplay,ewin,XtWindow(target),ex,ey,&x,&y,&wind);
 
-                   if( wid == nipoti[n] )
-                   {
-                      wsrc = XtWindow(wid);
-                      wdst = XtWindow(selected[i]);
-                      XTranslateCoordinates(UxDisplay,wsrc,wdst,
-                                      eve->xbutton.x,eve->xbutton.y,
-                                      &x,&y,&wind);
-                      wid = selected[i];
-                      break;
-                   }
-	        }
-             }
-	  }
-      }
-   } 
-   
+/* verifico in quale area sensibile dello widget e' avvenuto l'evento;
+   piu' oggetti insieme o un oggetto che non si ridimensiona: solo move */
+   if( num_selected > 1 || !PagWidResizable(target) )
+      id_rect = RECTMOVE;
+   else
+      id_rect = which_rectangle(target,(Position)x,(Position)y);
 
-/* verifico in quale area sensibile dello widget e' avvenuto l'evento */
-   id_rect = which_rectangle(wid,(Position)x,(Position)y);
    switch(id_rect)
    {
       case RECT1:
@@ -1337,25 +1556,17 @@ int move_or_resize(Widget wid,XEvent *eve,String *param,Cardinal *nparam)
       case RECT6:
       case RECT7:
       case RECT8:
-      /* resize */
-         if(num_selected == 1)
-            resize_widget(pag,wid,eve,id_rect);
-         else
-            SetMsg(topLevelShell,NULL,INFMSG,"ConfigInfo","Resize Only One Widget",NULL,False,NULL,False,NULL);
+         resize_widget(pag,target,eve,id_rect);
       break;
       case RECTMOVE:
-      /* move */
-         move_widget(pag,wid,eve);
+         move_widget(pag,target,eve);
       break;
-      otherwise:
-      /* none */
-      libera_memoria((char*)(selected));
-      return(False);
+      default:
       break;
    }
 
    libera_memoria((char*)selected);
-
+   return(True);
 }
 
 /*----------------------------------------------------
@@ -1543,6 +1754,26 @@ void assegna_xylogiche(XrmDatabase db,Widget wid,Position x0,Position y0)
 
 
 
+/*-------------------------------------------------------------
+ * PagEventInSelected
+ *
+ * True se l'evento (press del Button2 o motion del Button1) e' avvenuto
+ * dentro uno degli widget selezionati, a qualunque profondita'
+ * (porte, scritte, figli di XlManager).
+ *-------------------------------------------------------------*/
+static Boolean PagEventInSelected(PAGINA *pag,XEvent *eve,Widget *selected,Cardinal num_selected)
+{
+   Widget w;
+   Cardinal i;
+
+   for(w=XtWindowToWidget(UxDisplay,eve->xany.window);
+       w != NULL && w != pag->drawing; w=XtParent(w))
+      for(i=0;i<num_selected;i++)
+         if(w == selected[i])
+            return(True);
+   return(False);
+}
+
 /*--------------------------------------------------------------
  *
  * resize_widget
@@ -1579,6 +1810,12 @@ int resize_widget(PAGINA *pag,Widget wid,XEvent *eve,int id_rect)
    PagRemoveIconRegSelected(pag,selected,&num_selected);
    PagRemovePortSelected(pag,selected,&num_selected);
 
+   if(num_selected == 0)
+   {
+      libera_memoria((char*)selected);
+      return(False);
+   }
+
 /* recupero la Window su cui disegnare e le sue dimensioni */
    wpag = XtWindow(XtParent(selected[0]));
    get_geometry(XtParent(selected[0]),&limiti.x,&limiti.y,&limiti.width,&limiti.height);
@@ -1599,14 +1836,7 @@ int resize_widget(PAGINA *pag,Widget wid,XEvent *eve,int id_rect)
    }
 
 /* verifico che button2 sia stato premuto all'interno di uno widget selezionato */
-   into = 0;
-   for(i=0;i<num_selected;i++)
-   {
-      if( XtWindowToWidget(UxDisplay,eve->xbutton.window) == selected[i] ||
-          XtParent(XtWindowToWidget(UxDisplay,eve->xbutton.window)) == selected[i]  ||
-          XtParent(XtParent(XtWindowToWidget(UxDisplay,eve->xbutton.window))) == selected[i] )
-         into++;
-   }
+   into = PagEventInSelected(pag,eve,selected,num_selected);
 
    if(!into)
    {
@@ -1616,7 +1846,7 @@ int resize_widget(PAGINA *pag,Widget wid,XEvent *eve,int id_rect)
    }
 
 /* disegno i rubber */
-   draw_rubber(pag->drawing,wpag,rubber,nrubber,limiti,id_rect);
+   draw_rubber(pag->drawing,wpag,rubber,nrubber,limiti,id_rect,eve);
 
 /* verifico che la move sia avvenuta entro i limiti */
    for(i=0;i<num_selected;i++)
@@ -1702,6 +1932,12 @@ int move_widget(PAGINA *pag,Widget wid,XEvent *eve)
    if(tipo_pag != TYPE_LIBRERIA)
       PagRemoveIconRegChildSelected(pag,selected,&num_selected);
 
+   if(num_selected == 0)
+   {
+      libera_memoria((char*)selected);
+      return(False);
+   }
+
 
     
 /* recupero la Window su cui disegnare e le sue dimensioni */
@@ -1724,18 +1960,7 @@ int move_widget(PAGINA *pag,Widget wid,XEvent *eve)
    }
 
 /* verifico che button2 sia stato premuto all'interno di uno widget selezionato */
-   into = 0;
-   for(i=0;i<num_selected;i++)
-   {
-      if( XtWindowToWidget(UxDisplay,eve->xbutton.window) == selected[i] || 
-          XtParent(XtWindowToWidget(UxDisplay,eve->xbutton.window)) == selected[i] ||
-          XtParent(XtParent(XtWindowToWidget(UxDisplay,eve->xbutton.window))) == selected[i] )
-      {
-         into++;
-         break;
-      }
-      
-   }
+   into = PagEventInSelected(pag,eve,selected,num_selected);
 
    if(!into)
    {
@@ -1746,9 +1971,20 @@ int move_widget(PAGINA *pag,Widget wid,XEvent *eve)
       return(False);
    }
 
+   x0 = rubber[0].x;
+   y0 = rubber[0].y;
+
 /* disegno i rubber */
    StartPageditMove(pag->drawing);
-   draw_rubber(pag->drawing,wpag,rubber,nrubber,limiti,RECTMOVE);
+   draw_rubber(pag->drawing,wpag,rubber,nrubber,limiti,RECTMOVE,eve);
+
+/* nessuno spostamento (un clic, o un tremolio sotto il passo di griglia) */
+   if(rubber[0].x == x0 && rubber[0].y == y0)
+   {
+      libera_memoria((char*)selected);
+      libera_memoria((char*)rubber);
+      return(False);
+   }
 
 /* verifico che la move sia avvenuta entro i limiti */
    for(i=0;i<num_selected;i++)

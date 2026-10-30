@@ -1472,6 +1472,33 @@ static	void	activateCB_menu1PrintSet( UxWidget, UxClientData, UxCallbackArg )
 	UxTopLevelShellContext = UxSaveCtx;
 }
 
+/*
+ Seguito dell'uscita, dopo il controllo delle pagine modificate.
+ gia_confermato: l'utente ha appena scelto Save all o Discard nella
+ finestra delle pagine, e non gli si chiede di nuovo se vuole uscire.
+ Il Context modificato si chiede comunque (EXIT_WITH_SAVE).
+*/
+static void esci_prosegui(int gia_confermato)
+{
+	extern Boolean ContextModified;
+	extern Boolean StateInterfaceMode;
+	extern void destroy_conn();
+
+	if( ContextModified )
+	   gest_conf_op(EXIT_WITH_SAVE,"EXIT - Context is not Saved. Do you Want To Save ?",(char*)pagedit);
+	else if( gia_confermato )
+	{
+	   /* come EXIT_NO_CHANGE in messageBoxDialog1.c */
+	   if( StateInterfaceMode )
+	      destroy_conn();
+	   if( fpLogMsg != NULL )
+	      fclose(fpLogMsg);
+	   exit(0);
+	}
+	else
+	   gest_conf_op(EXIT_NO_CHANGE,"EXIT - Do you really want to Exit?",(char*)NULL);
+}
+
 static	void	activateCB_menu1Exit1( UxWidget, UxClientData, UxCallbackArg )
 	Widget		UxWidget;
 	XtPointer	UxClientData, UxCallbackArg;
@@ -1483,13 +1510,12 @@ static	void	activateCB_menu1Exit1( UxWidget, UxClientData, UxCallbackArg )
 	UxTopLevelShellContext = UxContext =
 			(_UxCtopLevelShell *) UxGetContext( UxWidget );
 	{
-	   extern Boolean ContextModified;
-	
-	   if( ContextModified )
-	      gest_conf_op(EXIT_WITH_SAVE,"EXIT - Context is not Saved. Do you Want To Save ?",(char*)pagedit);
-	   else
-	      gest_conf_op(EXIT_NO_CHANGE,"EXIT - Do you really want to Exit?",(char*)NULL);
-	
+	   extern Boolean PagUscitaControllo(Widget, void (*)(int));
+
+	   /* prima le pagine aperte con modifiche non salvate (Save all /
+	      Discard / Cancel), poi l'uscita di sempre: vedi esci_prosegui */
+	   if( !PagUscitaControllo(UxWidget, esci_prosegui) )
+	      esci_prosegui(0);
 	}
 	UxTopLevelShellContext = UxSaveCtx;
 }
@@ -2210,6 +2236,14 @@ static	void	defaultActionCB_LibraryList( UxWidget, UxClientData, UxCallbackArg )
 	UxTopLevelShellContext = UxContext =
 			(_UxCtopLevelShell *) UxGetContext( UxWidget );
 	{
+	/* la lista e' XmSINGLE_SELECT: un clic su una voce gia' selezionata la
+	   deseleziona. Dopo aver chiuso una libreria la voce restava selezionata,
+	   il doppio clic la toglieva e open_page non trovava niente da aprire
+	   (si apriva solo al secondo doppio clic). Si seleziona la voce su cui
+	   e' stato fatto il doppio clic. */
+	XmListCallbackStruct *cbs = (XmListCallbackStruct *) UxCallbackArg;
+	if(cbs != NULL && cbs->item_position > 0)
+	   XmListSelectPos(UxWidget, cbs->item_position, False);
 	PageDeselectAllItem();
 	open_page(TIPO_LIBRARY);
 	}

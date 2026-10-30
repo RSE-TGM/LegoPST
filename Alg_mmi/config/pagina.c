@@ -221,6 +221,8 @@ void pag_wgeometry(FILE *fp,PAGINA *pag)
  *
  *----------------------------------------------------*/
 
+extern void PagImprontaAggiorna(PAGINA *,int,Boolean);
+
 Boolean pagina_save(PAGINA *pag,int tipo,int modo)
 {
    extern XrmDatabase CompressDb; /* data base di appoggio compresso */
@@ -295,6 +297,7 @@ Boolean pagina_save(PAGINA *pag,int tipo,int modo)
 	}
    else
    	XrmPutFileDatabase(pag->db,XlConvPathVms(filename));
+   PagImprontaAggiorna(pag,0,False);   /* la parte .pag ora e' salvata */
    return(True);
    }
 
@@ -365,6 +368,7 @@ Boolean pagina_save(PAGINA *pag,int tipo,int modo)
    if(modo == 1)
    	SetRegoDisplayMode(pag->drawing,dispM,portM,inteM);
 
+   PagImprontaAggiorna(pag,0,False);   /* la parte .pag ora e' salvata */
    return(True);
 }
 
@@ -411,7 +415,7 @@ void AddTransWid(PAGINA *pag,Widget wid)
    int i,j,k;
 
 
-   sprintf(stringa,MOVE_WIDGET_TRANS,pag);
+   sprintf(stringa,MOVE_WIDGET_TRANS,pag,pag);
    add_def_translation(wid,stringa);
 
    if( XlIsXlManager(wid) )
@@ -419,7 +423,7 @@ void AddTransWid(PAGINA *pag,Widget wid)
       get_child(wid,&children,&nchildren);
 
 /*
-      sprintf(stringa,MOVE_WIDGET_TRANS,pag);
+      sprintf(stringa,MOVE_WIDGET_TRANS,pag,pag);
 */
       for(i=0;i<nchildren;i++)
       {

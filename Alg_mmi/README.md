@@ -159,6 +159,86 @@ I gradini sono solo quelli interi: le icone sono state fatte per fattori
 interi. La rotella **senza** Ctrl non fa scorrere la pagina (non lo ha mai
 fatto): si scorre con le barre.
 
+### Spostare e ridimensionare le icone
+
+Un'icona si sposta **premendo e trascinando**, con il tasto sinistro o con
+quello centrale, a qualunque zoom
+([move_or_resize](config/othercnf.c)):
+
+- non serve selezionarla prima: se non lo è, viene selezionata alla
+  pressione (con il tasto sinistro basta il clic stesso);
+- se si preme su un'icona che fa parte di una selezione multipla, si
+  spostano tutte le icone selezionate (e gli elementi di sfondo
+  selezionati);
+- l'icona si prende in qualunque punto, anche sulla scritta interna
+  ("UA") o sul bordo; col tasto sinistro **non** su una porta, che serve
+  alle connessioni;
+- trascinata oltre il bordo della pagina, si ferma al bordo;
+- lo spostamento segue la griglia (*snap*) moltiplicata per lo zoom.
+
+**Ridimensionare**: solo gli oggetti che lo ammettono (non le icone di
+regolazione, non le porte) e uno alla volta. Le maniglie sono una fascia
+di 8 pixel lungo il bordo (`MANIGLIA_RESIZE` in
+[config.h](include/config.h)), un quarto del lato sugli oggetti piccoli;
+l'interno sposta.
+
+Prima di ottobre 2026 si spostava solo con il tasto centrale e solo
+un'icona già selezionata; il move partiva solo dal quadrato centrale
+(metà larghezza per metà altezza), il resto era maniglia di resize anche
+per le icone che non si ridimensionano, e un clic al centro di
+un'icona di regolazione ne selezionava la scritta interna: in tutti
+questi casi la pressione non faceva niente, e sembrava che il
+trascinamento si "inceppasse". In più il primo tratto del movimento
+andava perso, e un'icona portata oltre il bordo tornava al suo posto
+senza messaggi. Il tasto centrale per il trascinamento è la convenzione
+Motif degli anni '90 (sinistro seleziona, centrale trascina, destro menu).
+
+### Chiudere una pagina: modifiche non salvate
+
+*File → Close* e la **X** della finestra fanno la stessa cosa
+([PagChiudiRichiesta](config/PagShell.c)):
+
+- se la pagina non è cambiata dall'apertura (o dall'ultimo *Save*) si
+  chiude subito, senza domande;
+- se è cambiata compare *Page … has unsaved changes*, con **Save**
+  (salva come *File → Save* e chiude), **Discard** (chiude senza salvare)
+  e **Cancel** (la pagina resta aperta). In *Interface Mode*, dove il
+  salvataggio è disattivato, *Save* è grigio.
+
+Come si sa che è cambiata: non c'è un flag di modifica (le modifiche
+passano da troppi punti), si confronta un'**impronta** di quello che il
+*Save* scriverebbe: database delle risorse (righe ordinate), dati della
+pagina, elenco degli oggetti, disegno di sfondo. La si prende
+all'apertura e dopo ogni salvataggio (anche quello fatto dalla
+compilazione, che salva il `.pag` ma non il `.bkg`). Lo zoom non conta:
+dall'impronta del `.bkg` si toglie il riquadro `x_min_d … y_max_d`, che è
+in pixel dello zoom corrente. Per vedere cosa differisce, lanciare
+`config` con `CONFIG_IMPRONTE=<dir>`: alla chiusura di una pagina
+modificata scrive in `<dir>` le due impronte (`<PAG>_<parte>_prima.txt`
+e `_ora.txt`; parte 0 = `.pag`, 1 = `.bkg`).
+
+Fino a ottobre 2026 la X lasciava il default Motif (`XmDESTROY`): la
+finestra spariva ma la pagina restava nella lista delle pagine aperte, e
+riaprendola `config` usciva con `BadWindow` (portava in primo piano una
+finestra che non c'era più). *File → Close* chiedeva solo *Do you really
+want close …?*, senza dire se c'erano modifiche.
+
+**Uscita da `config`** (*File → Exit* o la X della finestra principale)
+([PagUscitaControllo](config/PagShell.c)): se ci sono pagine aperte con
+modifiche non salvate compare il loro elenco, con **Save all** (salva
+quelle modificate ed esce; se un salvataggio fallisce non esce),
+**Discard** (esce senza salvarle) e **Cancel**. Dopo Save all o Discard
+non si chiede di nuovo *Do you really want to Exit?*; la domanda sul
+Context modificato (*Context is not Saved*) resta. Senza pagine
+modificate l'uscita è quella di sempre.
+
+**Riaprire una libreria.** La lista delle librerie è `XmSINGLE_SELECT`,
+dove un clic su una voce già selezionata la deseleziona: dopo aver chiuso
+una libreria la sua voce restava selezionata, il doppio clic la toglieva
+e il primo tentativo di riaprirla andava a vuoto. Ora il doppio clic
+seleziona la voce su cui è fatto
+([defaultActionCB_LibraryList](config/topLevelShell.c)).
+
 ### Il nome completo delle variabili sulle porte (balloon)
 
 In *Option → Set visual mode* la casella **Variable balloon** accende, per

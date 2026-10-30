@@ -24,6 +24,10 @@
 #include <Xm/ScrollBar.h>
 #include <Xm/Form.h>
 #include <Xm/MainW.h>
+#include <Xm/MessageB.h>
+#include <Xm/Protocols.h>
+#include <Xm/AtomMgr.h>
+#include <unistd.h>
 #include <X11/Shell.h>
 #include <Xl/XlIconReg.h>
 
@@ -86,6 +90,10 @@ extern int flag_demo;
 
 int PrintClosePag();
 void close_page();
+void PagImprontaTogli();
+void PagImprontaAggiorna(PAGINA *, int, Boolean);
+void PagChiudiRichiesta();
+void PagStatusMsg(Widget, int, char *);
 //extern void SetItemString();
 extern void EliminaDraget(PAGINA *pag);
 
@@ -799,6 +807,530 @@ Boolean is_drawing_background(Widget w)
 }
 
 
+/*----------------------------------------------------------------------
+ * Pagine modificate e chiusura (ottobre 2026).
+ *
+ * Non c'era nessun flag di "pagina modificata": le modifiche passano da
+ * troppi punti (move, resize, risorse, icone aggiunte o cancellate,
+ * sfondo, connessioni) per inseguirle una per una. Si usa un'impronta:
+ * all'apertura e dopo ogni salvataggio si fotografa quello che il Save
+ * scriverebbe (database delle risorse, elenco degli oggetti, dati della
+ * pagina, disegno di sfondo); alla chiusura la si rifa' e si confronta.
+ * Le righe del database si ordinano: Xrm non le scrive in ordine fisso.
+ *
+ * La chiusura passa sempre da PagChiudiRichiesta, sia da File -> Close
+ * sia dalla X del window manager. Prima la X lasciava il default Motif
+ * (XmDESTROY): la shell spariva ma la pagina restava nella lista
+ * "pagine" e in PagOpen[], e riaprendola config andava in crash.
+ *----------------------------------------------------------------------*/
+
+#define IMPR_PAG 0          /* parte salvata da pagina_save (.pag) */
+#define IMPR_BKG 1          /* parte salvata da WriteBackground (.bkg) */
+#define MAX_IMPRONTE 64
+
+static struct {
+   PAGINA *pag;
+   char *parte[2];
+} impronte[MAX_IMPRONTE];
+
+static int cmp_righe(const void *a, const void *b)
+{
+   return strcmp(*(char * const *)a, *(char * const *)b);
+}
+
+/* legge il file (e lo cancella); restituisce testa + contenuto,
+   con le righe ordinate se ordina */
+static char *leggi_impronta(char *nome, Boolean ordina, char *testa)
+{
+   FILE *fp;
+   long len;
+   char *buf, *out, **righe, *r;
+   int n = 0, i;
+
+   if( (fp = fopen(nome,"r")) == NULL )
+      return(XtNewString(testa));
+   fseek(fp,0L,SEEK_END);
+   len = ftell(fp);
+   rewind(fp);
+   buf = XtMalloc(len+1);
+   len = fread(buf,1,len,fp);
+   buf[len] = 0;
+   fclose(fp);
+   unlink(nome);
+
+   out = XtMalloc(len + strlen(testa) + 2);
+   strcpy(out,testa);
+   if(!ordina)
+   {
+      strcat(out,buf);
+      XtFree(buf);
+      return(out);
+   }
+
+   for(i=0;i<len;i++)
+      if(buf[i] == '\n')
+         n++;
+   righe = (char **)XtMalloc((n+1)*sizeof(char *));
+   n = 0;
+   for(r = strtok(buf,"\n"); r != NULL; r = strtok(NULL,"\n"))
+      righe[n++] = r;
+   qsort(righe,n,sizeof(char *),cmp_righe);
+   for(i=0;i<n;i++)
+   {
+      strcat(out,righe[i]);
+      strcat(out,"\n");
+   }
+   XtFree((char *)righe);
+   XtFree(buf);
+   return(out);
+}
+
+static char *file_impronta(char *nome)
+{
+   int fd;
+
+   strcpy(nome,"/tmp/config_imprXXXXXX");
+   if( (fd = mkstemp(nome)) < 0 )
+      return(NULL);
+   close(fd);
+   return(nome);
+}
+
+/* l'impronta di una parte della pagina: NULL se non si riesce a farla */
+static char *PagImpronta(PAGINA *pag, int parte)
+{
+   extern void pag_wgeometry();
+   extern Boolean PutResPaginaDb();
+   extern void WriteBackground();
+   extern void get_child();
+   char nome[64], nome2[64], *a, *b, *c, *tutto;
+   XrmDatabase dbpag = NULL;
+   WidgetList children;
+   Cardinal nchildren = 0, i;
+   FILE *fp;
+
+   if(pag == NULL || pag->drawing == NULL)
+      return(NULL);
+
+   if(parte == IMPR_BKG)
+   {
+      if(file_impronta(nome) == NULL)
+         return(NULL);
+      WriteBackground(pag->drawing,nome);
+      a = leggi_impronta(nome,False,"[bkg]\n");
+/* le prime 4 righe (x_min_d ... y_max_d) sono il riquadro del disegno in
+   pixel dello zoom corrente: cambiano con lo zoom, non con il disegno */
+      for(b = a + strlen("[bkg]\n"), i = 0; i < 4 && (c = strchr(b,'\n')) != NULL; i++)
+         b = c + 1;
+      memmove(a + strlen("[bkg]\n"), b, strlen(b) + 1);
+      return(a);
+   }
+
+/* database delle risorse degli oggetti */
+   if(file_impronta(nome) == NULL)
+      return(NULL);
+   if(pag->db != NULL)
+      XrmPutFileDatabase(pag->db,nome);
+   a = leggi_impronta(nome,True,"[db]\n");
+
+/* dati della pagina (intestazione del .pag) */
+   if(file_impronta(nome) == NULL || file_impronta(nome2) == NULL)
+   {
+      XtFree(a);
+      return(NULL);
+   }
+   if( (fp = fopen(nome,"w")) != NULL )
+   {
+      pag_wgeometry(fp,pag);
+      fclose(fp);
+   }
+   PutResPaginaDb(pag,&dbpag);
+   if(dbpag != NULL)
+   {
+      XrmPutFileDatabase(dbpag,nome2);
+      XrmDestroyDatabase(dbpag);
+   }
+   b = leggi_impronta(nome2,False,"");
+   if( (fp = fopen(nome,"a")) != NULL )
+   {
+      fputs(b,fp);
+      fclose(fp);
+   }
+   XtFree(b);
+   b = leggi_impronta(nome,True,"[pag]\n");
+
+/* gli oggetti presenti: cancellati e aggiunti */
+   get_child(pag->drawing,&children,&nchildren);
+   c = XtMalloc(nchildren*(L_NOME_OGGETTI+L_CLASSE_OGGETTI+5) + 16);
+   strcpy(c,"[obj]\n");
+   for(i=0;i<nchildren;i++)
+   {
+      strncat(c,XtName(children[i]),L_NOME_OGGETTI);
+      strcat(c," ");
+      strncat(c,XlGetClassName(XtClass(children[i])),L_CLASSE_OGGETTI);
+      strcat(c,"\n");
+   }
+
+   tutto = XtMalloc(strlen(a)+strlen(b)+strlen(c)+1);
+   strcpy(tutto,a);
+   strcat(tutto,b);
+   strcat(tutto,c);
+   XtFree(a);
+   XtFree(b);
+   XtFree(c);
+   return(tutto);
+}
+
+static int PagImprontaIndice(PAGINA *pag, Boolean crea)
+{
+   int i;
+
+   if(pag == NULL)
+      return(-1);
+   for(i=0;i<MAX_IMPRONTE;i++)
+      if(impronte[i].pag == pag)
+         return(i);
+   if(!crea)
+      return(-1);
+   for(i=0;i<MAX_IMPRONTE;i++)
+      if(impronte[i].pag == NULL)
+      {
+         impronte[i].pag = pag;
+         impronte[i].parte[0] = impronte[i].parte[1] = NULL;
+         return(i);
+      }
+   return(-1);
+}
+
+/* fotografa la pagina com'e' ora (parte: IMPR_PAG, IMPR_BKG, -1 tutte);
+   crea: False per aggiornare solo una pagina gia' registrata (aperta) */
+void PagImprontaAggiorna(PAGINA *pag, int parte, Boolean crea)
+{
+   int i, p;
+
+   if( (i = PagImprontaIndice(pag,crea)) < 0 )
+      return;
+   for(p=0;p<2;p++)
+      if(parte < 0 || parte == p)
+      {
+         XtFree(impronte[i].parte[p]);
+         impronte[i].parte[p] = PagImpronta(pag,p);
+      }
+}
+
+void PagImprontaTogli(PAGINA *pag)
+{
+   int i;
+
+   if( (i = PagImprontaIndice(pag,False)) < 0 )
+      return;
+   XtFree(impronte[i].parte[0]);
+   XtFree(impronte[i].parte[1]);
+   impronte[i].pag = NULL;
+   impronte[i].parte[0] = impronte[i].parte[1] = NULL;
+}
+
+/* True se la pagina e' cambiata dall'apertura o dall'ultimo salvataggio */
+Boolean PagModificata(PAGINA *pag)
+{
+   int i, p;
+   char *ora;
+   Boolean diversa = False;
+
+   if( (i = PagImprontaIndice(pag,False)) < 0 )
+      return(False);
+   for(p=0;p<2 && !diversa;p++)
+   {
+      if(impronte[i].parte[p] == NULL)
+         continue;
+      ora = PagImpronta(pag,p);
+      if(ora != NULL && strcmp(ora,impronte[i].parte[p]) != 0)
+      {
+         diversa = True;
+/* diagnostica: CONFIG_IMPRONTE=dir scrive le due impronte che differiscono */
+         if(getenv("CONFIG_IMPRONTE") != NULL)
+         {
+            char f[MAXLENFILENAME];
+            FILE *fp;
+            sprintf(f,"%s/%s_%d_prima.txt",getenv("CONFIG_IMPRONTE"),pag->nomepag,p);
+            if( (fp = fopen(f,"w")) != NULL ) { fputs(impronte[i].parte[p],fp); fclose(fp); }
+            sprintf(f,"%s/%s_%d_ora.txt",getenv("CONFIG_IMPRONTE"),pag->nomepag,p);
+            if( (fp = fopen(f,"w")) != NULL ) { fputs(ora,fp); fclose(fp); }
+         }
+      }
+      XtFree(ora);
+   }
+   return(diversa);
+}
+
+/* salva la pagina (.pag e, se non e' una libreria, .bkg): e' File -> Save */
+Boolean PagSalva(PAGINA *pag)
+{
+   extern PAGEDIT_CONTEXT *pagedit;
+   extern Boolean pagina_save();
+   extern void WriteBackground();
+   extern Boolean CompressData();
+   char fileback[MAXLENFILENAME];
+   Boolean ok = False;
+
+   if(pag == NULL)
+      return(False);
+
+   CompressData(pag);
+
+   if( (!strcmp(pag->geom.tipo,TIPO_SINOTTICO)) ||
+       (!strcmp(pag->geom.tipo,TIPO_STAZIONI))  ||
+       (!strcmp(pag->geom.tipo,TIPO_REGOLAZIONE)) ||
+       (!strcmp(pag->geom.tipo,TIPO_TELEPERM)) )
+   {
+      if( (pagina_save(pag,TIPO_PAGINA,1)) != False)
+      {
+         strcpy(fileback,pagedit->pages);
+         strcat(fileback,"/");
+         strcat(fileback,pag->filebkg);
+         strcpy(fileback,XlConvPathVms(fileback));
+         WriteBackground(pag->drawing,fileback);
+         ok = True;
+      }
+   }
+   else if( !strcmp(pag->geom.tipo,TIPO_LIBRERIA) )
+   {
+      ok = pagina_save(pag,TIPO_LIBRARY,1);
+   }
+
+   if(ok)
+      PagImprontaAggiorna(pag,-1,False);
+   return(ok);
+}
+
+static PAGINA *PagDaNome(char *nome)
+{
+   PAGINA *p;
+
+   for(p=pagine; p != NULL; p=p->pagsucc)
+      if(!strcmp(p->nomepag,nome))
+         return(p);
+   return(NULL);
+}
+
+/* risposte della finestra "pagina modificata"; client_data = nome pagina */
+#define CHIUDI_SALVA   1
+#define CHIUDI_SCARTA  2
+
+static void chiudi_risposta(Widget w, XtPointer client_data, int azione)
+{
+   char *nome = (char *)client_data;
+   PAGINA *pag = PagDaNome(nome);
+   Widget dialog = w;
+
+   while(dialog != NULL && !XtIsSubclass(dialog,xmMessageBoxWidgetClass))
+      dialog = XtParent(dialog);
+   if(dialog != NULL)
+      XtDestroyWidget(XtParent(dialog));
+
+   if(pag != NULL && azione != 0)
+   {
+      if(azione == CHIUDI_SALVA && !PagSalva(pag))
+         PagStatusMsg(pag->drawing,2,"Save failed: page not closed");
+      else
+         close_page(pag->nomepag);
+   }
+}
+
+static void chiudi_salva(Widget w, XtPointer cd, XtPointer cb)  { chiudi_risposta(w,cd,CHIUDI_SALVA); }
+static void chiudi_scarta(Widget w, XtPointer cd, XtPointer cb) { chiudi_risposta(w,cd,CHIUDI_SCARTA); }
+static void chiudi_annulla(Widget w, XtPointer cd, XtPointer cb) { chiudi_risposta(w,cd,0); }
+static void chiudi_libera(Widget w, XtPointer cd, XtPointer cb)  { XtFree((char *)cd); }
+
+/* File -> Close e la X della finestra: se la pagina e' cambiata chiede
+   Save / Discard / Cancel, altrimenti chiude subito */
+void PagChiudiRichiesta(PAGINA *pag)
+{
+   extern Boolean StateInterfaceMode;
+   Widget dialog, scarta;
+   XmString msg, ok, annulla, lab;
+   char testo[400], *nome;
+   Arg args[6];
+   int n;
+   Boolean salvabile;
+
+   if(pag == NULL)
+      return;
+
+   if( !PagModificata(pag) )
+   {
+      close_page(pag->nomepag);
+      return;
+   }
+
+   salvabile = !StateInterfaceMode && flag_demo != 1;
+   if(salvabile)
+      sprintf(testo,"Page %s has unsaved changes.\n\nSave them before closing?",
+              pag->nomepag);
+   else
+      sprintf(testo,"Page %s has unsaved changes,\nbut saving is disabled%s.\n\nDiscard them and close?",
+              pag->nomepag, StateInterfaceMode ? " in Interface Mode" : "");
+
+   msg = XmStringCreateLtoR(testo,XmFONTLIST_DEFAULT_TAG);
+   ok = XmStringCreateSimple("Save");
+   annulla = XmStringCreateSimple("Cancel");
+   n = 0;
+   XtSetArg(args[n],XmNmessageString,msg); n++;
+   XtSetArg(args[n],XmNokLabelString,ok); n++;
+   XtSetArg(args[n],XmNcancelLabelString,annulla); n++;
+   XtSetArg(args[n],XmNdialogStyle,XmDIALOG_FULL_APPLICATION_MODAL); n++;
+   XtSetArg(args[n],XmNdefaultButtonType,XmDIALOG_CANCEL_BUTTON); n++;
+   dialog = XmCreateQuestionDialog(pag->topwidget,"PagChiudi",args,n);
+   XmStringFree(msg);
+   XmStringFree(ok);
+   XmStringFree(annulla);
+   XtVaSetValues(XtParent(dialog),XmNtitle,"Close page",NULL);
+
+   XtUnmanageChild(XmMessageBoxGetChild(dialog,XmDIALOG_HELP_BUTTON));
+   if(!salvabile)
+      XtSetSensitive(XmMessageBoxGetChild(dialog,XmDIALOG_OK_BUTTON),False);
+
+/* il terzo bottone: Motif lo mette dopo OK, cioe' Save | Discard | Cancel */
+   lab = XmStringCreateSimple("Discard");
+   scarta = XtVaCreateManagedWidget("Discard",xmPushButtonWidgetClass,dialog,
+                                    XmNlabelString,lab,NULL);
+   XmStringFree(lab);
+
+   nome = XtNewString(pag->nomepag);
+   XtAddCallback(dialog,XmNokCallback,chiudi_salva,nome);
+   XtAddCallback(dialog,XmNcancelCallback,chiudi_annulla,nome);
+   XtAddCallback(scarta,XmNactivateCallback,chiudi_scarta,nome);
+   XtAddCallback(dialog,XmNdestroyCallback,chiudi_libera,nome);
+
+   XtManageChild(dialog);
+}
+
+/*----------------------------------------------------------------------
+ * Uscita da config con pagine modificate aperte (ottobre 2026).
+ *
+ * PagUscitaControllo: se ci sono pagine aperte con modifiche non salvate
+ * mostra l'elenco e chiede Save all / Discard / Cancel. Con Save all o
+ * Discard richiama prosegui(1) (l'utente ha gia' deciso: non serve
+ * ridomandare "vuoi uscire?"); con Cancel non fa niente. Restituisce
+ * False se non c'e' niente da chiedere: il chiamante prosegue da se'.
+ *----------------------------------------------------------------------*/
+static void (*uscita_prosegui)(int) = NULL;
+
+static void uscita_risposta(Widget w, XtPointer cd, XtPointer cb)
+{
+   int azione = (int)(long)cd;
+   Widget dialog = w;
+   PAGINA *p;
+   char msg[200];
+
+   while(dialog != NULL && !XtIsSubclass(dialog,xmMessageBoxWidgetClass))
+      dialog = XtParent(dialog);
+   if(dialog != NULL)
+      XtDestroyWidget(XtParent(dialog));
+
+   if(azione == 0)
+      return;
+
+   if(azione == CHIUDI_SALVA)
+      for(p=pagine; p != NULL; p=p->pagsucc)
+         if( PagModificata(p) && !PagSalva(p) )
+         {
+            sprintf(msg,"Save of page %s failed: exit cancelled",p->nomepag);
+            PagStatusMsg(p->drawing,2,msg);
+            return;
+         }
+
+   if(uscita_prosegui != NULL)
+      (*uscita_prosegui)(1);
+}
+
+Boolean PagUscitaControllo(Widget parent, void (*prosegui)(int))
+{
+   extern Boolean StateInterfaceMode;
+   PAGINA *p;
+   Widget dialog, scarta;
+   XmString msg, ok, annulla, lab;
+   char *testo;
+   int n, quante = 0, len = 300;
+   Arg args[6];
+   Boolean salvabile;
+
+   for(p=pagine; p != NULL; p=p->pagsucc)
+      if( PagModificata(p) )
+      {
+         quante++;
+         len += strlen(p->nomepag) + 4;
+      }
+   if(quante == 0)
+      return(False);
+
+   uscita_prosegui = prosegui;
+   salvabile = !StateInterfaceMode && flag_demo != 1;
+
+   testo = XtMalloc(len);
+   strcpy(testo, quante == 1 ? "This page has unsaved changes:\n\n"
+                             : "These pages have unsaved changes:\n\n");
+   n = 0;
+   for(p=pagine; p != NULL; p=p->pagsucc)
+      if( PagModificata(p) )
+      {
+         strcat(testo,"   ");
+         strcat(testo,p->nomepag);
+         strcat(testo,"\n");
+      }
+   if(salvabile)
+      strcat(testo,"\nSave them before exiting?");
+   else
+      strcat(testo, StateInterfaceMode ?
+         "\nSaving is disabled in Interface Mode.\nDiscard them and exit?" :
+         "\nSaving is disabled.\nDiscard them and exit?");
+
+   msg = XmStringCreateLtoR(testo,XmFONTLIST_DEFAULT_TAG);
+   XtFree(testo);
+   ok = XmStringCreateSimple("Save all");
+   annulla = XmStringCreateSimple("Cancel");
+   n = 0;
+   XtSetArg(args[n],XmNmessageString,msg); n++;
+   XtSetArg(args[n],XmNokLabelString,ok); n++;
+   XtSetArg(args[n],XmNcancelLabelString,annulla); n++;
+   XtSetArg(args[n],XmNdialogStyle,XmDIALOG_FULL_APPLICATION_MODAL); n++;
+   XtSetArg(args[n],XmNdefaultButtonType,XmDIALOG_CANCEL_BUTTON); n++;
+   dialog = XmCreateQuestionDialog(parent,"PagUscita",args,n);
+   XmStringFree(msg);
+   XmStringFree(ok);
+   XmStringFree(annulla);
+   XtVaSetValues(XtParent(dialog),XmNtitle,"Exit",NULL);
+
+   XtUnmanageChild(XmMessageBoxGetChild(dialog,XmDIALOG_HELP_BUTTON));
+   if(!salvabile)
+      XtSetSensitive(XmMessageBoxGetChild(dialog,XmDIALOG_OK_BUTTON),False);
+
+   lab = XmStringCreateSimple("Discard");
+   scarta = XtVaCreateManagedWidget("Discard",xmPushButtonWidgetClass,dialog,
+                                    XmNlabelString,lab,NULL);
+   XmStringFree(lab);
+
+   XtAddCallback(dialog,XmNokCallback,uscita_risposta,(XtPointer)(long)CHIUDI_SALVA);
+   XtAddCallback(dialog,XmNcancelCallback,uscita_risposta,(XtPointer)0);
+   XtAddCallback(scarta,XmNactivateCallback,uscita_risposta,(XtPointer)(long)CHIUDI_SCARTA);
+
+   XtManageChild(dialog);
+   return(True);
+}
+
+/* la X del window manager: come File -> Close */
+static void chiusura_wm_pagina(Widget w, XtPointer client_data, XtPointer cb)
+{
+   PAGINA *p;
+
+   for(p=pagine; p != NULL; p=p->pagsucc)
+      if(p->topwidget == w)
+      {
+         PagChiudiRichiesta(p);
+         return;
+      }
+}
+
 void close_page(char *pagname)
 {
    extern void abilitaMoveMenu();
@@ -853,6 +1385,7 @@ void close_page(char *pagname)
    abilitaMoveMenu();
 
 
+   PagImprontaTogli(pappo);
    UxDestroyInterface(shell);
 pagina_free(pappo);
 }
@@ -1494,37 +2027,8 @@ static	void	activateCB_SaveTmp( UxWidget, UxClientData, UxCallbackArg )
 	UxPagShellContext = UxContext =
 			(_UxCPagShell *) UxGetContext( UxWidget );
 	{
-	   extern PAGEDIT_CONTEXT *pagedit;
-	   extern Boolean pagina_save();
-	   extern void WriteBackground();
-	   char fileback[MAXLENFILENAME];
-	
-	   extern Boolean CompressData();
-	
-	   CompressData(actual_page);
-	
-	
 #ifndef DESIGN_TIME
-	
-	      if( (!strcmp(actual_page->geom.tipo,TIPO_SINOTTICO)) ||
-	          (!strcmp(actual_page->geom.tipo,TIPO_STAZIONI))  ||
-	          (!strcmp(actual_page->geom.tipo,TIPO_REGOLAZIONE)) ||
-	          (!strcmp(actual_page->geom.tipo,TIPO_TELEPERM)) )
-	      {
-	         if( (pagina_save(actual_page,TIPO_PAGINA,1)) != False)
-	         { 
-	            strcpy(fileback,pagedit->pages);
-	            strcat(fileback,"/"); 
-	            strcat(fileback,actual_page->filebkg);
-	            strcpy(fileback,XlConvPathVms(fileback));
-	            WriteBackground(actual_page->drawing,fileback);
-	         }
-	      }
-	      else if( !strcmp(actual_page->geom.tipo,TIPO_LIBRERIA) )
-	      {
-	         pagina_save(actual_page,TIPO_LIBRARY,1);
-	      }
-	   
+	   PagSalva(actual_page);
 #endif
 	}
 	UxPagShellContext = UxSaveCtx;
@@ -1590,9 +2094,7 @@ static	void	activateCB_CloseTmp( UxWidget, UxClientData, UxCallbackArg )
 			(_UxCPagShell *) UxGetContext( UxWidget );
 	{
 #ifndef DESIGN_TIME
-	   extern int gest_conf_op();
-	
-	   gest_conf_op(CLOSE_PAGE,"Do you really want close %s page ?",actual_page->nomepag);
+	   PagChiudiRichiesta(actual_page);
 	
 #endif
 	
@@ -4047,6 +4549,11 @@ Widget	create_PagShell( _Uxnome_pagina, _Uxindice, _Uxtipop )
 		*/
 		init_st_draw(&st_draw);
 		rtrn = _Uxbuild_PagShell();
+		/* la X del window manager come File -> Close (vedi PagChiudiRichiesta) */
+		XtVaSetValues(rtrn, XmNdeleteResponse, XmDO_NOTHING, NULL);
+		XmAddWMProtocolCallback(rtrn,
+			XmInternAtom(XtDisplay(rtrn),"WM_DELETE_WINDOW",False),
+			(XtCallbackProc) chiusura_wm_pagina, NULL);
 
 		/* inizializzo la struttura PAGINA e carico le resource della medesima*/
 		
@@ -4158,6 +4665,8 @@ Widget	create_PagShell( _Uxnome_pagina, _Uxindice, _Uxtipop )
 		   }
 		
 		
+		/* la pagina com'e' all'apertura, per sapere alla chiusura se e' cambiata */
+		PagImprontaAggiorna(actual_page, -1, True);
 		return(rtrn);
 	}
 }

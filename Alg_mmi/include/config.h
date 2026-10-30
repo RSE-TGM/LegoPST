@@ -136,7 +136,11 @@
 #define ADD_ICON_PARENT_PARENT     "#augment  <Btn2Down>: istanzia_widget_parent_parent(%lx)"
 #define SELECT_ZONE_TRANS   "#override <Btn1Down>: select_zone(%lx %lx)\n<KeyPress>Right:move_tasti()\n<KeyPress>Left:move_tasti()\n<KeyPress>Up:move_tasti()\n<KeyPress>Down:move_tasti()"
 #define SELECT_ZONE_AUGM    "#augment  <Btn1Down>: select_zone(%lx)\n<KeyPress>Right:move_tasti()\n<KeyPress>Left:move_tasti()\n<KeyPress>Up:move_tasti()\n<KeyPress>Down:move_tasti()"
-#define MOVE_WIDGET_TRANS   "#override <Btn2Down>: move_or_resize(%lx)"
+/* move/resize: tasto centrale, oppure tasto sinistro premuto e trascinato
+   (il <Btn1Down> resta a Seleziona dello widget). Due %lx: stesso pag. */
+#define MOVE_WIDGET_TRANS   "#override <Btn2Down>: move_or_resize(%lx)\n<Btn1Motion>: move_or_resize(%lx)"
+/* larghezza massima in pixel delle maniglie di resize sul bordo */
+#define MANIGLIA_RESIZE     8
 #define MOVE_WIDGET_AUGM    "#augment  <Btn2Down>: move_or_resize(%lx)"
 #define MOVE_PARENT_TRANS   "#augment  <Btn2Down>: move_or_resize(%lx)"
 
