@@ -96,8 +96,12 @@ Dopo un `git pull` non serve rilanciarlo.
 - **Le finestre.** Indipendentemente dalle voci, `lghmi` e legopc mettono la
   loro icona sulle finestre (barra delle applicazioni): `lghmi` quella di lghmi,
   o quella di xstaz con `-staz`; legopc quella di lgpc. Se la cartella `icone`
-  manca le finestre restano senza icona, senza errori.
-- **config e net_startup non hanno una voce**, anche se hanno un'icona.
+  manca le finestre restano senza icona, senza errori. Dentro `lghmi`, i
+  programmi che lancia hanno la loro icona dove li lancia: `net_startup` su
+  *start sim*, `mmi` su *mmi*, `lgpc` sul titolo *Process pages*, `config` e `xstaz` sui
+  titoli dei loro riquadri e sul pulsante del tasto destro.
+- **config e net_startup non hanno una voce**: le loro icone si vedono solo
+  dentro `lghmi`.
   `config` si apre su una task di regolazione, che si sceglie in `lghmi`;
   `net_startup` lancia `killsim`, che ferma ogni simulazione dell'utente, e
   `lghmi` chiede conferma prima di farlo: un collegamento a un clic la

@@ -51,7 +51,13 @@ desktop: le voci che installa `lgicone` (una volta per utente). *LegoPST* apre
 La finestra porta l'**icona di lghmi** (barra delle applicazioni), o quella dei
 faceplate `xstaz` con `-staz`. Sono i PNG di `$LEGOROOT/icone`, caricati da
 `imposta_icona` con `wm iconphoto -default`, che la passa anche alle finestre
-aperte dopo. Se la cartella manca la finestra resta senza icona, senza errori.
+aperte dopo. Le icone dei programmi che lghmi lancia stanno dove li lancia:
+`net_startup` sul pulsante *start sim*; `mmi` sul pulsante *mmi*; `lgpc` sul titolo del riquadro
+*Process pages*, i modelli di processo; `config` sul titolo del riquadro
+*Regulation tasks* e sul pulsante *Edit regulation* del tasto destro; `xstaz`
+sul titolo *xstaz faceplates* e sul suo *Open page*. Le carica
+`icona_programma`, una volta sola. Se la cartella manca la finestra resta
+senza icone e *start sim* e *mmi* tornano alle bitmap, senza errori.
 
 Nella finestra:
 
@@ -596,10 +602,11 @@ secondo argomento di `cambia_area`.
 Sotto il menù, una fascia sola raccoglie le due cose che si guardano per prime.
 
 - **A sinistra, uno sopra l'altro e della stessa larghezza**, i due lanci:
-  **start sim** (un triangolo nero pieno, il "play", e la scritta in rosso
-  scuro: è `net_startup`) e **mmi**
-  (un monitor con la tastiera, sullo sfondo verde dell'MMI). Le icone sono
-  bitmap XBM nel sorgente, senza file esterni.
+  **start sim** (l'icona di `net_startup` e la scritta in rosso scuro) e
+  **mmi** (l'icona di `mmi`, sullo sfondo verde dell'MMI). Le icone sono i
+  PNG di `$LEGOROOT/icone`; se mancano, i pulsanti tornano alle bitmap XBM
+  nel sorgente: il triangolo nero pieno, il "play", e il monitor con la
+  tastiera.
 - **A destra, allineate a destra**: l'area di lavoro, il simulatore `S01`
   (rosso scuro: nome e descrizione) e il *Sim path* (nero).
 

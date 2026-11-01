@@ -1,17 +1,19 @@
 # Icone di LegoPST
 
-Un'icona per ciascuno dei cinque programmi principali, disegnate come una
-famiglia: stesso riquadro, stesso tratto, simboli presi dagli schemi
-d'impianto (tubi, valvole, turbine, strumenti). Ogni programma ha il suo
-colore, per riconoscerlo a colpo d'occhio nella barra delle applicazioni.
+Un'icona per ciascuno dei sei programmi principali, disegnate come una
+famiglia (la famiglia A, «Impianto»): in tutte lo **stesso serbatoio a
+sinistra e lo stesso tubo di ritorno in basso**, e cambia solo l'elemento
+sulla linea, che dice cosa fa il programma. Ogni programma ha il suo colore,
+per riconoscerlo a colpo d'occhio nella barra delle applicazioni.
 
-| Cartella | Programma | Colore | Disegno |
+| Cartella | Programma | Colore | Sulla linea |
 |---|---|---|---|
-| `lghmi/` | `lghmi`, il selettore da cui si lancia la simulazione e si aprono le modifiche | blu `#1F4E79` | serbatoio, valvola e turbina chiusi in un ciclo |
-| `lgpc/` | `lgpc` / legopc, i modelli di processo | verde `#2E7D5B` | moduli collegati da tubi, con le porte |
-| `config/` | `config`, i modelli di regolazione | arancio `#B85C1E` | anello di retroazione: nodo somma, blocco, ritorno |
-| `net_startup/` | `net_startup`, l'avvio della simulazione | rosso `#A93434` | il tasto di avvio inserito in una condotta |
-| `xstaz/` | `xstaz`, i faceplate di comando | viola `#5B4B8A` | pannello con due barre di livello e due tasti |
+| `lghmi/` | `lghmi`, il selettore da cui si lancia la simulazione e si aprono le modifiche | blu `#1F4E79` | valvola e turbina: l'impianto intero |
+| `lgpc/` | `lgpc` / legopc, i modelli di processo | verde `#2E7D5B` | valvola e matita al posto della turbina: il processo si disegna |
+| `config/` | `config`, i modelli di regolazione | arancio `#B85C1E` | regolatore sulla valvola, con il segnale misurato a valle (tratteggiato) |
+| `net_startup/` | `net_startup`, l'avvio della simulazione | rosso `#A93434` | il tasto di avvio dentro il ciclo |
+| `xstaz/` | `xstaz`, i faceplate di comando | viola `#5B4B8A` | serbatoio con il livello, valvola e faceplate con i tasti |
+| `mmi/` | `mmi`, le pagine sinottiche di supervisione | verde acqua `#1D6E78` | un occhio: si guarda l'impianto |
 
 ## I file
 
@@ -25,8 +27,13 @@ In ogni cartella, `<nome>` è il nome della cartella:
 
 ## Chi le usa
 
-- **`lghmi`** ([lghmi.tcl](../Alg_legopc/src/tix/lghmi.tcl), `imposta_icona`):
-  l'icona delle sue finestre è `lghmi/`, o `xstaz/` con `-staz`.
+- **`lghmi`** ([lghmi.tcl](../Alg_legopc/src/tix/lghmi.tcl)): l'icona delle sue
+  finestre è `lghmi/`, o `xstaz/` con `-staz` (`imposta_icona`). Dentro la
+  finestra, i programmi che lancia hanno la loro icona dove li lancia
+  (`icona_programma`, 16 e 24 pixel): `net_startup` sul pulsante *start sim*,
+  `mmi` sul pulsante *mmi*,
+  `lgpc` sul titolo *Process pages*, `config` sul titolo *Regulation tasks* e su *Edit regulation* del tasto
+  destro, `xstaz` sul titolo *xstaz faceplates* e sul suo *Open page*.
 - **legopc** ([legopc.tix](../Alg_legopc/src/tix/legopc.tix)): l'icona delle sue
   finestre è `lgpc/`.
 - **`lgicone`** ([lgicone.sh](../util97/procedure/lgicone.sh)): le voci del menu
@@ -35,14 +42,18 @@ In ogni cartella, `<nome>` è il nome della cartella:
   [docs/COMANDI_LG.md](../docs/COMANDI_LG.md), *Le icone e il menu delle
   applicazioni*.
 
-`lghmi` e legopc caricano i PNG da 16, 32, 48, 64 e 128 pixel, e se la
-cartella manca vanno avanti senza icona.
+Per le finestre `lghmi` e legopc caricano i PNG da 16, 32, 48, 64 e 128 pixel.
+Se la cartella manca vanno avanti senza icone.
 
-Non usati ancora: le icone di `config` e `net_startup`, e gli XPM. `config` e
-`xstaz` impostano già un'icona nel codice C (`XmNiconPixmap`, in
-`Alg_mmi/run_time/topLevelShellMain.c` e `topLevelShellStaz.c`): per usare
-quelle di qui bisogna cambiare il codice e ricompilare. `net_startup` non ha
-una finestra sua, e non ha una voce nel menu perché lancia `killsim`.
+Non ancora usati: gli XPM, e le icone sulle **finestre** di `config`, `xstaz`
+e `mmi`.
+Sono programmi C con Motif, e mettere un'icona a colori sulla barra delle
+applicazioni vuol dire scrivere `_NET_WM_ICON` dal codice e ricompilare (oggi
+la finestra principale della MMI e le pagine dei faceplate impostano solo una
+vecchia bitmap a un bit, `XmNiconPixmap`, in
+`Alg_mmi/run_time/topLevelShellMain.c` e `topLevelShellStaz.c`; `config` non
+ne imposta nessuna). `net_startup` non ha una finestra sua, e non ha una voce
+nel menu perché lancia `killsim`.
 
 ## Cambiare un'icona
 
@@ -67,7 +78,10 @@ copiano.
 Per un'icona nuova, le regole che tengono insieme la famiglia:
 
 - `viewBox="0 0 64 64"`; riquadro `x=2 y=2`, 60×60, angoli `rx=13`, pieno del
-  colore del programma;
+  colore del programma, diverso da quelli già usati;
+- il serbatoio `<rect x="10" y="16" width="12" height="24" rx="3">` e il
+  ritorno che parte dal suo fondo (`M16 40 V48 H…`) restano uguali; cambia
+  l'elemento sulla linea, che il ritorno raggiunge da sotto;
 - disegno bianco, tratto `stroke-width="3"` (2,5 per i dettagli piccoli), estremi
   e angoli arrotondati, senza riempimento, tranne le valvole e i simboli pieni;
 - simboli degli schemi d'impianto: la valvola è la farfalla piena (due triangoli

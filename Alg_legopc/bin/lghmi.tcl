@@ -488,12 +488,19 @@ proc intestazione_di {lb} {
 
 proc aggiorna_intestazioni {} {
     global ITEMS_PROC ITEMS_STAZ LB_PROC LB_STAZ
-    catch {[intestazione_di $LB_PROC] configure \
-               -text "Process pages ([llength $ITEMS_PROC])"}
-    catch {[intestazione_di $LB_STAZ] configure \
-               -text "xstaz faceplates ([llength $ITEMS_STAZ])"}
-    catch {[intestazione_di $::LB_REG] configure \
-               -text "Regulation tasks ([llength $::ITEMS_REG])"}
+    catch {titolo_riquadro [intestazione_di $LB_PROC] \
+               "Process pages ([llength $ITEMS_PROC])"}
+    catch {titolo_riquadro [intestazione_di $LB_STAZ] \
+               "xstaz faceplates ([llength $ITEMS_STAZ])"}
+    catch {titolo_riquadro [intestazione_di $::LB_REG] \
+               "Regulation tasks ([llength $::ITEMS_REG])"}
+}
+
+#  Con l'icona accanto (crea_riquadro) il testo comincia con uno spazio, che la
+#  stacca dall'immagine: la label non ha un margine fra le due.
+proc titolo_riquadro {h testo} {
+    if {[$h cget -image] ne ""} { set testo " $testo" }
+    $h configure -text $testo
 }
 
 # --- Lancio della HMI in un processo indipendente ------------------------
@@ -735,7 +742,9 @@ proc esegui_popup {azione} {
 #  $etichetta e' il testo del pulsante: sulle due liste di pagine e' "Open
 #  page", ma sul riquadro delle regolazioni quell'azione apre config, non una
 #  pagina, e dirlo "Open page" sarebbe falso.
-proc popup_open_page {lb azione y X Y {etichetta "Open page"}} {
+#  $icona, se c'e', e' il programma che l'azione apre (config, xstaz): la sua
+#  icona va sul pulsante.
+proc popup_open_page {lb azione y X Y {etichetta "Open page"} {icona ""}} {
     chiudi_popup
     if {[$lb size] == 0} { return }
     set i [$lb nearest $y]
@@ -748,6 +757,10 @@ proc popup_open_page {lb azione y X Y {etichetta "Open page"}} {
     wm geometry .popup_open +[expr {$X + 2}]+[expr {$Y + 2}]
     button .popup_open.b -text $etichetta -padx 6 -pady 2 \
                          -command [list esegui_popup $azione]
+    set img [expr {$icona ne "" ? [icona_programma $icona 16] : ""}]
+    if {$img ne ""} {
+        .popup_open.b configure -image $img -compound left -text " $etichetta"
+    }
     pack .popup_open.b
     bind .popup_open <Escape>      { chiudi_popup }
     bind .popup_open <ButtonPress> { popup_fuori %X %Y }
@@ -3483,6 +3496,21 @@ proc imposta_icona {nome} {
 }
 imposta_icona [expr {(!$doppia && $stazmode) ? "xstaz" : "lghmi"}]
 
+#  L'icona di un programma per pulsanti, titoli e popup: l'immagine Tk del PNG
+#  $LEGOROOT/icone/<nome>/<nome>_<lato>.png, creata una volta sola. Ritorna ""
+#  se il file manca, e chi la usa resta com'era senza icona.
+proc icona_programma {nome lato} {
+    global env
+    set img ::icona_${nome}_$lato
+    if {$img in [image names]} { return $img }
+    if {![info exists env(LEGOROOT)]} { return "" }
+    set f [file join $env(LEGOROOT) icone $nome ${nome}_$lato.png]
+    if {![file exists $f] || [catch {image create photo $img -file $f}]} {
+        return ""
+    }
+    return $img
+}
+
 # Barra dei menu. Finora non c'era: nasce per "Open Simulator path", che cambia
 # la directory di lavoro del selettore e non e' un'azione sulle liste come i
 # pulsanti in basso. Refresh e Quit ci stanno per comodita', ma restano anche
@@ -3677,15 +3705,21 @@ static unsigned char mmi_bits[] = {
 #  presenza di variabili.rtf nella dir corrente. Con un'immagine -width e' in
 #  pixel: la stessa per i due pulsanti, cosi' sono allineati.
 set LARGHEZZA_LANCI 120
-#  Scritta in rosso scuro, come il nome del simulatore che avvia; il triangolo
-#  resta nero (un'immagine bitmap ha il suo colore, non quello del pulsante).
-button .cima.az.start -text " start sim" -image ::icona_start -compound left \
+#  Scritta in rosso scuro, come il nome del simulatore che avvia. L'immagine e'
+#  l'icona di net_startup ($LEGOROOT/icone); se manca, il triangolo bitmap qui
+#  sopra, che resta nero (una bitmap ha il suo colore, non quello del pulsante).
+set img_start [icona_programma net_startup 24]
+if {$img_start eq ""} { set img_start ::icona_start }
+button .cima.az.start -text " start sim" -image $img_start -compound left \
                   -width $LARGHEZZA_LANCI -anchor w -padx 6 -state disabled \
                   -foreground "#8b0000" -activeforeground "#8b0000" \
                   -command lancia_net_startup
 #  Lancio di un'altra applicazione: con il verde della finestra dell'MMI, cosi'
-#  si riconosce a colpo d'occhio.
-button .cima.az.mmi -text " mmi" -image ::icona_mmi -compound left \
+#  si riconosce a colpo d'occhio. L'immagine e' l'icona di mmi
+#  ($LEGOROOT/icone); se manca, il monitor bitmap qui sopra.
+set img_mmi [icona_programma mmi 24]
+if {$img_mmi eq ""} { set img_mmi ::icona_mmi }
+button .cima.az.mmi -text " mmi" -image $img_mmi -compound left \
                 -width $LARGHEZZA_LANCI -anchor w -padx 6 -command launch_mmi \
                 -background "#50a050" -activebackground "#60c060" \
                 -foreground black -activeforeground black
@@ -3720,11 +3754,17 @@ proc aiuto_a_comparsa {widget testo} {
 
 #  Costruisce un riquadro "intestazione + lista + pulsante". Ritorna il path
 #  della listbox.
-proc crea_riquadro {parent titolo larghezza {balloon ""}} {
+#  $icona e' il nome di un programma di $LEGOROOT/icone (config, xstaz): la sua
+#  icona va accanto al titolo, a dire chi apre le voci di quella lista.
+proc crea_riquadro {parent titolo larghezza {balloon ""} {icona ""}} {
     global BALLOON_APRI
     frame $parent
     if {$titolo ne ""} {
         label $parent.h -text $titolo -anchor w -padx 4 -pady 2 -foreground "#000080"
+        set img [expr {$icona ne "" ? [icona_programma $icona 16] : ""}]
+        if {$img ne ""} {
+            $parent.h configure -image $img -compound left -text " $titolo"
+        }
         pack  $parent.h -side top -fill x
         aiuto_a_comparsa $parent.h \
             [expr {$balloon ne "" ? $balloon : $BALLOON_APRI}]
@@ -3777,15 +3817,15 @@ if {$doppia} {
     }
     panedwindow .pw -orient horizontal -sashrelief raised -sashwidth 6
     if {!$mostra_reg} { pack .pw -side top -fill both -expand 1 -padx 6 -pady 2 }
-    set LB_PROC [crea_riquadro .pw.proc "Process pages" 39]
+    set LB_PROC [crea_riquadro .pw.proc "Process pages" 39 "" lgpc]
     if {$mostra_reg} {
-        set LB_REG  [crea_riquadro .pw.reg  "Regulation tasks (r_*)" 39 $BALLOON_REG]
-        set LB_STAZ [crea_riquadro .pv.staz "xstaz faceplates" 39]
+        set LB_REG  [crea_riquadro .pw.reg  "Regulation tasks (r_*)" 39 $BALLOON_REG config]
+        set LB_STAZ [crea_riquadro .pv.staz "xstaz faceplates" 39 "" xstaz]
         .pw add .pw.proc -minsize 140 -stretch always
         .pw add .pw.reg  -minsize 140 -stretch always
         impila_sotto .pw .pv.staz
     } else {
-        set LB_STAZ [crea_riquadro .pw.staz "xstaz faceplates" 39]
+        set LB_STAZ [crea_riquadro .pw.staz "xstaz faceplates" 39 "" xstaz]
         .pw add .pw.proc -minsize 140 -stretch always
         .pw add .pw.staz -minsize 140 -stretch always
     }
@@ -3794,19 +3834,21 @@ if {$doppia} {
     bind $LB_STAZ <Double-1> { apri_faceplate }
     bind $LB_STAZ <Return>   { apri_faceplate }
     bind $LB_PROC <Button-3> [list popup_open_page $LB_PROC launch_hmi     %y %X %Y]
-    bind $LB_STAZ <Button-3> [list popup_open_page $LB_STAZ apri_faceplate %y %X %Y]
+    bind $LB_STAZ <Button-3> [list popup_open_page $LB_STAZ apri_faceplate %y %X %Y \
+                                 "Open page" xstaz]
 } elseif {$stazmode} {
     if {$mostra_reg} {
         panedwindow .pv -orient vertical -sashrelief raised -sashwidth 6
         pack .pv -side top -fill both -expand 1 -padx 6 -pady 2
     }
-    set LB_STAZ [crea_riquadro .f "xstaz faceplates" 68]
+    set LB_STAZ [crea_riquadro .f "xstaz faceplates" 68 "" xstaz]
     if {!$mostra_reg} { pack .f -side top -fill both -expand 1 -padx 6 -pady 2 }
     bind $LB_STAZ <Double-1> { apri_faceplate }
     bind . <Return>          { apri_faceplate }
-    bind $LB_STAZ <Button-3> [list popup_open_page $LB_STAZ apri_faceplate %y %X %Y]
+    bind $LB_STAZ <Button-3> [list popup_open_page $LB_STAZ apri_faceplate %y %X %Y \
+                                 "Open page" xstaz]
     if {$mostra_reg} {
-        set LB_REG [crea_riquadro .pv.reg "Regulation tasks (r_*)" 68 $BALLOON_REG]
+        set LB_REG [crea_riquadro .pv.reg "Regulation tasks (r_*)" 68 $BALLOON_REG config]
         impila_sotto .f .pv.reg
     }
 } else {
@@ -3814,13 +3856,13 @@ if {$doppia} {
         panedwindow .pv -orient vertical -sashrelief raised -sashwidth 6
         pack .pv -side top -fill both -expand 1 -padx 6 -pady 2
     }
-    set LB_PROC [crea_riquadro .f "Process pages" 34]
+    set LB_PROC [crea_riquadro .f "Process pages" 34 "" lgpc]
     if {!$mostra_reg} { pack .f -side top -fill both -expand 1 -padx 6 -pady 2 }
     bind $LB_PROC <Double-1> { launch_hmi }
     bind . <Return>          { launch_hmi }
     bind $LB_PROC <Button-3> [list popup_open_page $LB_PROC launch_hmi %y %X %Y]
     if {$mostra_reg} {
-        set LB_REG [crea_riquadro .pv.reg "Regulation tasks (r_*)" 34 $BALLOON_REG]
+        set LB_REG [crea_riquadro .pv.reg "Regulation tasks (r_*)" 34 $BALLOON_REG config]
         impila_sotto .f .pv.reg
     }
 }
@@ -3830,7 +3872,7 @@ if {$mostra_reg} {
     bind $LB_REG <Double-1> { lancia_config }
     bind $LB_REG <Return>   { lancia_config }
     bind $LB_REG <Button-3> [list popup_open_page $LB_REG lancia_config %y %X %Y \
-                                 "Edit regulation"]
+                                 "Edit regulation" config]
 }
 
 bind . <Escape> { exit }
