@@ -3465,6 +3465,24 @@ if {$doppia} {
     wm minsize . 300 240
 }
 
+#  Icona delle finestre (barra delle applicazioni), dai PNG di $LEGOROOT/icone:
+#  quella dei faceplate nella modalita' -staz, quella di lghmi altrimenti.
+#  -default la passa anche alle finestre aperte dopo. Se i file mancano la
+#  finestra resta senza icona, come prima.
+proc imposta_icona {nome} {
+    global env
+    if {![info exists env(LEGOROOT)]} return
+    set imgs {}
+    foreach s {16 32 48 64 128} {
+        set f [file join $env(LEGOROOT) icone $nome ${nome}_$s.png]
+        if {[file exists $f] && ![catch {image create photo -file $f} img]} {
+            lappend imgs $img
+        }
+    }
+    if {[llength $imgs] > 0} { catch {wm iconphoto . -default {*}$imgs} }
+}
+imposta_icona [expr {(!$doppia && $stazmode) ? "xstaz" : "lghmi"}]
+
 # Barra dei menu. Finora non c'era: nasce per "Open Simulator path", che cambia
 # la directory di lavoro del selettore e non e' un'azione sulle liste come i
 # pulsanti in basso. Refresh e Quit ci stanno per comodita', ma restano anche

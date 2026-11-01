@@ -41,6 +41,18 @@ lghmi -noedit      # le HMI lanciate non hanno il menu Edit (legopc)
 lghmi -h           # aiuto
 ```
 
+**Senza terminale**, dal menu Start di Windows (sotto WSL) o dal menu del
+desktop: le voci che installa `lgicone` (una volta per utente). *LegoPST* apre
+`lghmi` nella directory del simulatore corrente, *LegoPST Faceplate* apre
+`lghmi -staz`. Il profilo lo sorgia la voce, e l'uscita va in
+`/tmp/lgicone_<voce>_<utente>.log`. Dettagli: [docs/COMANDI_LG.md](../docs/COMANDI_LG.md),
+*Le icone e il menu delle applicazioni*.
+
+La finestra porta l'**icona di lghmi** (barra delle applicazioni), o quella dei
+faceplate `xstaz` con `-staz`. Sono i PNG di `$LEGOROOT/icone`, caricati da
+`imposta_icona` con `wm iconphoto -default`, che la passa anche alle finestre
+aperte dopo. Se la cartella manca la finestra resta senza icona, senza errori.
+
 Nella finestra:
 
 - **Per aprire una pagina** ci sono tre strade, tutte sulla voce della lista:
@@ -1323,10 +1335,14 @@ Stesso nome che usa `legopc`, per coerenza fra le due finestre.
 
 ### `About LegoPST`
 
-Legge **`$LEGOROOT/version.h`**, la stessa fonte del dialogo *LegoPc Release
-Info* di `legopc`: `GIT_VERSION_STRING`, `BUILD_NUMBER`, `BUILD_DATE_STRING`.
-Il file lo genera il Makefile (`make -f Makefile.mk version.h`) a partire da
-git.
+Chiede la versione a **`lgversion --define`**, la stessa fonte del dialogo
+*LegoPc Release Info* di `legopc`: `GIT_VERSION_STRING`, `BUILD_NUMBER`,
+`BUILD_DATE_STRING`. Se `$LEGOROOT` è un checkout git, `lgversion` la calcola
+da git al momento, quindi dopo un `git pull` è già giusta senza ricompilare
+(eseguibili e librerie arrivano con git; `version.h` invece è fuori da git e si
+riscrive solo con `make`). Senza git, nell'immagine Docker o in un bundle FMU,
+ripete `$LEGOROOT/version.h`; se `lgversion` non risponde, lghmi legge
+`version.h` da sé.
 
 Sotto la versione ci sono le quattro righe che dicono **dove si sta
 lavorando** — `LEGOROOT`, simulatore corrente, radice utente, directory — che in
@@ -1336,8 +1352,8 @@ quel file c'è.
 
 > A differenza di `legopc`, **se `version.h` manca non viene generato**: lghmi
 > può girare dove il repository non è scrivibile — per esempio dentro un bundle
-> FMU — e un selettore non deve mettersi a invocare `make`. Il dialogo dice come
-> ottenerlo.
+> FMU — e un selettore non deve mettersi a invocare `make` (`lgversion --define`
+> non lo fa). Il dialogo dice come ottenerlo.
 
 ### Documentazione
 

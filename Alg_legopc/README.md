@@ -47,6 +47,16 @@ Lo decide `etichettaAmbiente` in [src/tix/legopc.tix](src/tix/legopc.tix), usata
 sia all'avvio sia quando `applyUserFromTom` cambia radice aprendo un `.tom` di
 un'altra installazione. Con un link **assoluto** compare il path assoluto.
 
+### L'icona della finestra
+
+`legopc` mette sulle sue finestre l'**icona di lgpc** (barra delle
+applicazioni): i PNG di `$LEGOROOT/icone/lgpc`, caricati all'avvio con
+`wm iconphoto -default`, che la passa anche alle finestre aperte dopo. Se la
+cartella manca la finestra resta senza icona, senza errori. La stessa icona
+compare sulla voce *LegoPST lgpc* del menu delle applicazioni, che installa
+`lgicone`: vedi [docs/COMANDI_LG.md](../docs/COMANDI_LG.md), *Le icone e il
+menu delle applicazioni*, e [icone/README.md](../icone/README.md).
+
 ## Help in linea (menu `?` → Help)
 
 La voce chiama `open_hlp index` ([src/tix/openhelp.tcl](src/tix/openhelp.tcl)), che

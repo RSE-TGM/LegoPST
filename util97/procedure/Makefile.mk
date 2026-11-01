@@ -24,7 +24,7 @@ all:../bin/creasim ../bin/creastazsim ../bin/direct.sh ../bin/mkstaz \
     ../bin/numcifre ../bin/pulipag ../bin/punt2canc.sh ../bin/sosti.sh \
     ../bin/tab2sem.sh ../bin/tab2sem_all.sh \
 	../bin/lgswitch ../bin/lgswitch_legacy ../bin/lgversion ../bin/lgterm \
-	../bin/lgdemo
+	../bin/lgdemo ../bin/lgicone
 #
 ../bin/lgterm: lgterm.sh
 	cp lgterm.sh ../bin/lgterm;chmod 777 ../bin/lgterm ;
@@ -34,6 +34,9 @@ all:../bin/creasim ../bin/creastazsim ../bin/direct.sh ../bin/mkstaz \
 #
 ../bin/lgdemo: lgdemo.sh
 	cp lgdemo.sh ../bin/lgdemo;chmod 777 ../bin/lgdemo ;
+#
+../bin/lgicone: lgicone.sh
+	cp lgicone.sh ../bin/lgicone;chmod 777 ../bin/lgicone ;
 #
 ../bin/lgswitch: lgswitch.sh
 	cp lgswitch.sh ../bin/lgswitch;chmod 777 ../bin/lgswitch ;

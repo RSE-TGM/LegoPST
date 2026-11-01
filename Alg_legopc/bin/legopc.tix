@@ -4391,7 +4391,19 @@ proc createtask { f c c2} {
     wm title . "$envir - $curFileName"	;# lo spazio prima del "-" come nell'altra composizione del titolo
     wm protocol . WM_DELETE_WINDOW "WarnYou exit"
 
-    #wm iconbitmap .  "D:/Utili/icons/temp/animali/118.ico"
+    # Icona delle finestre (barra delle applicazioni), dai PNG di
+    # $LEGOROOT/icone/lgpc; -default la passa anche alle finestre aperte dopo.
+    # Se i file mancano la finestra resta senza icona, come prima.
+    if {[info exists env(LEGOROOT)]} {
+        set icone_lgpc {}
+        foreach icona_lato {16 32 48 64 128} {
+            set icona_file [file join $env(LEGOROOT) icone lgpc lgpc_$icona_lato.png]
+            if {[file exists $icona_file] && ![catch {image create photo -file $icona_file} icona_img]} {
+                lappend icone_lgpc $icona_img
+            }
+        }
+        if {[llength $icone_lgpc] > 0} { catch {wm iconphoto . -default {*}$icone_lgpc} }
+    }
     #set c .frame.c
      
     cd $env(LG_MODELS)

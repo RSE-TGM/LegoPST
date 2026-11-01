@@ -283,6 +283,21 @@ going on, and the existing one is set aside, not deleted.
 which one to use; `lgswitch -l` prints the current state without changing anything.
 The same switch is available from `lghmi`, under *File -> Work area*.
 
+#### Start menu and desktop shortcuts (optional)
+
+```bash
+lgicone
+```
+
+adds three entries to the applications menu, with the LegoPST icons in
+`$LEGOROOT/icone`: *LegoPST* (`lghmi` on the current simulator), *LegoPST lgpc*
+and *LegoPST Faceplate* (`lghmi -staz`). On WSL, WSLg puts them in the Windows
+Start menu, in the folder of the distribution (for example *Fedora 44*); if they
+do not show up, run `wsl --shutdown` from Windows and reopen the distribution,
+then try `sudo $LEGOROOT/util97/bin/lgicone --sistema`. On a native Linux
+desktop they appear in the desktop menu. Run it once per user; `lgicone
+--rimuovi` removes them. Details: [docs/COMANDI_LG.md](docs/COMANDI_LG.md).
+
 ### Restart shell session
 The system automatically detects:
 - **LEGOROOT**: Project root path
@@ -541,7 +556,7 @@ The system uses hierarchical configuration:
 
 - **Recursive Makefiles**: Modular build
 - **Static Libraries**: Optimized linking
-- **Version Management**: releases are tagged `vYYYY-N.M` (the first is `v2026-2.0`, matching the Docker image `aguagliardi/legopst:2.0`) and the release name is also in the `VERSION` file at the repository root. `docker/Makefile.mk` and the installer stamp it into the `lgdock` launchers. At every build `Makefile.mk` writes `version.h` from `git describe --tags --match 'v[0-9]*'` (last release tag, commits since, commit hash), plus build number and date; `lghmi`, `lgdocindex` and `lgdock -v` show it. `docker/Makefile.mk` and `docker/BuildImage` derive the image name from `VERSION` (the digits after the dash). To release a new version run `lgversione YYYY-N.M`: it updates every reference, commits, tags, builds and pushes the image if its name changes, and pushes; `lgversione --check` (also run by the CI) verifies everything matches `VERSION`. Procedure: [docs/BUILD.md](docs/BUILD.md), *Versioni e rilasci*.
+- **Version Management**: releases are tagged `vYYYY-N.M` (the first is `v2026-2.0`, matching the Docker image `aguagliardi/legopst:2.0`) and the release name is also in the `VERSION` file at the repository root. `docker/Makefile.mk` and the installer stamp it into the `lgdock` launchers. At every build `Makefile.mk` writes `version.h` from `git describe --tags --match 'v[0-9]*'` (last release tag, commits since, commit hash), plus build number and date. In a git checkout `lgversion`, the *About* dialogs of `lghmi` and `legopc` and the documentation index compute the version from git when they show it (`lgversion --define`): executables and libraries come with `git pull`, while `version.h` is outside git and only rewritten by `make`. Without git (Docker image, FMU bundle) they read `version.h`, as `lgdock -v` does. `docker/Makefile.mk` and `docker/BuildImage` derive the image name from `VERSION` (the digits after the dash). To release a new version run `lgversione YYYY-N.M`: it updates every reference, commits, tags, builds and pushes the image if its name changes, and pushes; `lgversione --check` (also run by the CI) verifies everything matches `VERSION`. Procedure: [docs/BUILD.md](docs/BUILD.md), *Versioni e rilasci*.
 - **Target**: Linux x86_64 (Fedora 41 is the reference platform; Fedora 44 is supported, see [Fedora 44 compatibility](#fedora-44-compatibility))
 
 ### Other features

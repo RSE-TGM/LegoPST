@@ -60,6 +60,51 @@ che arrivano gli eseguibili elencati sotto.
 Il prompt `[LEGOROOT:…]` non è un vezzo: è il segnale visivo che la shell ha il
 profilo caricato. Se non c'è, i comandi che seguono non funzioneranno.
 
+### Le icone e il menu delle applicazioni: `lgicone`
+
+| Comando | Tipo | Scopo |
+|---|---|---|
+| `lgicone` | script | **Mette LegoPST nel menu delle applicazioni**, con le icone di `$LEGOROOT/icone`, così si avvia senza aprire un terminale. Tre voci: *LegoPST* (`lghmi` nella directory del simulatore corrente), *LegoPST lgpc* (`lgpc`) e *LegoPST Faceplate* (`lghmi -staz`, il lanciatore dei faceplate `xstaz`). Sotto WSL le raccoglie WSLg, che le mette nel **menu Start di Windows**, nella cartella della distribuzione (per esempio *Fedora 44*). Su un Linux installato sulla macchina compaiono nel menu del desktop (GNOME, KDE, XFCE). |
+
+```sh
+lgicone                  # installa le voci per l'utente (~/.local/share/applications)
+sudo $LEGOROOT/util97/bin/lgicone --sistema   # per tutti (/usr/share/applications):
+                         # con sudo il PATH di LegoPST non c'e', serve il percorso
+lgicone --rimuovi        # le toglie (--rimuovi --sistema per quelle di sistema)
+```
+
+Si lancia **una volta** per utente e per macchina, e di nuovo solo se `$LEGOROOT`
+cambia posto: le voci contengono il percorso assoluto dello script e delle icone.
+Dopo un `git pull` non serve rilanciarlo.
+
+- **Come parte una voce.** Il collegamento lancia `lgicone --avvia <voce>`. Un
+  programma avviato dal menu non passa dalla shell dell'utente, quindi non ha il
+  profilo sorgiato da `~/.bashrc`: `--avvia` lo sorgia da sé, poi avvia il
+  programma. L'uscita va in `/tmp/lgicone_<voce>_<utente>.log`, perché il menu
+  non la mostra da nessuna parte: è il primo posto da guardare se una voce non
+  apre niente.
+- **WSL.** Non è documentato se WSLg legga anche la cartella dell'utente o solo
+  `/usr/share/applications`. Se dopo `lgicone` le voci non compaiono nel menu
+  Start: `wsl --shutdown` da Windows e riaprire la distribuzione; se ancora
+  mancano, `sudo $LEGOROOT/util97/bin/lgicone --sistema`.
+- **Linux sulla macchina.** GNOME vede le voci subito; con KDE può servire
+  rifare l'accesso, o lanciare `kbuildsycoca6`. Ogni voce dichiara la classe
+  della sua finestra (`StartupWMClass`: `Lghmi.tcl`, `Legopc.tix`), così il
+  desktop associa la finestra aperta al collegamento. *LegoPST Faceplate* è
+  `lghmi` con `-staz` e ha la stessa classe di *LegoPST*: le sue finestre
+  finiscono raggruppate sotto una delle due voci.
+- **Le finestre.** Indipendentemente dalle voci, `lghmi` e legopc mettono la
+  loro icona sulle finestre (barra delle applicazioni): `lghmi` quella di lghmi,
+  o quella di xstaz con `-staz`; legopc quella di lgpc. Se la cartella `icone`
+  manca le finestre restano senza icona, senza errori.
+- **config e net_startup non hanno una voce**, anche se hanno un'icona.
+  `config` si apre su una task di regolazione, che si sceglie in `lghmi`;
+  `net_startup` lancia `killsim`, che ferma ogni simulazione dell'utente, e
+  `lghmi` chiede conferma prima di farlo: un collegamento a un clic la
+  salterebbe.
+
+Le icone, i formati e chi le usa: [icone/README.md](../icone/README.md).
+
 ---
 
 ## 1. Container Docker
@@ -498,6 +543,7 @@ Due nomi che si incontrano leggendo il codice e che è facile scambiare per coma
 | Voglio… | Comando |
 |---|---|
 | entrare nell'ambiente | `source .profile_legoroot`, poi `lggo` per tornarci |
+| avviare LegoPST dal menu Start di Windows o dal menu del desktop | `lgicone`, una volta; poi le voci *LegoPST*, *LegoPST lgpc*, *LegoPST Faceplate* |
 | leggere la documentazione | `lghelp` |
 | lavorare senza installare niente | `lgdock` (`-d` per la demo) |
 | disegnare schemi e modelli | `lgpc` |
