@@ -15,6 +15,12 @@ Il nome del compilatore è **`compstaz`** (non *xcompstz*). Esiste anche
 `Alg_mmi/bin/convstaz`: stesso `r01.dat` in ingresso, ma genera le pagine per
 LEGOMMI invece del binario per `xstaz`.
 
+Le finestre di `xstaz` (quella con *Quit* e le pagine) hanno sulla barra
+delle applicazioni l'icona di [icone/xstaz/](../../../icone/xstaz/): la mette
+`IconaFinestreApp` ([iconafinestra.c](../../../AlgLib/libutilx/iconafinestra.c)),
+chiamata in `main` subito dopo `XtInitialize`. I pixel sono compilati dentro
+l'eseguibile: se cambia l'icona vedi [icone/README.md](../../../icone/README.md).
+
 ## Il ciclo di lavoro
 
 ```sh

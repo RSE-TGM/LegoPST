@@ -45,6 +45,7 @@ static char SccsID[] = "@(#)config.prj	5.1\t11/13/95";
 
 #include "config.h"
 #include "fontfallback.h"
+#include "iconafinestra.h"
 //#include "CAP.h"		/* Serve per la gestione delle licenze software*/
 // Guag2024 #include "skey_manager3.h"	/* Serve per la gestione delle licenze hardware*/
 
@@ -248,6 +249,9 @@ if(comm_found!=0)
 
 	/* font 2-byte (iso10646) -> fallback 8-bit, evita il testo a riquadri */
 	FontFallbackInstall();
+
+	/* icona a colori (_NET_WM_ICON) su tutte le finestre di config */
+	IconaFinestreApp(UxTopLevel, &IconaConfig);
 
 	UxDisplay = XtDisplay(UxTopLevel);
 	UxScreen = XDefaultScreen(UxDisplay);

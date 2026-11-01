@@ -45,15 +45,33 @@ In ogni cartella, `<nome>` è il nome della cartella:
 Per le finestre `lghmi` e legopc caricano i PNG da 16, 32, 48, 64 e 128 pixel.
 Se la cartella manca vanno avanti senza icone.
 
-Non ancora usati: gli XPM, e le icone sulle **finestre** di `config`, `xstaz`
-e `mmi`.
-Sono programmi C con Motif, e mettere un'icona a colori sulla barra delle
-applicazioni vuol dire scrivere `_NET_WM_ICON` dal codice e ricompilare (oggi
-la finestra principale della MMI e le pagine dei faceplate impostano solo una
-vecchia bitmap a un bit, `XmNiconPixmap`, in
-`Alg_mmi/run_time/topLevelShellMain.c` e `topLevelShellStaz.c`; `config` non
-ne imposta nessuna). `net_startup` non ha una finestra sua, e non ha una voce
-nel menu perché lancia `killsim`.
+- **`config`, `xstaz` e `mmi`** (programmi C con Motif): ogni loro finestra
+  ha la sua icona sulla barra delle applicazioni, `config/`, `xstaz/` e
+  `mmi/`, a 16, 32 e 48 pixel. Per `xstaz` vuol dire la finestrella con
+  *Quit* e le pagine dei faceplate; per `mmi` la finestra principale, le
+  pagine sinottiche, le pagine delle stazioni (`topLevelShellStaz.c`: le apre
+  la MMI stessa, non xstaz, quindi hanno l'icona della MMI) e i dialoghi.
+
+  Le barre di oggi (WSLg, GNOME, KDE) leggono la proprietà `_NET_WM_ICON`,
+  pixel ARGB a colori: la vecchia bitmap a un bit `XmNiconPixmap` (in
+  `topLevelShellMain.c` e `topLevelShellStaz.c`) è rimasta, ma non la usa
+  nessuno. La scrive `IconaFinestreApp`
+  ([iconafinestra.c](../AlgLib/libutilx/iconafinestra.c), in `libutilx`),
+  chiamata una volta nel `main` dopo `XtAppInitialize`: si aggancia al
+  *changeHook* di Xt e mette l'icona su ogni shell che il programma realizza,
+  senza toccare i punti in cui le finestre vengono create. I pixel sono
+  **compilati dentro il programma** (`AlgLib/libutilx/icona_<nome>.c`): non
+  si legge niente all'avvio, e non servono `$LEGOROOT`, libpng o libXpm. Se
+  cambia un PNG, vanno rigenerati e ricompilati (vedi sotto).
+
+Sotto WSLg l'icona si vede sulla **barra di Windows** e in Alt+Tab, non a
+sinistra nella barra del titolo: quel quadratino lo disegna la cornice di
+WSLg (Weston 9), ed è lo stesso per tutte le finestre X11. Su Linux
+installato sulla macchina dipende dal window manager (KDE la mostra anche
+nel titolo, GNOME no).
+
+Non ancora usati: gli XPM. `net_startup` non ha una finestra sua, e non ha
+una voce nel menu perché lancia `killsim`.
 
 ## Cambiare un'icona
 
@@ -74,6 +92,28 @@ done
 ridimensionamento lo riduce: senza, i PNG grandi vengono sfocati. Dopo la
 modifica non serve rilanciare `lgicone`: le voci puntano ai file, non li
 copiano.
+
+Per `config`, `xstaz` e `mmi` i PNG da 16, 32 e 48 pixel finiscono anche
+**dentro gli eseguibili**. Dopo averli rigenerati, dalla radice del
+repository:
+
+```sh
+python3 icone/icone_c.py            # riscrive AlgLib/libutilx/icona_{config,xstaz,mmi}.c
+source .profile_legoroot
+(cd AlgLib/libutilx && make -f Makefile.mk)
+(cd Alg_mmi/config && make -f Makefile.mk)        # config (e compreg)
+(cd Alg_mmi/run_time && make -f Makefile.mk)      # mmi
+(cd Alg_rt/grafica/xstaz && make -f Makefile.mk)  # xstaz
+```
+
+`icone_c.py` è Python puro (legge i PNG con `zlib`): non servono
+ImageMagick o PIL. Con un nome (`python3 icone/icone_c.py mmi`) rifà solo
+quello. I makefile non ricollegano un eseguibile quando cambia una libreria:
+se `make` dice che non c'è niente da fare, cancella l'eseguibile e rilancialo.
+
+Per controllare, senza aprire finestre sullo schermo: con un `Xvfb` avviato,
+`xprop -id <finestra> _NET_WM_ICON` deve elencare `Icon (16 x 16)`,
+`(32 x 32)` e `(48 x 48)` e disegnarle.
 
 Per un'icona nuova, le regole che tengono insieme la famiglia:
 

@@ -17,6 +17,16 @@ convenzioni tutte sue.
 
 Gli eseguibili finiscono in [bin/](bin/) (`$LEGOMMI_BIN`).
 
+Sulla barra delle applicazioni le finestre di `mmi` hanno l'icona di
+[icone/mmi/](../icone/mmi/), quelle di `config` l'icona di
+[icone/config/](../icone/config/): proprietà `_NET_WM_ICON`, scritta da
+`IconaFinestreApp` ([libutilx/iconafinestra.c](../AlgLib/libutilx/iconafinestra.c))
+chiamata nel `main` ([run_time/run_time.c](run_time/run_time.c),
+[config/config.c](config/config.c)) e, per gli altri display della MMI, in
+`topLevelShellMain.c`. Vale per tutte le finestre del programma, pagine delle
+stazioni comprese; se cambia l'icona, i pixel si rigenerano e i programmi si
+ricompilano come spiega [icone/README.md](../icone/README.md).
+
 ---
 
 ## 1. Il file Context: l'unico punto di verità

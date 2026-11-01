@@ -72,6 +72,7 @@ static char SccsID[] = "@(#)xstaz.c	1.13\t9/13/95";
 /* include tabella di definizione delle nuove stazioni TIPI_NEW_STAZ */
 #include "newstaz.h"
 #include "fontfallback.h"
+#include "iconafinestra.h"
 //#include "libutilx.h"
 
 
@@ -317,6 +318,9 @@ pr_stazione();
 topLevel= XtInitialize("xstaz","Xstaz",NULL,0,
                              &argc,argv);
         FontFallbackInstall();  /* font 2-byte -> fallback 8-bit */
+        /* icona a colori (_NET_WM_ICON) sulle finestre di xstaz: la
+           principale e le pagine dei faceplate */
+        IconaFinestreApp(topLevel, &IconaXstaz);
 
 LoadColor(topLevel);
 set_something_val(topLevel,XmNiconic,(XtArgVal)True);

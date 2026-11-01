@@ -75,6 +75,7 @@
 #include "other.h"
 #include "pagresdef.h"
 #include "legommi_icon.bmp"
+#include "iconafinestra.h"
 #include "res_edit.h"
 
 Widget listDrawing[MAX_PAGE];
@@ -870,6 +871,8 @@ Boolean crea_elenco_display(XtAppContext app_context)
          {
 	     elenco_display[0].scr[other_scr].topLevel=XtAppCreateShell("topLevelShellMain","run_time",
 	        	 applicationShellWidgetClass,display,NULL,0);
+	     /* icona a colori anche sulle finestre aperte su questo display */
+	     IconaFinestreApp(elenco_display[0].scr[other_scr].topLevel, &IconaMmi);
          }
          
          elenco_display[0].scr[other_scr].wteleperm = NULL;
@@ -933,6 +936,8 @@ Boolean crea_elenco_display(XtAppContext app_context)
             */
 	    elenco_display[i].topLevel=XtAppCreateShell("topLevelShellMain","run_time",
 		applicationShellWidgetClass,display,NULL,0);
+	    /* icona a colori anche sulle finestre aperte su questo display */
+	    IconaFinestreApp(elenco_display[i].topLevel, &IconaMmi);
         }
    }
 
