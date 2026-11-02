@@ -70,17 +70,17 @@ rilancia_installer() {
     local modo="$1" url tmp
     url="$(url_installer)"
     if ! tmp="$(mktemp)"; then
-        echo "ERRORE: non riesco a creare un file temporaneo." >&2
+        echo "ERROR: cannot create a temporary file." >&2
         exit 1
     fi
-    echo "Scarico l'installer:"
+    echo "Downloading the installer:"
     echo "  $url"
     if ! curl -fsSL "$url" -o "$tmp"; then
         rm -f "$tmp"
         echo "" >&2
-        echo "ERRORE: non riesco a scaricare l'installer." >&2
-        echo "        Controlla la connessione e riprova. Niente e' stato" >&2
-        echo "        modificato: il comando che hai adesso continua a funzionare." >&2
+        echo "ERROR: cannot download the installer." >&2
+        echo "        Check your connection and try again. Nothing has been" >&2
+        echo "        changed: the command you have now keeps working." >&2
         exit 1
     fi
     #  Uno scaricamento troncato, o una pagina di errore HTML, non devono
@@ -89,9 +89,9 @@ rilancia_installer() {
     if [ ! -s "$tmp" ] || ! head -1 "$tmp" | grep -q '^#!'; then
         rm -f "$tmp"
         echo "" >&2
-        echo "ERRORE: quello che e' arrivato non e' uno script (scaricamento" >&2
-        echo "        incompleto, o l'URL risponde con altro)." >&2
-        echo "        Niente e' stato modificato." >&2
+        echo "ERROR: what arrived is not a script (incomplete download," >&2
+        echo "        or the URL answers with something else)." >&2
+        echo "        Nothing has been changed." >&2
         exit 1
     fi
     echo ""
@@ -106,69 +106,71 @@ rilancia_installer() {
 show_help() {
     local CMD_NAME=$(basename "$0")
     cat << EOF
-Uso: $CMD_NAME [OPZIONI] [COMANDO [ARGOMENTI...]]
+Usage: $CMD_NAME [OPTIONS] [COMMAND [ARGUMENTS...]]
 
-Senza COMANDO apre una shell nel container. Con un COMANDO esegue solo
-quello: vedi "Modo applicazione" piu' sotto.
+Without COMMAND it opens a shell in the container. With a COMMAND it runs
+only that: see "Application mode" below.
 
-Opzioni:
-  -h, --help          Mostra questo help
-  -v, --version       Mostra la versione di $CMD_NAME, l'immagine Docker e la
-                      versione di LegoPST che contiene
-  -d, --demo [NOME]   Installa una demo e lancia il container con essa. Senza
-                      NOME e' quella standard, legopst_userstd, che sta dentro
-                      l'immagine; con NOME e' legopst_NOME, scaricata dalla
-                      release delle demo su GitHub. Una demo gia' installata
-                      nella home non viene toccata. NOME vale come nome di demo
-                      solo se quella demo esiste (installata o pubblicata):
-                      altrimenti e' il COMANDO da eseguire, come in
-                      "$CMD_NAME -d lghmi". Per non lasciare dubbi: --demo=NOME.
-  -s, --socat         Usa socat per X11 forwarding (utile per SSH con MobaXterm)
-  -p, --pull          Esegue docker pull dell'immagine prima di avviare il container
-  -dbg, --debug       Mostra tutti i messaggi dell'avvio: quelli di $CMD_NAME,
-                      gli avvisi del runtime, la preparazione del container e
-                      il profilo LegoPST. Senza, si vede una riga sola che dice
-                      che il container e' partito (e, se l'avvio fallisce,
-                      tutto quello che era stato detto fino a li').
-  -e, --exec PROG     Appena il container e' pronto esegue PROG al suo interno,
-                      con l'ambiente LegoPST gia' caricato, in background: il
-                      terminale resta una shell del container. PROG puo' avere
-                      argomenti, tra virgolette: -e "lghmi -staz".
-                      L'output va in /tmp/lgdock_exec.log, dentro il container.
+Options:
+  -h, --help          Show this help
+  -v, --version       Show the version of $CMD_NAME, the Docker image and the
+                      LegoPST version it contains
+  -d, --demo [NAME]   Install a demo and start the container with it. Without
+                      NAME it is the standard one, legopst_userstd, which is
+                      inside the image; with NAME it is legopst_NAME, downloaded
+                      from the demo release on GitHub. A demo already installed
+                      in your home is left untouched. NAME counts as a demo name
+                      only if that demo exists (installed or published):
+                      otherwise it is the COMMAND to run, as in
+                      "$CMD_NAME -d lghmi". To leave no doubt: --demo=NAME.
+  -s, --socat         Use socat for X11 forwarding (useful for SSH with MobaXterm)
+  -p, --pull          Run docker pull on the image before starting the container
+  -dbg, --debug       Show every startup message: those of $CMD_NAME, the
+                      runtime warnings, the container setup and the LegoPST
+                      profile. Without it you see a single line saying that
+                      the container has started (and, if startup fails,
+                      everything that was printed up to that point).
+  -e, --exec PROG     As soon as the container is ready, run PROG inside it,
+                      with the LegoPST environment loaded, in the background:
+                      the terminal stays a shell of the container. PROG may
+                      have arguments, in quotes: -e "lghmi -staz".
+                      The output goes to /tmp/lgdock_exec.log, inside the
+                      container.
 
-Modo applicazione:
-  $CMD_NAME [OPZIONI] COMANDO [ARGOMENTI...]
-                      Il container esegue solo COMANDO, senza aprire una shell
-                      nel terminale, e VIVE QUANTO LUI. Quando COMANDO finisce -
-                      chiuso o andato in crash - il container termina, con
-                      tutto quello che COMANDO ha lanciato. $CMD_NAME resta in
-                      attesa e restituisce il codice di uscita di COMANDO;
-                      Ctrl-C lo ferma. Le opzioni di $CMD_NAME vanno PRIMA del
-                      comando: quello che segue e' suo.
+Application mode:
+  $CMD_NAME [OPTIONS] COMMAND [ARGUMENTS...]
+                      The container runs only COMMAND, without opening a shell
+                      in the terminal, and LIVES AS LONG AS IT DOES. When
+                      COMMAND ends - closed or crashed - the container stops,
+                      together with everything COMMAND started. $CMD_NAME
+                      waits and returns the exit code of COMMAND; Ctrl-C stops
+                      it. The options of $CMD_NAME go BEFORE the command:
+                      whatever follows belongs to the command.
 
-Manutenzione:
-  -update             Reinstalla $CMD_NAME all'ultima versione e aggiorna
-                      l'immagine Docker. Riscarica ed esegue l'installer dallo
-                      stesso repository da cui e' stato installato.
-  -uninstall          Disinstalla $CMD_NAME. Non tocca l'immagine Docker ne' i
-                      tuoi dati (~/legocad, ~/sked): dice come rimuoverli.
+Maintenance:
+  -update             Reinstall $CMD_NAME at the latest version and update the
+                      Docker image. Downloads and runs the installer again from
+                      the same repository it was installed from.
+  -uninstall          Uninstall $CMD_NAME. Does not touch the Docker image or
+                      your data (~/legocad, ~/sked): it tells you how to remove
+                      them.
 
-Esempi:
-  $CMD_NAME                  # Lancia container LegoPST (modalità standard)
-  $CMD_NAME --demo           # Installa modello demo (legocad e sked) e lancia container
-  $CMD_NAME --socat          # Lancia container con socat per X11 (per SSH/MobaXterm)
+Examples:
+  $CMD_NAME                  # Start the LegoPST container (standard mode)
+  $CMD_NAME --demo           # Install the demo model (legocad and sked) and start
+  $CMD_NAME --socat          # Start with socat for X11 (for SSH/MobaXterm)
   $CMD_NAME -d -s            # Demo + socat
-  $CMD_NAME -e lghmi         # Lancia il container e apre subito lghmi
-  $CMD_NAME lghmi            # Solo lghmi: il container si chiude con lui
-  $CMD_NAME lghmi -staz      # ... con i suoi argomenti
-  $CMD_NAME -d lghmi         # ... con la demo standard
-  $CMD_NAME -d nucleare      # Installa la demo legopst_nucleare (dalla release)
-  $CMD_NAME -update          # aggiorna comando e immagine all'ultima versione
-  $CMD_NAME -uninstall       # rimuove il comando
+  $CMD_NAME -e lghmi         # Start the container and open lghmi right away
+  $CMD_NAME lghmi            # Only lghmi: the container exits with it
+  $CMD_NAME lghmi -staz      # ... with its arguments
+  $CMD_NAME -d lghmi         # ... with the standard demo
+  $CMD_NAME -d nucleare      # Install the legopst_nucleare demo (from the release)
+  $CMD_NAME -update          # update command and image to the latest version
+  $CMD_NAME -uninstall       # remove the command
 
-Modalità X11:
-  - Standard (default): X11 forwarding diretto, adatto per uso locale
-  - Socat (--socat): Crea socket bridge, necessario per SSH X11 forwarding
+X11 modes:
+  - Standard (default): direct X11 forwarding, suited to local use
+  - Socat (--socat): creates a socket bridge, needed for SSH X11 forwarding
 
 EOF
 }
@@ -188,14 +190,14 @@ EOF
 show_version() {
     local CMD_NAME creata info
     CMD_NAME=$(basename "$0")
-    echo "$CMD_NAME v${VERSION} - lanciatore del container LegoPST"
+    echo "$CMD_NAME v${VERSION} - LegoPST container launcher"
     if ! $DOCKER_CMD image inspect "$IMAGE_NAME" >/dev/null 2>&1; then
-        echo "Immagine:  $IMAGE_NAME (non ancora scaricata)"
-        echo "LegoPST:   si vede dopo il primo avvio, o dopo '$CMD_NAME -p'"
+        echo "Image:     $IMAGE_NAME (not downloaded yet)"
+        echo "LegoPST:   shown after the first start, or after '$CMD_NAME -p'"
         return 0
     fi
     creata=$($DOCKER_CMD image inspect --format '{{.Created}}' "$IMAGE_NAME" 2>/dev/null | cut -c1-10)
-    echo "Immagine:  $IMAGE_NAME${creata:+ (creata il $creata)}"
+    echo "Image:     $IMAGE_NAME${creata:+ (created $creata)}"
     #  Il container restituisce i quattro valori grezzi, ciascuno con la sua
     #  etichetta; la frase si compone qui.
     info=$($DOCKER_CMD run --rm --pull=never --platform linux/amd64 --entrypoint sh "$IMAGE_NAME" -c '
@@ -205,7 +207,7 @@ show_version() {
         echo "N=$(grep "define BUILD_NUMBER" $R/version.h 2>/dev/null | tr -dc "0-9")"
         echo "D=$(grep "define BUILD_DATE_STRING" $R/version.h 2>/dev/null | cut -d\" -f2)"' 2>/dev/null) || info=""
     if [ -z "$info" ]; then
-        echo "LegoPST:   versione non leggibile da questa immagine"
+        echo "LegoPST:   version not readable from this image"
         return 0
     fi
     local v g n d riga
@@ -217,7 +219,7 @@ show_version() {
     [[ "$d" =~ ^([0-9]{4})([0-9]{2})([0-9]{2})$ ]] && d="${BASH_REMATCH[1]}-${BASH_REMATCH[2]}-${BASH_REMATCH[3]}"
     riga="${v:-?}"
     [ -n "$g" ] && riga="$riga - $g"
-    [ -n "$n" ] && riga="$riga, build $n${d:+ del $d}"
+    [ -n "$n" ] && riga="$riga, build $n${d:+ of $d}"
     echo "LegoPST:   $riga"
 }
 
@@ -262,14 +264,14 @@ DOCKER_SOCKET="/var/run/docker.sock"
 #    Verifichiamo se il socket esiste e se l'utente corrente NON ha permessi di scrittura (-w).
 #    Se entrambe le condizioni sono vere, significa che serve 'sudo'.
 if [ -S "$DOCKER_SOCKET" ] && ! [ -w "$DOCKER_SOCKET" ]; then
-  echo "INFO: L'utente corrente non ha i permessi per accedere al socket di Docker."
-  echo "      Verrà usato 'sudo' per eseguire i comandi Docker."
+  echo "INFO: the current user has no permission to access the Docker socket."
+  echo "      'sudo' will be used to run the Docker commands."
   DOCKER_CMD="sudo $RUNTIME"
 
   # Aggiungiamo un piccolo test per vedere se 'sudo' funziona senza password
   # o per forzare l'utente a inserirla subito, prima che lo script faccia altro.
   if ! sudo -n true 2>/dev/null; then
-    echo "      Potrebbe essere richiesta la password di sudo."
+    echo "      You may be asked for your sudo password."
     sudo -v # Chiede la password ora e la tiene in cache per un po'.
   fi
   echo "------------------------------------------------------------"
@@ -334,7 +336,7 @@ while [[ $# -gt 0 ]]; do
             DEMO_ESPLICITA=true
             DEMO_NOME="${1#--demo=}"
             if [[ ! "$DEMO_NOME" =~ ^[A-Za-z0-9_][A-Za-z0-9_-]*$ ]]; then
-                echo "Nome di demo non valido: '$DEMO_NOME' (lettere, cifre, _ e -)"
+                echo "Invalid demo name: '$DEMO_NOME' (letters, digits, _ and -)"
                 exit 1
             fi
             shift
@@ -353,7 +355,7 @@ while [[ $# -gt 0 ]]; do
             ;;
         -e|--exec)
             if [[ $# -lt 2 || -z "$2" ]]; then
-                echo "L'opzione $1 vuole il programma da eseguire: $1 <prog>"
+                echo "Option $1 needs the program to run: $1 <prog>"
                 exit 1
             fi
             EXEC_PROG="$2"
@@ -375,8 +377,8 @@ while [[ $# -gt 0 ]]; do
             break
             ;;
         -*)
-            echo "Opzione sconosciuta: $1"
-            echo "Usa --help per vedere le opzioni disponibili"
+            echo "Unknown option: $1"
+            echo "Use --help to see the available options"
             exit 1
             ;;
         *)
@@ -392,8 +394,8 @@ done
 #  background e il terminale resta una shell del container; con un comando non
 #  c'e' nessuna shell e il container vive quanto lui.
 if [[ -n "$EXEC_PROG" && -n "$APP_PROG" ]]; then
-    echo "-e e un comando non si usano insieme: -e lascia una shell nel"
-    echo "terminale, il comando no. Scegline uno."
+    echo "-e and a command cannot be used together: -e leaves a shell in the"
+    echo "terminal, the command does not. Pick one."
     exit 1
 fi
 
@@ -446,11 +448,11 @@ MODE="standard"
 [[ "$USE_SOCAT" == true ]] && MODE="socat"
 
 echo "======================================================================="
-echo "  Avvio LegoPST Docker - Modalità: $MODE"
+echo "  Starting LegoPST Docker - Mode: $MODE"
 echo "======================================================================="
-echo "Immagine: $IMAGE_NAME"
+echo "Image: $IMAGE_NAME"
 echo "Demo mode: $RUN_DEMO$([[ "$RUN_DEMO" == true ]] && echo " (legopst_$DEMO_NOME)")"
-echo "Utente: $HOST_USERNAME (UID: $HOST_USER_ID, GID: $HOST_GROUP_ID)"
+echo "User: $HOST_USERNAME (UID: $HOST_USER_ID, GID: $HOST_GROUP_ID)"
 echo "Home directory: $HOST_USER_HOME"
 echo "DISPLAY: $DISPLAY"
 echo ""
@@ -459,8 +461,8 @@ echo ""
 # Docker Pull (se richiesto)
 # =============================================================================
 if [[ "$DO_PULL" == true ]]; then
-    echo "--- Aggiornamento immagine Docker ---"
-    echo "Esecuzione: $DOCKER_CMD pull $IMAGE_NAME"
+    echo "--- Updating the Docker image ---"
+    echo "Running: $DOCKER_CMD pull $IMAGE_NAME"
     $DOCKER_CMD pull $IMAGE_NAME >&$FD_VISTA
     echo ""
 fi
@@ -480,11 +482,11 @@ fi
 #  Scaricarla e' una decisione che si prende in due casi soli: non c'e' (qui),
 #  o la si vuole aggiornare (-p, o "-update"). Mai da sola a ogni avvio.
 if ! $DOCKER_CMD image inspect "$IMAGE_NAME" >/dev/null 2>&1; then
-    echo "LegoPST: l'immagine $IMAGE_NAME non c'e' ancora su questa macchina: la scarico (qualche GB, una volta sola)..." >&$FD_VISTA
+    echo "LegoPST: the image $IMAGE_NAME is not on this machine yet: downloading it (a few GB, only once)..." >&$FD_VISTA
     if ! $DOCKER_CMD pull --platform linux/amd64 "$IMAGE_NAME" >&$FD_VISTA; then
         echo "" >&2
-        echo "ERRORE: non riesco a scaricare l'immagine $IMAGE_NAME." >&2
-        echo "        Controlla la rete e il nome dell'immagine, poi riprova." >&2
+        echo "ERROR: cannot download the image $IMAGE_NAME." >&2
+        echo "        Check the network and the image name, then try again." >&2
         exit 1
     fi
 fi
@@ -494,10 +496,10 @@ fi
 # =============================================================================
 HOST_DEFAULTS_DIR="$HOME/defaults"
 if [[ ! -d "$HOST_DEFAULTS_DIR" ]]; then
-    echo "Creazione directory $HOST_DEFAULTS_DIR..."
+    echo "Creating directory $HOST_DEFAULTS_DIR..."
     mkdir -p "$HOST_DEFAULTS_DIR"
 else
-    echo "Directory defaults: OK"
+    echo "defaults directory: OK"
 fi
 
 # =============================================================================
@@ -505,7 +507,7 @@ fi
 # =============================================================================
 if [[ "$USE_SOCAT" == true ]]; then
     echo ""
-    echo "--- Setup X11 con socat ---"
+    echo "--- X11 setup with socat ---"
     
     # Estrai numero display
     DISPLAY_NUM=$(echo $DISPLAY | sed 's/.*:\([0-9]*\).*/\1/')
@@ -518,20 +520,20 @@ if [[ "$USE_SOCAT" == true ]]; then
     # Crea socket bridge se non esiste
     if [ ! -S "$SOCKET_PATH" ]; then
         if ! command -v socat >/dev/null 2>&1; then
-            echo "ERRORE: socat non trovato ma richiesto con --socat"
-            echo "Installalo con: sudo dnf install socat"
+            echo "ERROR: socat not found but required by --socat"
+            echo "Install it with: sudo dnf install socat"
             exit 1
         fi
         
-        echo "Creando socket bridge X11 su $SOCKET_PATH..."
+        echo "Creating X11 socket bridge on $SOCKET_PATH..."
         socat UNIX-LISTEN:$SOCKET_PATH,fork,mode=777 TCP:localhost:$((6000 + DISPLAY_NUM)) &
         SOCAT_PID=$!
         sleep 1
         chmod 777 $SOCKET_PATH
         SOCKET_CREATED=true
-        echo "Socket bridge creato (PID: $SOCAT_PID)"
+        echo "Socket bridge created (PID: $SOCAT_PID)"
     else
-        echo "Socket X11 $SOCKET_PATH esiste già"
+        echo "X11 socket $SOCKET_PATH already exists"
     fi
     
     # Estrai cookie X11 e crea file xauth temporaneo
@@ -544,11 +546,11 @@ if [[ "$USE_SOCAT" == true ]]; then
         XAUTH_COOKIE=$(xauth list $DISPLAY | head -n1 | awk '{print $3}')
         if [ -n "$XAUTH_COOKIE" ]; then
             xauth -f "$TEMP_XAUTH" add ":${DISPLAY_NUM}" . "$XAUTH_COOKIE"
-            echo "X11 authentication configurata per display :${DISPLAY_NUM}"
+            echo "X11 authentication configured for display :${DISPLAY_NUM}"
         fi
     else
-        echo "WARNING: xauth non trovato, X11 authentication potrebbe non funzionare"
-        echo "         Installa con: sudo dnf install xorg-x11-xauth"
+        echo "WARNING: xauth not found, X11 authentication may not work"
+        echo "         Install it with: sudo dnf install xorg-x11-xauth"
     fi
     
     # Permetti connessioni locali
@@ -557,7 +559,7 @@ if [[ "$USE_SOCAT" == true ]]; then
     # Cleanup alla fine - rimuovi solo ciò che abbiamo creato
     cleanup() {
         if [ -n "$SOCAT_PID" ]; then
-            [[ "$DEBUG" == true ]] && echo "Terminazione socat (PID: $SOCAT_PID)..."
+            [[ "$DEBUG" == true ]] && echo "Stopping socat (PID: $SOCAT_PID)..."
             kill $SOCAT_PID 2>/dev/null
         fi
         if [ "$SOCKET_CREATED" = true ]; then
@@ -571,9 +573,9 @@ if [[ "$USE_SOCAT" == true ]]; then
     
 else
     echo ""
-    echo "--- Setup X11 standard ---"
+    echo "--- Standard X11 setup ---"
     DISPLAY_NUM=$(echo $DISPLAY | sed 's/.*:\([0-9]*\).*/\1/')
-    echo "Modalità standard: X11 forwarding diretto"
+    echo "Standard mode: direct X11 forwarding"
 fi
 
 echo ""
@@ -649,22 +651,22 @@ elif [ "$HOST_HOME_UID" = "0" ]; then
     CONT_GID="${HOST_HOME_GID:-0}"
     LOGIN_USER=root
     USER_HOME_IN_CONTAINER="/root"
-    echo "=== Modalita' rootless rilevata (Podman o Docker) ==="
-    echo "/host_home risulta di root: qui dentro l'utente dell'host E' root."
-    echo "Si lavora percio' come root del container. Altrimenti tutto quello che"
-    echo "si scrive nella home uscirebbe sull'host intestato a un UID mappato"
-    echo "(100999 e simili), che HOST_USERNAME_VAR non puo' nemmeno leggere."
+    echo "=== Rootless mode detected (Podman or Docker) ==="
+    echo "/host_home is owned by root: in here the host user IS root."
+    echo "So we work as the container's root. Otherwise everything written in"
+    echo "the home would show up on the host owned by a mapped UID (100999 and"
+    echo "the like), which HOST_USERNAME_VAR cannot even read."
     echo ""
 elif [ -z "$HOST_HOME_UID" ]; then
-    echo "ATTENZIONE: /host_home non e' leggibile (stat fallito)."
-    echo "Proseguo come se fosse un runtime classico, UID HOST_USER_ID_VAR."
+    echo "WARNING: /host_home is not readable (stat failed)."
+    echo "Going on as with a classic runtime, UID HOST_USER_ID_VAR."
     echo ""
 else
-    echo "ATTENZIONE: /host_home risulta dell'UID $HOST_HOME_UID, che non e'"
-    echo "ne' HOST_USER_ID_VAR (runtime classico) ne' 0 (rootless). Il bind mount"
-    echo "e' rimappato in un modo che non so tradurre: userns-remap, oppure un"
-    echo "filesystem che non tiene le proprieta' Unix. Uso $HOST_HOME_UID come"
-    echo "proprietario; se i chown falliscono, i file restano come sono."
+    echo "WARNING: /host_home is owned by UID $HOST_HOME_UID, which is neither"
+    echo "HOST_USER_ID_VAR (classic runtime) nor 0 (rootless). The bind mount is"
+    echo "remapped in a way I cannot translate: userns-remap, or a filesystem"
+    echo "that does not keep Unix ownership. Using $HOST_HOME_UID as owner; if"
+    echo "chown fails, the files stay as they are."
     echo ""
     CONT_UID="$HOST_HOME_UID"
     CONT_GID="${HOST_HOME_GID:-HOST_GROUP_ID_VAR}"
@@ -673,19 +675,19 @@ fi
 if [ "$ROOTLESS" = true ]; then
     # Niente utente da creare: si usa root, che qui dentro E' l'utente
     # dell'host. E niente sudoers: root non ne ha bisogno.
-    echo "=== Utente nel container: root (sull'host risulta HOST_USERNAME_VAR) ==="
+    echo "=== Container user: root (HOST_USERNAME_VAR on the host) ==="
     mkdir -p "$USER_HOME_IN_CONTAINER"
 else
-    echo '=== Configurazione utente dinamica (UID: HOST_USER_ID_VAR, GID: HOST_GROUP_ID_VAR, Utente: HOST_USERNAME_VAR) ==='
+    echo '=== Dynamic user setup (UID: HOST_USER_ID_VAR, GID: HOST_GROUP_ID_VAR, User: HOST_USERNAME_VAR) ==='
 
     # Crea il gruppo se non esiste con il GID dell'host
     if ! getent group "HOST_GROUP_ID_VAR" >/dev/null 2>&1; then
-        echo "Creando gruppo 'HOST_USERNAME_VAR' (GID: HOST_GROUP_ID_VAR)"
+        echo "Creating group 'HOST_USERNAME_VAR' (GID: HOST_GROUP_ID_VAR)"
         groupadd -g "HOST_GROUP_ID_VAR" "HOST_USERNAME_VAR"
     else
         EXISTING_GROUP_NAME=$(getent group "HOST_GROUP_ID_VAR" | cut -d: -f1)
         if [ "$EXISTING_GROUP_NAME" != "HOST_USERNAME_VAR" ]; then
-            echo "Attenzione: GID HOST_GROUP_ID_VAR è già usato dal gruppo '$EXISTING_GROUP_NAME'"
+            echo "Warning: GID HOST_GROUP_ID_VAR is already used by group '$EXISTING_GROUP_NAME'"
             if getent group "HOST_USERNAME_VAR" >/dev/null 2>&1; then 
                 groupmod -g "HOST_GROUP_ID_VAR" "HOST_USERNAME_VAR"
             else 
@@ -696,15 +698,15 @@ else
 
     # Crea l'utente se non esiste con l'UID dell'host
     if ! getent passwd "HOST_USER_ID_VAR" >/dev/null 2>&1; then
-        echo "Creando utente 'HOST_USERNAME_VAR' (UID: HOST_USER_ID_VAR, GID: HOST_GROUP_ID_VAR)"
+        echo "Creating user 'HOST_USERNAME_VAR' (UID: HOST_USER_ID_VAR, GID: HOST_GROUP_ID_VAR)"
         useradd -u "HOST_USER_ID_VAR" -g "HOST_GROUP_ID_VAR" -m -d "$USER_HOME_IN_CONTAINER" -s /bin/bash "HOST_USERNAME_VAR"
     else
         EXISTING_USER_WITH_UID=$(getent passwd "HOST_USER_ID_VAR" | cut -d: -f1)
         if [ "$EXISTING_USER_WITH_UID" != "HOST_USERNAME_VAR" ]; then
-            echo "ERRORE: UID HOST_USER_ID_VAR è già usato dall'utente '$EXISTING_USER_WITH_UID'"
+            echo "ERROR: UID HOST_USER_ID_VAR is already used by user '$EXISTING_USER_WITH_UID'"
             exit 1
         else
-            echo "Utente 'HOST_USERNAME_VAR' (UID HOST_USER_ID_VAR) trovato. Aggiorno configurazione."
+            echo "User 'HOST_USERNAME_VAR' (UID HOST_USER_ID_VAR) found. Updating its settings."
             usermod -g "HOST_GROUP_ID_VAR" -d "$USER_HOME_IN_CONTAINER" -s /bin/bash "HOST_USERNAME_VAR"
         fi
     fi
@@ -738,7 +740,7 @@ fi
 # appena creata da useradd o il /root dell'immagine, che non contiene ne' sked
 # ne' legocad - ma se un domani l'immagine nascesse con quelle directory il
 # problema tornerebbe, e -n non basterebbe.
-echo "Creazione link simbolici in $USER_HOME_IN_CONTAINER..."
+echo "Creating symbolic links in $USER_HOME_IN_CONTAINER..."
 mkdir -p "$USER_HOME_IN_CONTAINER"
 ln -sfn /host_home "$USER_HOME_IN_CONTAINER/host_data"
 
@@ -792,11 +794,11 @@ allinea_demo_alla_home() {
                 && cat "$sim/kMmi.cfg.lgdock" > "$sim/kMmi.cfg"
             rm -f "$sim/kMmi.cfg.lgdock"
         fi
-        echo "Demo allineata a questa home: $(basename "$sim") ($vecchia -> $nuova)"
+        echo "Demo aligned to this home: $(basename "$sim") ($vecchia -> $nuova)"
         fatti=$((fatti + 1))
     done
     if [ "$fatti" -gt 0 ] && [ -n "$LGDOCK_LOG" ]; then
-        echo "LegoPST: pagine MMI della demo allineate a $nuova" >&4
+        echo "LegoPST: demo MMI pages aligned to $nuova" >&4
     fi
     return 0
 }
@@ -812,21 +814,22 @@ DEMO_DIR="legopst_$DEMO_NOME"
 if [[ "RUN_DEMO_FLAG" == "true" ]]; then
     if [ ! -d "/host_home/$DEMO_DIR" ]; then
         # l'estrazione dura: in modo silenzioso almeno si dica che c'e'
-        [ -n "$LGDOCK_LOG" ] && echo "LegoPST: installazione della demo $DEMO_DIR in corso..." >&4
+        [ -n "$LGDOCK_LOG" ] && echo "LegoPST: installing the $DEMO_DIR demo..." >&4
         echo "=========================================="
-        echo "  Installazione Demo LegoPST: $DEMO_DIR"
+        echo "  Installing LegoPST demo: $DEMO_DIR"
         echo "=========================================="
         DEMO_TGZ="/home/legoroot_fedora41/demo/$DEMO_DIR.tgz"
         if [ ! -f "$DEMO_TGZ" ]; then
             DEMO_TGZ="/tmp/$DEMO_DIR.tgz"
-            echo "Non e' nell'immagine: la scarico da"
+            echo "Not in the image: downloading it from"
             echo "  DEMO_URL_VAR"
-            [ -n "$LGDOCK_LOG" ] && echo "LegoPST: la scarico dalla release delle demo..." >&4
+            [ -n "$LGDOCK_LOG" ] && echo "LegoPST: downloading it from the demo release..." >&4
             if ! curl -fL --retry 3 -o "$DEMO_TGZ" "DEMO_URL_VAR"; then
                 echo ""
-                echo "ERRORE: non riesco a scaricare la demo '$DEMO_NOME'."
-                echo "        Non e' nell'immagine e la release non la porta (o manca"
-                echo "        la rete). Le demo si pubblicano con demo/publish_demo.sh."
+                echo "ERROR: cannot download the '$DEMO_NOME' demo."
+                echo "        It is not in the image and the release does not have it"
+                echo "        (or there is no network). Demos are published with"
+                echo "        demo/publish_demo.sh."
                 rm -f "$DEMO_TGZ"
                 exit 1
             fi
@@ -848,23 +851,23 @@ if [[ "RUN_DEMO_FLAG" == "true" ]]; then
             fi
             rm -f /tmp/lgdock_rel.json
             if [ -z "$SHA_ATTESO" ]; then
-                echo "ATTENZIONE: sha256 di $DEMO_DIR.tgz non controllato (la release non"
-                echo "            si legge, o non pubblica lo sha256 di questo allegato)."
-                [ -n "$LGDOCK_LOG" ] && echo "LegoPST: ATTENZIONE, sha256 della demo non controllato" >&4
+                echo "WARNING: sha256 of $DEMO_DIR.tgz not checked (the release cannot be"
+                echo "         read, or does not publish the sha256 of this asset)."
+                [ -n "$LGDOCK_LOG" ] && echo "LegoPST: WARNING, demo sha256 not checked" >&4
             else
                 SHA_ARRIVATO="$(sha256sum "$DEMO_TGZ" | cut -d' ' -f1)"
                 if [ "$SHA_ARRIVATO" != "$SHA_ATTESO" ]; then
                     echo ""
-                    echo "ERRORE: lo sha256 della demo scaricata non e' quello pubblicato."
-                    echo "        pubblicato: $SHA_ATTESO"
-                    echo "        scaricato:  $SHA_ARRIVATO"
-                    echo "        Il file e' arrivato rovinato, o e' stato sostituito mentre"
-                    echo "        lo scaricavo: riprova. Non ho installato niente."
-                    [ -n "$LGDOCK_LOG" ] && echo "LegoPST: ERRORE, sha256 della demo diverso da quello pubblicato" >&4
+                    echo "ERROR: the sha256 of the downloaded demo is not the published one."
+                    echo "        published:  $SHA_ATTESO"
+                    echo "        downloaded: $SHA_ARRIVATO"
+                    echo "        The file arrived damaged, or was replaced while it was"
+                    echo "        downloading: try again. Nothing has been installed."
+                    [ -n "$LGDOCK_LOG" ] && echo "LegoPST: ERROR, demo sha256 differs from the published one" >&4
                     rm -f "$DEMO_TGZ"
                     exit 1
                 fi
-                echo "sha256 corretto: $SHA_ARRIVATO"
+                echo "sha256 correct: $SHA_ARRIVATO"
             fi
         fi
         # --no-same-owner: NON ripristinare l'UID registrato nel tarball (che e'
@@ -886,10 +889,10 @@ if [[ "RUN_DEMO_FLAG" == "true" ]]; then
         # inutilizzabile, senza che nulla lo dica.
         if ! tar --no-same-owner -xvzf "$DEMO_TGZ" -C "/host_home/"; then
             echo ""
-            echo "ATTENZIONE: tar ha segnalato errori durante l'estrazione."
-            echo "Se sono del tipo \"Cannot change mode\" sono innocui: i file ci"
-            echo "sono, ma il filesystem dell'host non accetta i permessi."
-            echo "Proseguo con l'installazione."
+            echo "WARNING: tar reported errors during extraction."
+            echo "If they are of the \"Cannot change mode\" kind they are harmless:"
+            echo "the files are there, but the host filesystem does not accept"
+            echo "permissions. Going on with the installation."
             echo ""
         fi
         # Il pacchetto deve contenere proprio legopst_<nome>: e' da li' che si
@@ -897,8 +900,8 @@ if [[ "RUN_DEMO_FLAG" == "true" ]]; then
         # altro nome si estrarrebbe altrove, lasciando link rotti in silenzio.
         if [ ! -d "/host_home/$DEMO_DIR/legocad" ] || [ ! -d "/host_home/$DEMO_DIR/sked" ]; then
             echo ""
-            echo "ERRORE: il pacchetto non contiene $DEMO_DIR/legocad e $DEMO_DIR/sked."
-            echo "        Va rifatto con demo/make_demo_tgz.sh -d $DEMO_NOME."
+            echo "ERROR: the package does not contain $DEMO_DIR/legocad and $DEMO_DIR/sked."
+            echo "        Rebuild it with demo/make_demo_tgz.sh -d $DEMO_NOME."
             exit 1
         fi
         # I Context.ctx dell'MMI portano la home di chi ha confezionato: si
@@ -909,13 +912,13 @@ if [[ "RUN_DEMO_FLAG" == "true" ]]; then
         # attimo prima dei link.
         if ! chown -R "$CONT_UID:$CONT_GID" "/host_home/$DEMO_DIR"; then
             echo ""
-            echo "ATTENZIONE: chown -R fallito su /host_home/$DEMO_DIR."
-            echo "I file restano come li ha scritti tar. Proseguo."
+            echo "WARNING: chown -R failed on /host_home/$DEMO_DIR."
+            echo "The files stay as tar wrote them. Going on."
             echo ""
         fi
         
         echo ""
-        echo "Contenuto directory demo:"
+        echo "Demo directory contents:"
         echo "- legocad:"
         ls -la /host_home/$DEMO_DIR/legocad | head -10
         echo "- sked:"
@@ -933,11 +936,11 @@ if [[ "RUN_DEMO_FLAG" == "true" ]]; then
         chown -h "$CONT_UID:$CONT_GID" /host_home/sked 2>/dev/null || true
         
         echo "=========================================="
-        echo "  Demo installata in: HOST_USER_HOME_VAR/$DEMO_DIR"
+        echo "  Demo installed in: HOST_USER_HOME_VAR/$DEMO_DIR"
         echo "=========================================="
         echo ""
     else
-        echo "Demo già installata in /host_home/$DEMO_DIR"
+        echo "Demo already installed in /host_home/$DEMO_DIR"
         # Installata da una lgdock che non allineava i Context.ctx, o su una
         # macchina dove la home nel container era un'altra: non costa niente.
         allinea_demo_alla_home "/host_home/$DEMO_DIR"
@@ -959,14 +962,14 @@ if [[ "RUN_DEMO_FLAG" == "true" ]]; then
                         DEMO_CAMBIATA=1
                     fi
                 else
-                    echo "ATTENZIONE: ~/$n e' una directory vera, non un link: non la tocco."
-                    echo "            L'area di lavoro NON e' passata a $DEMO_DIR."
-                    [ -n "$LGDOCK_LOG" ] && echo "LegoPST: ~/$n e' una directory vera: l'area di lavoro resta quella." >&4
+                    echo "WARNING: ~/$n is a real directory, not a link: leaving it alone."
+                    echo "         The work area has NOT been switched to $DEMO_DIR."
+                    [ -n "$LGDOCK_LOG" ] && echo "LegoPST: ~/$n is a real directory: the work area stays as it is." >&4
                 fi
             done
             if [ -n "$DEMO_CAMBIATA" ]; then
-                echo "Area di lavoro corrente: $DEMO_DIR (~/legocad e ~/sked ora puntano li')"
-                [ -n "$LGDOCK_LOG" ] && echo "LegoPST: area di lavoro -> $DEMO_DIR" >&4
+                echo "Current work area: $DEMO_DIR (~/legocad and ~/sked now point there)"
+                [ -n "$LGDOCK_LOG" ] && echo "LegoPST: work area -> $DEMO_DIR" >&4
             fi
         fi
         # Se e' stata installata da una lgdock precedente sotto rootless, e'
@@ -974,10 +977,10 @@ if [[ "RUN_DEMO_FLAG" == "true" ]]; then
         DEMO_UID=$(stat -c %u /host_home/$DEMO_DIR/legocad 2>/dev/null || true)
         if [ -n "$DEMO_UID" ] && [ "$DEMO_UID" != "$CONT_UID" ]; then
             echo ""
-            echo "ATTENZIONE: la demo presente risulta dell'UID $DEMO_UID, non $CONT_UID."
-            echo "L'ha installata una versione di lgdock che non riconosceva questa"
-            echo "mappatura: sull'host non e' utilizzabile. Per rifarla, da una"
-            echo "shell dell'host:"
+            echo "WARNING: the existing demo is owned by UID $DEMO_UID, not $CONT_UID."
+            echo "It was installed by a version of lgdock that did not recognize this"
+            echo "mapping: it is not usable on the host. To redo it, from a shell on"
+            echo "the host:"
             echo "    rm -rf ~/$DEMO_DIR ~/legocad ~/sked"
             echo "    lgrun --demo=$DEMO_NOME"
             echo ""
@@ -1005,16 +1008,16 @@ chown -h "$CONT_UID:$CONT_GID" "$USER_HOME_IN_CONTAINER/host_data"
 # l'utente puo' averle cambiate.
 RISORSE_UFFICIALI="/home/legoroot_fedora41/util2025/risorse"
 if [ ! -e /host_home/risorse ] && [ -d "$RISORSE_UFFICIALI" ]; then
-    echo "Creazione di ~/risorse (risorse X delle applicazioni) da util2025/risorse..."
+    echo "Creating ~/risorse (X resources of the applications) from util2025/risorse..."
     # Gli stessi riguardi della demo: su un filesystem che non accetta i
     # permessi Unix cp e chown possono lamentarsi, e nudi sotto set -e
     # fermerebbero l'avvio del container per delle risorse grafiche.
     if mkdir -p /host_home/risorse && cp -R "$RISORSE_UFFICIALI/." /host_home/risorse/; then
         chown -R "$CONT_UID:$CONT_GID" /host_home/risorse 2>/dev/null || \
-            echo "ATTENZIONE: chown fallito su /host_home/risorse. Proseguo."
+            echo "WARNING: chown failed on /host_home/risorse. Going on."
     else
-        echo "ATTENZIONE: non riesco a creare /host_home/risorse. Proseguo senza:"
-        echo "le applicazioni useranno l'aspetto di default."
+        echo "WARNING: cannot create /host_home/risorse. Going on without it:"
+        echo "the applications will use their default look."
     fi
 fi
 ln -sfn /host_home/risorse "$USER_HOME_IN_CONTAINER/risorse" 2>/dev/null || true
@@ -1025,25 +1028,25 @@ BASH_PROFILE_PATH="$USER_HOME_IN_CONTAINER/.bash_profile"
 PROFILE_LEGOROOT_PATH="/home/legoroot_fedora41/.profile_legoroot"
 
 {
-    echo "# File .bash_profile per HOST_USERNAME_VAR"
-    echo "# Generato automaticamente da lgdock"
+    echo "# .bash_profile for HOST_USERNAME_VAR"
+    echo "# Generated automatically by lgdock"
     echo ""
-    echo "# Carica .bashrc se esiste"
+    echo "# Load .bashrc if it exists"
     echo "if [ -f ~/.bashrc ]; then"
     echo "    . ~/.bashrc"
     echo "fi"
     echo ""
-    echo "# Esporta la variabile DISPLAY"
+    echo "# Export the DISPLAY variable"
     echo "export DISPLAY=\"$DISPLAY_VALUE\""
     if [[ "USE_SOCAT_VAR" == "true" ]]; then
         echo "export XAUTHORITY=\"\$HOME/.Xauthority\""
     fi
-    [ "${LGDOCK_DEBUG:-0}" = 1 ] && echo "echo \"DISPLAY impostato a: \$DISPLAY\""
+    [ "${LGDOCK_DEBUG:-0}" = 1 ] && echo "echo \"DISPLAY set to: \$DISPLAY\""
     echo ""
-    echo "# Prompt personalizzato LegoPST"
+    echo "# LegoPST custom prompt"
     echo "export PS1='LegoPST@\w \$ '"
     echo ""
-    echo "# Sorgente del profilo custom LegoPST"
+    echo "# Source the LegoPST profile"
     # In modo silenzioso il profilo si carica senza i suoi messaggi (la
     # piattaforma, le tavole del vapore, il simulatore corrente...): sono
     # quelli che riempivano lo schermo prima del prompt, e prima dell'output
@@ -1068,17 +1071,17 @@ PROFILE_LEGOROOT_PATH="/home/legoroot_fedora41/.profile_legoroot"
     # legare il container alla vita di lghmi li porterebbe via tutti al Quit.
     if [ -n "${LGDOCK_EXEC:-}" ]; then
         echo ""
-        echo "# lgrun -e: eseguito una volta, appena il container e' pronto"
+        echo "# lgrun -e: run once, as soon as the container is ready"
         printf 'LGDOCK_EXEC=%q\n' "$LGDOCK_EXEC"
         echo 'if [ ! -e /tmp/.lgdock_exec_fatto ]; then'
         echo '    touch /tmp/.lgdock_exec_fatto'
         echo '    LGDOCK_PRIMO=${LGDOCK_EXEC%% *}'
         echo '    if command -v "$LGDOCK_PRIMO" >/dev/null 2>&1; then'
         [ "${LGDOCK_DEBUG:-0}" = 1 ] && \
-            echo '        echo "Avvio di: $LGDOCK_EXEC   (output in /tmp/lgdock_exec.log)"'
+            echo '        echo "Starting: $LGDOCK_EXEC   (output in /tmp/lgdock_exec.log)"'
         echo '        ( eval "$LGDOCK_EXEC" >/tmp/lgdock_exec.log 2>&1 & )'
         echo '    else'
-        echo '        echo "lgrun -e: comando non trovato nel container: $LGDOCK_PRIMO"'
+        echo '        echo "lgrun -e: command not found in the container: $LGDOCK_PRIMO"'
         echo '    fi'
         echo '    unset LGDOCK_PRIMO'
         echo 'fi'
@@ -1088,15 +1091,15 @@ PROFILE_LEGOROOT_PATH="/home/legoroot_fedora41/.profile_legoroot"
 chown "$CONT_UID:$CONT_GID" "$BASH_PROFILE_PATH"
 
 echo '======================================================================='
-echo '  Container Pronto'
+echo '  Container Ready'
 echo '======================================================================='
-echo "Utente: $LOGIN_USER (UID $CONT_UID, GID $CONT_GID)"
+echo "User: $LOGIN_USER (UID $CONT_UID, GID $CONT_GID)"
 if [ "$ROOTLESS" = true ]; then
-    echo "Runtime: rootless - sull'host i file risultano di HOST_USERNAME_VAR"
+    echo "Runtime: rootless - on the host the files belong to HOST_USERNAME_VAR"
 fi
 echo "DISPLAY: $DISPLAY_VALUE"
 [[ "USE_SOCAT_VAR" == "true" ]] && echo "X11 Mode: socat bridge" || echo "X11 Mode: standard"
-[ -n "${LGDOCK_EXEC:-}" ] && echo "Da eseguire all'avvio: $LGDOCK_EXEC"
+[ -n "${LGDOCK_EXEC:-}" ] && echo "To run at startup: $LGDOCK_EXEC"
 echo '======================================================================='
 echo ''
 
@@ -1108,8 +1111,8 @@ if [ -n "$LGDOCK_LOG" ]; then
     LGDOCK_PRONTO=1
     exec 1>&3 2>&4 3>&- 4>&-
     LGDOCK_VER=$(tr -d '[:space:]' < /home/legoroot_fedora41/VERSION 2>/dev/null || true)
-    LGDOCK_RIGA="LegoPST container avviato (${LGDOCK_IMAGE:-immagine sconosciuta}${LGDOCK_VER:+, LegoPST $LGDOCK_VER})"
-    [ -z "${LGDOCK_APP:-}" ] && LGDOCK_RIGA="$LGDOCK_RIGA - 'exit' per uscire"
+    LGDOCK_RIGA="LegoPST container started (${LGDOCK_IMAGE:-unknown image}${LGDOCK_VER:+, LegoPST $LGDOCK_VER})"
+    [ -z "${LGDOCK_APP:-}" ] && LGDOCK_RIGA="$LGDOCK_RIGA - 'exit' to leave"
     echo "$LGDOCK_RIGA" >&2
 fi
 
@@ -1127,8 +1130,8 @@ fi
 # interrompe per farla scattare.
 if [ -n "${LGDOCK_APP:-}" ]; then
     if [ "${LGDOCK_DEBUG:-0}" = 1 ]; then
-        echo "Modo applicazione: $LGDOCK_APP"
-        echo "Il container si chiude quando il programma finisce."
+        echo "Application mode: $LGDOCK_APP"
+        echo "The container stops when the program ends."
         echo ''
     fi
     su - "$LOGIN_USER" -c "$LGDOCK_APP" &
@@ -1142,7 +1145,7 @@ if [ -n "${LGDOCK_APP:-}" ]; then
     fi
     if [ "${LGDOCK_DEBUG:-0}" = 1 ]; then
         echo ''
-        echo "Programma terminato (codice $APP_RC): chiudo il container."
+        echo "Program ended (code $APP_RC): stopping the container."
     fi
     exit "$APP_RC"
 fi

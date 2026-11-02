@@ -17,68 +17,69 @@ VERSION="1.0"
 # ---------------------------------------------------------------------------
 mostra_aiuto() {
     cat <<'AIUTO'
-install_legopst_dock.sh - installa LegoPST come comando "lgrun", via Docker
+install_legopst_dock.sh - installs LegoPST as the "lgrun" command, via Docker
 
-A COSA SERVE
-  A usare LegoPST su una macchina dove LegoPST NON e' installato e non verra'
-  compilato. L'ambiente completo - compilatori, Motif, Tcl/Tk/Tix, X11 - sta
-  dentro un'immagine Docker; qui si installano solo i due comandi che la
-  lanciano. I file su cui lavori restano tuoi, nella tua home: il container
-  monta la home dell'host e dentro ci crea il tuo stesso utente, cosi' quello
-  che scrive esce con il tuo UID e non di root.
+WHAT IT IS FOR
+  Using LegoPST on a machine where LegoPST is NOT installed and will not be
+  compiled. The full environment - compilers, Motif, Tcl/Tk/Tix, X11 - lives
+  inside a Docker image; this script installs only the commands that launch
+  it. Your files stay yours, in your home: the container mounts the host home
+  and creates your same user inside, so whatever it writes is owned by your
+  UID, not by root.
 
-COSA FA, IN CONCRETO
-  1. controlla che ci siano Docker (in esecuzione) e curl;
-  2. scarica docker/lgdock.sh DAL REPOSITORY - dal branch, non da una copia -
-     e lo installa come ~/.local/lib/legopst/lgdock, FUORI dal PATH: e' il
-     motore, non un comando da digitare;
-  3. crea ~/.local/bin/lgrun come SYMLINK a lgdock. L'utente finale ha cosi'
-     un solo comando nel PATH, e l'aiuto porta il nome giusto da se': bash
-     mette in $0 il percorso con cui lo script e' stato invocato, quindi
-     attraverso il link "basename $0" vale gia' "lgrun".
-  4. se ~/.local/bin non e' nel PATH, aggiunge una riga al tuo .bashrc.
-  Non installa LegoPST, non compila niente, non tocca il sistema: scrive in
-  ~/.local/bin e, al piu', quella riga nel .bashrc.
+WHAT IT DOES
+  1. checks that Docker (or Podman) is running and that curl is available;
+  2. downloads docker/lgdock.sh FROM THE REPOSITORY - from the branch, not
+     from a copy - and installs it as ~/.local/lib/legopst/lgdock, OUTSIDE
+     the PATH: it is the engine, not a command to type;
+  3. creates ~/.local/bin/lgrun as a SYMLINK to lgdock. The end user has a
+     single command in the PATH, and its help shows the right name by
+     itself: through the link, "basename $0" is already "lgrun".
+  4. if ~/.local/bin is not in the PATH, adds a line to your .bashrc.
+  It does not install LegoPST, compiles nothing, does not touch the system:
+  it writes to ~/.local/bin and ~/.local/lib/legopst and, at most, that one
+  line in .bashrc.
 
-DOPO L'INSTALLAZIONE
-  lgrun              avvia il container e apre un terminale bash dentro
-  lgrun --demo       ci mette anche un modello di esempio (legocad e sked)
-  lgrun -d NOME      un'altra demo: legopst_NOME, scaricata dalla release
-  lgrun --socat      X11 attraverso un socket bridge, per SSH/MobaXterm
-  lgrun --pull       aggiorna l'immagine prima di partire
-  lgrun -e lghmi     appena il container e' pronto apre lghmi (o un altro programma)
-  lgrun lghmi        solo lghmi, senza shell: il container si chiude con lui
-  lgrun -v           versione di lgrun, dell'immagine e di LegoPST
-  lgrun -dbg         mostra tutti i messaggi dell'avvio (di norma: una riga)
-  lgrun -update      reinstalla all'ultima versione e aggiorna l'immagine
-  lgrun -uninstall   disinstalla (come "install_legopst_dock.sh -u")
-  lgrun --help       tutte le opzioni
-  La prima volta Docker scarica l'immagine (qualche GB): qualche minuto, una
-  volta sola.
+AFTER INSTALLATION
+  lgrun              starts the container and opens a bash terminal inside
+  lgrun --demo       also puts a sample model there (legocad and sked)
+  lgrun -d NAME      another demo: legopst_NAME, downloaded from the release
+  lgrun --socat      X11 through a socket bridge, for SSH/MobaXterm
+  lgrun --pull       updates the image before starting
+  lgrun -e lghmi     opens lghmi (or another program) once the container is up
+  lgrun lghmi        only lghmi, no shell: the container exits with it
+  lgrun -v           versions of lgrun, of the image and of LegoPST
+  lgrun -dbg         shows every startup message (normally: one line)
+  lgrun -update      reinstalls the latest version and updates the image
+  lgrun -uninstall   uninstalls (same as "install_legopst_dock.sh -u")
+  lgrun --help       all the options
+  The first time, Docker downloads the image (a few GB): a few minutes, once.
 
-PER AGGIORNARSI
-  Rilancia questo script: riscarica lgdock.sh dal branch e sovrascrive i due
-  comandi. E' il modo di prendere le correzioni - quelle copie non si
-  aggiornano da se'.
+UPDATING
+  Run this script again (or "lgrun -update"): it downloads lgdock.sh from the
+  branch again and overwrites the commands. That is how you get fixes - the
+  installed copies do not update themselves.
 
-PER DISINSTALLARE
+UNINSTALLING
   install_legopst_dock.sh -u
-  Toglie da ~/.local/bin i due comandi che ha messo (e solo quelli: un file
-  omonimo di qualcun altro lo lascia dov'e'). NON cancella l'immagine Docker
-  ne' i tuoi dati - ~/legocad, ~/sked, ~/defaults, ~/risorse sono tuoi; stampa il
-  comando per l'immagine, se la vuoi togliere anche quella. La riga del PATH
-  nel .bashrc la toglie solo se ~/.local/bin resta vuota, perche' la' dentro
-  vivono spesso altri comandi.
+  Removes from ~/.local/bin the commands it installed (and only those: a file
+  with the same name belonging to someone else is left alone). It does NOT
+  delete the Docker image or your data - ~/legocad, ~/sked, ~/defaults,
+  ~/risorse are yours; it prints the command to remove the image, if you want
+  that gone too. The PATH line in .bashrc is removed only if ~/.local/bin
+  ends up empty, because other commands often live there.
 
-OPZIONI
-  -h, --help         questo messaggio
-  -u, --uninstall    disinstalla (vedi sopra)
+OPTIONS
+  -h, --help         this message
+  -u, --uninstall    uninstall (see above)
 
-DOVE VA A PESCARE
-  Host, repository e branch li legge da docker/repo_info.conf (lo genera il
-  Makefile) oppure dal git remote; si forzano con le variabili d'ambiente
-  REPO_HOST, REPO_SLUG, REPO_BRANCH. L'immagine e' quella scritta in lgdock.sh
-  (aguagliardi/legopst:2.0), sostituibile con LG_DOCKER_IMAGE.
+WHERE IT DOWNLOADS FROM
+  Host, repository and branch are read from docker/repo_info.conf (generated
+  by the Makefile) or from the git remote - only when the script is run as a
+  file from a checkout. Run through "curl ... | bash" it uses RSE-TGM/LegoPST,
+  branch master. The environment variables REPO_HOST, REPO_SLUG, REPO_BRANCH
+  override everything. The image is the one written in lgdock.sh
+  (aguagliardi/legopst:2.0), replaceable with LG_DOCKER_IMAGE.
 AIUTO
 }
 
@@ -123,7 +124,7 @@ immagine_da() {
 disinstalla() {
     LGRUN_LINK="$INSTALL_DIR/lgrun"
     echo "======================================================================="
-    echo "  Disinstallazione LegoPST (i comandi lgrun e lgdock)"
+    echo "  Uninstalling LegoPST (the lgrun and lgdock commands)"
     echo "======================================================================="
     echo ""
 
@@ -146,28 +147,28 @@ disinstalla() {
         BERSAGLIO=$(readlink "$LGRUN_LINK" 2>/dev/null || true)
         if [ "$BERSAGLIO" = "$LIB_DIR/lgdock" ] || grep -q "LegoPST" "$LGRUN_LINK" 2>/dev/null; then
             rm -f "$LGRUN_LINK"
-            echo "✓ rimosso $LGRUN_LINK"
+            echo "✓ removed $LGRUN_LINK"
         else
-            echo "⚠ $LGRUN_LINK non sembra installato da qui: lo lascio dov'e'"
+            echo "⚠ $LGRUN_LINK does not look installed by this script: leaving it alone"
         fi
     else
-        echo "- lgrun: non installato in $INSTALL_DIR"
+        echo "- lgrun: not installed in $INSTALL_DIR"
     fi
 
     #  Il motore, nella posizione nuova e in quella vecchia.
     for f in "$LIB_DIR/lgdock" "$INSTALL_DIR/lgdock"; do
         [ -f "$f" ] || continue
         if ! grep -q "LegoPST" "$f" 2>/dev/null; then
-            echo "⚠ $f non sembra installato da qui: lo lascio dov'e'"
+            echo "⚠ $f does not look installed by this script: leaving it alone"
             continue
         fi
         rm -f "$f"
-        echo "✓ rimosso $f"
+        echo "✓ removed $f"
     done
     #  La dir di libreria si toglie solo se e' rimasta vuota: e' nostra, ma non
     #  e' detto che non ci abbia messo altro qualcun altro.
     if [ -d "$LIB_DIR" ] && [ -z "$(ls -A "$LIB_DIR" 2>/dev/null)" ]; then
-        rmdir "$LIB_DIR" 2>/dev/null && echo "✓ rimossa $LIB_DIR"
+        rmdir "$LIB_DIR" 2>/dev/null && echo "✓ removed $LIB_DIR"
     fi
 
     #  La riga del PATH. In ~/.local/bin ci vivono spesso altri comandi (pipx,
@@ -179,26 +180,26 @@ disinstalla() {
         grep -q "# Added by LegoPST installer" "$cfg" 2>/dev/null || continue
         if [ "$RESTANTI" -eq 0 ]; then
             sed -i '/# Added by LegoPST installer/,+1d' "$cfg"
-            echo "✓ rimossa da $cfg la riga del PATH ($INSTALL_DIR e' rimasta vuota)"
+            echo "✓ removed the PATH line from $cfg ($INSTALL_DIR is now empty)"
         else
             echo ""
-            echo "- In $cfg resta la riga aggiunta dall'installazione:"
+            echo "- $cfg still has the line added by the installer:"
             echo "      # Added by LegoPST installer"
             echo "      export PATH=\"\$HOME/.local/bin:\$PATH\""
-            echo "  La lascio: in $INSTALL_DIR ci sono ancora $RESTANTI file e altri"
-            echo "  comandi possono dipendere da quella riga. Toglila a mano se sei"
-            echo "  sicuro che non serva."
+            echo "  Keeping it: $INSTALL_DIR still holds $RESTANTI files, and other"
+            echo "  commands may depend on that line. Remove it by hand if you are"
+            echo "  sure it is not needed."
         fi
     done
 
     echo ""
-    echo "Non ho toccato:"
-    echo "  - l'immagine Docker. Per togliere anche quella (qualche GB):"
+    echo "Left untouched:"
+    echo "  - the Docker image. To remove it too (a few GB):"
     echo "        ${RUNTIME:-docker} rmi $IMMAGINE"
-    echo "  - i tuoi dati: ~/legocad, ~/sked, ~/defaults, ~/risorse e i modelli che"
-    echo "    contengono. Sono il tuo lavoro, non li cancella nessuno script."
+    echo "  - your data: ~/legocad, ~/sked, ~/defaults, ~/risorse and the models they"
+    echo "    contain. That is your work: no script deletes it."
     echo ""
-    echo "Disinstallazione completata."
+    echo "Uninstall complete."
 }
 
 PULL_IMAGE=false
@@ -243,7 +244,7 @@ if [ -z "$SCRIPT_DIR_INST" ]; then
 elif [ -f "$REPO_INFO_FILE" ]; then
     # Leggi le coordinate dal file generato dal Makefile
     . "$REPO_INFO_FILE"
-    echo "Repository rilevato da repo_info.conf: $REPO_HOST / $REPO_SLUG (branch: $REPO_BRANCH)"
+    echo "Repository from repo_info.conf: $REPO_HOST / $REPO_SLUG (branch: $REPO_BRANCH)"
 else
     # Fallback: rileva dal git remote
     if command -v git >/dev/null 2>&1 && git -C "$SCRIPT_DIR_INST" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
@@ -283,17 +284,17 @@ LGDOCK_SCRIPT="$LIB_DIR/lgdock"
 LGRUN_SCRIPT="$INSTALL_DIR/lgrun"
 
 echo "======================================================================="
-echo "  Installazione LegoPST - v${VERSION}"
+echo "  LegoPST installation - v${VERSION}"
 echo "======================================================================="
 echo ""
-echo "Questo script installerà LegoPST come comando 'lgrun'"
-echo "Non è necessario installare LegoPST localmente - tutto funziona via Docker"
+echo "This script installs LegoPST as the 'lgrun' command"
+echo "LegoPST itself is not installed locally - everything runs through Docker"
 echo ""
 
 # =============================================================================
 # Verifica prerequisiti
 # =============================================================================
-echo "--- Verifica prerequisiti ---"
+echo "--- Checking prerequisites ---"
 
 #  Il runtime: docker se c'e' come ESEGUIBILE, altrimenti podman.
 #
@@ -303,39 +304,39 @@ echo "--- Verifica prerequisiti ---"
 #  non lo vedrebbe mai: diceva "Docker non trovato" e si fermava, mentre Podman
 #  era installato e funzionante.
 if [ -z "$RUNTIME" ]; then
-    echo "ERRORE: nessun runtime per container trovato (docker o podman)!"
+    echo "ERROR: no container runtime found (docker or podman)!"
     echo ""
-    echo "Per installarne uno:"
-    echo "  Ubuntu/Debian: sudo apt-get install docker.io   (oppure podman)"
-    echo "  Fedora/RHEL:   sudo dnf install docker          (oppure podman)"
-    echo "  Arch:          sudo pacman -S docker            (oppure podman)"
+    echo "To install one:"
+    echo "  Ubuntu/Debian: sudo apt-get install docker.io   (or podman)"
+    echo "  Fedora/RHEL:   sudo dnf install docker          (or podman)"
+    echo "  Arch:          sudo pacman -S docker            (or podman)"
     echo ""
-    echo "Con Docker, aggiungi il tuo utente al gruppo docker:"
+    echo "With Docker, add your user to the docker group:"
     echo "  sudo usermod -aG docker \$USER"
     echo "  newgrp docker"
     echo ""
-    echo "Se 'docker' funziona nel tuo terminale ma non qui, e' un ALIAS: gli"
-    echo "alias non esistono nelle shell non interattive. Installa"
-    echo "podman-docker, oppure usa podman - ora lo trovo da solo."
+    echo "If 'docker' works in your terminal but not here, it is an ALIAS:"
+    echo "aliases do not exist in non-interactive shells. Install"
+    echo "podman-docker, or just use podman - it is detected automatically."
     exit 1
 fi
-echo "✓ Runtime trovato: $RUNTIME"
+echo "✓ Runtime found: $RUNTIME"
 
 # Controlla curl
 if ! command -v curl >/dev/null 2>&1; then
-    echo "ERRORE: curl non trovato!"
-    echo "Installa curl con: sudo apt-get install curl"
+    echo "ERROR: curl not found!"
+    echo "Install curl with: sudo apt-get install curl"
     exit 1
 fi
-echo "✓ curl installato"
+echo "✓ curl installed"
 
 # Verifica che il runtime sia accessibile
 if $RUNTIME ps >/dev/null 2>&1; then
-    echo "✓ $RUNTIME accessibile"
+    echo "✓ $RUNTIME accessible"
 elif [ -w "/var/run/docker.sock" ]; then
-    echo "✓ $RUNTIME accessibile"
+    echo "✓ $RUNTIME accessible"
 else
-    echo "⚠ $RUNTIME richiede sudo (normale, lo script gestirà automaticamente)"
+    echo "⚠ $RUNTIME requires sudo (normal: lgrun handles it automatically)"
 fi
 
 echo ""
@@ -343,14 +344,14 @@ echo ""
 # =============================================================================
 # Creazione directory di installazione
 # =============================================================================
-echo "--- Preparazione installazione ---"
+echo "--- Preparing installation ---"
 
 mkdir -p "$LIB_DIR"
 if [ ! -d "$INSTALL_DIR" ]; then
-    echo "Creazione directory $INSTALL_DIR..."
+    echo "Creating directory $INSTALL_DIR..."
     mkdir -p "$INSTALL_DIR"
 else
-    echo "✓ Directory di installazione esiste"
+    echo "✓ Installation directory exists"
 fi
 
 # =============================================================================
@@ -359,14 +360,14 @@ fi
 echo ""
 echo "--- Download lgdock.sh ---"
 echo "URL: $LGDOCK_URL"
-echo "Destinazione: $LGDOCK_SCRIPT"
+echo "Destination: $LGDOCK_SCRIPT"
 
 if curl -fsSL "$LGDOCK_URL" -o "$LGDOCK_SCRIPT"; then
     chmod +x "$LGDOCK_SCRIPT"
-    echo "✓ lgdock.sh scaricato e reso eseguibile"
+    echo "✓ lgdock.sh downloaded and made executable"
 else
-    echo "ERRORE: Impossibile scaricare lgdock.sh"
-    echo "Verifica la connessione internet e l'URL"
+    echo "ERROR: cannot download lgdock.sh"
+    echo "Check your internet connection and the URL"
     exit 1
 fi
 
@@ -388,9 +389,9 @@ fi
 
 if [ -n "$PROJECT_VER" ]; then
     sed -i "s/^VERSION=\".*\"/VERSION=\"${PROJECT_VER}\"/" "$LGDOCK_SCRIPT"
-    echo "✓ Versione impostata a: $PROJECT_VER"
+    echo "✓ Version set to: $PROJECT_VER"
 else
-    echo "⚠ File VERSION non trovato, versione placeholder mantenuta"
+    echo "⚠ VERSION file not found, keeping the placeholder version"
 fi
 
 #  Da dove e' arrivata questa copia. Serve a "lgrun -update", che riscarica
@@ -399,13 +400,13 @@ fi
 sed -i -e "s|^REPO_HOST=\".*\"|REPO_HOST=\"${REPO_HOST}\"|" \
        -e "s|^REPO_SLUG=\".*\"|REPO_SLUG=\"${REPO_SLUG}\"|" \
        -e "s|^REPO_BRANCH=\".*\"|REPO_BRANCH=\"${REPO_BRANCH}\"|" "$LGDOCK_SCRIPT"
-echo "✓ Aggiornamenti da: $REPO_SLUG ($REPO_BRANCH)"
+echo "✓ Updates from: $REPO_SLUG ($REPO_BRANCH)"
 
 # =============================================================================
 # Comando lgrun (symlink a lgdock)
 # =============================================================================
 echo ""
-echo "--- Creazione comando 'lgrun' ---"
+echo "--- Creating the 'lgrun' command ---"
 
 #  Installazione PRECEDENTE: lgdock stava in ~/.local/bin, accanto a lgrun.
 #  Va tolto, altrimenti resta nel PATH un secondo comando identico e ormai
@@ -413,16 +414,16 @@ echo "--- Creazione comando 'lgrun' ---"
 VECCHIO="$INSTALL_DIR/lgdock"
 if [ -f "$VECCHIO" ] && [ ! -L "$VECCHIO" ] && grep -q "LegoPST" "$VECCHIO" 2>/dev/null; then
     rm -f "$VECCHIO"
-    echo "✓ rimosso il vecchio $VECCHIO (ora lgdock sta in $LIB_DIR)"
+    echo "✓ removed the old $VECCHIO (lgdock now lives in $LIB_DIR)"
 fi
 
 #  -f: se lgrun c'e' gia' - da un'installazione precedente, involucro o link -
 #  si sostituisce. ln non tocca l'inode del target, quindi questo e' sicuro
 #  anche mentre lgrun sta girando (e' il caso di "lgrun -update").
 if ln -sfn "$LGDOCK_SCRIPT" "$LGRUN_SCRIPT"; then
-    echo "✓ Comando 'lgrun' creato ($LGRUN_SCRIPT -> $LGDOCK_SCRIPT)"
+    echo "✓ Command 'lgrun' created ($LGRUN_SCRIPT -> $LGDOCK_SCRIPT)"
 else
-    echo "ERRORE: impossibile creare $LGRUN_SCRIPT"
+    echo "ERROR: cannot create $LGRUN_SCRIPT"
     exit 1
 fi
 
@@ -430,16 +431,16 @@ fi
 # Verifica PATH
 # =============================================================================
 echo ""
-echo "--- Verifica PATH ---"
+echo "--- Checking PATH ---"
 
 PATH_CONFIGURED=false
 if [[ ":$PATH:" == *":$INSTALL_DIR:"* ]]; then
-    echo "✓ $INSTALL_DIR è già nel PATH"
+    echo "✓ $INSTALL_DIR is already in the PATH"
     PATH_CONFIGURED=true
 else
-    echo "⚠ $INSTALL_DIR NON è nel PATH"
+    echo "⚠ $INSTALL_DIR is NOT in the PATH"
     echo ""
-    echo "Aggiungo $INSTALL_DIR al PATH nel tuo .bashrc..."
+    echo "Adding $INSTALL_DIR to the PATH in your .bashrc..."
 
     # Determina quale file di configurazione shell usare
     SHELL_CONFIG="$HOME/.bashrc"
@@ -455,11 +456,11 @@ else
         echo "" >> "$SHELL_CONFIG"
         echo "# Added by LegoPST installer" >> "$SHELL_CONFIG"
         echo "export PATH=\"\$HOME/.local/bin:\$PATH\"" >> "$SHELL_CONFIG"
-        echo "✓ PATH aggiornato in $SHELL_CONFIG"
+        echo "✓ PATH updated in $SHELL_CONFIG"
         echo ""
-        echo "⚠ IMPORTANTE: Esegui 'source $SHELL_CONFIG' o riapri il terminale"
+        echo "⚠ IMPORTANT: run 'source $SHELL_CONFIG' or open a new terminal"
     else
-        echo "✓ PATH già configurato in $SHELL_CONFIG"
+        echo "✓ PATH already configured in $SHELL_CONFIG"
         PATH_CONFIGURED=true
     fi
 fi
@@ -468,16 +469,16 @@ fi
 # Test installazione
 # =============================================================================
 echo ""
-echo "--- Test installazione ---"
+echo "--- Testing the installation ---"
 
 if [ "$PATH_CONFIGURED" = true ]; then
     if command -v lgrun >/dev/null 2>&1; then
-        echo "✓ Comando 'lgrun' disponibile"
+        echo "✓ Command 'lgrun' available"
     else
-        echo "⚠ Comando 'lgrun' non ancora disponibile (riavvia il terminale)"
+        echo "⚠ Command 'lgrun' not available yet (open a new terminal)"
     fi
 else
-    echo "⚠ Riavvia il terminale per usare 'lgrun'"
+    echo "⚠ Open a new terminal to use 'lgrun'"
 fi
 
 IMMAGINE_PRONTA=false
@@ -486,20 +487,20 @@ IMMAGINE_PRONTA=false
 #  aggiornamento cambia immagine, e' quella nuova che va scaricata.
 if [ "$PULL_IMAGE" = true ]; then
     IMG=$(immagine_da "$LGDOCK_SCRIPT")
-    echo "--- Aggiornamento immagine Docker ---"
-    echo "Immagine: $IMG"
-    echo "(qualche GB: puo' volerci parecchio)"
+    echo "--- Updating the Docker image ---"
+    echo "Image: $IMG"
+    echo "(a few GB: this can take a while)"
     echo ""
     if $RUNTIME pull "$IMG"; then
-        echo "✓ Immagine aggiornata"
+        echo "✓ Image updated"
         IMMAGINE_PRONTA=true
     else
         #  Non e' un fallimento dell'installazione: i comandi ci sono e
         #  funzionano con l'immagine che c'e' gia'.
         echo ""
-        echo "⚠ Non sono riuscito ad aggiornare l'immagine."
-        echo "  I comandi sono installati e funzionano con quella che hai."
-        echo "  Puoi riprovare piu' tardi con:  $RUNTIME pull $IMG"
+        echo "⚠ Could not update the image."
+        echo "  The commands are installed and work with the image you already have."
+        echo "  You can retry later with:  $RUNTIME pull $IMG"
     fi
     echo ""
 fi
@@ -509,42 +510,42 @@ fi
 # =============================================================================
 echo ""
 echo "======================================================================="
-echo "  Installazione completata!"
+echo "  Installation complete!"
 echo "======================================================================="
 echo ""
-echo "File installati:"
+echo "Installed files:"
 echo "  - $LGDOCK_SCRIPT"
 echo "  - $LGRUN_SCRIPT"
 echo ""
-echo "Uso:"
-echo "  lgrun              # Avvia LegoPST container"
-echo "  lgrun --demo       # Avvia con modello demo"
-echo "  lgrun --socat      # Avvia con X11 via socat (per SSH)"
-echo "  lgrun lghmi        # Solo lghmi: il container si chiude con lui"
-echo "  lgrun -update      # Aggiorna comando e immagine all'ultima versione"
-echo "  lgrun -uninstall   # Disinstalla"
-echo "  lgrun --help       # Mostra tutte le opzioni"
+echo "Usage:"
+echo "  lgrun              # Start the LegoPST container"
+echo "  lgrun --demo       # Start with the demo model"
+echo "  lgrun --socat      # Start with X11 through socat (for SSH)"
+echo "  lgrun lghmi        # Only lghmi: the container exits with it"
+echo "  lgrun -update      # Update command and image to the latest version"
+echo "  lgrun -uninstall   # Uninstall"
+echo "  lgrun --help       # Show all the options"
 echo ""
 
 
 if [ "$PATH_CONFIGURED" = false ]; then
-    echo "⚠ AZIONE RICHIESTA:"
-    echo "   Esegui: source ~/.bashrc"
-    echo "   oppure riapri il terminale"
+    echo "⚠ ACTION REQUIRED:"
+    echo "   Run: source ~/.bashrc"
+    echo "   or open a new terminal"
     echo ""
 fi
 
-echo "Per testare l'installazione:"
+echo "To test the installation:"
 echo "  lgrun --version"
 echo ""
-echo "Per avviare LegoPST:"
+echo "To start LegoPST:"
 echo "  lgrun"
 echo ""
 if [ "$IMMAGINE_PRONTA" = true ]; then
-    echo "L'immagine è aggiornata: il prossimo avvio parte subito."
+    echo "The image is up to date: the next start is immediate."
 else
-    echo "Nota: Al primo avvio, Docker scaricherà l'immagine LegoPST"
-    echo "      (circa 2-3 GB, potrebbe richiedere alcuni minuti)"
+    echo "Note: on the first start, Docker downloads the LegoPST image"
+    echo "      (about 2-3 GB, it may take a few minutes)"
 fi
 echo ""
 echo "======================================================================="

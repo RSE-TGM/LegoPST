@@ -322,9 +322,9 @@ lgrun --version
 
 ```
 $ lgrun -v
-lgrun v2.0 - lanciatore del container LegoPST
-Immagine:  aguagliardi/legopst:2.0 (creata il 2026-10-06)
-LegoPST:   2.0 - v2026.1-139-g75933111, build 254 del 2026-10-06
+lgrun v2.0 - LegoPST container launcher
+Image:     aguagliardi/legopst:2.0 (created 2026-10-06)
+LegoPST:   2.0 - v2026.1-139-g75933111, build 254 of 2026-10-06
 ```
 
 Sono tre versioni diverse, e fino a ottobre 2026 se ne vedeva solo la prima:
@@ -347,13 +347,18 @@ rispondere a una domanda).
 `lgrun` parte **in silenzio**: una riga sola, che dice che quello è un container
 LegoPST, e poi il prompt — o l'output del comando chiesto.
 
+I messaggi e l'aiuto di `lgrun` e dell'installer sono **in inglese** (da
+novembre 2026), perché li legge chi installa da fuori; i commenti nel codice
+restano in italiano. Con `-dbg` si vedono anche i messaggi del profilo LegoPST
+dentro l'immagine, che sono ancora in italiano.
+
 ```
 $ lgrun
-LegoPST container avviato (aguagliardi/legopst:2.0, LegoPST 2.0) - 'exit' per uscire
+LegoPST container started (aguagliardi/legopst:2.0, LegoPST 2.0) - 'exit' to leave
 LegoPST@.../antonio >
 
 $ lgrun ls ~/sked
-LegoPST container avviato (aguagliardi/legopst:2.0, LegoPST 2.0)
+LegoPST container started (aguagliardi/legopst:2.0, LegoPST 2.0)
 SLaurent_0
 duetask
 ```

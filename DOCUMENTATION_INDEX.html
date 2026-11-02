@@ -666,7 +666,10 @@ run in a container.</p>
   <code>aguagliardi/legopst:2.0</code>, what it deliberately leaves out and why, volumes,
   startup, <code>lgdock</code> and its options, and <code>install_legopst_dock.sh</code>, which
   installs the <code>lgrun</code> command on a machine that has no LegoPST
-  (<code>install_legopst_dock.sh -h</code> explains itself).</p>
+  (<code>install_legopst_dock.sh -h</code> explains itself). The short way to run it is
+  <code>curl -fsSL https://rse-tgm.github.io/LegoPST/install | bash</code>: a GitHub Pages
+  stub (<code>docker/pages/</code>, published by <code>.github/workflows/pages.yml</code>)
+  that downloads and runs the installer from <code>master</code>.</p>
   <p class="use"><b>When you need it:</b> to run LegoPST without installing it on the host
   machine. It is the only route: the gist-based one (<code>lancio_lgdock_noinst.md</code>,
   <code>simple_inst_lgdock/</code>) was retired on 2026-09-27 - it shipped a forked copy of the
