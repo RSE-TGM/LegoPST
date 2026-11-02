@@ -146,8 +146,32 @@ Questo installer consente di eseguire LegoPST senza installare nulla localmente 
 ### Metodo 1: Download e esecuzione diretta
 
 ```bash
+curl -fsSL https://rse-tgm.github.io/LegoPST/install | bash
+```
+
+Le opzioni vanno dopo `bash -s --`: `... | bash -s -- -h` (aiuto),
+`... | bash -s -- -u` (disinstalla).
+
+L'indirizzo corto è [pages/install](pages/install), pubblicato su GitHub Pages
+dal workflow `.github/workflows/pages.yml` insieme a una pagina
+([pages/index.html](pages/index.html)) che spiega il comando. Non è una copia
+dell'installatore: scarica ed esegue `install_legopst_dock.sh` da `master`,
+quindi lo script resta in un posto solo. Equivale alla forma lunga:
+
+```bash
 curl -fsSL https://raw.githubusercontent.com/RSE-TGM/LegoPST/master/docker/install_legopst_dock.sh | bash
 ```
+
+Lanciato così (in pipe, non da un file) l'installatore non cerca il
+repository nella directory corrente: usa `RSE-TGM/LegoPST` e `master`, salvo
+`REPO_HOST`/`REPO_SLUG`/`REPO_BRANCH` nell'ambiente. Fino a novembre 2026
+prendeva per "sua" la directory corrente: lanciato dentro un altro repository
+git, scaricava `lgdock.sh` dal remote di quello.
+
+**Attivazione (una volta sola, da chi amministra il repository):**
+Settings → Pages → *Build and deployment* → Source: **GitHub Actions**. Poi il
+workflow parte a ogni modifica di `docker/pages/` su `master`, oppure a mano da
+Actions → *Pagina di installazione* → *Run workflow*.
 
 ### Metodo 2: Download manuale
 
@@ -166,7 +190,7 @@ chmod +x install_legopst_dock.sh
 
 ```bash
 git clone https://github.com/RSE-TGM/LegoPST.git
-cd LegoPST2010A/docker
+cd LegoPST/docker
 ./install_legopst_dock.sh
 ```
 
@@ -1047,8 +1071,8 @@ rm -rf ~/risorse      # le risorse X: se le hai personalizzate, le perdi
 Per aggiornare all'ultima versione:
 
 ```bash
-# Riesegui l'installer
-curl -fsSL https://raw.githubusercontent.com/RSE-TGM/LegoPST/master/docker/install_legopst_dock.sh | bash
+# Riesegui l'installer (o, gia' installato: lgrun -update)
+curl -fsSL https://rse-tgm.github.io/LegoPST/install | bash
 
 # Oppure aggiorna l'immagine Docker
 docker pull aguagliardi/legopst:2.0

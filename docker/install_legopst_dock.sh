@@ -219,13 +219,28 @@ esac
 DEFAULT_HOST="github.com"
 DEFAULT_REPO="RSE-TGM/LegoPST"
 DEFAULT_BRANCH="master"
-SCRIPT_DIR_INST="$(cd "$(dirname "$0")" 2>/dev/null && pwd)"
-REPO_INFO_FILE="$SCRIPT_DIR_INST/repo_info.conf"
+#  Le variabili d'ambiente vincono su tutto, come promette l'aiuto: si mettono
+#  da parte prima che il rilevamento le sovrascriva.
+ENV_HOST="${REPO_HOST:-}"
+ENV_SLUG="${REPO_SLUG:-}"
+ENV_BRANCH="${REPO_BRANCH:-}"
 REPO_HOST=""
 REPO_SLUG=""
 REPO_BRANCH=""
 
-if [ -f "$REPO_INFO_FILE" ]; then
+#  Il rilevamento ha senso solo se lo script e' un FILE dentro un checkout.
+#  Lanciato con "curl ... | bash" o bash -c "$(curl ...)" non lo e':
+#  BASH_SOURCE e' vuoto e $0 vale "bash", e dirname "bash" e' la directory
+#  corrente - dentro un altro repository git si sarebbe preso il suo remote.
+SCRIPT_DIR_INST=""
+if [ -n "${BASH_SOURCE[0]:-}" ] && [ -f "${BASH_SOURCE[0]}" ]; then
+    SCRIPT_DIR_INST="$(cd "$(dirname "${BASH_SOURCE[0]}")" 2>/dev/null && pwd)"
+fi
+REPO_INFO_FILE="$SCRIPT_DIR_INST/repo_info.conf"
+
+if [ -z "$SCRIPT_DIR_INST" ]; then
+    :   # scaricato al volo: valgono i default qui sotto
+elif [ -f "$REPO_INFO_FILE" ]; then
     # Leggi le coordinate dal file generato dal Makefile
     . "$REPO_INFO_FILE"
     echo "Repository rilevato da repo_info.conf: $REPO_HOST / $REPO_SLUG (branch: $REPO_BRANCH)"
@@ -241,9 +256,9 @@ else
     fi
 fi
 
-REPO_HOST="${REPO_HOST:-$DEFAULT_HOST}"
-REPO_SLUG="${REPO_SLUG:-$DEFAULT_REPO}"
-REPO_BRANCH="${REPO_BRANCH:-$DEFAULT_BRANCH}"
+REPO_HOST="${ENV_HOST:-${REPO_HOST:-$DEFAULT_HOST}}"
+REPO_SLUG="${ENV_SLUG:-${REPO_SLUG:-$DEFAULT_REPO}}"
+REPO_BRANCH="${ENV_BRANCH:-${REPO_BRANCH:-$DEFAULT_BRANCH}}"
 
 # Costruisci URL raw in base al tipo di hosting
 if [ "$REPO_HOST" = "github.com" ]; then

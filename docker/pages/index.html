@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LegoPST - installazione di lgrun</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 46rem; margin: 2rem auto; padding: 0 1rem; line-height: 1.5; color: #222; background: #fff; }
+  pre { background: #f3f3f3; padding: .8rem 1rem; overflow-x: auto; border-radius: 4px; }
+  code { font-family: ui-monospace, monospace; }
+  @media (prefers-color-scheme: dark) {
+    body { color: #ddd; background: #181818; }
+    pre { background: #262626; }
+    a { color: #8ab4f8; }
+  }
+</style>
+</head>
+<body>
+<h1>LegoPST</h1>
+<p>Ambiente di simulazione e controllo di processi termici, idraulici ed
+elettrici. Il comando <code>lgrun</code> lo fa girare dentro un container
+Docker: sulla macchina non si installa LegoPST.</p>
+
+<h2>Installazione</h2>
+<p>Serve Docker (o Podman) funzionante. Poi:</p>
+<pre><code>curl -fsSL https://rse-tgm.github.io/LegoPST/install | bash</code></pre>
+<p>Apri un nuovo terminale (o <code>source ~/.bashrc</code>) e lancia
+<code>lgrun</code>. La prima volta Docker scarica l'immagine: qualche GB,
+una volta sola.</p>
+
+<h2>Altro</h2>
+<pre><code>lgrun --help       tutte le opzioni
+lgrun -update      aggiorna lgrun e l'immagine
+lgrun -uninstall   disinstalla (i tuoi dati restano)</code></pre>
+<p>Lo script che viene eseguito:
+<a href="install">install</a>, che a sua volta scarica
+<a href="https://github.com/RSE-TGM/LegoPST/blob/master/docker/install_legopst_dock.sh">docker/install_legopst_dock.sh</a>.
+Repository: <a href="https://github.com/RSE-TGM/LegoPST">github.com/RSE-TGM/LegoPST</a>.</p>
+</body>
+</html>

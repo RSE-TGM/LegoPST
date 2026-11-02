@@ -94,7 +94,15 @@ sudo docker run hello-world
 Install LegoPST with a single command - this creates the `lgrun` command:
 
 ```bash
-bash -c "$(curl -fsSL https://raw.githubusercontent.com/RSE-TGM/LegoPST/master/docker/install_legopst_dock.sh)"
+curl -fsSL https://rse-tgm.github.io/LegoPST/install | bash
+```
+
+That short address is a tiny script published with GitHub Pages
+(`docker/pages/install`): it downloads and runs the real installer,
+`docker/install_legopst_dock.sh` from `master`. The long form does the same:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/RSE-TGM/LegoPST/master/docker/install_legopst_dock.sh | bash
 ```
 
 This installer:

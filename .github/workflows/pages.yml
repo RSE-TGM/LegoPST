@@ -1,0 +1,46 @@
+name: Pagina di installazione (GitHub Pages)
+
+# Pubblica docker/pages/ su https://rse-tgm.github.io/LegoPST/
+# Il file che conta e' "install": da' l'indirizzo corto
+#   curl -fsSL https://rse-tgm.github.io/LegoPST/install | bash
+# Richiede, una volta sola: Settings -> Pages -> Source: "GitHub Actions".
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - master
+    paths:
+      - 'docker/pages/**'
+      - '.github/workflows/pages.yml'
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configura Pages
+        uses: actions/configure-pages@v5
+
+      - name: Carica docker/pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docker/pages
+
+      - name: Pubblica
+        id: deployment
+        uses: actions/deploy-pages@v4
