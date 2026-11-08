@@ -219,34 +219,34 @@ rebuild by themselves.
 
 ```bash
 source .profile_legoroot
-lgversione                 # che versione e', e se tutto e' coerente
-lgversione 2027-2.1        # battezza la versione 2027-2.1 (tutto il resto lo fa lui)
-lgversione --docker        # stessa versione, rifa' e ripubblica l'immagine Docker
+lgversion                 # che versione e', e se tutto e' coerente
+lgversion 2027-2.1        # battezza la versione 2027-2.1 (tutto il resto lo fa lui)
+lgversion --docker        # stessa versione, rifa' e ripubblica l'immagine Docker
 ```
 
-### Quando si usa `lgversione`
+### Quando si usa `lgversion`
 
-**Il file `VERSION` non si modifica a mano: lo cambia `lgversione`.** Lo si
+**Il file `VERSION` non si modifica a mano: lo cambia `lgversion`.** Lo si
 lancia quando si *decide* che e' il momento di una nuova versione, e lui
 cambia `VERSION` e tutto il resto.
 
 | Situazione | Cosa fare |
 |---|---|
 | lavoro normale: modifiche, commit, push | **niente**. A ogni `make` la versione in `version.h` si aggiorna da sola: `v2026-2.0-25-g1a2b3c4d` = 25 commit dopo la 2026-2.0 |
-| battezzare una nuova versione (per esempio l'anno nuovo) | `lgversione 2027-2.1` |
-| aggiornare l'immagine Docker con le modifiche fatte, senza cambiare versione | `lgversione --docker` |
-| sapere a che punto si e' | `lgversione` |
+| battezzare una nuova versione (per esempio l'anno nuovo) | `lgversion 2027-2.1` |
+| aggiornare l'immagine Docker con le modifiche fatte, senza cambiare versione | `lgversion --docker` |
+| sapere a che punto si e' | `lgversion` |
 
-`lgversione --check` non serve lanciarlo: lo fa la CI di GitHub a ogni push.
+`lgversion --check` non serve lanciarlo: lo fa la CI di GitHub a ogni push.
 
 **Se `VERSION` si cambia a mano** (per esempio `2027-2.1` con l'editor, e
 commit) i riferimenti non sono piu' coerenti: la CI e i lanciatori nominano
 ancora l'immagine `:2.0`, e senza il tag i programmi mostrano ancora
 `v2026-2.0-...`. La CI se ne accorge (la prova `versione` fallisce e dice
 quali file). Si rimedia rimettendo `VERSION` com'era e lanciando
-`lgversione` con la versione voluta.
+`lgversion` con la versione voluta.
 
-La regola da ricordare e' una sola: **per cambiare versione, `lgversione` e
+La regola da ricordare e' una sola: **per cambiare versione, `lgversion` e
 basta.**
 
 ### Il nome
@@ -262,7 +262,7 @@ Il file `VERSION`, nella radice e in git, contiene una riga sola, oggi
 
 | Che cosa | Come lo ottiene |
 |---|---|
-| tag git `v2026-2.0` | lo mette `lgversione` sul commit della versione |
+| tag git `v2026-2.0` | lo mette `lgversion` sul commit della versione |
 | `version.h` (non in git) | a ogni `make`, da `git describe --tags --match 'v[0-9]*'`: `v2026-2.0-18-g7a8af436` = 18 commit dopo il rilascio, al commit `7a8af436` (`-dirty` se c'erano modifiche, `-0-` esattamente sul rilascio). Senza git (immagine Docker, bundle FMU): `v2026-2.0-nogit` dal file `VERSION` |
 | immagine `aguagliardi/legopst:2.0` | le cifre dopo il trattino. `docker/Makefile.mk` e `docker/BuildImage` la calcolano da `VERSION` |
 | lanciatori `lgdock`, `lgdock_multi`, `lgdock_socat` | il `make` li installa da `docker/*.sh` scrivendoci versione e immagine di default |
@@ -275,9 +275,9 @@ di lavoro: restano, ma non danno il nome alla versione. Prima di questo filtro
 (ottobre 2026) `git describe` prendeva il tag piu' vicino qualunque fosse, e la
 versione mostrata era `prima-fase4-18-g...`.
 
-### Battezzare una versione: `lgversione AAAA-N.M`
+### Battezzare una versione: `lgversion AAAA-N.M`
 
-`lgversione 2027-2.1` ([Alg_rt/bin/lgversione](../Alg_rt/bin/lgversione)) fa
+`lgversion 2027-2.1` ([util97/procedure/lgversion.sh](../util97/procedure/lgversion.sh)) fa
 tutto, nell'ordine giusto, e chiede conferma prima dei passi che escono dalla
 macchina o non si disfano:
 
@@ -304,7 +304,7 @@ risponde si' a tutto. Con la stessa immagine (es. da `2026-2.0` a `2027-2.0`)
 il passo 5 si salta, a meno di `--docker`, che serve anche per aggiornare il
 contenuto dell'immagine senza cambiarle nome.
 
-### Rifare l'immagine senza cambiare versione: `lgversione --docker`
+### Rifare l'immagine senza cambiare versione: `lgversion --docker`
 
 Senza una versione, `--docker` non cambia niente nei file: controlla la
 coerenza, mostra da quale commit verra' costruita l'immagine (avvisa se ci
@@ -313,7 +313,7 @@ sono modifiche non committate, che finirebbero dentro), chiede conferma e fa
 viene sostituita. E' lo stesso di `make -f Makefile.mk docker-push`, con il
 controllo in piu'.
 
-### Il controllo: `lgversione --check`
+### Il controllo: `lgversion --check`
 
 Verifica che ogni file in git nomini l'immagine di `VERSION`, e che i
 lanciatori `Alg_rt/bin/lgdock*` portino la versione di `VERSION` (se no, manca
@@ -332,7 +332,7 @@ I=aguagliardi/legopst; DA='2\.0'; A=2.1
 git grep -lI "$I:$DA" -- . ':!docs/PIANO_INTERVENTO.md' ':!docs/COMPONENTI_RIMOSSI.md' \
     | xargs sed -i -E "s#$I:$DA(\\.?([^0-9A-Za-z._-]|\$))#$I:$A\\1#g"
 (cd docker && make -f Makefile.mk all)   # rigenera i lanciatori
-lgversione --check                       # tutto coerente?
+lgversion --check                       # tutto coerente?
 git commit -a -m "versione 2027-2.1"
 git tag -a v2027-2.1 -m "LegoPST 2027-2.1"
 make -f Makefile.mk version.h            # -> v2027-2.1-0-g<hash>

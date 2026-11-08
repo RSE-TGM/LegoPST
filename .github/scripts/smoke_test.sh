@@ -33,7 +33,7 @@
 #                 di problema, e la riga di Connessioni.reg ricostruita dalle
 #                 pagine per la task di regolazione della demo), poi
 #                 "lgconn -c" sulla stessa task deve produrre il rapporto
-#   9. versione   "lgversione --check": ogni file nomina l'immagine Docker del
+#   9. versione   "lgversion --check": ogni file nomina l'immagine Docker del
 #                 file VERSION e i lanciatori lgdock portano la sua versione
 #                 (un riferimento dimenticato cambiando versione)
 #
@@ -275,12 +275,12 @@ fi
 if ! git rev-parse --git-dir >/dev/null 2>&1; then
     esito versione 0 "saltata: il checkout non ha il .git"
 else
-    Alg_rt/bin/lgversione --check > "$LOGDIR/9_versione.log" 2>&1
+    util97/bin/lgversion --check > "$LOGDIR/9_versione.log" 2>&1
     RC=$?
     if [ $RC -eq 0 ]; then
         esito versione 0 "VERSION $(tr -d '[:space:]' < VERSION): riferimenti all'immagine e lanciatori coerenti"
     else
-        esito versione 1 "$(grep -m1 '^  ' "$LOGDIR/9_versione.log" | sed 's/^ *//') (lgversione --check)"
+        esito versione 1 "$(grep -m1 '^  ' "$LOGDIR/9_versione.log" | sed 's/^ *//') (lgversion --check)"
     fi
 fi
 

@@ -5,7 +5,7 @@
 #
 #  Dal 2026-10-22 non e' piu' scritto qui: viene dal file VERSION della radice,
 #  le cifre dopo il trattino (2026-2.0 -> aguagliardi/legopst:2.0). Vedi
-#  docs/BUILD.md, "Versioni e rilasci", e il comando lgversione.
+#  docs/BUILD.md, "Versioni e rilasci", e il comando lgversion.
 DOCKERFILE := Dockerfile_LegoPST
 BUILD_SCRIPT := ./BuildImage
 
