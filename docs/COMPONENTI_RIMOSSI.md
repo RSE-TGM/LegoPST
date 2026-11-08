@@ -35,6 +35,20 @@ git tag prima-fase4 d9b500a2      # una volta sola
 git checkout prima-fase4 -- Alg_rt/net_simula/monitor
 ```
 
+## `regopatch`, novembre 2026
+
+Commit di riferimento: **`b85b419e`** (*lgdock in english*, 2026-11), l'ultimo
+che lo contiene.
+
+| Rimosso | Cos'era | Perché è stato tolto |
+|---|---|---|
+| `util2007/regopatch/` (6 file: `Regopatch.java`, i due `.class`, `regopatch.sh`, `regopatch1.txt`, `Makefile.mk`) | programma **Java** del 2007 per le pagine MMI (`.pag`): per ogni oggetto leggeva la sigla KKS dal valore della risorsa `paginaStazioni` (il testo fra il primo e il secondo `_`) e la scriveva al posto del segnaposto `KKS` nelle altre risorse dello stesso oggetto, salvando un `.bck`. Uso: `regopatch -f pagina.pag` o `regopatch -all <dir>` (`-m` non era mai stato finito) | Nessuno script, makefile o programma lo chiamava; nessuna `.pag` del repository contiene `KKS`. Era l'**unica dipendenza da Java** del build: in CI `make` provava a rifare `regopatch.jar` senza `javac` e il build falliva (vedi [PIANO_INTERVENTO.md](PIANO_INTERVENTO.md), fase CI). Aveva anche un errore: la sigla si cercava dal primo `_` della **riga**, non del valore, quindi con un `_` nel nome dell'oggetto prendeva il testo sbagliato |
+| `util2007/bin/regopatch`, `util2007/bin/regopatch.jar` | il comando installato (uno script che lancia `$JAVA_HOME/bin/java`) e il suo jar | Prodotti del precedente |
+| riga `cd ./regopatch` in `util2007/Makefile.mk` | — | Puntava alla directory tolta |
+
+Per recuperarlo: `git checkout b85b419e -- util2007/regopatch util2007/bin/regopatch util2007/bin/regopatch.jar`,
+e rimettere la riga nel makefile. Serve un JDK (`javac`, `jar`) per ricostruire il jar.
+
 ## File di interfaccia UIM/X (`.i`, `.prj`), ottobre 2026
 
 Commit di riferimento: **`e1aa4d70`** (*config: copia dalla palette Add Icon

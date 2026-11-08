@@ -18,8 +18,9 @@
 #
 # Il browser e' quello di $LG_BROWSER (File -> Settings di lghmi e legopc);
 # se non c'e' si prende il primo installato fra firefox, falkon, chromium,
-# chromium-browser, google-chrome, epiphany, xdg-open - la stessa lista di
-# browser_disponibile in openhelp.tcl.
+# chromium-browser, google-chrome, epiphany, xdg-open. Lo lancia lgbrowser
+# (accanto a questo script), che se il browser muore subito con un errore
+# prova il successivo, e fa partire falkon con impostazioni adatte a WSL.
 #
 # Lanciato da un terminale, il browser parte per conto suo e il terminale
 # torna subito libero. Lanciato SENZA terminale - "lgrun lghelp", un menu, uno
@@ -87,15 +88,14 @@ if [ "$SOLO_PATH" -eq 1 ]; then
     exit 0
 fi
 
-# Stesso ordine di browser_disponibile (openhelp.tcl): prima il preferito.
+# Il browser lo sceglie e lo lancia lgbrowser, che sta qui accanto: qui serve
+# solo il nome di quello che provera' per primo, per la finestrella di attesa.
+LGBROWSER="$(cd "$(dirname "$0")" && pwd)/lgbrowser"
+[ -x "$LGBROWSER" ] || LGBROWSER="$(command -v lgbrowser 2>/dev/null || true)"
 BROWSER_SCELTO=""
-for b in "${LG_BROWSER:-}" firefox falkon chromium chromium-browser \
-         google-chrome epiphany xdg-open; do
-    if [ -n "$b" ] && command -v "$b" >/dev/null 2>&1; then
-        BROWSER_SCELTO="$b"
-        break
-    fi
-done
+if [ -n "$LGBROWSER" ]; then
+    BROWSER_SCELTO="$("$LGBROWSER" -n 2>/dev/null)" || BROWSER_SCELTO=""
+fi
 
 if [ -z "$BROWSER_SCELTO" ]; then
     echo "lghelp: nessun browser disponibile (LG_BROWSER='${LG_BROWSER:-}')." >&2
@@ -221,15 +221,11 @@ prepara_copia
 if [ "$ATTENDI" -eq 1 ] || [ ! -t 1 ]; then
     echo "Documentazione LegoPST con $BROWSER_SCELTO (resto in attesa del browser):"
     echo "  $DOC"
-    exec "$BROWSER_SCELTO" "$DOC"
+    exec "$LGBROWSER" -w "$DOC"
 fi
 
-# Da terminale: in una sessione propria, cosi' il browser sopravvive alla
-# chiusura del terminale da cui lghelp e' stato lanciato, e non ci scrive.
-if command -v setsid >/dev/null 2>&1; then
-    setsid "$BROWSER_SCELTO" "$DOC" >/dev/null 2>&1 </dev/null &
-else
-    nohup "$BROWSER_SCELTO" "$DOC" >/dev/null 2>&1 </dev/null &
-fi
+# Da terminale: lgbrowser lo stacca in una sessione propria, cosi' il browser
+# sopravvive alla chiusura del terminale da cui lghelp e' stato lanciato.
+"$LGBROWSER" "$DOC"
 echo "Documentazione LegoPST aperta con $BROWSER_SCELTO:"
 echo "  $DOC"

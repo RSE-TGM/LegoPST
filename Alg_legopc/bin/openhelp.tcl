@@ -21,6 +21,20 @@ proc browser_disponibile { preferito } {
 	return ""
 }
 
+# Lancia il browser passando da lgbrowser (Alg_rt/bin), se c'e': se il
+# browser scelto muore subito con un errore prova il successivo della lista,
+# e fa partire falkon con impostazioni adatte a WSL (GPU spenta, X11). Senza
+# lgbrowser si lancia il browser direttamente, come prima.
+# Torna sempre subito: lgbrowser fa i suoi tentativi in background.
+proc lancia_browser { browser file } {
+	set lgb [auto_execok lgbrowser]
+	if { $lgb ne "" } {
+		exec {*}$lgb $file &
+	} else {
+		exec $browser $file &
+	}
+}
+
 proc open_hlp { helpfile  } {
 
 	global env
@@ -53,7 +67,7 @@ proc open_hlp { helpfile  } {
 
 	#  exec puo' fallire per motivi che il check su auto_execok non vede
 	#  (browser installato ma non avviabile): meglio dirlo che restare muti.
-	if { [catch { exec $browser $hf & } err] } {
+	if { [catch { lancia_browser $browser $hf } err] } {
 		tk_messageBox -icon error -type ok -title "Help" \
 			-message "Cannot start the browser:\n$browser $hf\n\n$err"
 	}
@@ -305,7 +319,7 @@ proc aiuto_apri_documento {relativo} {
             set nota "  (md2html.tcl not found: unformatted text)"
         }
     }
-    if {[catch {exec $browser $doc &} err]} {
+    if {[catch {lancia_browser $browser $doc} err]} {
         aiuto_attesa_chiudi
         tk_messageBox -icon error -title "Documentation" -parent . -message \
             "Cannot start the browser:\n$browser $doc\n\n$err"

@@ -1,8 +1,0 @@
-Ti invio la piccola procedurina per eseguire in modo automatico la sostituzione del kks in tutti i punti una volta impostato quello sul tag "paginaStazioni".
-Lo zip contiene:
-    - rego.jar: eseguibile che puo essere gia lanciato e provato
-    - Regopatch.java: sorgente della procedura
-    - regopatch.sh: script esempio per l'esecuzione su linux della procedura
-
-Nota che per eseguire la procedura è necessario avere installato (in una directory codivisa magari) una versione della jre 1.5 o superiore.
-Io l'ho sviluppata su quella verzione della jre ma è possibile comunque adattarla anche a versioni precedenti della jre in poco tempo.

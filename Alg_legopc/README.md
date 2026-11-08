@@ -67,7 +67,13 @@ lancia `$LG_BROWSER $LG_HTML/index.htm`. Due trappole, entrambe risolte:
   su *"HTML browser not found"*. `open_hlp` applica la stessa catena di fallback
   dell'ambiente e ora segnala l'errore anche quando è `exec` a fallire (browser
   installato ma non avviabile). Su WSL i browser Qt/Chromium (Falkon) tendono a
-  crashare per la GPU non accelerata: `firefox` è la scelta affidabile.
+  crashare per la GPU non accelerata: `firefox` è la scelta affidabile, ed è
+  quello che il README fa installare. Il browser comunque non si lancia più
+  direttamente ma con **`lgbrowser`** (`Alg_rt/bin`, vedi
+  [docs/COMANDI_LG.md](../docs/COMANDI_LG.md)): se il browser muore nei primi
+  secondi con un errore prova il successivo della lista, e fa partire Falkon con
+  la GPU spenta e la finestra X11. Quello che i browser scrivono finisce in
+  `~/.cache/legopst/lgbrowser.log`.
 - **Il menu di navigazione era vuoto.** Le pagine sono generate con FrontPage 4.0
   e i pulsanti erano **applet Java** (`fphover.class`, gli "Hover Button"):
   nessun browser esegue più le applet, quindi la prima pagina appariva ma non

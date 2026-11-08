@@ -31,7 +31,8 @@ echo "Log:     $LOG"
 
 # Tutti i file con la STESSA data. Il checkout di GitHub scrive i file in un
 # ordine qualunque, con la data del momento: un prodotto tracciato in git
-# (regopatch.jar, un eseguibile costruito direttamente da un .c) puo' cosi'
+# (un eseguibile costruito direttamente da un .c; fino al 2026-11 anche
+# regopatch.jar, ora tolto) puo' cosi'
 # risultare piu' vecchio del suo sorgente, e make prova a rifarlo. Il build
 # cambiava da una run all'altra: una volta si fermava su javac (che
 # nell'immagine non c'e'), un'altra contava 19 warning in piu'. Con le date

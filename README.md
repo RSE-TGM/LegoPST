@@ -205,7 +205,7 @@ sudo dnf install -y --setopt=install_weak_deps=False \
     xorg-x11-server-Xvfb \
     drawing \
     evince \
-    falkon \
+    firefox \
     unix2dos \
     xorg-x11-fonts-misc \
     xorg-x11-fonts-100dpi \

@@ -1,0 +1,154 @@
+#!/usr/bin/env bash
+#
+# lgbrowser - apre un file o un indirizzo nel browser, con i ripieghi.
+#
+# E' il punto da cui LegoPST lancia il browser: lghelp e il menu "?" di
+# legopc, lghmi e lgmkstaz (openhelp.tcl) passano tutti da qui.
+#
+# Uso:
+#   lgbrowser FILE|URL...     apre nel browser e torna subito
+#   lgbrowser -w FILE|URL...  resta in attesa finche' il browser e' aperto
+#   lgbrowser -n              stampa solo il nome del browser che proverebbe
+#                             per primo
+#
+# Il browser e' $LG_BROWSER (File -> Settings di lghmi e legopc); poi, nell'
+# ordine, firefox, falkon, chromium, chromium-browser, google-chrome,
+# epiphany, xdg-open.
+#
+# Se il browser muore nei primi secondi CON UN ERRORE si prova il successivo
+# della lista, invece di lasciare lo schermo vuoto senza una parola. Uscire
+# subito con 0 non e' un errore: e' il browser che passa la pagina a una sua
+# finestra gia' aperta (firefox, falkon, xdg-open lo fanno). L'uscita del
+# browser finisce in ~/.cache/legopst/lgbrowser.log.
+#
+# Falkon parte con impostazioni prudenti, perche' il suo motore (QtWebEngine,
+# cioe' Chromium) e' quello che sotto WSL si rompe:
+#   - GPU spenta (--disable-gpu): con l'accelerazione di WSLg il processo GPU
+#     muore ("GPU process isn't usable. Goodbye.") e la finestra resta bianca
+#     o si chiude. Per leggere documentazione la GPU non serve;
+#   - finestra X11 (QT_QPA_PLATFORM=xcb) se c'e' DISPLAY: sotto il Wayland di
+#     WSLg Qt a volte non apre la finestra;
+#   - da root (il container in modo rootless) senza sandbox (--no-sandbox):
+#     altrimenti Chromium si rifiuta di partire.
+# Le variabili gia' impostate dall'utente si rispettano.
+#
+# Variabili d'ambiente:
+#   LG_BROWSER         browser preferito
+#   LGBROWSER_ATTESA   secondi entro cui un'uscita con errore fa passare al
+#                      browser successivo (default 6)
+#
+set -u
+
+ATTENDI=0
+case "${1:-}" in
+    -h|--help) sed -n '3,/^[^#]/p' "$0" | sed -n 's/^# \{0,1\}//p'; exit 0 ;;
+    -w|--wait) ATTENDI=1; shift ;;
+    -n|--name) SOLO_NOME=1; shift ;;
+esac
+: "${SOLO_NOME:=0}"
+
+ATTESA="${LGBROWSER_ATTESA:-6}"
+case "$ATTESA" in ''|*[!0-9]*) ATTESA=6 ;; esac
+
+# I candidati, senza doppioni e solo quelli installati. LG_BROWSER puo'
+# essere un percorso o avere argomenti ("firefox -P lego"): conta la prima
+# parola per il controllo, e si lancia cosi' com'e'.
+CANDIDATI=()
+for b in "${LG_BROWSER:-}" firefox falkon chromium chromium-browser \
+         google-chrome epiphany xdg-open; do
+    [ -n "$b" ] || continue
+    command -v "${b%% *}" >/dev/null 2>&1 || continue
+    for c in "${CANDIDATI[@]}"; do [ "$c" = "$b" ] && continue 2; done
+    CANDIDATI+=("$b")
+done
+
+if [ "${#CANDIDATI[@]}" -eq 0 ]; then
+    echo "lgbrowser: nessun browser disponibile (LG_BROWSER='${LG_BROWSER:-}')." >&2
+    exit 1
+fi
+if [ "$SOLO_NOME" -eq 1 ]; then
+    echo "${CANDIDATI[0]}"
+    exit 0
+fi
+if [ $# -eq 0 ]; then
+    echo "lgbrowser: manca il file o l'indirizzo da aprire (vedi lgbrowser -h)" >&2
+    exit 1
+fi
+
+LOGDIR="${XDG_CACHE_HOME:-$HOME/.cache}/legopst"
+mkdir -p "$LOGDIR" 2>/dev/null || LOGDIR="${TMPDIR:-/tmp}"
+LOG="$LOGDIR/lgbrowser.log"
+
+# Le impostazioni prudenti per i browser fatti con QtWebEngine.
+prepara_ambiente() {
+    case "$(basename "${1%% *}")" in
+        falkon|qutebrowser|konqueror)
+            local f="${QTWEBENGINE_CHROMIUM_FLAGS:-}"
+            case " $f " in *" --disable-gpu "*) ;; *) f="$f --disable-gpu" ;; esac
+            if [ "$(id -u)" = 0 ]; then
+                case " $f " in *" --no-sandbox "*) ;; *) f="$f --no-sandbox" ;; esac
+            fi
+            export QTWEBENGINE_CHROMIUM_FLAGS="${f# }"
+            if [ -n "${DISPLAY:-}" ] && [ -z "${QT_QPA_PLATFORM:-}" ]; then
+                export QT_QPA_PLATFORM=xcb
+            fi
+            ;;
+    esac
+}
+
+prova_tutti() {
+for b in "${CANDIDATI[@]}"; do
+    {
+        echo "=== $(date '+%F %T') $b $*"
+    } >>"$LOG" 2>/dev/null
+    (
+        prepara_ambiente "$b"
+        # In una sessione propria: il browser sopravvive alla chiusura del
+        # terminale da cui e' partito, e non ci scrive sopra.
+        if command -v setsid >/dev/null 2>&1; then
+            # $b non quotato: LG_BROWSER puo' portare argomenti
+            # shellcheck disable=SC2086
+            exec setsid $b "$@" </dev/null >>"$LOG" 2>&1
+        else
+            # shellcheck disable=SC2086
+            exec $b "$@" </dev/null >>"$LOG" 2>&1
+        fi
+    ) &
+    pid=$!
+
+    # I primi secondi: se esce con un errore, si passa al successivo.
+    rc=""
+    for ((i = 0; i < ATTESA * 4; i++)); do
+        if ! kill -0 "$pid" 2>/dev/null; then
+            wait "$pid"; rc=$?
+            break
+        fi
+        sleep 0.25
+    done
+
+    if [ -n "$rc" ] && [ "$rc" -ne 0 ]; then
+        echo "lgbrowser: $b e' uscito con errore ($rc), provo il successivo (dettagli in $LOG)" >&2
+        continue
+    fi
+
+    echo "=== aperto con $b" >>"$LOG" 2>/dev/null
+    if [ -z "$rc" ] && [ "$ATTENDI" -eq 1 ]; then
+        wait "$pid"
+        return $?
+    fi
+    return 0
+done
+
+echo "lgbrowser: nessun browser e' riuscito a partire (dettagli in $LOG)." >&2
+return 1
+}
+
+# Con -w si resta qui: il codice di uscita e' quello del browser. Senza, i
+# tentativi proseguono in background e si torna SUBITO - chi chiama (il menu
+# di un programma Tk, un terminale) non deve aspettare i secondi di prova.
+if [ "$ATTENDI" -eq 1 ]; then
+    prova_tutti "$@"
+    exit $?
+fi
+prova_tutti "$@" &
+exit 0
