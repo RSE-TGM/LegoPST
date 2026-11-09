@@ -251,6 +251,21 @@ export XAPPLRESDIR=~/risorse
 #  C comune a tutti: per questo le ricette devono chiamare $(CC) e mai "cc".
 #  Chi vuole un altro compilatore esporta CC prima di caricare questo file.
 export CC="${CC:-gcc -std=gnu17}"
+#
+#  Tix per Tcl 8.6. Da Fedora 45 Tcl 8.6 e' il pacchetto tcl8 e cerca i
+#  pacchetti solo in /usr/lib64/tcl8.6, ma Tix resta in /usr/lib64/tcl/Tix8.4.3:
+#  wish8.6 non lo trova ("can't find package Tix"). Si aggiunge a TCLLIBPATH
+#  la cartella di Tix quando sta fuori dai percorsi di Tcl 8.6; altrove non
+#  cambia niente.
+for _tixdir in /usr/lib64/tcl /usr/lib/tcl; do
+    if [ -f "$_tixdir/Tix8.4.3/pkgIndex.tcl" ]; then
+        case " ${TCLLIBPATH:-} " in
+            *" $_tixdir "*) ;;
+            *) export TCLLIBPATH="${TCLLIBPATH:+$TCLLIBPATH }$_tixdir" ;;
+        esac
+    fi
+done
+unset _tixdir
 export FC=gfortran
 #export F_FLAGS='-g -fno-second-underscore -fdollar-ok -fno-automatic -finit-local-zero -fPIE -std=legacy  -ffixed-line-length-132'
 export F_FLAGS='-g -fno-second-underscore -fdollar-ok -fno-automatic -finit-local-zero -fPIE -std=legacy'

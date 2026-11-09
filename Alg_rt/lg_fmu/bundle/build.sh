@@ -278,7 +278,9 @@ if [[ $BUNDLE -eq 1 ]]; then
         [[ -d "$d" ]] && { TK_LIB_DIR="$d"; break; }
     done
     TIX_LIB_DIR=""
-    for d in /usr/lib64/tcl8.6/Tix8.4.3 /usr/lib/tcl8.6/Tix8.4.3 /usr/share/tcltk/Tix8.4.3; do
+    # /usr/lib64/tcl/Tix8.4.3: Fedora 45 (Tcl 8.6 nel pacchetto tcl8)
+    for d in /usr/lib64/tcl8.6/Tix8.4.3 /usr/lib/tcl8.6/Tix8.4.3 /usr/share/tcltk/Tix8.4.3 \
+             /usr/lib64/tcl/Tix8.4.3 /usr/lib/tcl/Tix8.4.3; do
         [[ -d "$d" ]] && { TIX_LIB_DIR="$d"; break; }
     done
     [[ -n "$TCL_LIB_DIR" && -n "$TK_LIB_DIR" && -n "$TIX_LIB_DIR" ]] \
